@@ -3,7 +3,7 @@
 GTOBot — Approximates Game Theory Optimal play via balanced mixed strategies.
 
 Key principles:
-  • Preflop: position-aware range charts (early/mid/late/blinds) with
+  • Preflop: independent position charts, seeded from early/mid/late/blinds, with
     randomised open-raise, 3-bet, and call frequencies.
   • Postflop: balanced continuation-bet (~60-70%), check-raise (~12-18%),
     and probe-bet frequencies.
@@ -15,7 +15,7 @@ Key principles:
 
 import random
 from core.bot_api import Action, PlayerView, acting_opponents_for
-from core.table_order import position_group
+from core.table_order import position_group, position_labels
 from core.engine import eval_hand, EVAL_HAND_MAX, _FULL_DECK
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -99,12 +99,31 @@ RANGE_BLINDS = _build_range(_BL_T1, _BL_T2, _BL_T3)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  POSITION → RANGE MAP
+#  INDEPENDENT POSITION RANGES (2–10 PLAYERS)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _numeric_range(position, n_players):
-    if str(position) == "SB" and n_players == 2:
-        return RANGE_LATE  # HU small blind is also the button
+# Preserve the original default behavior for unlisted hand classes.
+DEFAULT_HAND_FREQUENCIES = (0.85, 0.10, 0.05)
+
+
+def _all_hand_classes():
+    """Complete canonical 169-hand grid: 13 pairs, 78 suited, 78 offsuit."""
+    ranks = RANKS_ORDER[::-1]
+    hands = [r + r for r in ranks]
+    for hi, high in enumerate(ranks):
+        for low in ranks[hi + 1:]:
+            hands.append(high + low + "s")
+            hands.append(high + low + "o")
+    return tuple(hands)
+
+
+ALL_HAND_CLASSES = _all_hand_classes()
+
+
+def _legacy_range_for_position(position, n_players):
+    """Original group-selection rule; used only to seed independent charts."""
+    if str(position).upper() == "SB" and n_players == 2:
+        return RANGE_LATE  # HU SB is the button.
     group = position_group(position, n_players)
     return {
         "early": RANGE_EARLY,
@@ -113,6 +132,39 @@ def _numeric_range(position, n_players):
         "sb": RANGE_BLINDS,
         "bb": RANGE_BLINDS,
     }[group]
+
+
+def _seed_position_ranges():
+    """Own 169-entry dictionary for each position at each table size.
+
+    Copying here is intentional: "9" and "8" must not share an object,
+    and neither should e.g. "6" at 6-max and "6" at 9-max. All initial
+    frequencies remain identical to the previous grouped implementation.
+    """
+    result = {}
+    for n_players in range(2, 11):
+        result[n_players] = {}
+        for position in position_labels(n_players):
+            original = _legacy_range_for_position(position, n_players)
+            result[n_players][position] = {
+                hand: original.get(hand, DEFAULT_HAND_FREQUENCIES)
+                for hand in ALL_HAND_CLASSES
+            }
+    return result
+
+
+# Defaults are a baseline template, never mutated by an individual bot.
+POSITION_RANGES = _seed_position_ranges()
+
+
+def _numeric_range(position, n_players, ranges=None):
+    """Return a 169-hand chart for this exact table size and numeric seat."""
+    lookup = POSITION_RANGES if ranges is None else ranges
+    n = int(n_players)
+    p = str(position).upper()
+    if n not in lookup or p not in lookup[n]:
+        raise ValueError(f"Unknown position {position!r} at {n_players}-max")
+    return lookup[n][p]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -140,7 +192,29 @@ class GTOBot:
     THIN_VALUE_FREQ    = 0.55   # thin value-bet medium-strength hands
 
     def __init__(self):
-        pass
+        # A GTO instance owns its charts, so experimental edits cannot
+        # contaminate other GTO players or the frozen baseline template.
+        self.position_ranges = {
+            n: {p: dict(chart) for p, chart in by_position.items()}
+            for n, by_position in POSITION_RANGES.items()
+        }
+
+    def set_hand_frequencies(self, n_players, position, hand, frequencies):
+        """Change one hand at one seat without affecting other seats/bots.
+
+        Accept a fold/call/raise triple totaling one. Its value is used
+        before the existing facing-bet adjustment in _preflop().
+        """
+        values = tuple(float(v) for v in frequencies)
+        if len(values) != 3 or not all(0.0 <= v <= 1.0 for v in values):
+            raise ValueError("Expected three finite probabilities in [0, 1]")
+        if abs(sum(values) - 1.0) > 1e-9:
+            raise ValueError("Fold/call/raise probabilities must sum to 1")
+        key = str(hand)
+        if key not in ALL_HAND_CLASSES:
+            raise ValueError(f"Unknown canonical hand class: {hand!r}")
+        chart = _numeric_range(position, n_players, self.position_ranges)
+        chart[key] = values
 
     # ==================================================================
     #  PUBLIC INTERFACE — called by the engine
@@ -174,14 +248,9 @@ class GTOBot:
         suited = hole[0][1] == hole[1][1]
         key = _hand_key(r1, r2, suited)
 
-        range_chart = _numeric_range(position, len(state.stacks))
-        freqs = range_chart.get(key, None)
-
-        if freqs is None:
-            # Hand not in any tier → default to mostly fold w/ tiny bluff
-            fold_f, call_f, raise_f = 0.85, 0.10, 0.05
-        else:
-            fold_f, call_f, raise_f = freqs
+        range_chart = _numeric_range(position, len(state.stacks), self.position_ranges)
+        # All 169 combinations are explicit in every position chart.
+        fold_f, call_f, raise_f = range_chart[key]
 
         # When facing a raise (to_call > 0), tighten ranges — but
         # proportionally so premium hands barely shift while trash
