@@ -94,9 +94,10 @@ class SharedLegacyEquityTests(unittest.TestCase):
                 self.assertEqual(value, expected)
                 # A seeded private RNG and the module-global one consume
                 # equivalent samples when initialized to the same state.
-                self.assertEqual(random.getstate(), random.Random(31415).getstate()
-                                 if sims == 0 else self._reference_state(
-                                     hole, board, 2, sims, 31415))
+                self.assertEqual(
+                    random.getstate(),
+                    self._reference_state(hole, board, 2, sims, 31415),
+                )
 
     @staticmethod
     def _reference_state(hole, board, opponents, sims, seed):
