@@ -29,6 +29,17 @@ def _advance_dealer(dealer_index: int, active_count: int) -> int:
     """
     return (dealer_index + 1) % active_count
 
+def rotate_player_specs(player_specs, tournament_index):
+    """Cyclically rotate physical starting seats while preserving player IDs.
+
+    Every block of N tournaments places each bot in each initial seat once.
+    """
+    if not player_specs:
+        return []
+    shift = tournament_index % len(player_specs)
+    return list(player_specs[shift:]) + list(player_specs[:shift])
+
+
 def finalize_finish_order(seats, finish_order, total_players, hand_count):
     """Append survivor results after a natural finish or safety stop."""
     survivors = [
@@ -141,7 +152,8 @@ def _bar(done, total):
 
 
 def run_tournament_batch(player_spec_str, num_tournaments, chips, base_sb, base_bb,
-                         blind_increase_every, max_hands, parallel, output_csv, seed):
+                         blind_increase_every, max_hands, parallel, output_csv, seed,
+                         seat_mode='rotate'):
     player_specs = parse_players(player_spec_str)
     if len(player_specs) < 2:
         print("Error: need at least 2 players.")
@@ -154,6 +166,9 @@ def run_tournament_batch(player_spec_str, num_tournaments, chips, base_sb, base_
     print(f"RUNNING {num_tournaments} TOURNAMENTS")
     print("=" * 75)
     print(f"Players: {', '.join(f'{pid}={btype}' for pid, btype, _ in player_specs)}")
+    if seat_mode not in ("rotate", "fixed"):
+        raise ValueError("seat_mode must be rotate or fixed")
+    print(f"Initial seats: {seat_mode} (one seat per tournament when rotated)")
     print(f"Chips: {chips}  |  Blinds: {base_sb}/{base_bb}  |  "
           f"Escalation every {blind_increase_every} hands")
     if parallel > 1:
@@ -165,7 +180,8 @@ def run_tournament_batch(player_spec_str, num_tournaments, chips, base_sb, base_
     tasks = []
     for i in range(num_tournaments):
         t_seed = (seed + i) if seed is not None else None
-        tasks.append((player_specs, chips, base_sb, base_bb,
+        initial_seats = rotate_player_specs(player_specs, i) if seat_mode == "rotate" else player_specs
+        tasks.append((initial_seats, chips, base_sb, base_bb,
                       blind_increase_every, max_hands, t_seed))
 
     # Run tournaments
@@ -320,6 +336,8 @@ def main():
                         help="RNG seed for reproducibility")
     parser.add_argument("--parallel", type=int, default=1,
                         help="Number of parallel workers (default: 1, sequential)")
+    parser.add_argument("--seat-mode", choices=("rotate", "fixed"), default="rotate",
+                        help="Starting seat assignment: balanced cyclic rotation (default) or historical fixed order")
     parser.add_argument("--output-csv", type=str, default=None,
                         help="Save per-tournament results to CSV file")
     args = parser.parse_args()
@@ -335,6 +353,7 @@ def main():
         parallel=args.parallel,
         output_csv=args.output_csv,
         seed=args.seed,
+        seat_mode=args.seat_mode,
     )
 
 
