@@ -20,6 +20,7 @@ def create_bot(btype: str) -> BotAdapter:
     Recognised types (case-insensitive):
       mc, mc<N>          MonteCarloBot (optional sim count: mc200, mc500)
       smart              SmartBot (heuristic)
+      split:pre:post      Independent street bases, e.g. split:gto:tag_punisher
       final, final_survival
                           TournamentHybridBot survival profile
       final_aggro         TournamentHybridBot aggro profile
@@ -35,6 +36,31 @@ def create_bot(btype: str) -> BotAdapter:
     """
     raw_btype = btype.strip()
     btype = raw_btype.lower()
+
+    if btype.startswith("split:"):
+        from bots.street_split_bot import EXPERIMENT_BASES, StreetSplitBot
+
+        tokens = btype.split(":")
+        if len(tokens) != 3 or not tokens[1] or not tokens[2]:
+            raise ValueError(
+                "split strategy format is split:<preflop_bot>:<postflop_bot>"
+            )
+        preflop_name, postflop_name = tokens[1:]
+        if preflop_name not in EXPERIMENT_BASES or postflop_name not in EXPERIMENT_BASES:
+            raise ValueError(
+                f"Unsupported split bases: {preflop_name!r}, {postflop_name!r}; "
+                f"supported: {', '.join(sorted(EXPERIMENT_BASES))}"
+            )
+        preflop_bot = create_bot(preflop_name)
+        postflop_bot = (
+            preflop_bot if preflop_name == postflop_name
+            else create_bot(postflop_name)
+        )
+        return StreetSplitBot(
+            preflop_bot, postflop_bot,
+            preflop_name=preflop_name,
+            postflop_name=postflop_name,
+        )
 
     if btype.startswith("mc"):
         from bots.monte_carlo_bot import MonteCarloBot
@@ -98,7 +124,7 @@ def create_bot(btype: str) -> BotAdapter:
                      "maniac_trigger, maniac_mixed, overbet_merchant, "
                      "calling_station, nit, folder, loose_passive, minraise, "
                      "minraiser, baseline_sane, pressure_filler, tag_punisher, "
-                     "wide_defender")
+                     "wide_defender, split:<preflop_bot>:<postflop_bot>")
 
 
 class _PlayerViewAdapter(BotAdapter):
