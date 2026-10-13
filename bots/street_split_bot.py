@@ -25,6 +25,7 @@ EXPERIMENT_BASES = frozenset({
     "loose_passive",
     "maniac",
     "pressure_filler",
+    "random",  # Stateless legal-action baseline; may be used on either street.
 })
 
 
