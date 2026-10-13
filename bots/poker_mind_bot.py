@@ -3,7 +3,7 @@
 import random
 from core.table_order import position_tightness
 from core.bot_api import Action, PlayerView, acting_opponents_for
-from core.engine import eval_hand, EVAL_HAND_MAX, _FULL_DECK
+from core.equity_legacy import estimate_equity_legacy
 
 
 class SmartBot:
@@ -188,46 +188,8 @@ class SmartBot:
     # Hand strength estimator
     # -----------------------------------------------------
     def _estimate_equity(self, hole, board, num_opponents=1, sims=100):
-        """Monte Carlo equity estimate against num_opponents random hands."""
-        if not hole or len(hole) < 2:
-            return 0.0
-        # When everyone else is already all-in (or folded) the caller can pass
-        # num_opponents=0; clamp to a heads-up race so the candidate set is never
-        # empty (max() over no opp_hands previously crashed on the river).
-        num_opponents = max(1, num_opponents)
-        wins = 0
-        ties = 0
-        base_used = set(tuple(c) for c in hole) | set(tuple(c) for c in board)
-        base_remaining = [c for c in _FULL_DECK if c not in base_used]
-        need_board = 5 - len(board)
-        for _ in range(sims):
-            sim_used = base_used.copy()
-            opp_hands = []
-            valid = True
-            for _ in range(num_opponents):
-                avail = [c for c in base_remaining if c not in sim_used]
-                if len(avail) < 2:
-                    valid = False
-                    break
-                opp = random.sample(avail, 2)
-                opp_hands.append(opp)
-                sim_used |= {tuple(c) for c in opp}
-            if not valid:
-                continue
-            if need_board > 0:
-                avail_board = [c for c in base_remaining if c not in sim_used]
-                if len(avail_board) < need_board:
-                    continue
-                full_board = list(board) + random.sample(avail_board, need_board)
-            else:
-                full_board = list(board)
-            my_score = eval_hand(hole, full_board)
-            best_opp = max(eval_hand(opp, full_board) for opp in opp_hands)
-            if my_score > best_opp:
-                wins += 1
-            elif my_score == best_opp:
-                ties += 1
-        return (wins + ties * 0.5) / sims
+        """Legacy-equivalent Monte Carlo equity shared across strategy bots."""
+        return estimate_equity_legacy(hole, board, num_opponents, sims)
 
 
 # backward compatibility
