@@ -1,18 +1,12 @@
 """Regression tests for dealer-first labels as the tournament table shrinks."""
 import unittest
 
-from core.table_order import position_labels
+from core.table_order import position_labels, position_group, position_tightness
 
 EXPECTED = {
-    2: ["BTN", "BB"],
-    3: ["BTN", "SB", "BB"],
-    4: ["BTN", "SB", "BB", "CO"],
-    5: ["BTN", "SB", "BB", "HJ", "CO"],
-    6: ["BTN", "SB", "BB", "UTG", "HJ", "CO"],
-    7: ["BTN", "SB", "BB", "UTG", "LJ", "HJ", "CO"],
-    8: ["BTN", "SB", "BB", "UTG", "MP", "LJ", "HJ", "CO"],
-    9: ["BTN", "SB", "BB", "UTG", "UTG+1", "MP", "LJ", "HJ", "CO"],
-    10: ["BTN", "SB", "BB", "UTG", "UTG+1", "UTG+2", "MP", "LJ", "HJ", "CO"],
+    n: (["SB", "BB"] if n == 2
+        else ["3", "SB", "BB"] + [str(k) for k in range(n, 3, -1)])
+    for n in range(2, 11)
 }
 
 
@@ -22,6 +16,18 @@ class TestPositionLabels(unittest.TestCase):
             with self.subTest(players=count):
                 self.assertEqual(position_labels(count), expected)
                 self.assertEqual(len(set(position_labels(count))), count)
+
+    def test_numeric_scheme_is_consistent(self):
+        self.assertEqual(position_labels(9),
+                         ["3", "SB", "BB", "9", "8", "7", "6", "5", "4"])
+        self.assertEqual(position_labels(2), ["SB", "BB"])
+        self.assertEqual(position_group("9", 9), "early")
+        self.assertEqual(position_group("6", 6), "early")
+        self.assertEqual(position_group("6", 9), "middle")
+        self.assertEqual(position_group("3", 3), "late")
+        self.assertEqual(position_tightness("SB", 2), 0.0)
+        self.assertEqual(position_tightness("SB", 9), 0.5)
+        self.assertEqual(position_tightness("8", 8), 1.0)
 
     def test_invalid_table_sizes(self):
         for count in (0, 1, 11, -1):
