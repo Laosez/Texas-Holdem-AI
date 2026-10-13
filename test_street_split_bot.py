@@ -101,6 +101,36 @@ class TestStreetSplitBot(unittest.TestCase):
         self.assertEqual(mixed.postflop_bot.bot.knob("postflop_probe_freq"), 0.34)
         self.assertEqual(trigger.postflop_bot.bot.knob("postflop_probe_freq"), 0.42)
 
+    def test_random_clones_have_distinct_export_labels(self):
+        from core.engine import InProcessBot, RandomBot
+
+        names = ("random", "random_2", "random_3", "random_10")
+        for name in names:
+            with self.subTest(name=name):
+                direct = create_bot(name)
+                self.assertIsInstance(direct, InProcessBot)
+                self.assertIsInstance(direct.bot, RandomBot)
+                hybrid = create_bot(f"split:gto:{name}")
+                self.assertEqual(hybrid.preflop_name, "gto")
+                self.assertEqual(hybrid.postflop_name, name)
+                self.assertEqual(
+                    hybrid.act(SimpleNamespace(street="flop", legal_actions=[{"type": "check"}])),
+                    Action("check"),
+                )
+
+        seats = parse_players(
+            "P7=split:gto:random,P8=split:gto:random_2,"
+            "P9=split:gto:random_3"
+        )
+        self.assertEqual([pid for pid, _, _ in seats], ["P7", "P8", "P9"])
+        self.assertEqual(len({btype for _, btype, _ in seats}), 3)
+        self.assertIsNot(seats[0][2].postflop_bot, seats[1][2].postflop_bot)
+
+        for invalid in ("random_0", "random_1", "random_11", "random_x"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    create_bot(f"split:gto:{invalid}")
+
     def test_same_base_keeps_same_adapter_instance(self):
         bot = create_bot("split:gto:gto")
         self.assertIs(bot.preflop_bot, bot.postflop_bot)

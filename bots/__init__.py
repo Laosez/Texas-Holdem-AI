@@ -32,7 +32,8 @@ def create_bot(btype: str) -> BotAdapter:
                           Phase 7 stress-opponent archetypes
                           (tag_punisher: tight-aggressive punisher;
                            wide_defender: wide price-sensitive defender)
-      random             RandomBot
+      random, random_2..random_10
+                         Independently labeled RandomBot instances
     """
     raw_btype = btype.strip()
     btype = raw_btype.lower()
@@ -72,7 +73,10 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.poker_mind_bot import SmartBot
         return _wrap(SmartBot())
 
-    if btype in ("random",):
+    # Aliases are distinct *labels* for identical independent RandomBot
+    # instances. Exporter v4 groups results by bot-type string, so two
+    # identical "random" entries would otherwise be merged in its CSVs.
+    if btype == "random" or re.fullmatch(r"random_(?:[2-9]|10)", btype):
         return InProcessBot(RandomBot())
 
     if btype in ("icm", "icmbot"):
