@@ -24,6 +24,7 @@ EXPERIMENT_BASES = frozenset({
     "nit",
     "loose_passive",
     "maniac",
+    "maniac_mixed",  # Same ManiacPolicy, lower jam/probe frequencies.
     "pressure_filler",
     "random",  # Stateless legal-action baseline; may be used on either street.
 })
