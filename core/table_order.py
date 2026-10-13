@@ -5,6 +5,33 @@ from __future__ import annotations
 from typing import Any, Iterable, List, Optional
 
 
+
+# Dealer-first labels: BTN, blinds, then the remaining positions in clockwise
+# order. For shorter tables, keep CO/HJ and remove the extra early seats.
+# 2-max has the button posting the small blind (historical label: BTN).
+_TABLE_POSITIONS: dict[int, tuple[str, ...]] = {
+    2: ("BTN", "BB"),
+    3: ("BTN", "SB", "BB"),
+    4: ("BTN", "SB", "BB", "CO"),
+    5: ("BTN", "SB", "BB", "HJ", "CO"),
+    6: ("BTN", "SB", "BB", "UTG", "HJ", "CO"),
+    7: ("BTN", "SB", "BB", "UTG", "LJ", "HJ", "CO"),
+    8: ("BTN", "SB", "BB", "UTG", "MP", "LJ", "HJ", "CO"),
+    9: ("BTN", "SB", "BB", "UTG", "UTG+1", "MP", "LJ", "HJ", "CO"),
+    10: ("BTN", "SB", "BB", "UTG", "UTG+1", "UTG+2", "MP", "LJ", "HJ", "CO"),
+}
+
+
+def position_labels(n: int) -> List[str]:
+    """Return dealer-first position labels for a table of 2 to 10 players.
+
+    Preserve early-to-late ordering for the active table size.  Do not slice
+    the 9-max prefix: that incorrectly removes CO/HJ as players bust.
+    """
+    if n not in _TABLE_POSITIONS:
+        raise ValueError(f"Unsupported table size: {n}; expected 2..10")
+    return list(_TABLE_POSITIONS[n])
+
 def street_action_order(street: str, ring_order: Iterable[int]) -> List[int]:
     """Return the fresh-street action order for a dealer-first ring."""
     ring = list(ring_order)

@@ -39,6 +39,7 @@ from typing import Any, Dict, List, Optional
 from core.bot_api import PlayerView
 from core.engine import RANKS, SUITS, Seat, eval_hand
 from core.logger import DecisionLogger
+from core.table_order import position_labels
 
 
 # --- locate and import the sibling Poker-Engine repo ------------------------
@@ -75,8 +76,6 @@ from engine.hand import play_hand as _pe_play_hand  # noqa: E402
 # request 0 samples, which skips the Monte Carlo (guarded in engine/hand.py).
 ADAPTER_EQUITY_SIMS = 0
 
-_POSITION_TAGS = ["BTN", "SB", "BB", "UTG", "UTG+1", "MP", "LJ", "HJ", "CO"]
-
 
 # --- card conversion (legacy (rank_str, suit_str) <-> PE Card(int, int)) ----
 # Both engines share the "cdhs" suit order and the same rank chars, so the
@@ -101,10 +100,8 @@ def _rank_fn(hole_cards_pe, board_pe) -> int:
 
 
 def _positions(n: int) -> List[str]:
-    """Legacy position labels in ring order (matches Table._positions)."""
-    if n == 2:
-        return ["BTN", "BB"]
-    return _POSITION_TAGS[:n]
+    """Position labels in dealer-first order (matches Table._positions)."""
+    return position_labels(n)
 
 
 def _build_legacy_legal(to_call, current_bet, me_stack, bb, lfrs,

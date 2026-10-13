@@ -25,6 +25,7 @@ from itertools import combinations
 
 from .bot_api import Action, PlayerView, BotAdapter
 from core.logger import DecisionLogger # imports logger.py
+from core.table_order import position_labels
 
 RANKS = "23456789TJQKA"
 SUITS = "cdhs"
@@ -931,10 +932,7 @@ class Table:
 
 
     def _positions(self, n):
-        if n == 2:
-            return ["BTN", "BB"]
-        tags = ["BTN", "SB", "BB", "UTG", "UTG+1", "MP", "LJ", "HJ", "CO"]
-        return tags[:n]
+        return position_labels(n)
 
 class TournamentManager:
     def __init__(self, table: Table):
