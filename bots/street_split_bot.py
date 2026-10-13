@@ -17,6 +17,7 @@ from core.bot_api import Action, BotAdapter, PlayerView
 # cross-street-memory audit before they are added here.
 EXPERIMENT_BASES = frozenset({
     "gto",
+    "gto_fixed",  # Fixed blind-vs-raise detection; isolated from control GTO.
     "smart",
     "tag_punisher",
     "wide_defender",
