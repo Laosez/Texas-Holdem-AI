@@ -47,9 +47,22 @@ class NumericPositionModelTests(unittest.TestCase):
         self.assertEqual(position_tightness("BB", 2), 0.7)
 
     def test_gto_hu_sb_uses_late_range(self):
-        from bots.gto_bot import _numeric_range, RANGE_LATE, RANGE_EARLY
-        self.assertIs(_numeric_range("SB", 2), RANGE_LATE)
-        self.assertIs(_numeric_range("9", 9), RANGE_EARLY)
+        from bots.gto_bot import (
+            _numeric_range, RANGE_LATE, RANGE_EARLY,
+            DEFAULT_HAND_FREQUENCIES, ALL_HAND_CLASSES,
+        )
+        # Values stay historically identical, but charts are now independent.
+        for hand in ALL_HAND_CLASSES:
+            self.assertEqual(
+                _numeric_range("SB", 2)[hand],
+                RANGE_LATE.get(hand, DEFAULT_HAND_FREQUENCIES),
+            )
+            self.assertEqual(
+                _numeric_range("9", 9)[hand],
+                RANGE_EARLY.get(hand, DEFAULT_HAND_FREQUENCIES),
+            )
+        self.assertIsNot(_numeric_range("9", 9), _numeric_range("8", 9))
+        self.assertIsNot(_numeric_range("SB", 9), _numeric_range("BB", 9))
 
     def test_smart_and_hybrid_new_positions(self):
         from bots.poker_mind_bot import SmartBot
