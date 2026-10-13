@@ -27,7 +27,7 @@ EXPERIMENT_BASES = frozenset({
     "maniac_mixed",  # Same ManiacPolicy, lower jam/probe frequencies.
     "pressure_filler",
     "random",  # Stateless legal-action baseline; may be used on either street.
-})
+} | {f"random_{i}" for i in range(2, 11)})  # Distinct exporter labels for clones.
 
 
 class StreetSplitBot(BotAdapter):
