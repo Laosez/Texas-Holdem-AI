@@ -5,6 +5,7 @@ old sampling order and historical half-credit tie handling against refactors.
 """
 import random
 import unittest
+from unittest.mock import patch
 
 from bots.gto_bot import GTOBot
 from bots.poker_mind_bot import SmartBot
@@ -51,6 +52,45 @@ def reference_legacy_equity(hole, board, num_opponents, sims, rng):
 
 
 class SharedLegacyEquityTests(unittest.TestCase):
+    def test_river_reuses_hero_score_across_rollouts(self):
+        hole = [("A", "h"), ("K", "d")]
+        board = [("2", "s"), ("3", "c"), ("8", "d"), ("Q", "s"), ("9", "h")]
+        baseline = reference_legacy_equity(
+            hole, board, 1, 100, random.Random(88)
+        )
+        with patch("core.equity_legacy.eval_hand", wraps=eval_hand) as evaluator:
+            actual = estimate_equity_legacy(
+                hole, board, 1, 100, rng=random.Random(88)
+            )
+        self.assertEqual(actual, baseline)
+        # One hero eval + one opponent eval per valid rollout.
+        self.assertEqual(evaluator.call_count, 101)
+
+    def test_turn_reuses_hero_scores_for_repeated_rivers(self):
+        hole = [("A", "h"), ("K", "d")]
+        board = [("2", "s"), ("3", "c"), ("8", "d"), ("Q", "s")]
+        baseline = reference_legacy_equity(
+            hole, board, 1, 150, random.Random(55)
+        )
+        with patch("core.equity_legacy.eval_hand", wraps=eval_hand) as evaluator:
+            actual = estimate_equity_legacy(
+                hole, board, 1, 150, rng=random.Random(55)
+            )
+        self.assertEqual(actual, baseline)
+        # At most 46 river cards + 150 opponent evaluations.
+        self.assertLessEqual(evaluator.call_count, 196)
+
+    def test_rng_parity_in_multiway_early_exit(self):
+        hole = [("2", "s"), ("7", "h")]
+        board = [("A", "d"), ("K", "d"), ("Q", "c")]
+        old_rng = random.Random(143)
+        new_rng = random.Random(143)
+        self.assertEqual(
+            estimate_equity_legacy(hole, board, 8, 65, rng=new_rng),
+            reference_legacy_equity(hole, board, 8, 65, old_rng),
+        )
+        self.assertEqual(new_rng.getstate(), old_rng.getstate())
+
     def test_reference_parity_and_rng_consumption(self):
         situations = [
             ([("A", "s"), ("K", "s")], [], 1, 40),
