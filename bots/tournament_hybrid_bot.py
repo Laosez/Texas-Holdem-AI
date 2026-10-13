@@ -22,6 +22,7 @@ from typing import Any, Optional
 
 from core.bot_api import Action, PlayerView
 from core.equity import equity as _mc_equity
+from core.table_order import position_labels
 
 
 DecisionTrace = dict[str, Any]
@@ -29,7 +30,7 @@ DecisionTrace = dict[str, Any]
 _RANKS = "23456789TJQKA"
 _SUITS = "cdhs"
 _RANK_INDEX = {rank: i for i, rank in enumerate(_RANKS)}
-_POSITION_TAGS = {"BTN", "SB", "BB", "UTG", "UTG+1", "UTG1", "MP", "LJ", "HJ", "CO"}
+_POSITION_TAGS = {"BTN", "SB", "BB", "UTG", "UTG+1", "UTG+2", "UTG1", "MP", "LJ", "HJ", "CO"}
 
 
 def _hand_key(r1: str, r2: str, suited: bool) -> str:
@@ -3622,15 +3623,13 @@ class TournamentHybridBot:
             return "late"
         if tag in {"MP", "LJ"}:
             return "middle"
-        if tag in {"UTG", "UTG+1"}:
+        if tag in {"UTG", "UTG+1", "UTG+2"}:
             return "early"
         return "middle"
 
     @staticmethod
     def _positions_for_n(n: int) -> list[str]:
-        if n == 2:
-            return ["BTN", "BB"]
-        return ["BTN", "SB", "BB", "UTG", "UTG+1", "MP", "LJ", "HJ", "CO"][:n]
+        return position_labels(n)
 
     @classmethod
     def _count_raises(cls, view: PlayerView) -> int:
