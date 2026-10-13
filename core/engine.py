@@ -415,8 +415,15 @@ class Table:
         board: List[Card] = []
         history: List[Any] = []
 
-        # Preflop action starts at UTG (index 3 for 3+ players; index 0 for heads-up)
-        # ring[0]=BTN, ring[1]=SB, ring[2]=BB, ring[3]=UTG (first to act preflop)
+        # Optional observation hook for dealt-hand statistics. Captures
+        # seats that never act preflop (e.g. BB wins when SB open-folds).
+        # No effect on cards, betting, or bots unless a collector installs it.
+        on_deal = getattr(self, "on_deal", None)
+        if callable(on_deal):
+            on_deal(hand_id, hole, pos_by_pid, len(ring))
+
+        # Dealer-first ring: index 0 is the button (also SB in heads-up).
+        # Preflop action starts at index 3 for 3+ players, index 0 for HU.
         preflop_start = 3 if len(ring) > 2 else 0
 
         # folded_pids persists across all streets so a preflop fold stays folded
