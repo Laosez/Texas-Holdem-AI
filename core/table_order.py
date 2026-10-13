@@ -6,31 +6,61 @@ from typing import Any, Iterable, List, Optional
 
 
 
-# Dealer-first labels: BTN, blinds, then the remaining positions in clockwise
-# order. For shorter tables, keep CO/HJ and remove the extra early seats.
-# 2-max has the button posting the small blind (historical label: BTN).
-_TABLE_POSITIONS: dict[int, tuple[str, ...]] = {
-    2: ("BTN", "BB"),
-    3: ("BTN", "SB", "BB"),
-    4: ("BTN", "SB", "BB", "CO"),
-    5: ("BTN", "SB", "BB", "HJ", "CO"),
-    6: ("BTN", "SB", "BB", "UTG", "HJ", "CO"),
-    7: ("BTN", "SB", "BB", "UTG", "LJ", "HJ", "CO"),
-    8: ("BTN", "SB", "BB", "UTG", "MP", "LJ", "HJ", "CO"),
-    9: ("BTN", "SB", "BB", "UTG", "UTG+1", "MP", "LJ", "HJ", "CO"),
-    10: ("BTN", "SB", "BB", "UTG", "UTG+1", "UTG+2", "MP", "LJ", "HJ", "CO"),
-}
-
-
+# One canonical position scheme for every table size (dealer-first order):
+# 9-max preflop: 9,8,7,6,5,4,3,SB,BB. 3 is always the button (3+).
+# Heads-up has only SB (also the button) and BB.
+# No UTG/MP/HJ/CO/BTN aliases are used by the simulator.
 def position_labels(n: int) -> List[str]:
-    """Return dealer-first position labels for a table of 2 to 10 players.
-
-    Preserve early-to-late ordering for the active table size.  Do not slice
-    the 9-max prefix: that incorrectly removes CO/HJ as players bust.
-    """
-    if n not in _TABLE_POSITIONS:
+    """Return numeric preflop positions, clockwise from the button (2..10)."""
+    if not 2 <= n <= 10:
         raise ValueError(f"Unsupported table size: {n}; expected 2..10")
-    return list(_TABLE_POSITIONS[n])
+    if n == 2:
+        return ["SB", "BB"]
+    return ["3", "SB", "BB", *[str(rank) for rank in range(n, 3, -1)]]
+
+
+def position_group(position: str, n_players: int) -> str:
+    """Numeric position -> early/middle/late/sb/bb, relative to table size."""
+    p = str(position).upper()
+    if p == "SB":
+        return "sb"
+    if p == "BB":
+        return "bb"
+    if not p.isdecimal():
+        raise ValueError(f"Unknown numeric position: {position!r}")
+    k = int(p)
+    if not (3 <= k <= n_players):
+        raise ValueError(f"Position {p} is invalid at {n_players}-max")
+    if k >= 8 or (k == n_players and n_players >= 6):
+        return "early"
+    if k >= 6:
+        return "middle"
+    return "late"
+
+
+def position_tightness(position: str, n_players: int = 9) -> float:
+    """Position tightness in [0, 1], preserving the bots' relative late bias.
+
+    Early position gets 1.0 at 6+ tables. SB heads-up is the button, hence
+    receives the button's 0.0 tightness; at 3+ tables it is a normal SB.
+    """
+    p = str(position).upper()
+    if p == "SB":
+        return 0.0 if n_players == 2 else 0.5
+    if p == "BB":
+        return 0.7
+    if not p.isdecimal():
+        return 0.5
+    k = int(p)
+    if not 3 <= k <= n_players:
+        return 0.5
+    if k == n_players and n_players >= 6:
+        return 1.0
+    if k == n_players - 1 and n_players >= 9:
+        return 0.9
+    return {3: 0.0, 4: 0.2, 5: 0.4, 6: 0.6, 7: 0.7,
+            8: 0.9, 9: 0.9, 10: 1.0}.get(k, 0.5)
+
 
 def street_action_order(street: str, ring_order: Iterable[int]) -> List[int]:
     """Return the fresh-street action order for a dealer-first ring."""
