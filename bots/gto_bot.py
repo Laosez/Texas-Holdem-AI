@@ -15,6 +15,7 @@ Key principles:
 
 import random
 from core.bot_api import Action, PlayerView, acting_opponents_for
+from core.table_order import position_group
 from core.engine import eval_hand, EVAL_HAND_MAX, _FULL_DECK
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -101,17 +102,17 @@ RANGE_BLINDS = _build_range(_BL_T1, _BL_T2, _BL_T3)
 #  POSITION → RANGE MAP
 # ═══════════════════════════════════════════════════════════════════════════════
 
-POSITION_RANGE = {
-    "UTG":   RANGE_EARLY,
-    "UTG+1": RANGE_EARLY,
-    "MP":    RANGE_MIDDLE,
-    "LJ":    RANGE_MIDDLE,
-    "HJ":    RANGE_LATE,
-    "CO":    RANGE_LATE,
-    "BTN":   RANGE_LATE,
-    "SB":    RANGE_BLINDS,
-    "BB":    RANGE_BLINDS,
-}
+def _numeric_range(position, n_players):
+    if str(position) == "SB" and n_players == 2:
+        return RANGE_LATE  # HU small blind is also the button
+    group = position_group(position, n_players)
+    return {
+        "early": RANGE_EARLY,
+        "middle": RANGE_MIDDLE,
+        "late": RANGE_LATE,
+        "sb": RANGE_BLINDS,
+        "bb": RANGE_BLINDS,
+    }[group]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -173,7 +174,7 @@ class GTOBot:
         suited = hole[0][1] == hole[1][1]
         key = _hand_key(r1, r2, suited)
 
-        range_chart = POSITION_RANGE.get(position, RANGE_MIDDLE)
+        range_chart = _numeric_range(position, len(state.stacks))
         freqs = range_chart.get(key, None)
 
         if freqs is None:

@@ -1,6 +1,7 @@
 # bots/poker_mind_bot.py
 
 import random
+from core.table_order import position_tightness
 from core.bot_api import Action, PlayerView, acting_opponents_for
 from core.engine import eval_hand, EVAL_HAND_MAX, _FULL_DECK
 
@@ -33,7 +34,7 @@ class SmartBot:
             suited = hole[0][1] == hole[1][1]
 
             # Position awareness: play tighter in early position
-            position_tightness = self._get_position_tightness(position)
+            position_tightness = self._get_position_tightness(position, len(state.stacks))
 
             tier = self._classify_preflop(r1, r2, suited)
 
@@ -57,7 +58,7 @@ class SmartBot:
         )
 
         # Position awareness: boost strength in late position (20-25%)
-        position_tightness = self._get_position_tightness(position)
+        position_tightness = self._get_position_tightness(position, len(state.stacks))
         position_boost = (1.0 - position_tightness) * 0.25
         adjusted_strength = strength * (1.0 + position_boost)
 
@@ -132,15 +133,8 @@ class SmartBot:
 
         return 3
 
-    def _get_position_tightness(self, position):
-        """
-        Returns position tightness factor: 1.0 = early (tight), 0.0 = late (loose)
-        """
-        position_order = {
-            "UTG": 1.0, "UTG+1": 0.9, "MP": 0.7, "LJ": 0.6,
-            "HJ": 0.4, "CO": 0.2, "BTN": 0.0, "SB": 0.5, "BB": 0.7
-        }
-        return position_order.get(position, 0.5)
+    def _get_position_tightness(self, position, n_players=9):
+        return position_tightness(position, n_players)
 
     # -----------------------------------------------------
     # HELPER DECISION FUNCTIONS

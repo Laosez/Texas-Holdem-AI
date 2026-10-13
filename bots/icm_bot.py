@@ -18,6 +18,7 @@ import random
 import math
 from itertools import combinations
 from typing import Optional
+from core.table_order import position_tightness
 from core.bot_api import Action, PlayerView, acting_opponents_for
 from core.engine import eval_hand, EVAL_HAND_MAX, _FULL_DECK
 from core.icm import equities as _core_icm_equities
@@ -203,7 +204,7 @@ class ICMBot:
         opponents_near_bust = short_opponents > 0
 
         # Position tightness factor (1.0 = early/tight, 0.0 = late/loose)
-        pos_tightness = self._get_position_tightness(position)
+        pos_tightness = self._get_position_tightness(position, len(state.stacks))
 
         # ── ICM-adjusted thresholds ──────────────────────────────────
         # Base thresholds
@@ -401,10 +402,6 @@ class ICMBot:
                 return Action(a["type"])
         return Action("fold")
 
-    def _get_position_tightness(self, position):
-        """Returns 1.0 = early (tight), 0.0 = late (loose)."""
-        position_order = {
-            "UTG": 1.0, "UTG+1": 0.9, "MP": 0.7, "LJ": 0.6,
-            "HJ": 0.4, "CO": 0.2, "BTN": 0.0, "SB": 0.5, "BB": 0.7
-        }
-        return position_order.get(position, 0.5)
+    def _get_position_tightness(self, position, n_players=9):
+        return position_tightness(position, n_players)
+

@@ -11,6 +11,7 @@ opponent range rather than random hands.
 import random
 from typing import Optional
 import numpy as np
+from core.table_order import position_tightness
 from core.bot_api import Action, PlayerView, acting_opponents_for
 from core.engine import eval_hand, EVAL_HAND_MAX, RANKS, SUITS, _FULL_DECK
 
@@ -174,7 +175,7 @@ class OpponentModelBot:
         )
 
         # ---- Position adjustment ----
-        pos_tight = self._get_position_tightness(position)
+        pos_tight = self._get_position_tightness(position, len(state.stacks))
         if pos_tight > 0.5:  # early position → tighter thresholds
             bet_thresh = 0.68
             reraise_thresh = 0.72
@@ -396,12 +397,8 @@ class OpponentModelBot:
                 return Action("bet", int(amt))
         return self._choose("check", legal)
 
-    def _get_position_tightness(self, position):
-        position_order = {
-            "UTG": 1.0, "UTG+1": 0.9, "MP": 0.7, "LJ": 0.6,
-            "HJ": 0.4, "CO": 0.2, "BTN": 0.0, "SB": 0.5, "BB": 0.7,
-        }
-        return position_order.get(position, 0.5)
+    def _get_position_tightness(self, position, n_players=9):
+        return position_tightness(position, n_players)
 
     # ── introspection ────────────────────────────────────────────────────
 

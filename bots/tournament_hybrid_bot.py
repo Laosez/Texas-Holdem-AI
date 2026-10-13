@@ -22,7 +22,7 @@ from typing import Any, Optional
 
 from core.bot_api import Action, PlayerView
 from core.equity import equity as _mc_equity
-from core.table_order import position_labels
+from core.table_order import position_labels, position_group
 
 
 DecisionTrace = dict[str, Any]
@@ -30,7 +30,7 @@ DecisionTrace = dict[str, Any]
 _RANKS = "23456789TJQKA"
 _SUITS = "cdhs"
 _RANK_INDEX = {rank: i for i, rank in enumerate(_RANKS)}
-_POSITION_TAGS = {"BTN", "SB", "BB", "UTG", "UTG+1", "UTG+2", "UTG1", "MP", "LJ", "HJ", "CO"}
+_POSITION_TAGS = {str(k) for k in range(3, 11)} | {"SB", "BB"}
 
 
 def _hand_key(r1: str, r2: str, suited: bool) -> str:
@@ -990,8 +990,8 @@ class OpponentProfiles:
         seats = state.get("seat_indices") or {}
         if not isinstance(seats, dict) or pid not in seats or len(seats) < 2:
             return False
-        # Six-max order in this codebase is BTN, SB, BB, UTG, UTG+1, MP.  A
-        # late-position steal sample is enough for log-only telemetry.
+        # Numeric model preserves button at physical index 0 and BB at index 2.
+        # This is log-only telemetry.
         try:
             idx = int(seats.get(pid))
         except (TypeError, ValueError):
@@ -3201,9 +3201,9 @@ class TournamentHybridBot:
         tag = str(getattr(view, "position", "") or "").strip().upper()
         if category == "sb":
             return "sb_steal"
-        if tag == "BTN":
+        if tag == "3":
             return "btn_steal"
-        if tag == "CO":
+        if tag == "4":
             return "late_open"
         if category == "late":
             return "late_open"
@@ -3610,22 +3610,7 @@ class TournamentHybridBot:
 
     @classmethod
     def _classify_position(cls, pos: Any, n: int) -> str:
-        tag = str(pos or "").strip().upper().replace("UTG1", "UTG+1")
-        if tag == "SB":
-            return "sb"
-        if tag == "BB":
-            return "bb"
-        if n == 2 and tag == "BTN":
-            return "late"
-        if tag in {"BTN", "CO", "HJ"}:
-            return "late"
-        if tag == "MP" and n == 6:
-            return "late"
-        if tag in {"MP", "LJ"}:
-            return "middle"
-        if tag in {"UTG", "UTG+1", "UTG+2"}:
-            return "early"
-        return "middle"
+        return position_group(str(pos or "").strip().upper(), n)
 
     @staticmethod
     def _positions_for_n(n: int) -> list[str]:
@@ -3741,19 +3726,15 @@ class TournamentHybridBot:
     def _position_for_pid(self, view: PlayerView, pid: Any, n_players: int) -> str | None:
         if pid is None:
             return None
-        raw = str(pid).strip().upper()
-        if raw in _POSITION_TAGS:
-            return raw.replace("UTG1", "UTG+1")
-
         order = self._seat_order(view)
         if not order:
             order = list((getattr(view, "stacks", None) or {}).keys())
         if pid in order:
             idx = order.index(pid)
-            positions = self._positions_for_n(max(n_players, len(order)))
-            if idx < len(positions):
-                return positions[idx]
-        return None
+            positions = self._positions_for_n(len(order))
+            return positions[idx] if idx < len(positions) else None
+        raw = str(pid).strip().upper()
+        return raw if raw in _POSITION_TAGS and raw in position_labels(n_players) else None
 
     @staticmethod
     def _seat_order(view: PlayerView) -> list[Any]:
