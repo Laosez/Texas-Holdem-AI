@@ -21,6 +21,8 @@ def create_bot(btype: str) -> BotAdapter:
       mc, mc<N>          MonteCarloBot (optional sim count: mc200, mc500)
       smart              SmartBot (heuristic)
       split:pre:post      Independent street bases, e.g. split:gto:tag_punisher
+      gto_fixed           Legacy GTO charts with correct facing-raise boundary
+      a17_tag             gto_fixed preflop + tag_punisher postflop
       final, final_survival
                           TournamentHybridBot survival profile
       final_aggro         TournamentHybridBot aggro profile
@@ -87,6 +89,21 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.exploitative_bot import ExploitativeBot
         return _wrap(ExploitativeBot())
 
+    if btype == "gto_fixed":
+        from bots.gto_fixed_bot import FixedGTOPreflopBot
+        return _wrap(FixedGTOPreflopBot())
+
+    if btype == "a17_tag":
+        # Named experimental player with a unique analytics/exporter label.
+        # Original GTOBot and TAG Punisher remain untouched.
+        from bots.street_split_bot import StreetSplitBot
+        return StreetSplitBot(
+            create_bot("gto_fixed"),
+            create_bot("tag_punisher"),
+            preflop_name="gto_fixed",
+            postflop_name="tag_punisher",
+        )
+
     if btype in ("gto", "gtobot"):
         from bots.gto_bot import GTOBot
         return _wrap(GTOBot())
@@ -128,7 +145,8 @@ def create_bot(btype: str) -> BotAdapter:
                      "maniac_trigger, maniac_mixed, overbet_merchant, "
                      "calling_station, nit, folder, loose_passive, minraise, "
                      "minraiser, baseline_sane, pressure_filler, tag_punisher, "
-                     "wide_defender, split:<preflop_bot>:<postflop_bot>")
+                     "wide_defender, gto_fixed, a17_tag, "
+                     "split:<preflop_bot>:<postflop_bot>")
 
 
 class _PlayerViewAdapter(BotAdapter):
