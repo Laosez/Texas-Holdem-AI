@@ -176,11 +176,16 @@ def run_tournament_batch(player_spec_str, num_tournaments, chips, base_sb, base_
     print("=" * 75)
     print()
 
+    # Never pickle bot adapters into Pool tasks. Archetype configs use
+    # MappingProxyType and are intentionally unpickleable. Each worker
+    # creates its own fresh bots from (pid, btype); the adapter is unused.
+    worker_specs = [(pid, btype, None) for pid, btype, _ in player_specs]
+
     # Build args tuples for each tournament
     tasks = []
     for i in range(num_tournaments):
         t_seed = (seed + i) if seed is not None else None
-        initial_seats = rotate_player_specs(player_specs, i) if seat_mode == "rotate" else player_specs
+        initial_seats = rotate_player_specs(worker_specs, i) if seat_mode == "rotate" else worker_specs
         tasks.append((initial_seats, chips, base_sb, base_bb,
                       blind_increase_every, max_hands, t_seed))
 
