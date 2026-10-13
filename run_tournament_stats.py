@@ -64,7 +64,10 @@ def finalize_finish_order(seats, finish_order, total_players, hand_count):
 def run_silent_tournament(args_tuple):
     """Run one tournament silently. Accepts a tuple for multiprocessing.Pool.map.
 
-    Returns dict with: winner, hand_count, finish_order [(pid, position, hand#, chips_at_elim)].
+    Returns actual tournament outcomes and per-hand blind-level telemetry.
+
+    An incomplete tournament (max_hands/safety stop) has winner=None, even if
+    finalize_finish_order assigns provisional places by remaining stack sizes.
     """
     (player_specs, chips, base_sb, base_bb, blind_increase_every,
      max_hands, seed) = args_tuple
@@ -82,6 +85,7 @@ def run_silent_tournament(args_tuple):
     hand_count = 0
     total_players = len(seats)
     finish_order: list[tuple[str, int, int, int]] = []  # (pid, pos, hand#, chips_at_elim)
+    blind_stages = []  # actual consecutive (SB, BB) values used in played hands
 
     with redirect_stdout(io.StringIO()):
         while True:
@@ -89,14 +93,14 @@ def run_silent_tournament(args_tuple):
             if len(active_players) <= 1:
                 break
 
-            hand_count += 1
-            sb, bb = escalate_blinds(hand_count, base_sb, base_bb, blind_increase_every)
             active_seats = [s for s in seats if s.chips > 0]
             active_bots = {s.player_id: bots[s.player_id] for s in active_seats}
             dealer_index = normalize_dealer_seat_index(seats, dealer_index)
             if dealer_index is None:
                 break
 
+            hand_count += 1
+            sb, bb = escalate_blinds(hand_count, base_sb, base_bb, blind_increase_every)
             table.play_hand(
                 seats=seats,
                 small_blind=sb,
@@ -105,6 +109,17 @@ def run_silent_tournament(args_tuple):
                 bot_for=active_bots,
                 on_event=None,
             )
+            # Record only hands successfully played. Derive levels from actual
+            # blind values returned by escalate_blinds, not a predicted formula.
+            if not blind_stages or (blind_stages[-1]['sb'], blind_stages[-1]['bb']) != (sb, bb):
+                blind_stages.append({
+                    'level': len(blind_stages) + 1,
+                    'sb': sb, 'bb': bb,
+                    'start_hand': hand_count, 'end_hand': hand_count, 'hands': 1,
+                })
+            else:
+                blind_stages[-1]['end_hand'] = hand_count
+                blind_stages[-1]['hands'] += 1
             next_dealer = advance_dealer_seat_index(seats, dealer_index)
             if next_dealer is not None:
                 dealer_index = next_dealer
@@ -118,18 +133,22 @@ def run_silent_tournament(args_tuple):
             if hand_count >= max_hands:
                 break
 
+    # Completion is based on actual remaining chip-positive seats, not on
+    # provisional positions assigned when the safety hand limit is reached.
+    survivors = [s for s in seats if s.chips > 0]
+    completed = len(survivors) == 1
+    status = ('completed' if completed else
+              'hand_limit' if len(survivors) > 1 and hand_count >= max_hands else
+              'no_survivor' if not survivors else 'stopped')
     finalize_finish_order(seats, finish_order, total_players, hand_count)
 
-    winner = None
-    for pid, pos, _, _ in finish_order:
-        if pos == 1:
-            winner = pid
-            break
-
     return {
-        "winner": winner,
+        "winner": survivors[0].player_id if completed else None,
+        "completed": completed,
+        "status": status,
         "hand_count": hand_count,
         "finish_order": finish_order,
+        "blind_stages": blind_stages,
     }
 
 
