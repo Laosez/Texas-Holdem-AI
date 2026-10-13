@@ -64,6 +64,29 @@ class TestStreetSplitBot(unittest.TestCase):
                 self.assertIsNot(bot.preflop_bot, bot.postflop_bot)
                 bot.reset_memory()
 
+    def test_random_can_be_postflop_under_gto_preflop(self):
+        from unittest.mock import patch
+
+        bot = create_bot("split:gto:random")
+        self.assertIsInstance(bot, StreetSplitBot)
+        self.assertEqual((bot.preflop_name, bot.postflop_name), ("gto", "random"))
+        self.assertIn("random", EXPERIMENT_BASES)
+
+        # With only one legal postflop action, RandomBot chooses that
+        # action deterministically and the engine adapter returns Action.
+        postflop_view = SimpleNamespace(
+            street="flop", legal_actions=[{"type": "check"}]
+        )
+        self.assertEqual(bot.act(postflop_view), Action("check"))
+
+        # Confirm routing: preflop cannot reach RandomBot.
+        with patch.object(bot.preflop_bot, "act", return_value=Action("fold")) as pre:
+            with patch.object(bot.postflop_bot, "act") as post:
+                preflop_view = SimpleNamespace(street="preflop")
+                self.assertEqual(bot.act(preflop_view), Action("fold"))
+                pre.assert_called_once_with(preflop_view)
+                post.assert_not_called()
+
     def test_same_base_keeps_same_adapter_instance(self):
         bot = create_bot("split:gto:gto")
         self.assertIs(bot.preflop_bot, bot.postflop_bot)
