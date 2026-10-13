@@ -87,6 +87,20 @@ class TestStreetSplitBot(unittest.TestCase):
                 pre.assert_called_once_with(preflop_view)
                 post.assert_not_called()
 
+    def test_maniac_mixed_postflop_uses_distinct_preset(self):
+        mixed = create_bot("split:gto:maniac_mixed")
+        trigger = create_bot("split:gto:maniac")
+        self.assertEqual(mixed.preflop_name, "gto")
+        self.assertEqual(mixed.postflop_name, "maniac_mixed")
+        self.assertEqual(
+            mixed.postflop_bot.bot.config.policy_name,
+            trigger.postflop_bot.bot.config.policy_name,
+        )
+        self.assertEqual(mixed.postflop_bot.bot.knob("jam_freq"), 0.43)
+        self.assertEqual(trigger.postflop_bot.bot.knob("jam_freq"), 0.65)
+        self.assertEqual(mixed.postflop_bot.bot.knob("postflop_probe_freq"), 0.34)
+        self.assertEqual(trigger.postflop_bot.bot.knob("postflop_probe_freq"), 0.42)
+
     def test_same_base_keeps_same_adapter_instance(self):
         bot = create_bot("split:gto:gto")
         self.assertIs(bot.preflop_bot, bot.postflop_bot)
