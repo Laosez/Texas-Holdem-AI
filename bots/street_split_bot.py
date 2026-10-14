@@ -18,6 +18,7 @@ from core.bot_api import Action, BotAdapter, PlayerView
 EXPERIMENT_BASES = frozenset({
     "gto",
     "gto_fixed",  # Fixed blind-vs-raise detection; isolated from control GTO.
+    "a17_preflop_legacy",  # frozen pre-V5
     "a17_preflop",  # User A17 positional 2–9-max RFI and SB A01–A16 raise.
     "smart",
     "tag_punisher",
