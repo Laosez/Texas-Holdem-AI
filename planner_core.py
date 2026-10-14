@@ -141,10 +141,10 @@ def _gto_ranges(position, n):
         group = position_group(position, n)
         prefix = {"early": "EP", "middle": "MP", "late": "LP",
                   "sb": "BL", "bb": "BL"}[group]
-    result = {h: {"fold": 85, "call": 10, "open": 5} for h in HANDS}
+    result = {h: {"fold": 85, "limp": 10, "open": 5} for h in HANDS}
     for idx, values in ((1, (0, 10, 90)), (2, (10, 50, 40)), (3, (55, 30, 15))):
         for h in vars_[f"_{prefix}_T{idx}"]:
-            result[h] = dict(zip(("fold", "call", "open"), values))
+            result[h] = dict(zip(("fold", "limp", "open"), values))
     return result
 
 
@@ -163,7 +163,7 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
     if profile == "builtin:a17_legacy":
         boxes = dict(legacy)
     if profile == "builtin:any_two":
-        hands = {h: {"open": 100} for h in HANDS} if scenario == "rfi" else {}
+        hands = {h: {"open": 100} for h in HANDS}
     elif profile == "builtin:gto_heuristic":
         hands = _gto_ranges(position, players) if scenario == "rfi" else {}
     elif scenario == "rfi" and position in A17_MAX_OPEN_BOX_BY_POSITION:
