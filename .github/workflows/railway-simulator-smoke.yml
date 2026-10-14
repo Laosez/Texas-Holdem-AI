@@ -4,6 +4,9 @@ on:
     branches:
       - feat/railway-simulator-20261014
       - feat/simulator-screen-1-20261014
+  pull_request:
+    branches:
+      - feat/railway-simulator-20261014
   workflow_dispatch:
 
 jobs:
