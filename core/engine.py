@@ -469,6 +469,9 @@ class Table:
                     for pid in start_chips
                 }
 
+                on_hand_end = getattr(self, "on_hand_end", None)
+                if callable(on_hand_end):
+                    on_hand_end(hand_id, net, big_blind, (), ())
                 # Log results so fold-win hands get result rows in the
                 # JSONL file — without this, ML training data is biased
                 # because --filter_winners drops fold-win hands entirely.
@@ -505,6 +508,12 @@ class Table:
             pid: by_pid[pid].chips - start_chips.get(pid, by_pid[pid].chips)
             for pid in start_chips
         }
+
+        on_hand_end = getattr(self, "on_hand_end", None)
+        if callable(on_hand_end):
+            showdown_players = tuple(pid for pid, cards in hole.items() if len(cards) == 2)
+            showdown_winners = tuple(pid for pid in showdown_players if share_net.get(pid, 0) > 0)
+            on_hand_end(hand_id, net, big_blind, showdown_players, showdown_winners)
 
         # Log final results for ML training
         for pid, delta in net.items():
