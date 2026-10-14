@@ -50,20 +50,19 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
 <p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Цвет ячейки = преобладающее назначенное действие. Голубая рамка = выбранная коробка, зелёная = equity выше порога.</p>
 </section>
-<section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Диапазоны · частоты · выставление</span></div>
-<div class="thirds"><div class="stat"><span>Overlap с выбранным соперником</span><strong id="compOverlap">—</strong><small>Взвешенный Jaccard, % комбинаций</small></div>
-<div class="stat"><span>Наш диапазон / контр-диапазон</span><strong id="compWidth">—</strong><small>Доля 1326 комбинаций</small></div>
-<div class="stat"><span>Различия действий</span><strong id="compDelta">—</strong><small>Комбинации с отличающимися частотами</small></div></div>
-<div class="thirds" style="margin-top:9px"><div class="stat"><span>Equity нашего диапазона vs все соперники</span><strong id="compEquity">—</strong><small>Совместная Monte Carlo-раздача диапазонов</small></div>
-<div class="stat"><span>Подтверждённые комбинации</span><strong id="compCombos">—</strong><small>Σ частот входа × реальных комбинаций</small></div>
-<div class="stat"><span>Расчёт vs все соперники</span><button class="btn sm" id="computeActual">Рассчитать</button><small id="actualState">Ожидание</small></div></div><p class="note">Equity при одновременном выставлении, без fold equity, ставок и ICM. Overlap сравнивается попарно с соперником, выбранным для второй матрицы.</p>
+<section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Отдельно по каждому сопернику · HU + Multiway</span></div>
+<div id="perOpponentComparison" class="matrixLayout" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px"></div>
+<div class="thirds" style="margin-top:12px"><div class="stat"><span>Equity нашего диапазона vs все соперники одновременно</span><strong id="compEquity">—</strong><small>Совместная Monte Carlo-раздача, не среднее HU</small></div><div class="stat"><span>Число соперников</span><strong id="comparisonCount">—</strong><small>Выбраны в блоке 02</small></div><div class="stat"><span>Расчёт vs все соперники</span><button class="btn sm" id="computeActual">Рассчитать</button><small id="actualState">Ожидание</small></div></div>
+<p class="note">Overlap — взвешенное совпадение диапазонов. Equity — доля банка при выставлении без ставок, fold equity и ICM. Индивидуальные HU рассчитываются отдельно; multiway — совместно.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">05 / </span>Редактор выбранной руки</h2><div class="buttons"><button class="btn sm ghost" id="undo" disabled>↶ Отменить</button><button class="btn sm ghost" id="resetHand">Снять назначение</button></div></div>
 <div class="two"><div class="profile"><div class="editorHead"><div><span class="small">СТАРТОВАЯ РУКА</span><div id="selectedHand" class="bigHand">AQs</div><span id="handCombos" class="muted">4 комбинации</span></div>
 <div style="min-width:155px"><label for="handBox">Коробка A17</label><select id="handBox"></select><button class="btn sm" id="moveBox" style="margin-top:7px;width:100%">Переместить</button></div></div>
 <h3>Действия и частоты (%)</h3><div id="actionInputs" class="actionGrid"></div>
 <div class="buttons" style="margin-top:13px"><button class="btn primary" id="applyHand">Применить к руке</button><button class="btn" id="applyBoxes">Применить к выделенным коробкам</button></div><div id="actionStatus" class="note"></div></div>
-<div class="profile"><h3>Equity выбранной руки при выставлении</h3><div class="thirds"><div class="stat"><span>vs Any Two · HU</span><strong id="handAny">—</strong></div><div class="stat"><span>vs фильтр №02</span><strong id="handFilter">—</strong></div><div class="stat"><span>vs все выбранные</span><strong id="handActual">—</strong></div></div>
+<div class="profile"><h3>Equity выбранной руки при выставлении</h3><div id="perOpponentHands"></div><div class="thirds" style="margin-top:10px"><div class="stat"><span>Vs все одновременно</span><strong id="handActual">—</strong></div><div class="stat"><span>Vs фильтр 02</span><strong id="handFilter">—</strong></div><div class="stat"><span>Vs Any Two HU</span><strong id="handAny">—</strong></div></div>
+<div class="buttons" style="margin-top:14px"><button class="btn sm" id="computeAny">Рассчитать Any Two HU</button><button class="btn sm" id="handComputeFilter">Рассчитать фильтр</button><button class="btn sm" id="handComputeActual">Рассчитать контр</button></div>
+<div class="handStatus" style="margin-top:12px"><div id="handDetail" class="small">Нажмите на руку в матрице.</div></div><p class="note">Индивидуальное equity — HU против соответствующего диапазона; итоговое — совместный multiway, не сумма и не среднее.</p></div></div>
 <div class="buttons" style="margin-top:14px"><button class="btn sm" id="computeAny">Рассчитать Any Two HU</button><button class="btn sm" id="handComputeFilter">Рассчитать фильтр</button><button class="btn sm" id="handComputeActual">Рассчитать контр</button></div>
 <div class="handStatus" style="margin-top:12px"><div id="handDetail" class="small">Нажмите на руку в матрице.</div></div><p class="note">Сравнение — equity выигрыша при вскрытии с пропорциональным дележом банка. Не является EV решения. Ошибка Monte Carlo зависит от числа симуляций.</p></div></div>
 </section>
@@ -74,7 +73,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null;
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null,perOpponentData=[],comparisonEpoch=0;
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -141,14 +140,14 @@ function renderOpponents(){
 }
 function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
 function opponentsSelected(){return opponents.slice(0,Number($('oppCount').value)).map(o=>({...o}))}
-function invalidateEquity(){calcEpoch++;equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices()}
+function invalidateEquity(){calcEpoch++;comparisonEpoch++;perOpponentData=[];equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices();refreshComparison()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
  const revision=++villainEpoch;
  const i=Number($('viewOpponent').value||0),o=opponentsSelected()[i];if(!o)return;
  try{const doc=await getSource(o.profile,o.position,o.scenario,o.players,20);
- if(revision!==villainEpoch)return;villain=doc;refreshComparison();drawMatrices()}
+ if(revision!==villainEpoch)return;villain=doc;drawMatrices()}
  catch(e){villain=null;drawMatrices();msg('Соперник #'+(i+1)+': '+e.message,true)}
 }
 function major(actions){if(!actions)return 'none';const entries=Object.entries(actions).filter(x=>x[1]>0);if(!entries.length)return 'none';entries.sort((a,b)=>b[1]-a[1]);return entries[0][0]}
@@ -233,14 +232,68 @@ function doApply(toBoxes=false){
  }catch(e){msg(e.message,true)}
 }
 async function refreshComparison(){
- if(!hero||!villain)return;
- try{
-  const data=await post('/api/plan/compare',{hero,villain});
-  $('compOverlap').textContent=data.overlap_pct===null?'—':data.overlap_pct.toFixed(1)+'%';
-  $('compWidth').textContent=data.hero_pct.toFixed(1)+' / '+data.villain_pct.toFixed(1)+'%';
-  $('compDelta').textContent=data.different_action_combos.toLocaleString('ru-RU');
-  $('compCombos').textContent=data.shared_combos_weighted.toFixed(1);
- }catch(e){msg('Сравнение: '+e.message,true)}
+ if(!hero||!meta)return;
+ const revision=++comparisonEpoch,people=currentPeople();
+ perOpponentData=people.map((o,i)=>({o,label:(profileOptions().find(p=>p.value===o.profile)?.label||o.profile),compare:null,handEq:null,rangeEq:null,error:null}));
+ renderPerOpponent();
+ await Promise.all(people.map(async(o,i)=>{
+  try{
+   const doc=await getSource(o.profile,o.position,o.scenario,o.players,20);
+   const compare=await post('/api/plan/compare',{hero,villain:doc});
+   if(revision!==comparisonEpoch)return;
+   perOpponentData[i].compare=compare;perOpponentData[i].doc=doc;renderPerOpponent();
+  }catch(e){if(revision===comparisonEpoch){perOpponentData[i].error=e.message;renderPerOpponent()}}
+ }));
+}
+function renderPerOpponent(){
+ const root=$('perOpponentComparison'),hands=$('perOpponentHands');
+ if(!root||!hands)return;
+ root.replaceChildren();hands.replaceChildren();
+ perOpponentData.forEach((item,i)=>{
+  const card=el('div','stat');
+  card.style.minWidth='0';
+  card.append(el('strong','',`Соперник ${i+1} · ${item.label}`));
+  const subtitle=el('small','',`${item.o.position} · ${SCENARIOS[item.o.scenario]||item.o.scenario}`);
+  card.append(subtitle);
+  const pairs=[
+   ['Overlap',item.compare?.overlap_pct==null?'—':pct(item.compare.overlap_pct)],
+   ['Equity HU диапазонов',pct(item.rangeEq?.equity_pct)],
+   ['Диапазон соперника',pct(item.compare?.villain_pct)],
+   ['Различия действий',item.compare?.different_action_combos==null?'—':item.compare.different_action_combos.toLocaleString('ru-RU')]
+  ];
+  pairs.forEach(([label,value])=>card.append(el('small','',label+' · '+value)));
+  if(item.error)card.append(el('small','',item.error));
+  root.append(card);
+  const line=el('div','stat');line.style.marginBottom='6px';
+  line.append(el('span','',`#${i+1} ${item.label} · HU`));
+  line.append(el('strong','',pct(item.handEq?.equity?.[selected])));
+  const actions=item.doc?.hands?.[selected];
+  line.append(el('small','',actions?Object.entries(actions).map(([a,v])=>(ACTIONS[a]||a)+' '+v+'%').join(' · '):'Частоты действий не назначены'));
+  hands.append(line);
+ });
+ $('comparisonCount').textContent=String(perOpponentData.length);
+}
+async function calculatePerOpponent(){
+ const epoch=calcEpoch,items=perOpponentData.slice();
+ for(const item of items){
+  if(epoch!==calcEpoch)return;
+  try{
+   const settings={model:'selected',trials:Number($('trials').value),opponents:[item.o]};
+   let task=await post('/api/plan/equity',settings);
+   while(task.status==='running'){
+    await new Promise(r=>setTimeout(r,1100));
+    if(epoch!==calcEpoch)return;
+    task=await api('/api/plan/equity/'+task.id);
+   }
+   if(task.status!=='completed')throw Error(task.error||'HU расчёт не завершён');
+   if(epoch!==calcEpoch)return;
+   item.handEq=task.result;
+   // Independent HU range-vs-range showdown, not a mean of hand equities.
+   item.rangeEq=await post('/api/plan/range-equity',{hero,opponents:[item.o],trials:3000});
+   if(epoch!==calcEpoch)return;
+  }catch(e){if(epoch!==calcEpoch)return;item.error=e.message}
+  renderPerOpponent();
+ }
 }
 function rangeMean(eq){if(!hero||!eq)return null;let mass=0,total=0;for(const h of HANDS){const v=Object.entries(hero.hands[h]||{}).filter(([a])=>a!=='fold').reduce((s,[a,p])=>s+p,0)/100;if(v>0){const w=COMBOS(h)*v;mass+=w;total+=w*eq[h]}}return mass?total/mass:null}
 function pct(x){return x===null||x===undefined?'—':Number(x).toFixed(1)+'%'}
@@ -251,7 +304,7 @@ function drawEquityStats(){
  const eq=equityResults.filter;
  $('equityStatus').textContent=eq?'Расчёт готов · '+eq.simulations_per_hand+' симуляций/руку · Monte Carlo (погрешность выборки)':'Расчёт не выполнен. Настройки соперников могут быть произвольными.';
  if(eq)$('equityFill').style.width='100%';
- $('handDetail').textContent='Моя: '+handTooltip(selected,hero)+' | Контр: '+handTooltip(selected,villain);
+ $('handDetail').textContent='Моя: '+handTooltip(selected,hero);renderPerOpponent();
 }
 async function startCalculation(slot,model,people){
  const revision=calcEpoch;
@@ -344,7 +397,7 @@ $('delete').onclick=async()=>{
  try{await api('/api/plan/strategies/'+hero.id,{method:'DELETE'});meta=await api('/api/plan/catalog');refill($('heroProfile'),profileOptions(),'builtin:a17_v5');await loadHero();msg('Стратегия перенесена в корзину.')}catch(e){msg(e.message,true)}
 };
 $('computeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,currentPeople());
-$('computeActual').onclick=async()=>{const matrix=await startCalculation('actual','selected',currentPeople());if(matrix)await calculateRangeEquity()};
+$('computeActual').onclick=async()=>{const matrix=await startCalculation('actual','selected',currentPeople());if(matrix){await calculateRangeEquity();await calculatePerOpponent()}};
 $('computeAny').onclick=()=>startCalculation('any','any_two',currentPeople().slice(0,1));
 $('handComputeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,currentPeople());
 $('handComputeActual').onclick=()=>startCalculation('actual','selected',currentPeople());
