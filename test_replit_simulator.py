@@ -15,7 +15,7 @@ class InputTests(unittest.TestCase):
         self.assertEqual(c["players"], app.DEFAULT_PLAYERS)
         self.assertEqual((len(c["players"]), c["tournaments"], c["seed"]), (9, 90, 2042))
         self.assertEqual((c["chips"], c["sb"], c["bb"]), (500, 1, 2))
-        self.assertEqual((c["blind_increase_every"], c["seat_mode"], c["parallel"]), (50, "rotate", 2))
+        self.assertEqual((c["blind_increase_every"], c["seat_mode"], c["parallel"]), (50, "rotate", 1))
 
     def test_a17_tag_and_all_control_bots_known(self):
         self.assertTrue(all(app.valid_bot(x) for x in app.DEFAULT_PLAYERS))

@@ -5,10 +5,13 @@ Python standard library only; uses legacy engine for experiment parity.
 """
 from __future__ import annotations
 
+import csv
 import io
 import json
 import os
 import re
+import shutil
+import statistics
 import secrets
 import signal
 import subprocess
@@ -27,7 +30,9 @@ UI = ROOT / "replit_ui" / "index.html"
 OUT = Path(os.environ.get("POKER_DATA_DIR", str(ROOT / "output" / "replit_runs"))).resolve()
 PORT = int(os.environ.get("PORT", "3000"))
 TOKEN = os.environ.get("POKER_RUNNER_KEY", "").strip()
-MAX_BODY = 16_384
+MAX_BODY = 32_768
+MAX_ZIP_BODY = 32 * 1024 * 1024
+MAX_ZIP_UNPACKED = 120 * 1024 * 1024
 MAX_LOG_LINES = 80
 RUNS: dict[str, dict] = {}
 MUTEX = threading.RLock()
@@ -53,6 +58,26 @@ BASE_BOTS = {
 SPLIT_PARTS = BASE_BOTS - {"a17_tag", "random_2", "random_3"}
 SPLIT_PARTS.update({"random_2", "random_3"})
 SPLIT_PARTS.discard("a17_tag")
+
+# Each of the nine player seats has a separately editable preflop/postflop policy.
+# Blank means INCOMPLETE, never automatic inheritance.
+DEFAULT_BOT_ROWS = [
+    {"pre": "gto", "post": "smart"},
+    {"pre": "gto", "post": "gto"},
+    {"pre": "gto", "post": "tag_punisher"},
+    {"pre": "gto", "post": "maniac_mixed"},
+    {"pre": "gto", "post": "baseline_sane"},
+    {"pre": "a17_preflop", "post": "tag_punisher"},
+    {"pre": "gto", "post": "random"},
+    {"pre": "gto", "post": "random_2"},
+    {"pre": "gto", "post": "pressure_filler"},
+]
+PROGRESS_RE = re.compile(
+    r"(\d+)/(\d+) tournaments\s*·\s*([\d.]+) tournaments/min\s*·\s*([\d.]+) hands/s"
+)
+RUN_ID_RE = re.compile(r"^[A-Za-z0-9_]{5,64}$")
+ARCHIVE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,120}$")
+
 
 
 def valid_bot(bot: str) -> bool:
@@ -81,17 +106,37 @@ def bounded_int(value, label: str, minimum: int, maximum: int) -> int:
 def validate_config(data: dict) -> dict:
     if not isinstance(data, dict):
         raise ValueError("Ожидался объект настроек")
-    raw = data.get("players", DEFAULT_PLAYERS)
-    if isinstance(raw, str):
-        bots = [s.strip() for s in raw.split(",") if s.strip()]
-    elif isinstance(raw, list) and all(isinstance(x, str) for x in raw):
-        bots = [s.strip() for s in raw]
+    raw_rows = data.get("bots")
+    if raw_rows is not None:
+        if not isinstance(raw_rows, list) or not 2 <= len(raw_rows) <= 9:
+            raise ValueError("Нужны от 2 до 9 строк ботов")
+        rows = []
+        bots = []
+        for i, row in enumerate(raw_rows, start=1):
+            if not isinstance(row, dict):
+                raise ValueError(f"P{i}: выбери обе стратегии")
+            pre, post = row.get("pre", ""), row.get("post", "")
+            if not isinstance(pre, str) or not isinstance(post, str):
+                raise ValueError(f"P{i}: некорректная стратегия")
+            if not pre or not post:
+                raise ValueError(f"P{i}: Preflop и Postflop обязательны; пустое поле запрещает запуск")
+            if pre not in SPLIT_PARTS or post not in SPLIT_PARTS:
+                raise ValueError(f"P{i}: неподдерживаемая стратегия {pre}/{post}")
+            rows.append({"pre": pre, "post": post})
+            bots.append(f"P{i}=split:{pre}:{post}")
     else:
-        raise ValueError("Нужен список ботов")
-    if not 2 <= len(bots) <= 9 or len(set(bots)) != len(bots):
-        raise ValueError("Нужны 2–9 ботов с уникальными именами")
-    if not all(valid_bot(b) for b in bots):
-        raise ValueError("Неизвестный бот: " + ", ".join(b for b in bots if not valid_bot(b)))
+        rows = None
+        raw = data.get("players", DEFAULT_PLAYERS)
+        if isinstance(raw, str):
+            bots = [s.strip() for s in raw.split(",") if s.strip()]
+        elif isinstance(raw, list) and all(isinstance(x, str) for x in raw):
+            bots = [s.strip() for s in raw]
+        else:
+            raise ValueError("Нужен список ботов")
+        if not 2 <= len(bots) <= 9 or len(set(bots)) != len(bots):
+            raise ValueError("Нужны 2–9 ботов с уникальными именами")
+        if not all(valid_bot(b) for b in bots):
+            raise ValueError("Неизвестный бот: " + ", ".join(b for b in bots if not valid_bot(b)))
     sb = bounded_int(data.get("sb", 1), "SB", 1, 1000)
     bb = bounded_int(data.get("bb", 2), "BB", 2, 2000)
     if bb < sb:
@@ -100,9 +145,9 @@ def validate_config(data: dict) -> dict:
     if seat_mode not in ("rotate", "fixed"):
         raise ValueError("seat_mode: rotate или fixed")
     return {
-        "players": bots,
+        "players": bots, "bots": rows,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
-        "parallel": bounded_int(data.get("parallel", 2), "Потоки", 1, 4),
+        "parallel": bounded_int(data.get("parallel", 1), "Потоки", 1, 4),
         "seed": bounded_int(data.get("seed", 2042), "Seed", 0, 2_147_483_647),
         "chips": bounded_int(data.get("chips", 500), "Стек", 10, 1_000_000),
         "sb": sb, "bb": bb,
@@ -124,6 +169,9 @@ def snapshot(job: dict) -> dict:
         "updated": job["updated"], "config": job["config"],
         "log": list(job["log"]), "returncode": job["returncode"],
         "report": job.get("report"),
+        "progress": job.get("progress"),
+        "stats": job.get("stats"),
+        "performance": job.get("performance"),
     }
 
 
@@ -132,6 +180,47 @@ def persist(job: dict) -> None:
     data = snapshot(job)
     data.pop("log", None)
     p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _read_rows(file: Path) -> list[dict]:
+    if not file.is_file():
+        return []
+    with file.open(encoding="utf-8-sig", newline="") as stream:
+        return list(csv.DictReader(stream))
+
+
+def stats_for_folder(folder: Path) -> dict:
+    """Actual observed preflop metrics and placement data; never infer bb/100."""
+    observed = {}
+    for row in _read_rows(folder / "summary_all.csv"):
+        profile = row.get("bot", "")
+        if not profile:
+            continue
+        observed[profile] = {
+            metric: (float(row[metric + "_pct"]) if row.get(metric + "_pct", "") not in ("", None) else None)
+            for metric in ("vpip", "pfr", "rfi", "threebet", "fourbet")
+        }
+        observed[profile]["hands_observed"] = int(row.get("hands_observed") or 0)
+    placement = {}
+    for row in _read_rows(folder / "tournament_players.csv"):
+        if row.get("completed") != "1":
+            continue
+        name = row.get("bot", "")
+        entry = placement.setdefault(name, {"places": [], "top3": 0})
+        try:
+            place = int(row.get("position") or 0)
+        except ValueError:
+            continue
+        if place < 1:
+            continue
+        entry["places"].append(place)
+        entry["top3"] += int(place <= 3)
+    for name, data in placement.items():
+        result = observed.setdefault(name, {})
+        positions = data["places"]
+        result["top3_pct"] = round(data["top3"] / len(positions) * 100, 2) if positions else None
+        result["median_position"] = statistics.median(positions) if positions else None
+    return observed
 
 
 def worker(job: dict) -> None:
@@ -162,12 +251,20 @@ def worker(job: dict) -> None:
             )
             with MUTEX:
                 job["process"] = proc
+                if job.get("cancelled"):
+                    os.killpg(proc.pid, signal.SIGTERM)
             assert proc.stdout is not None
             for line in proc.stdout:
                 log.write(line)
                 log.flush()
                 with MUTEX:
                     job["log"].append(line.rstrip())
+                    match = PROGRESS_RE.search(line)
+                    if match:
+                        job["progress"] = {
+                            "done": int(match.group(1)), "total": int(match.group(2)),
+                            "tpm": float(match.group(3)), "hps": float(match.group(4))
+                        }
                     job["updated"] = now()
             exit_code = proc.wait()
         report_file = output / "tournament_report.json"
@@ -175,6 +272,16 @@ def worker(job: dict) -> None:
         with MUTEX:
             job["returncode"] = exit_code
             job["report"] = report
+            if report is not None:
+                job["stats"] = stats_for_folder(output)
+                perf_file = output / "performance.json"
+                job["performance"] = json.loads(perf_file.read_text(encoding="utf-8")) if perf_file.is_file() else None
+                job["progress"] = {
+                    "done": report.get("tournaments_completed", 0),
+                    "total": report.get("tournaments_requested", 0),
+                    "tpm": job.get("progress", {}).get("tpm") if job.get("progress") else None,
+                    "hps": job.get("progress", {}).get("hps") if job.get("progress") else None,
+                }
             job["status"] = ("cancelled" if job.get("cancelled")
                              else "completed" if exit_code == 0 and report is not None else "failed")
             job["updated"] = now()
@@ -197,6 +304,8 @@ def start_run(config: dict) -> dict:
         job = {
             "id": run_id, "status": "starting", "created": now(), "updated": now(),
             "config": config, "returncode": None, "report": None,
+            "progress": {"done": 0, "total": config["tournaments"], "tpm": None, "hps": None},
+            "stats": {}, "performance": None,
             "log": deque(maxlen=MAX_LOG_LINES),
         }
         RUNS[run_id] = job
@@ -226,19 +335,101 @@ def cancel_run(run_id: str) -> dict:
         return snapshot(job)
 
 
+def delete_session(run_id: str) -> None:
+    with MUTEX:
+        job = RUNS.get(run_id)
+        if job is None:
+            raise KeyError(run_id)
+        if job["status"] in ("running", "starting"):
+            raise RuntimeError("Идущую симуляцию сначала останови")
+        folder = OUT / run_id
+        if not RUN_ID_RE.fullmatch(run_id) or not folder.is_dir():
+            raise ValueError("Некорректная сессия")
+        shutil.rmtree(folder)
+        del RUNS[run_id]
+
+
+def import_session(raw: bytes) -> dict:
+    """Safely import one exported session ZIP. File contents are never executed."""
+    if len(raw) > MAX_ZIP_BODY:
+        raise ValueError("Архив слишком большой")
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(raw))
+    except (OSError, zipfile.BadZipFile):
+        raise ValueError("Некорректный ZIP") from None
+    with archive:
+        entries = archive.infolist()
+        if len(entries) > 140:
+            raise ValueError("В архиве слишком много файлов")
+        if sum(entry.file_size for entry in entries) > MAX_ZIP_UNPACKED:
+            raise ValueError("Превышен допустимый размер данных")
+        for entry in entries:
+            name = entry.filename
+            if (not ARCHIVE_NAME_RE.fullmatch(name) or
+                    not name.endswith((".csv", ".json", ".log")) or
+                    entry.is_dir() or (entry.external_attr >> 16 & 0o170000) == 0o120000):
+                raise ValueError("В архиве есть недопустимый файл")
+        if "tournament_report.json" not in archive.namelist():
+            raise ValueError("В архиве нет tournament_report.json")
+        try:
+            report = json.loads(archive.read("tournament_report.json"))
+            if not isinstance(report, dict) or not isinstance(report.get("leaderboard"), list):
+                raise ValueError("Неизвестный формат отчёта")
+            manifest = (json.loads(archive.read("session_manifest.json"))
+                        if "session_manifest.json" in archive.namelist() else {})
+        except (ValueError, json.JSONDecodeError, KeyError):
+            raise ValueError("Повреждённые метаданные") from None
+        if not isinstance(manifest, dict):
+            raise ValueError("Неправильный manifest")
+        with MUTEX:
+            if any(j["status"] in ("running", "starting") for j in RUNS.values()):
+                raise RuntimeError("Импорт после завершения текущего запуска")
+            run_id = "import_" + secrets.token_hex(8)
+            folder = OUT / run_id
+            folder.mkdir(parents=True)
+            try:
+                for entry in entries:
+                    if entry.filename in ("job.json", "session_manifest.json"):
+                        continue
+                    (folder / entry.filename).write_bytes(archive.read(entry))
+                config = manifest.get("config") or {}
+                if not isinstance(config, dict):
+                    config = {}
+                job = {
+                    "id": run_id, "status": "imported", "created": now(), "updated": now(),
+                    "config": config, "returncode": 0, "report": report,
+                    "progress": {"done": report.get("tournaments_completed", 0),
+                                 "total": report.get("tournaments_requested", 0)},
+                    "stats": stats_for_folder(folder),
+                    "performance": (json.loads((folder / "performance.json").read_text(encoding="utf-8"))
+                                    if (folder / "performance.json").is_file() else None),
+                    "log": deque(["Сессия загружена из ZIP"], maxlen=MAX_LOG_LINES),
+                }
+                persist(job)
+                RUNS[run_id] = job
+                return snapshot(job)
+            except Exception:
+                shutil.rmtree(folder, ignore_errors=True)
+                raise
+
+
 def zip_results(job: dict) -> bytes:
     # Generate ZIP on demand. Avoid archives as part of Git history.
     folder = OUT / job["id"]
     data = io.BytesIO()
     with zipfile.ZipFile(data, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for path in sorted(folder.iterdir()):
-            if path.is_file() and not path.is_symlink() and path.name != "job.json":
+            if path.is_file() and not path.is_symlink() and path.name not in ("job.json", "session_manifest.json"):
                 archive.write(path, arcname=path.name)
+        archive.writestr("session_manifest.json", json.dumps(
+            {"format": "SKACHKOV_SESSION_V1", "config": job.get("config", {}),
+             "created": job.get("created"), "source_id": job["id"]},
+            ensure_ascii=False, indent=2))
     return data.getvalue()
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "SKACHKOV-Simulator/1.0"
+    server_version = "SKACHKOV-Simulator/2.0"
 
     def reply(self, code: int, data: dict):
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
@@ -314,16 +505,42 @@ class Handler(BaseHTTPRequestHandler):
             return
         self.reply(404, {"error": "Не найдено"})
 
+    def do_DELETE(self):
+        path = urlparse(self.path).path
+        if not self.allowed():
+            return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)", path)
+        if not match:
+            self.reply(404, {"error": "Не найдено"})
+            return
+        try:
+            delete_session(match.group(1))
+            self.reply(200, {"ok": True})
+        except KeyError:
+            self.reply(404, {"error": "Сессия не найдена"})
+        except (ValueError, RuntimeError) as exc:
+            self.reply(409, {"error": str(exc)})
+
     def do_POST(self):
         path = urlparse(self.path).path
         if not self.allowed():
             return
         try:
             size = int(self.headers.get("Content-Length", "0"))
-            if size <= 0 or size > MAX_BODY:
+            limit = MAX_ZIP_BODY if path == "/api/runs/import" else MAX_BODY
+            if size <= 0 or size > limit:
                 self.reply(413, {"error": "Слишком большой запрос"})
                 return
-            payload = json.loads(self.rfile.read(size))
+            raw = self.rfile.read(size)
+            if path == "/api/runs/import":
+                try:
+                    self.reply(201, import_session(raw))
+                except ValueError as exc:
+                    self.reply(400, {"error": str(exc)})
+                except RuntimeError as exc:
+                    self.reply(409, {"error": str(exc)})
+                return
+            payload = json.loads(raw)
         except (ValueError, json.JSONDecodeError):
             self.reply(400, {"error": "Некорректный JSON"})
             return
@@ -351,8 +568,20 @@ def restore_history():
     for manifest in sorted(OUT.glob("*/job.json"), reverse=True)[:40]:
         try:
             job = json.loads(manifest.read_text(encoding="utf-8"))
-            job["log"] = deque(maxlen=MAX_LOG_LINES)
+            if job["id"] != manifest.parent.name or not RUN_ID_RE.fullmatch(job["id"]):
+                continue
+            log_file = manifest.parent / "simulation.log"
+            tail = deque(maxlen=MAX_LOG_LINES)
+            if log_file.is_file():
+                with log_file.open(encoding="utf-8", errors="replace") as log:
+                    tail.extend(line.rstrip() for line in log)
+            job["log"] = tail
             job["status"] = "interrupted" if job["status"] in ("starting", "running") else job["status"]
+            if job.get("report") and not job.get("stats"):
+                job["stats"] = stats_for_folder(manifest.parent)
+            perf = manifest.parent / "performance.json"
+            if perf.is_file() and not job.get("performance"):
+                job["performance"] = json.loads(perf.read_text(encoding="utf-8"))
             RUNS[job["id"]] = job
         except (KeyError, OSError, ValueError):
             pass
