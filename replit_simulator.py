@@ -367,8 +367,8 @@ def resume_run(run_id: str) -> dict:
             raise RuntimeError("Другая серия уже выполняется")
         if not job["config"].get("players"):
             raise ValueError("Старая сессия не содержит полного состава игроков")
-        if job.get("strategy_fingerprint") and job["strategy_fingerprint"] != strategy_fingerprint():
-            raise RuntimeError("Версия стратегий изменилась; старую сессию нельзя безопасно продолжить")
+        if not job.get("strategy_fingerprint") or job["strategy_fingerprint"] != strategy_fingerprint():
+            raise RuntimeError("Версия старой сессии неизвестна или изменилась; безопасное продолжение невозможно. Скачай ZIP для архива.")
         job["cancelled"] = False
         job["status"] = "running"
         job["returncode"] = None
@@ -428,12 +428,18 @@ def restore_deleted(run_id: str) -> dict:
         return snapshot(manifest)
 
 
-def import_session(raw: bytes) -> dict:
+def import_session(raw: bytes | str | Path) -> dict:
     """Safely import one exported session ZIP. File contents are never executed."""
-    if len(raw) > MAX_ZIP_BODY:
-        raise ValueError("Архив слишком большой")
+    if isinstance(raw, (str, Path)):
+        source = Path(raw)
+        if source.stat().st_size > MAX_ZIP_BODY:
+            raise ValueError("Архив слишком большой")
+    else:
+        if len(raw) > MAX_ZIP_BODY:
+            raise ValueError("Архив слишком большой")
+        source = io.BytesIO(raw)
     try:
-        archive = zipfile.ZipFile(io.BytesIO(raw))
+        archive = zipfile.ZipFile(source)
     except (OSError, zipfile.BadZipFile):
         raise ValueError("Некорректный ZIP") from None
     with archive:
@@ -500,10 +506,10 @@ def import_session(raw: bytes) -> dict:
                 raise
 
 
-def zip_results(job: dict) -> bytes:
+def zip_results(job: dict, stream=None) -> bytes | None:
     # Generate ZIP on demand. Avoid archives as part of Git history.
     folder = OUT / job["id"]
-    data = io.BytesIO()
+    data = stream if stream is not None else io.BytesIO()
     with zipfile.ZipFile(data, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for path in sorted(folder.rglob("*")):
             if path.is_file() and not path.is_symlink() and path.name not in ("job.json", "session_manifest.json"):
@@ -513,7 +519,7 @@ def zip_results(job: dict) -> bytes:
              "created": job.get("created"), "source_id": job["id"],
              "status": job.get("status"), "strategy_fingerprint": job.get("strategy_fingerprint")},
             ensure_ascii=False, indent=2))
-    return data.getvalue()
+    return data.getvalue() if stream is None else None
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -591,14 +597,17 @@ class Handler(BaseHTTPRequestHandler):
                 if job["status"] in {"running", "starting"}:
                     self.reply(409, {"error": "Дождитесь завершения серии"})
                     return
-            content = zip_results(job)
-            self.send_response(200)
-            self.send_header("Content-Type", "application/zip")
-            self.send_header("Content-Disposition", f'attachment; filename="SKACHKOV_{run_id}.zip"')
-            self.send_header("Content-Length", str(len(content)))
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(content)
+            with tempfile.TemporaryFile() as data:
+                zip_results(job, stream=data)
+                size = data.tell()
+                data.seek(0)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Disposition", f'attachment; filename="SKACHKOV_{run_id}.zip"')
+                self.send_header("Content-Length", str(size))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                shutil.copyfileobj(data, self.wfile, length=1024 * 1024)
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)", path)
         if match:
@@ -635,16 +644,24 @@ class Handler(BaseHTTPRequestHandler):
             if size <= 0 or size > limit:
                 self.reply(413, {"error": "Слишком большой запрос"})
                 return
-            raw = self.rfile.read(size)
             if path == "/api/runs/import":
-                try:
-                    self.reply(201, import_session(raw))
-                except ValueError as exc:
-                    self.reply(400, {"error": str(exc)})
-                except RuntimeError as exc:
-                    self.reply(409, {"error": str(exc)})
+                with tempfile.NamedTemporaryFile(prefix="poker_upload_", suffix=".zip") as upload:
+                    remaining = size
+                    while remaining:
+                        chunk = self.rfile.read(min(1024 * 1024, remaining))
+                        if not chunk:
+                            raise ValueError("Неполный ZIP")
+                        upload.write(chunk)
+                        remaining -= len(chunk)
+                    upload.flush()
+                    try:
+                        self.reply(201, import_session(upload.name))
+                    except ValueError as exc:
+                        self.reply(400, {"error": str(exc)})
+                    except RuntimeError as exc:
+                        self.reply(409, {"error": str(exc)})
                 return
-            payload = json.loads(raw)
+            payload = json.loads(self.rfile.read(size))
         except (ValueError, json.JSONDecodeError):
             self.reply(400, {"error": "Некорректный JSON"})
             return
