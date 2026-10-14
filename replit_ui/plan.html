@@ -173,7 +173,9 @@ function matrix(root,doc){
   const actions=doc.hands[h],action=major(actions),b=doc.boxes[h],button=el('button','hand '+action,h);
   button.type='button';button.title=handTooltip(h,doc);
   button.setAttribute('aria-label',button.title);
-  const boxhit=selectedBoxes.size>0&&selectedBoxes.has(b);
+  // The selected A17 boxes belong to HERO. Highlight the same hand classes
+  // on both matrices even if the opponent has different box geometry.
+  const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   const hasEq=Object.prototype.hasOwnProperty.call(eq,h);
   const hit=hasEq&&eq[h]>=min;
   if(selectedBoxes.size&&!boxhit)button.classList.add('dim');
