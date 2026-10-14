@@ -94,10 +94,18 @@ def strategy_fingerprint():
             digest.update(hashlib.sha256(path.read_bytes()).digest())
     return digest.hexdigest()
 
+def max_safe_workers():
+    default = 1 if os.environ.get("RAILWAY_PROJECT_ID") else 4
+    try:
+        return max(1, min(4, int(os.environ.get("POKER_MAX_WORKERS", str(default)))))
+    except ValueError:
+        return default
+
+
 def strategy_catalog():
     options = sorted(SPLIT_PARTS)
     return {"strategies": options, "a17_version": "A17_V5",
-            "code_fingerprint": strategy_fingerprint(), "workers_max": 1 if os.environ.get("RAILWAY_PROJECT_ID") else 4,
+            "code_fingerprint": strategy_fingerprint(), "workers_max": max_safe_workers(),
             "required_streets": ["pre", "post"]}
 
 
@@ -180,8 +188,8 @@ def validate_config(data: dict) -> dict:
         "max_hands": bounded_int(data.get("max_hands", 10000), "Лимит рук", 100, 100_000),
         "seat_mode": seat_mode,
     }
-    if os.environ.get("RAILWAY_PROJECT_ID") and config["parallel"] > 1:
-        raise ValueError("Railway с текущими ресурсами: максимум 1 процесс. Ранее параллельный запуск приводил к BrokenProcessPool.")
+    if config["parallel"] > max_safe_workers():
+        raise ValueError(f"Разрешено не более {max_safe_workers()} процессов. Увеличивать POKER_MAX_WORKERS следует только после выделения дополнительной RAM.")
     return config
 
 
