@@ -403,7 +403,7 @@ function paintEditor(){
  if(!hero)return;
  $('selectedHand').textContent=selected;
  $('handCombos').textContent=COMBOS(selected)+' комбинаций · '+(selected.endsWith('s')?'suited':selected.endsWith('o')?'offsuit':'пара');
- refill($('handBox'),[{value:'0',label:'Без коробки'},...Array.from({length:17},(_,i)=>({value:String(i+1),label:'A'+String(i+1).padStart(2,'0')})],String(hero.boxes[selected]));
+ refill($('handBox'),[{value:'0',label:'Без коробки'},...Array.from({length:17},(_,i)=>({value:String(i+1),label:'A'+String(i+1).padStart(2,'0')}))],String(hero.boxes[selected]));
  const inputRoot=$('actionInputs');inputRoot.replaceChildren();
  for(const action of meta.scenarios[hero.scenario]){
   const wrap=el('div','field');const label=el('label','',ACTIONS[action]);const field=el('input');
