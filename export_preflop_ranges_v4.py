@@ -79,6 +79,8 @@ class TrackedBot:
     def __init__(self, inner, name):
         self.inner, self.name = inner, name
         self.hands = {}
+        self.postflop_counts = defaultdict(int)
+        self.postflop_seen = set()
         # Only the strategy call (inner.act), not engine, view creation or
         # the preflop event observer. Time is measured in each worker process.
         self.decision_timing = defaultdict(lambda: {
@@ -94,7 +96,7 @@ class TrackedBot:
         hand = hand_class(cards)
         if hand is None or hid is None or hid in self.hands:
             return
-        row = dict(bot=self.name, hand=hand, position=str(position),
+        row = dict(bot=self.name, pid=getattr(self,'player_id',None), hand=hand, position=str(position),
                    table_size=table_size,
                    **{field:0 for field in COUNT_FIELDS})
         row['hands_observed'] = 1
@@ -119,6 +121,7 @@ class TrackedBot:
             stats['max_cpu_ns'] = max(stats['max_cpu_ns'], cpu_ns)
             stats['max_wall_ns'] = max(stats['max_wall_ns'], wall_ns)
         if street != 'preflop':
+            self.observe_postflop(view, action)
             return action
         h = hand_class(getattr(view,'hole_cards',None))
         hid = getattr(view,'hand_id',None)
@@ -200,6 +203,53 @@ class TrackedBot:
         mark('squeeze', facing_open and called_after_raise and can_raise, is_raise)
         return action
 
+    def observe_postflop(self, view, action):
+        street = getattr(view, 'street', None)
+        if street not in ('flop', 'turn', 'river'):
+            return
+        kind = str(getattr(action, 'type', ''))
+        legal = {item.get('type') for item in (getattr(view, 'legal_actions', None) or [])}
+        if kind not in legal:
+            kind = 'call' if 'call' in legal else 'check' if 'check' in legal else 'fold'
+        hist = [h for h in (getattr(view, 'history', None) or [])
+                if isinstance(h, dict)]
+        street_hist = [h for h in hist if h.get('street') == street]
+        hid = getattr(view, 'hand_id', None)
+        me = getattr(view, 'me', None)
+        key = (hid, street)
+        counts = self.postflop_counts
+        # Aggression Factor uses executed bets+raises divided by calls (checks excluded).
+        if kind in ('bet', 'raise'):
+            counts[street + '_aggressive'] += 1
+        elif kind == 'call':
+            counts[street + '_calls'] += 1
+        if int(getattr(view, 'to_call', 0) or 0) > 0 and 'fold' in legal:
+            counts['fold_to_bet_opp'] += 1
+            counts['fold_to_bet_n'] += int(kind == 'fold')
+        had_checked = any(h.get('pid') == me and h.get('type') == 'check' for h in street_hist)
+        if had_checked and int(getattr(view, 'to_call', 0) or 0) > 0 and 'raise' in legal:
+            counts['check_raise_opp'] += 1
+            counts['check_raise_n'] += int(kind == 'raise')
+        if street == 'flop' and key not in self.postflop_seen:
+            self.postflop_seen.add(key)
+            pre = [h for h in hist if h.get('street') == 'preflop'
+                   and h.get('type') in ('bet', 'raise', 'all_in')]
+            raised_flop = any(h.get('type') in ('bet', 'raise', 'all_in') for h in street_hist)
+            if pre and pre[-1].get('pid') == me and not raised_flop:
+                counts['cbet_opp'] += 1
+                counts['cbet_n'] += int(kind in ('bet', 'raise'))
+
+    def observe_hand_end(self, hand_id, net, bb, showdown, winners):
+        if hand_id not in self.hands:
+            return
+        counts = self.postflop_counts
+        counts['net_hands'] += 1
+        counts['net_bb_units'] += net.get(self.hands[hand_id]['pid'], 0) / bb if bb else 0
+        pid = self.hands[hand_id]['pid']
+        if pid in showdown:
+            counts['wsd_opp'] += 1
+            counts['wsd_n'] += int(pid in winners)
+
     def reset_memory(self):
         fn = getattr(self.inner,'reset_memory',None)
         if callable(fn):
@@ -221,6 +271,8 @@ def run_one(task):
         # The strategy implementation itself still receives the original profile.
         profile = name.split("=", 1)[1] if "=" in name else name
         bot=TrackedBot(bots.create_bot(profile),name)
+        # The alias P<n>=strategy identifies the seat while preserving the strategy label.
+        bot.player_id = next((pid for pid,typ,_ in specs if typ == name), None)
         instances.append(bot)
         return bot
     def table_factory(*args, **kwargs):
@@ -232,6 +284,10 @@ def run_one(task):
                 if observer is not None:
                     observer.observe_deal(hand_id, cards, pos_by_pid[pid], table_size)
         table.on_deal=on_deal
+        def on_hand_end(hid, net, current_bb, showdown, winners):
+            for observer in instances:
+                observer.observe_hand_end(hid, net, current_bb, showdown, winners)
+        table.on_hand_end=on_hand_end
         return table
     runner.create_bot=factory
     runner.make_table=table_factory
@@ -243,7 +299,8 @@ def run_one(task):
             for street, stats in bot.decision_timing.items()
         ]
         return (tournament_id, seed, seat_offset, result,
-                [r for bot in instances for r in bot.hands.values()], timings)
+                [r for bot in instances for r in bot.hands.values()], timings,
+                [{'bot': bot.name, **dict(bot.postflop_counts)} for bot in instances])
     finally:
         runner.create_bot=old
         runner.make_table=old_table
@@ -603,10 +660,12 @@ def main():
     total_hands=0
     results=[]
     decision_records=[]
+    postflop_records=[]
     def ingest(result):
         nonlocal total_hands
-        tournament_id, seed, seat_offset, outcome, rows, bot_timings=result
+        tournament_id, seed, seat_offset, outcome, rows, bot_timings, postflop=result
         decision_records.extend(bot_timings)
+        postflop_records.extend(postflop)
         results.append((tournament_id, seed, seat_offset, outcome))
         total_hands+=outcome['hand_count']
         for row in rows:
@@ -676,6 +735,28 @@ def main():
                   [headers]+[formatted(scope,bot,'ALL',h) for bot in names for h in class_grid()])
         csv_write(output/f'summary_{scope}.csv',
                   [headers]+[formatted(scope,bot,'ALL','*') for bot in names])
+    post_agg = defaultdict(lambda: defaultdict(float))
+    for item in postflop_records:
+        for key,value in item.items():
+            if key != 'bot':
+                post_agg[item['bot']][key] += value
+    post_fields = ('flop_af','turn_af','river_af','cbet','fold_to_bet','check_raise','wsd','net_bb_100')
+    def pf_metrics(name):
+        c=post_agg[name]
+        result={}
+        for street in ('flop','turn','river'):
+            calls=c[street+'_calls']
+            result[street+'_af'] = round(c[street+'_aggressive']/calls,4) if calls else None
+        for metric in ('cbet','fold_to_bet','check_raise','wsd'):
+            denom=c[metric+'_opp']
+            result[metric] = round(100*c[metric+'_n']/denom,4) if denom else None
+        result['net_bb_100'] = round(100*c['net_bb_units']/c['net_hands'],4) if c['net_hands'] else None
+        return result
+    post_rows=[['bot']+list(post_fields)]
+    for name in names:
+        metrics=pf_metrics(name)
+        post_rows.append([name]+[metrics[m] if metrics[m] is not None else '' for m in post_fields])
+    csv_write(output/'postflop_summary.csv',post_rows)
     for filename, table_rows in {**report_tables, **bot_tables}.items():
         csv_write(output/filename, table_rows)
     write_json(output/'tournament_report.json', report)
@@ -704,7 +785,7 @@ def main():
         'tournaments':a.tournaments,
         'total_hands':total_hands,'seed':a.seed,'players':names,'scopes':scopes,
         'metrics':METRICS,
-        'telemetry_files':['tournaments.csv','tournament_players.csv','leaderboard.csv','blind_levels.csv','blind_summary.csv','tournament_report.json','performance.json','bot_decision_timing.csv','bot_decision_timing_by_street.csv','bot_decision_timing.json'],
+        'telemetry_files':['tournaments.csv','tournament_players.csv','leaderboard.csv','blind_levels.csv','blind_summary.csv','tournament_report.json','performance.json','bot_decision_timing.csv','bot_decision_timing_by_street.csv','bot_decision_timing.json','postflop_summary.csv'],
         'notes':['Every dealt hand counts in hands_observed, including BB pots won without a decision; other opportunity counters require an action.',
                  'A missing opportunity displays an empty percentage, never 0%.',
                  'Fold-to-steal uses numeric positions 4,3,SB (cutoff, button, small blind).',
