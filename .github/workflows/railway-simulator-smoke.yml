@@ -23,7 +23,7 @@ jobs:
           python-version: '3.11'
       - name: Unit tests
         run: |
-          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner -v
+          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http -v
       - name: Two-tournament smoke
         env:
           THAI_ENGINE_IMPL: legacy
