@@ -163,7 +163,9 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
     if profile == "builtin:a17_legacy":
         boxes = dict(legacy)
     if profile == "builtin:any_two":
-        hands = {h: {"open": 100} for h in HANDS}
+        pseudo_action = {"rfi":"open","vs_open":"call","vs_threebet":"call",
+                         "vs_shove":"call","push_fold":"push"}[scenario]
+        hands = {h: {pseudo_action: 100} for h in HANDS}
     elif profile == "builtin:gto_heuristic":
         hands = _gto_ranges(position, players) if scenario == "rfi" else {}
     elif scenario == "rfi" and position in A17_MAX_OPEN_BOX_BY_POSITION:
