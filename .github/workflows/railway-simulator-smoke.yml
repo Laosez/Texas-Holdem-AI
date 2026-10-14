@@ -1,0 +1,35 @@
+name: Railway simulator smoke
+on:
+  push:
+    branches:
+      - feat/railway-simulator-20261014
+      - feat/simulator-screen-1-20261014
+  pull_request:
+    branches:
+      - feat/railway-simulator-20261014
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Unit tests
+        run: |
+          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges -v
+      - name: Two-tournament smoke
+        env:
+          THAI_ENGINE_IMPL: legacy
+        run: |
+          python -u export_preflop_ranges_v4.py \
+            --players a17_tag,gto \
+            --tournaments 2 --parallel 1 --seed 2042 \
+            --chips 500 --sb 1 --bb 2 \
+            --blind-increase-every 50 --max-hands 10000 \
+            --seat-mode rotate --out output/railway_smoke
+          test -f output/railway_smoke/tournament_report.json
+          test -f output/railway_smoke/by_hand_position_169_all.csv

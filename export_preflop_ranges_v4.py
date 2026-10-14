@@ -215,7 +215,10 @@ def run_one(task):
     # Rotate complete entries, preserving stable player identity.
     specs = specs[seat_offset % len(specs):] + specs[:seat_offset % len(specs)]
     def factory(name):
-        bot=TrackedBot(bots.create_bot(name),name)
+        # P1=profile aliases preserve independent seat statistics for identical policies.
+        # The strategy implementation itself still receives the original profile.
+        profile = name.split("=", 1)[1] if "=" in name else name
+        bot=TrackedBot(bots.create_bot(profile),name)
         instances.append(bot)
         return bot
     def table_factory(*args, **kwargs):
