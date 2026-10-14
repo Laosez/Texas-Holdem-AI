@@ -240,6 +240,21 @@ def stats_for_folder(folder: Path) -> dict:
             for metric in ("vpip", "pfr", "rfi", "threebet", "fourbet")
         }
         observed[profile]["hands_observed"] = int(row.get("hands_observed") or 0)
+    # Optional versioned telemetry: legacy archives remain readable.
+    postflop_columns = ("flop_af", "turn_af", "river_af", "cbet",
+                        "fold_to_bet", "check_raise", "wsd", "net_bb_100")
+    for row in _read_rows(folder / "postflop_summary.csv"):
+        name = row.get("bot")
+        if not name:
+            continue
+        stats = observed.setdefault(name, {})
+        for metric in postflop_columns:
+            value = row.get(metric)
+            try:
+                number = float(value) if value not in (None, "") else None
+            except (ValueError, TypeError):
+                number = None
+            stats[metric] = number if number is not None and __import__("math").isfinite(number) else None
     placement = {}
     for row in _read_rows(folder / "tournament_players.csv"):
         if row.get("completed") != "1":
