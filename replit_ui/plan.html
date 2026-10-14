@@ -218,24 +218,83 @@ async function loadVillain(){
 }
 function major(actions){if(!actions)return 'none';const entries=Object.entries(actions).filter(x=>x[1]>0);if(!entries.length)return 'none';entries.sort((a,b)=>b[1]-a[1]);return entries[0][0]}
 function handTooltip(hand,doc){return hand+' · '+(doc?.boxes?.[hand]?'A'+String(doc.boxes[hand]).padStart(2,'0'):'')+' · '+(doc?.hands?.[hand]?Object.entries(doc.hands[hand]).map(([k,v])=>ACTIONS[k]+': '+v+'%').join(', '):'Не назначено')}
+function boxOrder(){
+ const order=hero?.box_order;
+ return Array.isArray(order)&&order.length===17&&new Set(order).size===17&&order.every(x=>Number.isInteger(x)&&x>=1&&x<=17) ? order : Array.from({length:17},(_,i)=>i+1);
+}
+function markBoxDirty(){
+ dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';
+ drawBoxes();drawMatrices();paintEditor();
+}
+function boxDropped(e,target){
+ e.preventDefault();e.stopPropagation();
+ const from=Number(e.dataTransfer.getData('application/x-skachkov-box'));
+ if(Number.isInteger(from)&&from>=1&&from<=17){if(target>=1)reorderBox(from,target);return}
+ const h=e.dataTransfer.getData('application/x-skachkov-hand')||e.dataTransfer.getData('text/plain');
+ if(HANDS.includes(h))moveHandToBox(h,target);
+}
+function boxChip(h){
+ const chip=el('div','boxHandChip'+(knownActivePercent(hero,h)>0?' played':''));
+ chip.draggable=true;
+ chip.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-hand',h);e.dataTransfer.setData('text/plain',h)};
+ const show=el('button','boxHandSelect',h);show.type='button';show.title='Редактировать '+h;
+ show.onclick=()=>{selected=h;drawMatrices();paintEditor()};chip.append(show);
+ if(hero.boxes[h]!==0){
+  const remove=el('button','boxHandRemove','×');remove.type='button';
+  remove.title='Убрать '+h+' из коробки';remove.setAttribute('aria-label',remove.title);
+  remove.onclick=()=>moveHandToBox(h,0);chip.append(remove);
+ }
+ return chip;
+}
 function drawBoxes(){
  if(!hero)return;
  const root=$('boxes');root.replaceChildren();
- for(let b=1;b<=17;b++){
-  const btn=el('button','boxItem'+(selectedBoxes.has(b)?' active':''),'A'+String(b).padStart(2,'0'));
+ const eq=equityResults.filter?.equity,threshold=Number($('equityMin').value);
+ for(const b of [...boxOrder(),0]){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
-  const count=members.reduce((s,h)=>s+COMBOS(h),0);
-  const eq=equityResults.filter?.equity,threshold=Number($('equityMin').value);
-  const hit=eq?members.reduce((s,h)=>s+(Number.isFinite(eq[h])&&eq[h]>=threshold?COMBOS(h):0),0):null;
-  const coverage=hit===null?null:100*hit/count;
-  btn.append(el('small','coverage'+(coverage===null?' missing':''),coverage===null?'—':coverage.toFixed(0)+'%'));
-  btn.title='A'+b+' · '+count+' комбинаций'+(hit===null?' · equity не рассчитано':' · '+hit+'/'+count+' комбинаций выше порога ('+coverage.toFixed(1)+'%)');
-  btn.onclick=()=>{if(selectedBoxes.has(b))selectedBoxes.delete(b);else selectedBoxes.add(b);drawBoxes();drawMatrices()};
-  btn.ondragover=e=>{e.preventDefault();btn.classList.add('dragover')};
-  btn.ondragleave=()=>btn.classList.remove('dragover');
-  btn.ondrop=e=>{e.preventDefault();btn.classList.remove('dragover');const h=e.dataTransfer.getData('text/plain');if(HANDS.includes(h))moveHandToBox(h,b)};
-  root.append(btn);
+  const count=members.reduce((n,h)=>n+COMBOS(h),0);
+  const hits=eq?members.reduce((n,h)=>n+(Number.isFinite(eq[h])&&eq[h]>=threshold?COMBOS(h):0),0):null;
+  const coverage=hits===null||count===0?'—':(100*hits/count).toFixed(0)+'%';
+  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===0?' boxPool':''));
+  const head=el('div','boxCardHead');
+  if(b===0){
+   const label=el('strong','','Без коробки');label.style.flex='1';head.append(label);
+  }else{
+   const choose=el('button','boxSelect','A'+String(b).padStart(2,'0'));choose.type='button';
+   choose.setAttribute('aria-pressed',String(selectedBoxes.has(b)));
+   choose.onclick=()=>{if(selectedBoxes.has(b))selectedBoxes.delete(b);else selectedBoxes.add(b);drawBoxes();drawMatrices()};
+   head.append(choose);
+  }
+  const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · Eq '+coverage));
+  summary.title='Доля комбинаций с equity выше порога';head.append(summary);
+  if(b!==0){
+   const handle=el('button','boxHandle','⠿');handle.type='button';handle.draggable=true;
+   handle.title='Переставить коробку';handle.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-box',String(b))};
+   head.append(handle);
+  }
+  const exp=el('button','boxExpand',expandedBoxes.has(b)?'▴':'▾');exp.type='button';
+  exp.title=expandedBoxes.has(b)?'Свернуть руки':'Показать руки';
+  exp.setAttribute('aria-expanded',String(expandedBoxes.has(b)));
+  exp.onclick=()=>{if(expandedBoxes.has(b))expandedBoxes.delete(b);else expandedBoxes.add(b);drawBoxes()};
+  head.append(exp);card.append(head);
+  if(expandedBoxes.has(b)){
+   const list=el('div','boxHandList');
+   if(members.length)for(const h of members)list.append(boxChip(h));
+   else list.append(el('span','boxEmpty','Перетащи сюда руку'));
+   card.append(list);
+  }
+  card.ondragover=e=>{e.preventDefault();card.classList.add('dragover');e.dataTransfer.dropEffect='move'};
+  card.ondragleave=e=>{if(!card.contains(e.relatedTarget))card.classList.remove('dragover')};
+  card.ondrop=e=>{card.classList.remove('dragover');boxDropped(e,b)};
+  root.append(card);
  }
+}
+function reorderBox(from,to){
+ if(!hero||from===to)return;
+ const order=[...boxOrder()],i=order.indexOf(from),j=order.indexOf(to);
+ if(i<0||j<0)return;
+ snapshotUndo();order.splice(i,1);order.splice(j,0,from);hero.box_order=order;markBoxDirty();
+ msg('Коробка A'+String(from).padStart(2,'0')+' перемещена; её номер и руки не менялись.');
 }
 function modelCallEv(equityPct,potBB,callBB){
  if(!Number.isFinite(equityPct)||equityPct<0||equityPct>100||
@@ -413,12 +472,14 @@ function paintEditor(){
  $('actionStatus').textContent=hero.hands[selected]?'Назначено: '+Object.entries(hero.hands[selected]).map(([a,v])=>ACTIONS[a]+' '+v+'%').join(' · '):'Рука не определена (не Fold)';
  drawEquityStats();
 }
-function snapshotUndo(){undos.push({hands:copy(hero.hands),boxes:copy(hero.boxes)});if(undos.length>25)undos.shift();$('undo').disabled=false}
+function snapshotUndo(){undos.push({hands:copy(hero.hands),boxes:copy(hero.boxes),box_order:[...boxOrder()]});if(undos.length>25)undos.shift();$('undo').disabled=false}
 function editable(){if(!hero)throw Error('Выбери стратегию');if(hero.readonly)msg('Изменена копия пресета — сохрани как новую версию.')}
-function moveHandToBox(h,b){if(hero.boxes[h]===b)return;
- const count=HANDS.filter(x=>hero.boxes[x]===hero.boxes[h]).length;
- if(count<2){msg('Последняя рука не может покинуть коробку: все A01–A17 должны существовать',true);return}
- snapshotUndo();hero.boxes[h]=b;noteDirty();drawBoxes();paintEditor();msg(h+' перенесена в A'+String(b).padStart(2,'0'))}
+function moveHandToBox(h,b){
+ if(!hero||!HANDS.includes(h)||!Number.isInteger(b)||b<0||b>17)return;
+ if(hero.boxes[h]===b)return;
+ snapshotUndo();hero.boxes[h]=b;selected=h;markBoxDirty();
+ msg(h+(b===0?' перенесена в «Без коробки»':' перенесена в A'+String(b).padStart(2,'0'))+' · префлоп-действия не изменены.');
+}
 function doApply(toBoxes=false){
  try{
   const draft=actionDraft(),sum=Object.values(draft).reduce((s,n)=>s+n,0);
@@ -692,7 +753,7 @@ $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
 $('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
 $('resetHand').onclick=()=>{if(!hero)return;snapshotUndo();delete hero.hands[selected];invalidateEquity();noteDirty();paintEditor()};
-$('undo').onclick=()=>{const prev=undos.pop();if(!prev)return;hero.hands=prev.hands;hero.boxes=prev.boxes;invalidateEquity();noteDirty();paintEditor();$('undo').disabled=!undos.length};
+$('undo').onclick=()=>{const prev=undos.pop();if(!prev)return;hero.hands=prev.hands;hero.boxes=prev.boxes;hero.box_order=prev.box_order||boxOrder();invalidateEquity();noteDirty();paintEditor();$('undo').disabled=!undos.length};
 $('save').onclick=()=>savePlan(false);$('saveCopy').onclick=()=>savePlan(true);
 $('delete').onclick=async()=>{
  if(!hero||hero.readonly||!confirm('Переместить все версии '+hero.name+' в корзину?'))return;
