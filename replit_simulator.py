@@ -645,6 +645,17 @@ def write_full_backup(stream) -> dict:
             catalog = ROOT / "strategy_catalog" / name
             if catalog.is_file():
                 archive.write(catalog, arcname="reference/" + name)
+        # Strategy revisions are stored separately from experiment sessions.
+        import planner_core
+        revisions = []
+        if planner_core.STORE.is_dir():
+            for directory in sorted(planner_core.STORE.iterdir()):
+                if directory.is_dir() and not directory.is_symlink() and planner_core.ID.fullmatch(directory.name):
+                    for file in sorted(directory.glob("v[0-9][0-9][0-9][0-9][0-9].json")):
+                        revisions.append(json.loads(file.read_text(encoding="utf-8")))
+        details["strategy_revisions"] = len(revisions)
+        archive.writestr("reference/saved_strategies.json",
+                         json.dumps(revisions, ensure_ascii=False, separators=(",", ":")))
         archive.writestr("backup_manifest.json", json.dumps(details, ensure_ascii=False, indent=2))
     return details
 
@@ -670,6 +681,35 @@ def import_full_backup(source: str | Path) -> dict:
             manifest = json.loads(archive.read("backup_manifest.json"))
             if manifest.get("format") != "SKACHKOV_FULL_BACKUP_V1":
                 raise ValueError("Неподдерживаемый формат резервной копии")
+            import planner_core
+            plans = (json.loads(archive.read("reference/saved_strategies.json"))
+                     if "reference/saved_strategies.json" in archive.namelist() else [])
+            if not isinstance(plans, list) or len(plans) > 10000:
+                raise ValueError("Некорректные версии стратегий в архиве")
+            plan_dirs = {}
+            seen_plan_versions = set()
+            for record in plans:
+                if not isinstance(record, dict):
+                    raise ValueError("Повреждённая стратегия в архиве")
+                old_id = record.get("id")
+                version = record.get("version")
+                if (not isinstance(old_id, str) or not planner_core.ID.fullmatch(old_id)
+                        or type(version) is not int or not 1 <= version <= 99999):
+                    raise ValueError("Неверный ID или версия стратегии в архиве")
+                key = (old_id, version)
+                if key in seen_plan_versions:
+                    raise ValueError("Повторная версия стратегии в архиве")
+                seen_plan_versions.add(key)
+                validated = planner_core.validate_plan(record)
+                new_id = plan_dirs.setdefault(old_id, secrets.token_hex(6))
+                source = {**validated, "id": new_id, "version": version,
+                          "ref": f"saved:{new_id}@v{version}",
+                          "created": record.get("created"), "updated": record.get("updated"),
+                          "source": "user"}
+                stage = temp_dir / "plans" / new_id
+                stage.mkdir(parents=True, exist_ok=True)
+                (stage / f"v{version:05d}.json").write_text(
+                    json.dumps(source, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
             destinations = {}
             used_paths = set()
             for entry in entries:
@@ -698,8 +738,8 @@ def import_full_backup(source: str | Path) -> dict:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(entry) as incoming, dest.open("wb") as outgoing:
                     shutil.copyfileobj(incoming, outgoing, length=1024 * 1024)
-            if not destinations:
-                raise ValueError("В резервной копии нет сессий")
+            if not destinations and not plan_dirs:
+                raise ValueError("В резервной копии нет сессий или стратегий")
             # Validate every job before promoting any restored directory.
             for (kind, _old), id_ in destinations.items():
                 stage = temp_dir / kind / id_
@@ -739,7 +779,14 @@ def import_full_backup(source: str | Path) -> dict:
                         job["log"] = deque(logfile.read_text(encoding="utf-8", errors="replace").splitlines()[-MAX_LOG_LINES:]
                                            if logfile.is_file() else [], maxlen=MAX_LOG_LINES)
                         RUNS[id_] = job
-        return {"restored_count": len(committed), "ids": committed}
+                for new_id in plan_dirs.values():
+                    final = planner_core.STORE / new_id
+                    final.parent.mkdir(parents=True, exist_ok=True)
+                    if final.exists():
+                        raise RuntimeError("Конфликт ID стратегии при восстановлении")
+                    os.replace(temp_dir / "plans" / new_id, final)
+        return {"restored_count": len(committed), "ids": committed,
+                "strategy_revisions_restored": len(plans), "strategies_restored": len(plan_dirs)}
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
