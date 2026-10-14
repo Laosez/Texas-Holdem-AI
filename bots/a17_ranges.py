@@ -34,8 +34,12 @@ A17_MAX_OPEN_BOX_9MAX = {
     "5": 12,  # HJ
     "4": 14,  # CO
     "3": 15,  # BTN
-    "SB": 17, # Limp/call with the complete A17 grid
+    "SB": 17, # All A17 hands are played; see separate raise boundary below.
 }
+
+# Applies at every tournament stage, including heads-up.
+# A01-A16: raise whenever legal; A17: call/complete/check.
+A17_SB_MAX_RAISE_BOX = 16
 
 
 def _hand_to_box():
