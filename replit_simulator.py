@@ -60,10 +60,9 @@ BASE_BOTS = {
     "wide_defender", "nit", "loose_passive", "maniac",
     "maniac_mixed", "random", "random_2", "random_3",
 }
-SPLIT_PARTS = BASE_BOTS - {"a17_tag", "random_2", "random_3"}
-SPLIT_PARTS.update({"random_2", "random_3"})
-SPLIT_PARTS.discard("a17_tag")
-SPLIT_PARTS.discard("a17_tag_legacy")
+SPLIT_PARTS = frozenset(json.loads(
+    (ROOT / "strategy_catalog" / "available_bases.json").read_text(encoding="utf-8")
+)["bases"])
 
 # Each of the nine player seats has a separately editable preflop/postflop policy.
 # Blank means INCOMPLETE, never automatic inheritance.
@@ -98,10 +97,8 @@ def strategy_fingerprint():
     return digest.hexdigest()
 
 def strategy_catalog():
-    import bots.street_split_bot as split
-    from bots.a17_ranges import CATALOG_ID
-    options = sorted(split.EXPERIMENT_BASES)
-    return {"strategies": options, "a17_version": CATALOG_ID,
+    options = sorted(SPLIT_PARTS)
+    return {"strategies": options, "a17_version": "A17_V5",
             "code_fingerprint": strategy_fingerprint(), "workers_max": 1 if os.environ.get("RAILWAY_PROJECT_ID") else 4,
             "required_streets": ["pre", "post"]}
 
