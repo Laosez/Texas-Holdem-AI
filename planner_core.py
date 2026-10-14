@@ -52,11 +52,22 @@ def boxes_v5():
 def validate_boxes(boxes):
     if not isinstance(boxes, dict) or set(boxes) != set(HANDS):
         raise ValueError("В группировке должны присутствовать ровно 169 классов рук")
-    if any(type(value) is not int or not 1 <= value <= 17 for value in boxes.values()):
-        raise ValueError("Номера коробок должны быть A01–A17")
-    if set(boxes.values()) != set(range(1, 18)):
-        raise ValueError("Все 17 коробок должны содержать хотя бы одну руку")
+    if any(type(value) is not int or not 0 <= value <= 17 for value in boxes.values()):
+        raise ValueError("Номер коробки должен быть 0 (без коробки) или A01–A17")
+    # Every one of 169 classes remains in the map. Value 0 is the unassigned
+    # pool; temporarily empty boxes are allowed while editing a new geometry.
     return {hand: boxes[hand] for hand in HANDS}
+
+
+def validate_box_order(order):
+    """Stable visual ordering, not an implicit renumbering of membership IDs."""
+    if order is None:
+        return list(range(1, 18))  # legacy saved plans
+    if not isinstance(order, list) or len(order) != 17 or any(type(n) is not int for n in order):
+        raise ValueError("Порядок коробок должен содержать 17 номеров A01–A17")
+    if set(order) != set(range(1, 18)):
+        raise ValueError("Порядок коробок: номера A01–A17 не должны повторяться")
+    return list(order)
 
 
 def positions(players):
@@ -107,13 +118,14 @@ def validate_plan(raw):
     stack = raw.get("stack_bb", 20)
     validate_context(n, position, scenario, stack)
     boxes = validate_boxes(raw.get("boxes"))
+    box_order = validate_box_order(raw.get("box_order"))
     hands = raw.get("hands", {})
     if not isinstance(hands, dict) or any(h not in COMBOS for h in hands):
         raise ValueError("Неизвестная стартовая рука")
     clean = {h: normalize_actions(v, scenario) for h, v in hands.items()}
     return {"format": "SKACHKOV_PLAN_V1", "name": name, "players": n,
             "position": position, "scenario": scenario, "stack_bb": stack,
-            "boxes": boxes, "hands": clean}
+            "boxes": boxes, "box_order": box_order, "hands": clean}
 
 
 def _gto_ranges(position, n):
@@ -185,7 +197,8 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
         hands = {}  # unspecified scenario is NOT fold
     return {"format": "SKACHKOV_PLAN_V1", "id": profile, "version": 0,
             "name": BUILTINS[profile], "players": players, "position": position,
-            "scenario": scenario, "stack_bb": stack_bb, "boxes": boxes, "hands": hands,
+            "scenario": scenario, "stack_bb": stack_bb, "boxes": boxes,
+            "box_order": list(range(1, 18)), "hands": hands,
             "readonly": True, "source": "builtin"}
 
 
