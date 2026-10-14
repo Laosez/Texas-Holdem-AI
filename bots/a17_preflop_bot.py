@@ -1,38 +1,54 @@
-"""A17 positional 9-max opening policy; other scenarios keep fixed GTO v0.
+"""A17 positional opening policy across 2-9 seated players.
 
-Do not confuse these user-selected ranges with solver-generated GTO.
-Only 9-max unopened pots receive A17 RFI thresholds; an SB that has
-not faced a raise completes/limps all hands. Other actions (including
-isolation raises, 3-bets, 4-bets, BB and <9-handed play) retain the
-separate fixed-GTO preflop policy until explicitly specified.
+The user-approved numeric-position thresholds are stable across the
+elimination stages: '6' always has A01-A10, '3' always has A01-A15.
+For 9-max, '9' is UTG; at 6-max, '6' is UTG and still opens A01-A10.
+
+SB at every tournament stage: raise A01-A16 (including when facing a
+voluntary raise, subject to legal raise availability); A17 call/check.
+BB and all other non-RFI cases retain the separate fixed-GTO heuristic
+until the user defines their corresponding ranges.
+
+This is a custom strategy, not solver-derived GTO.
 """
-from bots.a17_ranges import A17_HAND_TO_BOX, A17_MAX_OPEN_BOX_9MAX
+from bots.a17_ranges import (
+    A17_HAND_TO_BOX,
+    A17_MAX_OPEN_BOX_9MAX,
+    A17_SB_MAX_RAISE_BOX,
+)
 from bots.gto_bot import _hand_key
 from bots.gto_fixed_bot import FixedGTOPreflopBot
 
 
 class A17PreflopBot(FixedGTOPreflopBot):
-    """Independent A17 9-max opening ranges, with TAG postflop via factory."""
+    """User A17 chart, evaluated by numeric position at all 2–9-max stages."""
 
     def _preflop(self, hole, position, pot, to_call, legal, state):
-        # Short-handed tables have different position meanings (6=UTG
-        # at 6-max but LJ at 9-max), so we NEVER silently reuse the
-        # 9-max ranges after player eliminations.
         n = len(state.stacks)
         pos = str(position).upper()
-        if n != 9 or pos == "BB" or pos not in A17_MAX_OPEN_BOX_9MAX:
+        # '10' (10-max) is not specified, nor is the BB defense chart.
+        if not 2 <= n <= 9 or pos == "BB" or pos not in A17_MAX_OPEN_BOX_9MAX:
             return super()._preflop(hole, position, pot, to_call, legal, state)
+
+        r1, r2 = hole[0][0], hole[1][0]
+        key = _hand_key(r1, r2, hole[0][1] == hole[1][1])
+        box = A17_HAND_TO_BOX[key]
+
+        if pos == "SB":
+            # In every tournament stage, A01-A16 raises even facing a
+            # prior opponent raise. Legal-action fallback from _do_raise
+            # calls/checks when another raise is unavailable.
+            if box <= A17_SB_MAX_RAISE_BOX:
+                return self._do_raise(legal, pot, sizing_frac=0.70)
+            # A17 remains call/complete/check (never voluntarily folds).
+            return self._do_call_or_check(legal, to_call)
 
         if self._facing_opponent_raise(state):
             return super()._preflop(hole, position, pot, to_call, legal, state)
 
-        if pos == "SB":
-            # 100% range through box A17: call/complete without a raise,
-            # including limped pots. Never turn an SB limp into an auto-raise.
-            return self._do_call_or_check(legal, to_call)
-
-        # RFI (Raise First In) means nobody has voluntarily entered this
-        # preflop pot. Prior folds are fine; limps do NOT count as RFI.
+        # RFI: nobody has entered voluntarily on preflop.
+        # A prior limp means the next action is not RFI and still uses
+        # the earlier fixed-GTO heuristic, without inventing iso ranges.
         history = getattr(state, "history", None) or ()
         entered = any(
             isinstance(entry, dict)
@@ -43,8 +59,6 @@ class A17PreflopBot(FixedGTOPreflopBot):
         if entered:
             return super()._preflop(hole, position, pot, to_call, legal, state)
 
-        r1, r2 = hole[0][0], hole[1][0]
-        key = _hand_key(r1, r2, hole[0][1] == hole[1][1])
-        if A17_HAND_TO_BOX[key] <= A17_MAX_OPEN_BOX_9MAX[pos]:
+        if box <= A17_MAX_OPEN_BOX_9MAX[pos]:
             return self._do_raise(legal, pot, sizing_frac=0.70)
         return self._do_fold_or_check(legal, to_call)
