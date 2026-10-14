@@ -94,9 +94,16 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.gto_fixed_bot import FixedGTOPreflopBot
         return _wrap(FixedGTOPreflopBot())
 
+    if btype == "a17_preflop_legacy":
+        from bots.a17_preflop_bot import A17LegacyPreflopBot
+        return _wrap(A17LegacyPreflopBot())
+
     if btype == "a17_preflop":
         from bots.a17_preflop_bot import A17PreflopBot
         return _wrap(A17PreflopBot())
+
+    if btype == "a17_tag_legacy":
+        return create_bot("split:a17_preflop_legacy:tag_punisher")
 
     if btype == "a17_tag":
         # Named experimental player with a unique analytics/exporter label.
@@ -150,7 +157,7 @@ def create_bot(btype: str) -> BotAdapter:
                      "maniac_trigger, maniac_mixed, overbet_merchant, "
                      "calling_station, nit, folder, loose_passive, minraise, "
                      "minraiser, baseline_sane, pressure_filler, tag_punisher, "
-                     "wide_defender, gto_fixed, a17_preflop, a17_tag, "
+                     "wide_defender, gto_fixed, a17_preflop, a17_preflop_legacy, a17_tag, a17_tag_legacy, "
                      "split:<preflop_bot>:<postflop_bot>")
 
 

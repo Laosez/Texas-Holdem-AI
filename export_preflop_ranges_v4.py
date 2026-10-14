@@ -11,6 +11,8 @@ THAI_ENGINE_IMPL=legacy python export_preflop_ranges_v4.py \
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import csv
 import json
 from collections import defaultdict
@@ -522,6 +524,42 @@ def write_json(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
 
+def checkpoint_config_key(args, names):
+    """Bind checkpoints to the exact input configuration and source version."""
+    payload = {
+        "version": 1, "players": names, "tournaments": args.tournaments,
+        "seed": args.seed, "chips": args.chips, "sb": args.sb, "bb": args.bb,
+        "blind_increase_every": args.blind_increase_every, "max_hands": args.max_hands,
+        "seat_mode": args.seat_mode,
+        "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def task_checkpoint(task, checkpoint_dir, config_key):
+    """Read a completed tournament or safely run/checkpoint exactly this task."""
+    tournament_id = task[0]
+    path = checkpoint_dir / f"{tournament_id:06d}.json.gz"
+    if path.exists():
+        try:
+            with gzip.open(path, "rt", encoding="utf-8") as stream:
+                data = json.load(stream)
+            if data.get("config_key") == config_key and data.get("task") == json.loads(json.dumps(task)):
+                return data["result"]
+        except (OSError, EOFError, ValueError, KeyError):
+            path.unlink(missing_ok=True)
+    result = run_one(task)
+    payload = {"config_key": config_key, "task": task, "result": result}
+    temporary = path.with_suffix(".partial")
+    try:
+        with gzip.open(temporary, "wt", encoding="utf-8", compresslevel=3) as stream:
+            json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"))
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return result
+
+
 def main():
     p=argparse.ArgumentParser(description='Poker A17: full preflop action frequency export')
     p.add_argument('--players',default=DEFAULT_BOTS)
@@ -534,6 +572,7 @@ def main():
     p.add_argument('--blind-increase-every',type=int,default=50)
     p.add_argument('--max-hands',type=int,default=10000)
     p.add_argument('--out',default='ranges_200_v4_numeric')
+    p.add_argument('--checkpoint-dir',default='',help='Durable per-tournament JSON/GZIP checkpoints for safe resume')
     p.add_argument('--seat-mode',choices=['rotate','fixed'],default='rotate',
                    help='Rotate starting seats each tournament (default), or retain historical fixed seating')
     a=p.parse_args()
@@ -546,6 +585,20 @@ def main():
     tasks=[(i+1,names,a.chips,a.sb,a.bb,a.blind_increase_every,a.max_hands,a.seed+i,
             i%len(names) if a.seat_mode=='rotate' else 0) for i in range(a.tournaments)]
     print(f'Initial seating: {a.seat_mode} · {len(names)} seats · {a.tournaments} tournaments',flush=True)
+    checkpoint_dir = Path(a.checkpoint_dir) if a.checkpoint_dir else None
+    config_key = checkpoint_config_key(a, names)
+    if checkpoint_dir:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        meta_file = checkpoint_dir / "config.json"
+        if meta_file.exists():
+            stored = json.loads(meta_file.read_text(encoding="utf-8"))
+            if stored.get("config_key") != config_key:
+                p.error("Checkpoint configuration or exporter source version changed; use a new session")
+        else:
+            meta_file.write_text(json.dumps({"config_key": config_key, "version": 1}, indent=2), encoding="utf-8")
+        cached = len(list(checkpoint_dir.glob("*.json.gz")))
+        if cached:
+            print(f'[resume] Found {cached} per-tournament checkpoints; verifying before reuse', flush=True)
     all_counts=defaultdict(lambda:defaultdict(int))
     total_hands=0
     results=[]
@@ -563,13 +616,14 @@ def main():
 
     if a.parallel==1:
         for i,task in enumerate(tasks,1):
-            ingest(run_one(task))
+            ingest(task_checkpoint(task, checkpoint_dir, config_key) if checkpoint_dir else run_one(task))
             if i%max(1,a.tournaments//10)==0 or i==a.tournaments:
                 elapsed=max(time.perf_counter()-start_time, 1e-9)
                 print(f'{i}/{a.tournaments} tournaments · {60*i/elapsed:.1f} tournaments/min · {total_hands/elapsed:.1f} hands/s',flush=True)
     else:
         with ProcessPoolExecutor(max_workers=a.parallel) as ex:
-            futures=[ex.submit(run_one,t) for t in tasks]
+            futures=[ex.submit(task_checkpoint, t, checkpoint_dir, config_key)
+                     if checkpoint_dir else ex.submit(run_one, t) for t in tasks]
             for i,f in enumerate(as_completed(futures),1):
                 ingest(f.result())
                 if i%max(1,a.tournaments//10)==0 or i==a.tournaments:

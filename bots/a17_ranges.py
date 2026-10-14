@@ -1,30 +1,29 @@
-"""A17 hand-to-box mapping copied from the user's A17 edited JSON.
+"""Canonical A17 V5 ranges from strategy_catalog/a17_v5.json."""
 
-Source: SKACHKOV_A17_BOXES_EDITED.json
-SHA256: 018a54acb73dc622a97c34a09cd440cf40817bfa48131f804b3e143d1dabbbc5
-Only 'hand' and 'box' are relevant here; equity fields are NOT position ranges.
-The 17 boxes and all 169 classes are preserved exactly.
-"""
+from __future__ import annotations
+import json
+from pathlib import Path
 
-A17_BOX_HANDS = {
-    1: "AA KK QQ JJ",
-    2: "AKs AKo TT 99",
-    3: "AQs AQo 88 77",
-    4: "AJs ATs AJo 66 55",
-    5: "A9s A8s A7s A6s A5s ATo",
-    6: "KQs KJs KTs KQo QJs QTs JTs",
-    7: "A4s A3s A2s 44 33 22",
-    8: "K9s K8s K7s Q9s Q8s Q7s J9s J8s J7s T9s T8s T7s",
-    9: "98s 97s 96s 87s 86s 85s 76s 75s 74s 65s 64s 54s",
-    10: "KJo QJo KTo QTo JTo K9o Q9o J9o",
-    11: "K6s K5s K4s K3s K2s Q6s Q5s Q4s Q3s J6s J5s T6s T5s",
-    12: "A9o A8o A7o A6o A5o A4o A3o A2o",
-    13: "Q2s J4s J3s J2s T4s T3s T2s 95s 94s 93s 92s 84s 83s 82s 73s 72s 63s 62s 53s 52s 43s 42s 32s",
-    14: "T9o T8o 98o 97o 87o 86o 76o 75o 65o 64o 54o",
-    15: "K8o K7o K6o K5o K4o K3o K2o",
-    16: "J8o T7o 96o 85o 74o",
-    17: "Q8o Q7o J7o Q6o J6o T6o Q5o J5o T5o 95o Q4o J4o T4o 94o 84o Q3o J3o T3o 93o 83o 73o 63o 53o 43o Q2o J2o T2o 92o 82o 72o 62o 52o 42o 32o",
-}
+CATALOG_PATH = Path(__file__).resolve().parents[1] / "strategy_catalog" / "a17_v5.json"
+CATALOG_ID = "A17_V5"
+def _catalog():
+    data = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    ranks="AKQJT98765432"
+    expected={r+r for r in ranks}
+    for i,a in enumerate(ranks):
+        for b in ranks[i+1:]:
+            expected.update((a+b+"s",a+b+"o"))
+    hands=data.get("hands",[])
+    mapping={v["hand"]:v["box"] for v in hands}
+    if len(hands)!=169 or len(mapping)!=169 or set(mapping)!=expected or set(mapping.values())!=set(range(1,18)):
+        raise RuntimeError("Invalid canonical A17 catalog")
+    if sum(v["combos"] for v in hands)!=1326:
+        raise RuntimeError("Invalid canonical A17 combos")
+    if mapping["JTo"]!=14 or mapping["J9o"]!=14:
+        raise RuntimeError("A17 V5 must assign JTo and J9o to A14")
+    return mapping
+A17_HAND_TO_BOX = _catalog()
+A17_BOX_HANDS = {i:" ".join(h for h,b in A17_HAND_TO_BOX.items() if b==i) for i in range(1,18)}
 
 # The numeric rank stays the same as table size shrinks.
 # In 6-max, rank "6" is UTG but still has its originally approved A01-A10.
@@ -80,4 +79,6 @@ def _hand_to_box():
     return result
 
 
-A17_HAND_TO_BOX = _hand_to_box()
+# Strict verification of the canonical map against the derived boxed view.
+if _hand_to_box() != A17_HAND_TO_BOX:
+    raise RuntimeError('A17 catalog mismatch')

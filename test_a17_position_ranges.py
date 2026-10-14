@@ -55,8 +55,8 @@ class A17PositionRangesTests(unittest.TestCase):
                     for h, box in A17_HAND_TO_BOX.items()
                     if box <= max_box or box in A17_RFI_EXTRA_BOXES_BY_POSITION.get(p, ()))
              for p, max_box in A17_MAX_OPEN_BOX_9MAX.items()},
-            {"9": 306, "8": 306, "7": 306, "6": 402, "5": 454,
-             "4": 454, "3": 634, "SB": 1326},
+            {"9": 306, "8": 306, "7": 306, "6": 378, "5": 430,
+             "4": 430, "3": 610, "SB": 1326},
         )
 
     def test_pure_open_raise_at_every_user_defined_boundary(self):

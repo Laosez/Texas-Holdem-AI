@@ -4,6 +4,7 @@ on:
     branches:
       - feat/railway-simulator-20261014
       - feat/simulator-screen-1-20261014
+      - feat/reliability-a17-20261014
   pull_request:
     branches:
       - feat/railway-simulator-20261014
@@ -20,7 +21,7 @@ jobs:
           python-version: '3.11'
       - name: Unit tests
         run: |
-          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges -v
+          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability -v
       - name: Two-tournament smoke
         env:
           THAI_ENGINE_IMPL: legacy

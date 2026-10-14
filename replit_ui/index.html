@@ -35,26 +35,26 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button></div>
 <div class="warning">Каждая строка — отдельный игрок. Обе стратегии должны быть выбраны. A17 TAG = A17 Preflop + TAG Punisher.</div>
 <div id="botError" class="bad" role="alert"></div>
-<div class="buttons"><button class="btn primary" id="start">▶ Запустить</button><button class="btn danger" id="stop" disabled>■ Остановить</button></div>
+<div class="buttons"><button class="btn primary" id="start">▶ Запустить</button><button class="btn danger" id="stop" disabled>■ Остановить</button><button class="btn" id="resume" disabled>↻ Продолжить</button></div>
 <div id="feedback" role="status" class="statusLine muted"></div>
 </section></div>
 <div class="column">
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><span id="runStatus" class="badge">—</span></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>Удалить</button><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn danger" id="purgeTrash">Очистить корзину</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="12">Нет результатов</td></tr></tbody></table></div>
-<p class="note">Win % — среди завершённых турниров. BB/100 не выводим без покерной телеметрии по изменениям стека. Пустая частота не равна 0%.</p>
+<p class="note">При сбое нажми «Продолжить»: уже завершённые турниры сохраняются. Результаты другой версии стратегии автоматически не смешиваются.</p><p class="note">Win % — среди завершённых турниров. BB/100 не выводим без покерной телеметрии по изменениям стека. Пустая частота не равна 0%.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre></section>
-<section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Ключ сохраняется только в текущей вкладке браузера, не попадает в ZIP.</p></section>
+<section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
 </div></main><footer>SKACHKOV Poker System · Legacy Engine · Railway Volume /data · Реализация → Проверка → Анализ → План</footer>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const values=['','gto','gto_fixed','a17_preflop','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random','random_2','random_3'];
-const names={'':'— Выбрать —',gto:'GTO',gto_fixed:'GTO Fixed',a17_preflop:'A17 Preflop',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random',random_2:'Random 2',random_3:'Random 3'};
+let values=['','gto','gto_fixed','a17_preflop','a17_preflop_legacy','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random','random_2','random_3'];
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17 V5',gto:'GTO',gto_fixed:'GTO Fixed',a17_preflop:'A17 Preflop',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random',random_2:'Random 2',random_3:'Random 3'};
 const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random_2'],['gto','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false;
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
@@ -100,7 +100,7 @@ function present(s){
  $('runStatus').textContent=({running:'Выполняется',starting:'Запускается',completed:'Завершена',imported:'Загружена',failed:'Ошибка',cancelled:'Остановлена',interrupted:'Прервана'})[s.status]||s.status;
  $('runStatus').className='badge'+(['completed','imported'].includes(s.status)?' ok':['failed','interrupted'].includes(s.status)?' fail':'');
  working=sessions.some(j=>['running','starting'].includes(j.status))||active;valid();
- $('stop').disabled=!active;$('download').disabled=active;$('remove').disabled=active;$('restore').disabled=!s.config?.bots;
+ $('stop').disabled=!active;$('resume').disabled=!['failed','cancelled','interrupted'].includes(s.status)||working;$('download').disabled=active;$('remove').disabled=active;$('restore').disabled=!(s.config?.bots?.length||s.config?.players?.length);
  const report=s.report||{},prog=s.progress||{},total=prog.total||report.tournaments_requested||s.config?.tournaments||0;
  const done=prog.done??report.tournaments_completed??0;
  $('completed').textContent=report.tournaments_completed==null?done+'/'+(total||'—'):report.tournaments_completed+'/'+report.tournaments_requested;
@@ -118,33 +118,130 @@ function present(s){
 function empty(){
  selected=null;['completed','hands','hps','started'].forEach(id=>$(id).textContent='—');
  $('fill').style.width='0';$('progress').textContent='Нет данных';$('eta').textContent='';$('runStatus').textContent='—';
- $('leader').replaceChildren();$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;working=false;valid();
+ $('leader').replaceChildren();$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;$('resume').disabled=true;working=false;valid();
 }
 async function refresh(){
  const result=await get('/api/runs');sessions=result.runs||[];
  const selector=$('sessionSelect'),id=selected?.id;
  selector.replaceChildren();const nil=el('option','','— Выбрать сессию —');nil.value='';selector.append(nil);
  sessions.forEach(x=>{let o=el('option','',x.id+' · '+x.status);o.value=x.id;selector.append(o)});
- if(id&&sessions.some(x=>x.id===id))present(sessions.find(x=>x.id===id));
- else if(sessions.length)present(sessions[0]);else empty();
+ const chosen=(id&&sessions.some(x=>x.id===id))?id:(sessions[0]?.id||null);
+ if(chosen)present(await get('/api/runs/'+chosen));else empty();
  working=sessions.some(x=>['running','starting'].includes(x.status));valid();
 }
-async function connect(){try{await refresh();$('connection').textContent='Подключено';$('connection').className='badge ok';sessionStorage.setItem('skachkov_key',token());feedback('Подключено к Railway.')}catch(e){$('connection').textContent='Ошибка';$('connection').className='badge fail';feedback(e.message,true)}}
+async function loadCatalog(){
+ try{
+  const catalog=await get('/api/catalog');
+  if(catalog.strategies?.length){
+   values=['',...catalog.strategies];
+   names.a17_preflop='A17 V5 ('+(catalog.a17_version||'')+')';
+   drawBots();
+  }
+  const parallel=$('parallel');
+  const limit=Number(catalog.workers_max||1);
+  parallel.value=String(Math.min(Number(parallel.value),limit));
+  Array.from(parallel.options).forEach(o=>o.disabled=Number(o.value)>limit);
+  if(limit===1)parallel.title='Railway: при 1 ГБ RAM выполняется один процесс; увеличение требует изменения ресурса и POKER_MAX_WORKERS';
+ }catch(e){feedback('Каталог недоступен: '+e.message,true)}
+}
+async function connect(){try{await loadCatalog();await refresh();$('connection').textContent='Подключено';$('connection').className='badge ok';sessionStorage.setItem('skachkov_key',token());feedback('Подключено к Railway.')}catch(e){$('connection').textContent='Ошибка';$('connection').className='badge fail';feedback(e.message,true)}}
 $('preset').onclick=()=>{reset();feedback('Контрольные параметры восстановлены.')};
 $('resetBots').onclick=()=>{bots=preset.map(x=>({pre:x[0],post:x[1]}));drawBots()};
 $('addBot').onclick=()=>{if(bots.length<9){bots.push({pre:'',post:''});drawBots()}};
 $('key').oninput=valid;$('connect').onclick=connect;
 $('forget').onclick=()=>{sessionStorage.removeItem('skachkov_key');$('key').value='';$('connection').textContent='Отключено';$('connection').className='badge';valid()};
 $('start').onclick=async()=>{try{const c=config();working=true;valid();const s=await get('/api/runs',{method:'POST',body:JSON.stringify(c)});selected=s;await refresh();feedback('Сессия запущена.')}catch(e){working=false;valid();feedback(e.message,true)}};
+$('resume').onclick=async()=>{
+ if(!selected||!confirm('Продолжить '+selected.id+' с сохранённых checkpoints?'))return;
+ try{const r=await get('/api/runs/'+selected.id+'/resume',{method:'POST',body:'{}'});selected=r;await refresh();feedback('Серия возобновлена.')}catch(e){feedback(e.message,true)}
+};
 $('stop').onclick=async()=>{if(!selected||!confirm('Остановить текущую серию?'))return;try{await get('/api/runs/'+selected.id+'/cancel',{method:'POST',body:'{}'});feedback('Остановка запрошена');await refresh()}catch(e){feedback(e.message,true)}};
-$('sessionSelect').onchange=()=>{const s=sessions.find(x=>x.id===$('sessionSelect').value);if(s)present(s)};
+$('sessionSelect').onchange=async()=>{
+ const id=$('sessionSelect').value;
+ if(!id)return;
+ try{present(await get('/api/runs/'+id))}catch(e){feedback(e.message,true)}
+};
 $('refresh').onclick=()=>refresh().catch(e=>feedback(e.message,true));
-$('restore').onclick=()=>{const c=selected?.config;if(!c?.bots){feedback('В этой сессии отсутствуют данные по отдельным стратегиям',true);return}bots=c.bots.map(b=>({pre:b.pre||'',post:b.post||''}));for(const id of [...numeric,'seat_mode'])if(c[id]!==undefined)$(id).value=c[id];drawBots();scrollTo({top:0,behavior:'smooth'});feedback('Параметры скопированы в редактор.')};
+function oldProfileToStreets(original){
+ const p=String(original||'').replace(/^P[0-9]+=/,'');
+ if(p==='a17_tag'||p==='a17_tag_legacy')return {pre:'a17_preflop_legacy',post:'tag_punisher'};
+ const parts=p.split(':');
+ if(parts.length===3&&parts[0]==='split')return {pre:parts[1],post:parts[2]};
+ if(values.includes(p))return {pre:p,post:p};
+ return {pre:'',post:''};
+}
+$('restore').onclick=()=>{
+ const c=selected?.config;
+ if(!c)return;
+ const extracted=(c.bots?.length?c.bots:c.players?.map(oldProfileToStreets))||[];
+ if(extracted.length<2||extracted.length>9){feedback('Состав ботов невозможно восстановить',true);return}
+ bots=extracted.map(b=>({pre:b.pre||'',post:b.post||''}));
+ for(const id of [...numeric,'seat_mode'])if(c[id]!==undefined)$(id).value=c[id];
+ drawBots();scrollTo({top:0,behavior:'smooth'});
+ feedback('Параметры скопированы. Старый a17_tag преобразован в A17 Legacy; новая серия не запущена.');
+};
 $('download').onclick=async()=>{if(!selected)return;try{feedback('Готовлю ZIP...');const response=await api('/api/runs/'+selected.id+'/download');const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SKACHKOV_'+selected.id+'.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),9000);feedback('ZIP сессии скачан.')}catch(e){feedback(e.message,true)}};
 $('upload').onclick=()=>$('file').click();
-$('file').onchange=async()=>{const file=$('file').files?.[0];if(!file)return;try{if(file.size>32*1024*1024)throw Error('Архив больше 32 МБ');const s=await get('/api/runs/import',{method:'POST',body:file});selected=s;await refresh();feedback('ZIP сессии импортирован')}catch(e){feedback(e.message,true)}finally{$('file').value=''}};
-$('remove').onclick=async()=>{if(!selected||!confirm('Безвозвратно удалить '+selected.id+'?'))return;try{await get('/api/runs/'+selected.id,{method:'DELETE'});selected=null;await refresh();feedback('Сессия удалена.')}catch(e){feedback(e.message,true)}};
+$('file').onchange=async()=>{const file=$('file').files?.[0];if(!file)return;try{if(file.size>256*1024*1024)throw Error('Архив больше 256 МБ');const s=await get('/api/runs/import',{method:'POST',body:file});selected=s;await refresh();feedback('ZIP сессии импортирован')}catch(e){feedback(e.message,true)}finally{$('file').value=''}};
+$('remove').onclick=async()=>{if(!selected||!confirm('Перенести сессию '+selected.id+' в корзину?'))return;try{await get('/api/runs/'+selected.id,{method:'DELETE'});selected=null;await refresh();feedback('Сессия перемещена в корзину.')}catch(e){feedback(e.message,true)}};
+$('trash').onclick=async()=>{
+ try{
+  const data=await get('/api/trash');
+  if(!data.deleted?.length){feedback('Корзина пуста.');return}
+  const id=prompt('ID сессии для восстановления из корзины:\n'+data.deleted.join('\n'));
+  if(!id)return;
+  const job=await get('/api/trash/'+encodeURIComponent(id.trim())+'/restore',{method:'POST',body:'{}'});
+  selected=job;await refresh();feedback('Сессия восстановлена из корзины.');
+ }catch(e){feedback(e.message,true)}
+};
+$('purgeTrash').onclick=async()=>{
+ try{
+  const found=await get('/api/trash');
+  if(!found.deleted?.length){feedback('Корзина пуста.');return}
+  const confirmation=prompt('Безвозвратно удалить '+found.deleted.length+' сессий из корзины?\\nДля подтверждения введи УДАЛИТЬ');
+  if(confirmation!=='УДАЛИТЬ'){feedback('Очистка отменена.');return}
+  const data=await get('/api/trash',{method:'DELETE'});
+  feedback('Безвозвратно очищено сессий: '+data.purged);
+ }catch(e){feedback(e.message,true)}
+};
+$('backupAll').onclick=async()=>{
+ try{
+  feedback('Формирую полную резервную копию...');
+  const response=await api('/api/backup');
+  const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='SKACHKOV_ALL_SESSIONS.zip';document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+  feedback('Полный архив загружен. Сохрани отдельно от Railway.');
+ }catch(e){feedback(e.message,true)}
+};
+$('restoreAll').onclick=()=>{
+ if(confirm('Восстановить полный архив? Сессии получат новые ID, существующие не будут перезаписаны.'))
+  $('fullBackupFile').click();
+};
+$('fullBackupFile').onchange=async()=>{
+ const file=$('fullBackupFile').files?.[0];if(!file)return;
+ try{
+  if(file.size>512*1024*1024)throw Error('Архив больше 512 МБ');
+  feedback('Восстанавливаю все сессии из архива...');
+  const data=await get('/api/backup/restore',{method:'POST',body:file});
+  selected=null;await refresh();
+  feedback('Восстановлено сессий: '+data.restored_count);
+ }catch(e){feedback(e.message,true)}
+ finally{$('fullBackupFile').value=''}
+};
+$('checkData').onclick=async()=>{
+ try{
+  const data=await get('/api/integrity');
+  const issues=data.issues||[];
+  const gb=n=>(n/1048576).toFixed(1)+' МБ';
+  let message='На диске: '+data.session_count+' сессий, без ошибок '+data.healthy_sessions+
+      ', свободно '+gb(data.volume.free_bytes);
+  if(issues.length)message+='\\nПроблемы: '+issues.slice(0,15).map(x=>x.id+': '+x.missing.join(', ')+x.observations.join(', ')).join('\\n');
+  alert(message);feedback('Аудит сохранённых данных выполнен.');
+ }catch(e){feedback(e.message,true)}
+};
 $('copyLog').onclick=()=>navigator.clipboard.writeText($('log').textContent).then(()=>feedback('Журнал скопирован')).catch(()=>feedback('Копирование недоступно',true));
 $('key').value=sessionStorage.getItem('skachkov_key')||'';reset();if(token())connect();
-setInterval(()=>{if(token())refresh().catch(e=>feedback(e.message,true))},4000);
+setInterval(()=>{if(token()&&sessions.some(x=>['running','starting'].includes(x.status)))refresh().catch(e=>feedback(e.message,true))},4000);
+setInterval(()=>{if(token()&&!sessions.some(x=>['running','starting'].includes(x.status)))refresh().catch(e=>feedback(e.message,true))},60000);
 </script></body></html>

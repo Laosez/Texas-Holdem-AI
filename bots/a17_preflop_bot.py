@@ -34,6 +34,7 @@ from bots.gto_fixed_bot import FixedGTOPreflopBot
 
 
 class A17PreflopBot(FixedGTOPreflopBot):
+    HAND_TO_BOX = A17_HAND_TO_BOX
     """User A17 chart, evaluated by numeric position at all 2–9-max stages."""
 
     @staticmethod
@@ -62,7 +63,7 @@ class A17PreflopBot(FixedGTOPreflopBot):
         pos = str(position).upper()
         r1, r2 = hole[0][0], hole[1][0]
         key = _hand_key(r1, r2, hole[0][1] == hole[1][1])
-        box = A17_HAND_TO_BOX[key]
+        box = self.HAND_TO_BOX[key]
 
         # The user's 3-bet response overrides all positional rules,
         # including SB A01-A16 raise and BB fixed-GTO defense.
@@ -109,3 +110,8 @@ class A17PreflopBot(FixedGTOPreflopBot):
                 or box in A17_RFI_EXTRA_BOXES_BY_POSITION.get(pos, ())):
             return self._do_raise(legal, pot, sizing_frac=0.70)
         return self._do_fold_or_check(legal, to_call)
+
+
+class A17LegacyPreflopBot(A17PreflopBot):
+    """Frozen pre-V5 A17 mapping; use explicitly for historical parity."""
+    from bots.a17_ranges_legacy import A17_HAND_TO_BOX as HAND_TO_BOX
