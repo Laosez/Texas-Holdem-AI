@@ -67,6 +67,21 @@ class PlanHttpTests(unittest.TestCase):
                     server.server_close()
                     thread.join(timeout=5)
 
+    def test_equity_outline_and_opponent_matrix_regressions(self):
+        # UI contract: the equity threshold uses a gold outline rather than dimming;
+        # comparison matrices must distinguish unassigned data from explicit Fold.
+        page = service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn(".hand.equityHit::after", page)
+        self.assertIn("border:2px dashed #efbf55", page)
+        self.assertIn("if(hit)button.classList.add('equityHit')", page)
+        self.assertNotIn("if(hasEq&&eq[h]<min)button.classList.add('dim')", page)
+        self.assertIn("function renderComparisonGrid(", page)
+        self.assertIn("function assignedParticipation(", page)
+        self.assertIn("function renderPerOpponent(", page)
+        self.assertIn("const incomplete=undefinedHands!==null&&undefinedHands>0;", page)
+        self.assertIn("if(incomplete)card.append(", page)
+        self.assertIn("cell.onclick=()=>{selected=h;drawMatrices();paintEditor()}", page)
+
 
 if __name__=="__main__":
     unittest.main()
