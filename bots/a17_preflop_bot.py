@@ -10,9 +10,12 @@ at every table size and position, including SB/BB: A01-A07 and A09 mix
 50% four-bet, 50% call; A08 and A10-A17 fold. A four-bet choice that
 is not legal falls back to call/check using the existing raise helper.
 
-Otherwise SB at every tournament stage raises A01-A16 (subject to
-legal raise availability); A17 calls/checks. BB and all other non-RFI
-cases retain the separate fixed-GTO heuristic.
+When nobody has raised, SB still raises A01-A16 (subject to legal
+raise availability) and calls/checks A17. Facing a single opponent
+open-raise or any later 4-bet/5-bet, SB instead uses the same fixed-GTO
+heuristic as other positions, rather than blindly re-raising A01-A16.
+The explicit A17 response to exactly a 3-bet overrides that heuristic.
+BB and other unspecified non-RFI cases also use fixed-GTO.
 
 This is a custom strategy, not solver-derived GTO.
 """
@@ -74,17 +77,20 @@ class A17PreflopBot(FixedGTOPreflopBot):
         if not 2 <= n <= 9 or pos == "BB" or pos not in A17_MAX_OPEN_BOX_BY_POSITION:
             return super()._preflop(hole, position, pot, to_call, legal, state)
 
-        if pos == "SB":
-            # In every tournament stage, A01-A16 raises even facing a
-            # prior opponent raise. Legal-action fallback from _do_raise
-            # calls/checks when another raise is unavailable.
-            if box <= A17_SB_MAX_RAISE_BOX:
-                return self._do_raise(legal, pot, sizing_frac=0.70)
-            # A17 remains call/complete/check (never voluntarily folds).
-            return self._do_call_or_check(legal, to_call)
-
+        # A positional opening range must not double as a 3-bet range.
+        # Run this check BEFORE the SB open/complete policy so a single
+        # voluntary open-raise (and subsequent 4-bets/5-bets) use GTO
+        # Fixed. Exactly two raises are already handled by the dedicated
+        # user-approved A17 vs-3-bet rule above.
         if self._facing_opponent_raise(state):
             return super()._preflop(hole, position, pot, to_call, legal, state)
+
+        if pos == "SB":
+            # No prior opponent raise: preserve the full-range SB policy
+            # for unopened/limped pots (including heads-up).
+            if box <= A17_SB_MAX_RAISE_BOX:
+                return self._do_raise(legal, pot, sizing_frac=0.70)
+            return self._do_call_or_check(legal, to_call)
 
         # RFI: nobody has entered voluntarily on preflop.
         # A prior limp means the next action is not RFI and still uses
