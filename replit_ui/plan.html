@@ -393,13 +393,23 @@ function renderPerOpponent(){
   card.append(metrics);
   if(incomplete)card.append(el('small','','Неопределённые назначения: '+undefinedHands+' из 169 классов. Общий Overlap и ширина диапазона скрыты, чтобы не выдавать отсутствие данных за Fold; рассчитанное Equity относится только к назначенной части.'));
   if(item.doc){
-   const legend=el('div','comparisonLegend');
-   [['equal','#1d5b52','Равны'],['heroMore','#275985','Мы чаще'],['oppMore','#784355','Соперник чаще'],['bothFold','#223348','Оба Fold'],['unknown','#354357','Нет данных']].forEach(([k,color,label])=>{
-    const marker=el('span');const swatch=el('i');swatch.style.background=color;marker.append(swatch,document.createTextNode(label));legend.append(marker);
-   });
-   const diffMarker=el('span');const swatch=el('i');swatch.style.border='2px solid #e0b76b';diffMarker.append(swatch,document.createTextNode('Различие действий'));legend.append(diffMarker);
-   card.append(legend);
-   renderComparisonGrid(card,item);
+   // The primary screen is the all-vs-all strategy equity table above.
+   // Preserve 13x13 class differences as an optional drill-down only.
+   const details=el('details');
+   const summary=el('summary','','Показать различия по 169 рукам');
+   summary.style.cursor='pointer';summary.style.color='#a9c9e9';
+   details.append(summary);
+   details.ontoggle=()=>{
+    if(!details.open||details.dataset.ready)return;
+    const legend=el('div','comparisonLegend');
+    [['equal','#1d5b52','Равны'],['heroMore','#275985','Мы чаще'],['oppMore','#784355','Соперник чаще'],['bothFold','#223348','Оба Fold'],['unknown','#354357','Нет данных']].forEach(([k,color,label])=>{
+     const marker=el('span');const swatch=el('i');swatch.style.background=color;marker.append(swatch,document.createTextNode(label));legend.append(marker);
+    });
+    details.append(legend);
+    renderComparisonGrid(details,item);
+    details.dataset.ready='1';
+   };
+   card.append(details);
   }else card.append(el('small','',item.error?'Ошибка: '+item.error:'Загрузка диапазона…'));
   root.append(card);
   const line=el('div','stat');line.style.marginBottom='6px';
