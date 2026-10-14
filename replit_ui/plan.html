@@ -145,7 +145,7 @@ async function loadHero(){
    $('heroScenario').value=stored.scenario;
   }
   const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
-  hero=doc;dirty=false;undos=[];rangeEquityResult=null;setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
+  hero=doc;dirty=false;undos=[];invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
  }catch(e){msg(e.message,true)}finally{loadingSource=false}
 }
 function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
@@ -275,12 +275,12 @@ function doApply(toBoxes=false){
   if(sum===0)throw Error('Все частоты равны нулю — используйте «Снять назначение»');
   let targets=[selected];
   if(toBoxes){if(!selectedBoxes.size)throw Error('Сначала выдели коробки A17');targets=HANDS.filter(h=>selectedBoxes.has(hero.boxes[h]));if(!confirm('Назначить действия '+targets.length+' классам рук?'))return}
-  snapshotUndo();targets.forEach(h=>hero.hands[h]=copy(draft));editable();noteDirty();paintEditor();msg('Назначения обновлены для '+targets.length+' классов рук.');
+  snapshotUndo();targets.forEach(h=>hero.hands[h]=copy(draft));editable();invalidateEquity();noteDirty();paintEditor();msg('Назначения обновлены для '+targets.length+' классов рук.');
  }catch(e){msg(e.message,true)}
 }
 async function refreshComparison(){
  if(!hero||!meta)return;
- const revision=++comparisonEpoch,people=currentPeople();
+ const revision=++comparisonEpoch,people=currentPeople();pairwiseEquity={};
  perOpponentData=people.map((o,i)=>({o,label:(profileOptions().find(p=>p.value===o.profile)?.label||o.profile),compare:null,handEq:null,rangeEq:null,error:null}));
  renderPerOpponent();
  await Promise.all(people.map(async(o,i)=>{
@@ -344,12 +344,12 @@ function maskedStrategy(item){
  return doc;
 }
 async function calculatePairwise(){
- const epoch=calcEpoch;
+ const epoch=calcEpoch,revision=comparisonEpoch;
  if(perOpponentData.some(x=>!x.doc)){msg('Не удалось загрузить все диапазоны для попарной матрицы.',true);return}
  const all=[hero,...perOpponentData.map(maskedStrategy)];
  for(let i=0;i<all.length;i++){
   for(let j=i+1;j<all.length;j++){
-   if(epoch!==calcEpoch)return;
+   if(epoch!==calcEpoch||revision!==comparisonEpoch)return;
    try{
     let result;
     if(i===0 && perOpponentData[j-1].rangeEq && perOpponentData[j-1].o.selector==='active'){
@@ -363,7 +363,7 @@ async function calculatePairwise(){
       // the server still resolves the opponent by its original configured profile.
       result=await post('/api/plan/range-equity',{hero:all[i],opponents:[settings],trials:1200});
     }
-    if(epoch!==calcEpoch)return;
+    if(epoch!==calcEpoch||revision!==comparisonEpoch)return;
     if(Number.isFinite(result?.equity_pct)){
       pairwiseEquity[i+':'+j]=result.equity_pct;
       pairwiseEquity[j+':'+i]=100-result.equity_pct;
@@ -528,8 +528,8 @@ $('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLab
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
 $('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
-$('resetHand').onclick=()=>{if(!hero)return;snapshotUndo();delete hero.hands[selected];noteDirty();paintEditor()};
-$('undo').onclick=()=>{const prev=undos.pop();if(!prev)return;hero.hands=prev.hands;hero.boxes=prev.boxes;noteDirty();paintEditor();$('undo').disabled=!undos.length};
+$('resetHand').onclick=()=>{if(!hero)return;snapshotUndo();delete hero.hands[selected];invalidateEquity();noteDirty();paintEditor()};
+$('undo').onclick=()=>{const prev=undos.pop();if(!prev)return;hero.hands=prev.hands;hero.boxes=prev.boxes;invalidateEquity();noteDirty();paintEditor();$('undo').disabled=!undos.length};
 $('save').onclick=()=>savePlan(false);$('saveCopy').onclick=()=>savePlan(true);
 $('delete').onclick=async()=>{
  if(!hero||hero.readonly||!confirm('Переместить все версии '+hero.name+' в корзину?'))return;
