@@ -1,4 +1,4 @@
-"""A17 opening ranges across tournament sizes, and SB A01-A16 raises."""
+"""A17 RFI ranges, SB opens, SB defense and table-size regression tests."""
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -113,7 +113,6 @@ class A17PositionRangesTests(unittest.TestCase):
             for history in (
                 (),
                 ({"street": "preflop", "pid": "P1", "type": "call"},),
-                ({"street": "preflop", "pid": "P1", "type": "raise"},),
             ):
                 for hand in ("AA", "J8o", "74o"):
                     with self.subTest(n=n, action="raise", hand=hand, history=history):
@@ -153,16 +152,35 @@ class A17PositionRangesTests(unittest.TestCase):
         with patch("bots.gto_fixed_bot.random.random", return_value=0.90):
             self.assertEqual(bot.act(_view("98s", history=history)).type, "call")
 
-    def test_facing_real_raise_keeps_old_defense_off_sb(self):
+    def test_facing_real_raise_uses_fixed_gto_including_sb(self):
         bot = create_bot("a17_tag")
-        history = ({"street": "preflop", "pid": "P1", "type": "raise"},)
-        with patch("bots.gto_fixed_bot.random.random", return_value=0.90):
-            self.assertEqual(bot.act(_view("98s", history=history)).type, "fold")
-        # Unlike numeric positions, SB follows its user-defined always-raise rule.
-        self.assertEqual(
-            bot.act(_view("J8o", position="SB", history=history)).type,
-            "raise",
+        control = create_bot("gto_fixed")
+        open_raise = ({"street": "preflop", "pid": "P1", "type": "raise"},)
+        later_fourbet = (
+            {"street": "preflop", "pid": "P2", "type": "raise"},
+            {"street": "preflop", "pid": "P1", "type": "raise"},
+            {"street": "preflop", "pid": "P3", "type": "raise"},
         )
+        # The A17 SB A01-A16 rule applies only without a prior raise.
+        # An opponent open (or 4-bet) is not a reason to 3-/5-bet J8o.
+        for n in range(2, 10):
+            for history in (open_raise, later_fourbet):
+                for hand in ("AA", "K9s", "J8o", "72o"):
+                    with self.subTest(n=n, hand=hand, raises=len(history)):
+                        state = _view(hand, position="SB", n=n, history=history)
+                        with patch("bots.gto_fixed_bot.random.random",
+                                   return_value=0.40):
+                            self.assertEqual(bot.act(state), control.act(state))
+                        if hand == "J8o":
+                            with patch("bots.gto_fixed_bot.random.random",
+                                       return_value=0.40):
+                                self.assertEqual(bot.act(state).type, "fold")
+
+        # Numeric positions continue to use the same fixed-GTO policy.
+        with patch("bots.gto_fixed_bot.random.random", return_value=0.90):
+            self.assertEqual(
+                bot.act(_view("98s", history=open_raise)).type, "fold"
+            )
 
     def test_short_handed_numeric_positions_keep_same_cutoffs(self):
         bot = create_bot("a17_tag")
