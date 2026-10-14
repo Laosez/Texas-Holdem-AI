@@ -252,7 +252,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def allowed(self) -> bool:
         if not TOKEN:
-            self.reply(503, {"error": "Укажи POKER_RUNNER_KEY в Replit Secrets и перезапусти"})
+            self.reply(503, {"error": "Укажи POKER_RUNNER_KEY в Railway Variables и перезапусти"})
             return False
         supplied = self.headers.get("X-Runner-Key", "")
         if not secrets.compare_digest(supplied, TOKEN):
