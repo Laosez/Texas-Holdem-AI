@@ -54,6 +54,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .hand.none{background:#203144}.hand.fold{background:#334159}.hand.open{background:#245e9a}.hand.limp{background:#7755a3}.hand.call{background:#1d8178}.hand.threebet{background:#99652e}.hand.fourbet{background:#94516f}.hand.push{background:#a24d73}
 .hand.played{border:2px solid #70b7ff}
 .hand.metricShade{background-image:linear-gradient(135deg,var(--shade-top),var(--shade-bottom))}
+.hand.metricMissing{background:#253448;color:#a9bbcf}
 .hand.metricShade small{color:#f1f7ff;text-shadow:0 1px 2px #071523}
 .metricControls{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:10px 0 12px}
 .metricControls .field{width:min(195px,100%)}
@@ -326,6 +327,9 @@ function matrix(root,doc){
    button.classList.add('metricShade');
    button.style.setProperty('--shade-top',colors[0]);
    button.style.setProperty('--shade-bottom',colors[1]);
+  }else{
+   // No data is not equivalent to zero, Fold, or a weak hand.
+   button.classList.add('metricMissing');
   }
   button.append(el('small','',displayed));
   button.title += ' · '+$('cellMetric').selectedOptions[0].textContent+': '+displayed+
