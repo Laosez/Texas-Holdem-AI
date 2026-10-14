@@ -137,6 +137,27 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("noteDirty();drawMatrices()",page)
         self.assertIn("без побочных банков / fold equity / ICM",page)
 
+    def test_a17_hand_lists_drag_to_pool_reorder_undo_and_save(self):
+        page = service.PLAN_UI.read_text(encoding="utf-8")
+        for css in (".boxHandList{",".boxHandChip{",".boxCard{",".boxPool{"):
+            self.assertIn(css,page)
+        for identifier in ("boxes","handBox","moveBox","undo"):
+            self.assertIn('id="'+identifier+'"',page)
+        self.assertIn("function boxChip(h)",page)
+        self.assertIn("function reorderBox(from,to)",page)
+        self.assertIn("function boxDropped(e,target)",page)
+        self.assertIn("function markBoxDirty()",page)
+        self.assertIn("'application/x-skachkov-hand'",page)
+        self.assertIn("'application/x-skachkov-box'",page)
+        self.assertIn("if(HANDS.includes(h))moveHandToBox(h,target)",page)
+        self.assertIn("moveHandToBox(h,0)",page)
+        self.assertIn("for(const b of [...boxOrder(),0])",page)
+        self.assertIn("hero.box_order=order",page)
+        self.assertIn("box_order:[...boxOrder()]",page)
+        self.assertIn("hero.box_order=prev.box_order||boxOrder()",page)
+        self.assertIn("label:'Без коробки'",page)
+        self.assertNotIn("Последняя рука не может покинуть коробку",page)
+
 
 if __name__=="__main__":
     unittest.main()
