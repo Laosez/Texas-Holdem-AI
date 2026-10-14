@@ -33,10 +33,16 @@ A17_MAX_OPEN_BOX_BY_POSITION = {
     "8": 9,   # UTG+1
     "7": 9,   # MP
     "6": 10,  # LJ
-    "5": 12,  # HJ
-    "4": 14,  # CO
-    "3": 15,  # BTN
+    "5": 11,  # HJ
+    "4": 11,  # CO
+    "3": 12,  # BTN base range; A15 additionally, not A13/A14
     "SB": 17, # All A17 hands are played; see separate raise boundary below.
+}
+
+# Additional non-contiguous RFI boxes for specific numeric positions.
+# BTN explicitly plays A01-A12 plus A15 only. Boxes A13 and A14 are excluded.
+A17_RFI_EXTRA_BOXES_BY_POSITION = {
+    "3": frozenset({15}),
 }
 
 # Applies at every tournament stage, including heads-up.
