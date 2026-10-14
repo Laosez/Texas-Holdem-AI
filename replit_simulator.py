@@ -33,12 +33,10 @@ OUT = Path(os.environ.get("POKER_DATA_DIR", str(ROOT / "output" / "replit_runs")
 PORT = int(os.environ.get("PORT", "3000"))
 TOKEN = os.environ.get("POKER_RUNNER_KEY", "").strip()
 MAX_BODY = 32_768
-MAX_ZIP_BODY = 32 * 1024 * 1024
-MAX_ZIP_UNPACKED = 120 * 1024 * 1024
+MAX_ZIP_BODY = 512 * 1024 * 1024
+MAX_ZIP_UNPACKED = 512 * 1024 * 1024
+MAX_ARCHIVE_FILES = 50_000
 MAX_LOG_LINES = 200
-MAX_ZIP_BODY = 256 * 1024 * 1024
-MAX_ZIP_UNPACKED = 400 * 1024 * 1024
-MAX_ARCHIVE_FILES = 5000
 RUNS: dict[str, dict] = {}
 MUTEX = threading.RLock()
 
