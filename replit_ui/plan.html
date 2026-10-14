@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SKACHKOV · План стратегий</title>
+<style>
+:root{color-scheme:dark;--bg:#081221;--surface:#14243a;--line:#314660;--fg:#ecf5ff;--muted:#9ab0ca;--accent:#7baaf7;--ok:#89dbc5;--warn:#e9b279}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 60% -35%,#27507a,transparent 70%),var(--bg);font:13px/1.5 Inter,system-ui,sans-serif;color:var(--fg)}
+header,.nav,main,footer{width:min(1510px,96%);margin:auto}header{padding:23px 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-weight:850;font-size:11px;letter-spacing:2px;color:#92baf1}.brand strong{display:block;color:white;font-size:25px;letter-spacing:-.6px}.small{color:var(--muted);font-size:11px}.nav{display:grid;grid-template-columns:repeat(4,1fr);background:#101d30;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px}.tab{border-right:1px solid var(--line);padding:13px 12px;display:flex;gap:9px;color:#91a4bc;text-decoration:none}.tab:last-child{border-right:0}.tab.current{background:#1d3b60;color:#fff;box-shadow:inset 0 -3px #7ca9fa}.tab b{font-size:19px}.tab strong{display:block;font-size:13px}.tab small{font-size:10px}
+main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,#17283f,#101e30);border:1px solid var(--line);padding:19px;border-radius:12px}.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px;flex-wrap:wrap}.heading h2{margin:0;font-size:18px;letter-spacing:-.25px}.index{color:#82aef2;font-size:12px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.thirds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{min-width:0}.wide{grid-column:1/-1}label{display:block;font-size:11px;color:#adc4dc;font-weight:700;margin-bottom:5px}input,select{width:100%;min-width:0;padding:9px;background:#081626;color:#edf4ff;border:1px solid #395572;border-radius:7px;font:inherit}input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent)}input[type=range]{accent-color:var(--accent);padding:0}
+.btn{padding:9px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.18)}.btn:disabled{opacity:.42;cursor:not-allowed}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.danger{background:#332232;border-color:#835063;color:#ffbdc6}.btn.ghost{background:transparent}.btn.sm{padding:6px 9px;font-size:11px}.buttons{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.note{font-size:11px;color:#9aafc8;margin:9px 0 0}.badge{padding:4px 9px;border:1px solid #587998;border-radius:25px;font-size:11px;color:#b2cbe7}.badge.ok{border-color:#468873;color:#81e1c0}.badge.warn{border-color:#895f3f;color:#f2c693}.muted{color:var(--muted)}
+.profile{background:#10243a;border:1px solid #37516d;border-radius:9px;padding:14px}.profile h3{margin:0 0 11px;font-size:13px}.profile .summary{font-size:11px;color:#8eafcd}
+.oppHead,.oppRow{display:grid;grid-template-columns:27px minmax(160px,1fr) 100px 126px 115px;gap:7px;align-items:center}.oppHead{font-size:10px;color:#a6c1d8;margin:11px 0 5px}.oppRow{margin-bottom:7px}.oppRow .num{font-weight:850;color:#88b4f1}.oppRow select{font-size:11px;padding:8px 5px}
+.filterTop{display:grid;grid-template-columns:minmax(170px,1fr) 155px 120px;gap:11px;align-items:end}.boxList{display:grid;grid-template-columns:repeat(17,minmax(0,1fr));gap:5px;margin-top:13px}.boxItem{background:#18334a;border:1px solid #476079;color:#a9c8e2;font-size:11px;font-weight:800;min-height:35px;border-radius:6px;cursor:pointer}.boxItem.active{background:#2d6694;color:#fff;border-color:#79b6ea}.boxItem.dragover{border:2px dashed #bce5ff}.boxList+.note{margin-top:8px}
+.matrixGrid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;min-width:600px}.matrixViewport{overflow-x:auto;padding:5px 2px 10px}.matrixPane{min-width:0;border:1px solid #304b64;background:#0d1e30;padding:13px;border-radius:9px}.matrixPane h3{margin:0 0 8px;font-size:13px}
+.hand{position:relative;min-width:0;aspect-ratio:1.06;max-height:64px;border:1px solid #38566e;background:#243c54;color:#eff7ff;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2px;cursor:pointer;gap:1px;font:inherit;font-weight:800;font-size:12px}.hand small{font-size:9px;color:#d0e5f8;opacity:.8;font-weight:600}.hand:focus-visible{outline:2px solid #a4d1ff}.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dim{opacity:.23}.hand.hit{box-shadow:inset 0 0 0 2px #a4ddb8}.hand.boxhit{border-color:#b1d9fa;border-width:2px}.hand.dragging{opacity:.25}
+.hand.none{background:#203144}.hand.fold{background:#334159}.hand.open{background:#245e9a}.hand.limp{background:#7755a3}.hand.call{background:#1d8178}.hand.threebet{background:#99652e}.hand.fourbet{background:#94516f}.hand.push{background:#a24d73}
+.matrixOptions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.matrixOptions select{width:auto}.matrixLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.matrixLayout.double{grid-template-columns:repeat(2,minmax(0,1fr))}.matrixLayout.double .matrixGrid{min-width:480px;gap:2px}.matrixLayout.double .hand{font-size:10px;max-height:43px}.matrixLayout.double .hand small{font-size:8px}
+.stat{background:#10243b;border:1px solid #36516e;padding:13px;border-radius:8px;min-width:0}.stat span{display:block;color:#a4bbd3;font-size:10px}.stat strong{font-size:21px;font-variant-numeric:tabular-nums}.stat small{display:block;color:#9ab0ca;font-size:10px}
+.editorHead{display:flex;justify-content:space-between;gap:20px;align-items:center}.bigHand{font-size:40px;font-weight:850;letter-spacing:-2px}.actionGrid{display:grid;grid-template-columns:repeat(4,minmax(80px,1fr));gap:9px}.actionGrid input{text-align:right}.actionGrid label{font-size:11px}.handStatus{padding:10px 12px;border:1px solid #3a5771;border-radius:8px;background:#0e2334}.progress{height:8px;background:#0a1825;border:1px solid #304a65;border-radius:99px;overflow:hidden}.progress>div{height:100%;width:0;background:#5f9fdb;transition:width .3s}
+footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!important}.statusLine{font-size:12px;color:#b1d3eb;min-height:17px}.emptyLabel{font-size:11px;color:#bcaab6}.right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+@media(max-width:1150px){.matrixLayout.double{grid-template-columns:1fr}.boxList{grid-template-columns:repeat(9,minmax(0,1fr))}}@media(max-width:790px){.two,.thirds{grid-template-columns:1fr}.filterTop{grid-template-columns:1fr 1fr}.oppHead,.oppRow{grid-template-columns:23px minmax(125px,1fr) 68px 100px 75px;gap:3px}.oppRow select{font-size:10px}.panel{padding:13px}.actionGrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:550px){.filterTop{grid-template-columns:1fr}.nav .tab{justify-content:center;padding:9px 4px}.tab small{display:none}.tab b{font-size:13px}.tab strong{font-size:10px}.profile{padding:10px}.matrixGrid{min-width:580px}.boxList{grid-template-columns:repeat(6,1fr)}}
+</style></head><body>
+<header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
+<div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
+<main>
+<section class="panel"><div class="heading"><h2><span class="index">01 / </span>Стратегии и соперники</h2><span class="badge">Независимые позиции и ситуации</span></div>
+<div class="two"><div class="profile"><h3>Моя стратегия</h3><div class="fields">
+<div class="field wide"><label for="heroProfile">Стратегия / пресет</label><select id="heroProfile"></select></div>
+<div class="field"><label for="heroPosition">Моя позиция</label><select id="heroPosition"></select></div>
+<div class="field"><label for="heroScenario">Ситуация</label><select id="heroScenario"></select></div>
+<div class="field"><label for="players">Формат стола</label><select id="players"></select></div>
+<div class="field"><label for="stack">Эфф. стек (BB)</label><input id="stack" type="number" min="1" max="1000" value="20"></div>
+<div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
+</div><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
+<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Соперники</h3><div style="width:150px"><select id="oppCount" aria-label="Количество соперников"><option value="1">1 соперник</option><option value="2">2 соперника</option><option value="3">3 соперника</option><option value="4">4 соперника</option><option value="5">5 соперников</option></select></div></div>
+<div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span></div><div id="opponents"></div>
+<p class="note">Каждый диапазон задаётся самостоятельно. Можно сравнивать даже одинаковые позиции; это исследовательская модель, не реальная рассадка.</p></div></div>
+<div class="statusLine" role="status" id="feedback"></div>
+</section>
+<section class="panel"><div class="heading"><h2><span class="index">02 / </span>Equity-фильтр + A17</h2><span class="badge">Подсветка не редактирует стратегию</span></div>
+<div class="filterTop"><div class="field"><label for="equityModel">Источник equity</label><select id="equityModel"><option value="selected">Выбранные соперники · Multiway</option><option value="any_two">Any Two · N соперников</option><option value="gto_heuristic">GTO Bot · эвристические диапазоны</option></select></div>
+<div class="field"><label for="trials">Точность Monte Carlo</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div>
+<button class="btn primary" id="computeFilter">Рассчитать 169 рук</button></div>
+<div class="fields" style="margin-top:12px"><div class="field wide"><div class="right" style="justify-content:space-between"><label for="equityMin">Подсвечивать руки с equity не ниже</label><strong id="minLabel">40%</strong></div><input id="equityMin" type="range" min="0" max="100" step="1" value="40"></div></div>
+<div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
+<div class="heading" style="margin-top:19px"><strong>17 коробок A17</strong><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div><div id="boxes" class="boxList"></div><p class="note">Клик — выделить/снять диапазон. Можно выбрать несколько. Перетащите руку из матрицы в коробку для переноса; базовая A17 V5 остаётся неизменной.</p>
+</section>
+<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select></div></div>
+<div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
+<div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
+<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Цвет ячейки = преобладающее назначенное действие. Голубая рамка = выбранная коробка, зелёная = equity выше порога.</p>
+</section>
+<section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Диапазоны · частоты · выставление</span></div>
+<div class="thirds"><div class="stat"><span>Overlap с выбранным соперником</span><strong id="compOverlap">—</strong><small>Взвешенный Jaccard, % комбинаций</small></div>
+<div class="stat"><span>Наш диапазон / контр-диапазон</span><strong id="compWidth">—</strong><small>Доля 1326 комбинаций</small></div>
+<div class="stat"><span>Различия действий</span><strong id="compDelta">—</strong><small>Комбинации с отличающимися частотами</small></div></div>
+<div class="thirds" style="margin-top:9px"><div class="stat"><span>Equity нашего диапазона vs все соперники</span><strong id="compEquity">—</strong><small>Совместная Monte Carlo-раздача диапазонов</small></div>
+<div class="stat"><span>Подтверждённые комбинации</span><strong id="compCombos">—</strong><small>Σ частот входа × реальных комбинаций</small></div>
+<div class="stat"><span>Расчёт vs все соперники</span><button class="btn sm" id="computeActual">Рассчитать</button><small id="actualState">Ожидание</small></div></div><p class="note">Equity при одновременном выставлении, без fold equity, ставок и ICM. Overlap сравнивается попарно с соперником, выбранным для второй матрицы.</p>
+</section>
+<section class="panel"><div class="heading"><h2><span class="index">05 / </span>Редактор выбранной руки</h2><div class="buttons"><button class="btn sm ghost" id="undo" disabled>↶ Отменить</button><button class="btn sm ghost" id="resetHand">Снять назначение</button></div></div>
+<div class="two"><div class="profile"><div class="editorHead"><div><span class="small">СТАРТОВАЯ РУКА</span><div id="selectedHand" class="bigHand">AQs</div><span id="handCombos" class="muted">4 комбинации</span></div>
+<div style="min-width:155px"><label for="handBox">Коробка A17</label><select id="handBox"></select><button class="btn sm" id="moveBox" style="margin-top:7px;width:100%">Переместить</button></div></div>
+<h3>Действия и частоты (%)</h3><div id="actionInputs" class="actionGrid"></div>
+<div class="buttons" style="margin-top:13px"><button class="btn primary" id="applyHand">Применить к руке</button><button class="btn" id="applyBoxes">Применить к выделенным коробкам</button></div><div id="actionStatus" class="note"></div></div>
+<div class="profile"><h3>Equity выбранной руки при выставлении</h3><div class="thirds"><div class="stat"><span>vs Any Two · HU</span><strong id="handAny">—</strong></div><div class="stat"><span>vs фильтр №02</span><strong id="handFilter">—</strong></div><div class="stat"><span>vs все выбранные</span><strong id="handActual">—</strong></div></div>
+<div class="buttons" style="margin-top:14px"><button class="btn sm" id="computeAny">Рассчитать Any Two HU</button><button class="btn sm" id="handComputeFilter">Рассчитать фильтр</button><button class="btn sm" id="handComputeActual">Рассчитать контр</button></div>
+<div class="handStatus" style="margin-top:12px"><div id="handDetail" class="small">Нажмите на руку в матрице.</div></div><p class="note">Сравнение — equity выигрыша при вскрытии с пропорциональным дележом банка. Не является EV решения. Ошибка Monte Carlo зависит от числа симуляций.</p></div></div>
+</section>
+</main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
+<script>
+'use strict';
+const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split('').flatMap((a,r)=>RANKS.split('').map((b,c)=>r===c?a+b:r<c?a+b+'s':b+a+'o'));
+const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
+const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
+const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null;
+const names={};
+function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
+function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
+function option(label,value){const o=el('option','',label);o.value=value;return o}
+function refill(select,values,prior){select.replaceChildren(...values.map(x=>option(x.label,x.value)));if(prior!==undefined&&values.some(x=>x.value===String(prior)))select.value=prior;return select.value}
+function token(){return ($('key').value||'').trim()}
+async function api(path,opts={}){
+ if(!token())throw Error('Укажи POKER_RUNNER_KEY');
+ const headers={'X-Runner-Key':token(),...(opts.body?{'Content-Type':'application/json'}:{})};
+ const response=await fetch(path,{...opts,headers,cache:'no-store'});
+ if(!response.ok){let error;try{error=await response.json()}catch{error={error:'HTTP '+response.status}}throw Error(error.error||'HTTP '+response.status)}
+ return response.json();
+}
+const post=(path,data)=>api(path,{method:'POST',body:JSON.stringify(data)});
+function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
+function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p.ref})),...meta.saved.map(p=>({value:p.ref,label:p.name+' · v'+p.version+' · '+p.position+' '+SCENARIOS[p.scenario]}))]}
+function findSaved(profile){return meta.saved.find(x=>x.ref===profile)}
+function copy(x){return JSON.parse(JSON.stringify(x))}
+function preserveEdits(){return !dirty||confirm('Есть несохранённые изменения. Переключить контекст и отбросить их?')}
+function noteDirty(){rangeEquityResult=null;dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';renderAll()}
+async function getSource(profile,position,scenario,players,stack_bb){
+ return api('/api/plan/source?'+new URLSearchParams({profile,position,scenario,players,stack_bb}));
+}
+function setHeroFields(doc){
+ $('heroProfile').value=doc.ref||doc.id||'builtin:a17_v5';
+ $('players').value=String(doc.players);
+ renderPositions($('heroPosition'),doc.position);
+ $('heroScenario').value=doc.scenario;
+ $('stack').value=doc.stack_bb;
+ $('strategyName').value=doc.name;
+}
+async function loadHero(){
+ if(loadingSource||!preserveEdits())return;
+ loadingSource=true;
+ try{
+  const profile=$('heroProfile').value,stored=findSaved(profile);
+  if(stored){
+   $('players').value=String(stored.players);
+   renderPositions($('heroPosition'),stored.position);
+   $('heroScenario').value=stored.scenario;
+  }
+  const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
+  hero=doc;dirty=false;undos=[];rangeEquityResult=null;setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
+ }catch(e){msg(e.message,true)}finally{loadingSource=false}
+}
+function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
+function renderOpponents(){
+ const count=Number($('oppCount').value);
+ const target=$('opponents');target.replaceChildren();
+ opponents.slice(0,count).forEach((opp,i)=>{
+  const row=el('div','oppRow');row.append(el('div','num','#'+(i+1)));
+  const p=el('select');refill(p,profileOptions(),opp.profile);p.onchange=()=>{
+   opponents[i].profile=p.value;const saved=findSaved(p.value);if(saved){Object.assign(opponents[i],{position:saved.position,scenario:saved.scenario,players:saved.players})}
+   invalidateEquity();renderOpponents();loadVillain();
+  };row.append(p);
+  const pos=el('select');refill(pos,positionOptions(opp.players),opp.position);pos.disabled=!!findSaved(opp.profile);pos.onchange=()=>{opponents[i].position=pos.value;invalidateEquity();loadVillain()};row.append(pos);
+  const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
+  scenario.disabled=!!findSaved(opp.profile);scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
+  const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
+  selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
+  target.append(row);
+ });
+ refill($('viewOpponent'),opponents.slice(0,count).map((o,i)=>({value:String(i),label:'#'+(i+1)+' · '+profileName(o.profile)})),$('viewOpponent').value||'0');
+}
+function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
+function opponentsSelected(){return opponents.slice(0,Number($('oppCount').value)).map(o=>({...o}))}
+function invalidateEquity(){calcEpoch++;equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices()}
+function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
+async function loadVillain(){
+ if(!meta)return;
+ const revision=++villainEpoch;
+ const i=Number($('viewOpponent').value||0),o=opponentsSelected()[i];if(!o)return;
+ try{const doc=await getSource(o.profile,o.position,o.scenario,o.players,20);
+ if(revision!==villainEpoch)return;villain=doc;refreshComparison();drawMatrices()}
+ catch(e){villain=null;drawMatrices();msg('Соперник #'+(i+1)+': '+e.message,true)}
+}
+function major(actions){if(!actions)return 'none';const entries=Object.entries(actions).filter(x=>x[1]>0);if(!entries.length)return 'none';entries.sort((a,b)=>b[1]-a[1]);return entries[0][0]}
+function handTooltip(hand,doc){return hand+' · '+(doc?.boxes?.[hand]?'A'+String(doc.boxes[hand]).padStart(2,'0'):'')+' · '+(doc?.hands?.[hand]?Object.entries(doc.hands[hand]).map(([k,v])=>ACTIONS[k]+': '+v+'%').join(', '):'Не назначено')}
+function drawBoxes(){
+ if(!hero)return;
+ const root=$('boxes');root.replaceChildren();
+ for(let b=1;b<=17;b++){
+  const btn=el('button','boxItem'+(selectedBoxes.has(b)?' active':''),'A'+String(b).padStart(2,'0'));
+  const count=HANDS.filter(h=>hero.boxes[h]===b).reduce((s,h)=>s+COMBOS(h),0);
+  btn.title='Коробка A'+b+' · '+count+' комбинаций. Клик — подсветка, drop — перенести руку';
+  btn.onclick=()=>{if(selectedBoxes.has(b))selectedBoxes.delete(b);else selectedBoxes.add(b);drawBoxes();drawMatrices()};
+  btn.ondragover=e=>{e.preventDefault();btn.classList.add('dragover')};
+  btn.ondragleave=()=>btn.classList.remove('dragover');
+  btn.ondrop=e=>{e.preventDefault();btn.classList.remove('dragover');const h=e.dataTransfer.getData('text/plain');if(HANDS.includes(h))moveHandToBox(h,b)};
+  root.append(btn);
+ }
+}
+function matrix(root,doc){
+ root.replaceChildren();
+ if(!doc){root.textContent='Выберите стратегию';return}
+ const eq=equityResults.filter?.equity||{},min=Number($('equityMin').value);
+ for(const h of HANDS){
+  const actions=doc.hands[h],action=major(actions),b=doc.boxes[h],button=el('button','hand '+action,h);
+  button.type='button';button.title=handTooltip(h,doc);
+  button.setAttribute('aria-label',button.title);
+  // The selected A17 boxes belong to HERO. Highlight the same hand classes
+  // on both matrices even if the opponent has different box geometry.
+  const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
+  const hasEq=Object.prototype.hasOwnProperty.call(eq,h);
+  const hit=hasEq&&eq[h]>=min;
+  if(selectedBoxes.size&&!boxhit)button.classList.add('dim');
+  if(boxhit)button.classList.add('boxhit');
+  if(hit)button.classList.add('hit');
+  if(hasEq&&eq[h]<min)button.classList.add('dim');
+  if(h===selected)button.classList.add('selected');
+  if(hasEq)button.append(el('small','',eq[h].toFixed(1)+'%'));
+  button.onclick=()=>{selected=h;drawMatrices();paintEditor()};
+  button.draggable=true;
+  button.ondragstart=e=>e.dataTransfer.setData('text/plain',h);
+  root.append(button);
+ }
+}
+function drawMatrices(){
+ if(!hero)return;
+ const twice=$('matrixMode').value==='2';
+ $('matrixLayout').classList.toggle('double',twice);
+ $('villainPane').classList.toggle('hidden',!twice);
+ $('heroMatrixLabel').textContent=hero.name+' · '+hero.position+' · '+SCENARIOS[hero.scenario];
+ $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?.position||'—');
+ matrix($('heroMatrix'),hero);if(twice)matrix($('villainMatrix'),villain);
+}
+function actionDraft(){const val={};for(const field of $('actionInputs').querySelectorAll('input[data-action]')){if(field.value.trim()&&Number(field.value)>0)val[field.dataset.action]=Number(field.value)}return val}
+function paintEditor(){
+ if(!hero)return;
+ $('selectedHand').textContent=selected;
+ $('handCombos').textContent=COMBOS(selected)+' комбинаций · '+(selected.endsWith('s')?'suited':selected.endsWith('o')?'offsuit':'пара');
+ refill($('handBox'),Array.from({length:17},(_,i)=>({value:String(i+1),label:'A'+String(i+1).padStart(2,'0')})),String(hero.boxes[selected]));
+ const inputRoot=$('actionInputs');inputRoot.replaceChildren();
+ for(const action of meta.scenarios[hero.scenario]){
+  const wrap=el('div','field');const label=el('label','',ACTIONS[action]);const field=el('input');
+  field.type='number';field.min='0';field.max='100';field.step='5';field.dataset.action=action;field.value=hero.hands[selected]?.[action]??0;
+  wrap.append(label,field);inputRoot.append(wrap);
+ }
+ $('actionStatus').textContent=hero.hands[selected]?'Назначено: '+Object.entries(hero.hands[selected]).map(([a,v])=>ACTIONS[a]+' '+v+'%').join(' · '):'Рука не определена (не Fold)';
+ drawEquityStats();
+}
+function snapshotUndo(){undos.push({hands:copy(hero.hands),boxes:copy(hero.boxes)});if(undos.length>25)undos.shift();$('undo').disabled=false}
+function editable(){if(!hero)throw Error('Выбери стратегию');if(hero.readonly)msg('Изменена копия пресета — сохрани как новую версию.')}
+function moveHandToBox(h,b){if(hero.boxes[h]===b)return;
+ const count=HANDS.filter(x=>hero.boxes[x]===hero.boxes[h]).length;
+ if(count<2){msg('Последняя рука не может покинуть коробку: все A01–A17 должны существовать',true);return}
+ snapshotUndo();hero.boxes[h]=b;noteDirty();drawBoxes();paintEditor();msg(h+' перенесена в A'+String(b).padStart(2,'0'))}
+function doApply(toBoxes=false){
+ try{
+  const draft=actionDraft(),sum=Object.values(draft).reduce((s,n)=>s+n,0);
+  if(Object.values(draft).some(v=>!Number.isFinite(v)||v<0||v>100)||sum>100.001)throw Error('Сумма частот должна быть ≤100%, каждое значение 0–100');
+  if(sum===0)throw Error('Все частоты равны нулю — используйте «Снять назначение»');
+  let targets=[selected];
+  if(toBoxes){if(!selectedBoxes.size)throw Error('Сначала выдели коробки A17');targets=HANDS.filter(h=>selectedBoxes.has(hero.boxes[h]));if(!confirm('Назначить действия '+targets.length+' классам рук?'))return}
+  snapshotUndo();targets.forEach(h=>hero.hands[h]=copy(draft));editable();noteDirty();paintEditor();msg('Назначения обновлены для '+targets.length+' классов рук.');
+ }catch(e){msg(e.message,true)}
+}
+async function refreshComparison(){
+ if(!hero||!villain)return;
+ try{
+  const data=await post('/api/plan/compare',{hero,villain});
+  $('compOverlap').textContent=data.overlap_pct===null?'—':data.overlap_pct.toFixed(1)+'%';
+  $('compWidth').textContent=data.hero_pct.toFixed(1)+' / '+data.villain_pct.toFixed(1)+'%';
+  $('compDelta').textContent=data.different_action_combos.toLocaleString('ru-RU');
+  $('compCombos').textContent=data.shared_combos_weighted.toFixed(1);
+ }catch(e){msg('Сравнение: '+e.message,true)}
+}
+function rangeMean(eq){if(!hero||!eq)return null;let mass=0,total=0;for(const h of HANDS){const v=Object.entries(hero.hands[h]||{}).filter(([a])=>a!=='fold').reduce((s,[a,p])=>s+p,0)/100;if(v>0){const w=COMBOS(h)*v;mass+=w;total+=w*eq[h]}}return mass?total/mass:null}
+function pct(x){return x===null||x===undefined?'—':Number(x).toFixed(1)+'%'}
+function drawEquityStats(){
+ const filter=equityResults.filter?.equity,actual=equityResults.actual?.equity,any=equityResults.any?.equity;
+ $('handFilter').textContent=pct(filter?.[selected]);$('handActual').textContent=pct(actual?.[selected]);$('handAny').textContent=pct(any?.[selected]);
+ $('compEquity').textContent=pct(rangeEquityResult?.equity_pct);
+ const eq=equityResults.filter;
+ $('equityStatus').textContent=eq?'Расчёт готов · '+eq.simulations_per_hand+' симуляций/руку · Monte Carlo (погрешность выборки)':'Расчёт не выполнен. Настройки соперников могут быть произвольными.';
+ if(eq)$('equityFill').style.width='100%';
+ $('handDetail').textContent='Моя: '+handTooltip(selected,hero)+' | Контр: '+handTooltip(selected,villain);
+}
+async function startCalculation(slot,model,people){
+ const revision=calcEpoch;
+ try{
+  const trials=Number($('trials').value);
+  msg('Запущен Monte Carlo: '+people.length+' соперник(ов), '+trials+' симуляций на руку.');
+  const settings={model,trials,opponents:people};
+  let job=await post('/api/plan/equity',settings);
+  const progress=(j)=>{
+   if(slot==='filter'){$('equityFill').style.width=(100*j.done/169).toFixed(0)+'%';$('equityStatus').textContent=j.status==='running'?'Расчёт '+j.done+'/169 классов...':j.status}
+   if(slot==='actual')$('actualState').textContent='Расчёт '+j.done+'/169';
+  };
+  progress(job);
+  while(job.status==='running'){
+   await new Promise(resolve=>setTimeout(resolve,1100));
+   job=await api('/api/plan/equity/'+job.id);progress(job);
+  }
+  if(job.status!=='completed')throw Error(job.error||'Расчёт не завершён');
+  if(revision!==calcEpoch){msg('Состав соперников изменился: устаревший расчёт не применяется.');return}
+  equityResults[slot]=job.result;
+  if(slot==='filter'&&model==='selected')equityResults.actual=job.result;
+  if(slot==='actual'&&$('equityModel').value==='selected')equityResults.filter=job.result;
+  if(slot==='any'&&model==='any_two'&&Number($('oppCount').value)===1&&$('equityModel').value==='any_two')equityResults.filter=job.result;
+  $('actualState').textContent=equityResults.actual?'Готово · Monte Carlo':'Ожидание';
+  drawMatrices();drawEquityStats();msg('Equity рассчитано для всех 169 рук'+(job.cached?' (из кэша)':'')+'.');
+  return job.result;
+ }catch(e){msg('Equity: '+e.message,true);$('equityStatus').textContent='Ошибка расчёта: '+e.message;return null}
+}
+function currentPeople(){return opponentsSelected()}
+async function calculateRangeEquity(){
+ const revision=calcEpoch;
+ if(!hero)return;
+ try{
+  $('actualState').textContent='Оценка диапазона...';
+  const result=await post('/api/plan/range-equity',{hero,opponents:currentPeople(),trials:3000});
+  if(revision!==calcEpoch)return;
+  rangeEquityResult=result;
+  $('actualState').textContent='Готово · '+result.trials+' выставлений';
+  drawEquityStats();
+  msg('Showdown equity нашего диапазона: '+pct(result.equity_pct)+' против '+currentPeople().length+' соперников.');
+ }catch(e){$('actualState').textContent='Ошибка';msg('Equity диапазона: '+e.message,true)}
+}
+async function savePlan(forceNew=false){
+ try{
+  if(!hero)throw Error('Сначала выбери стратегию');
+  const c=copy(hero);
+  c.name=$('strategyName').value.trim();c.stack_bb=Number($('stack').value);
+  const parent=forceNew||hero.readonly?null:(hero.ref||null);
+  const saved=await post('/api/plan/strategies',{plan:c,parent});
+  hero=saved;dirty=false;undos=[];meta=await api('/api/plan/catalog');
+  refill($('heroProfile'),profileOptions(),saved.ref);
+  setHeroFields(saved);paintEditor();renderOpponents();renderAll();
+  msg('Сохранена '+saved.name+' · версия '+saved.version);
+ }catch(e){msg('Не удалось сохранить: '+e.message,true)}
+}
+function renderAll(){drawBoxes();drawMatrices();refreshComparison();drawEquityStats();$('delete').disabled=!hero||hero.readonly;$('dirty').textContent=dirty?'● Несохранённые изменения':'Изменения сохранены / оригинальный пресет защищён';$('dirty').style.color=dirty?'#f5c38f':''}
+async function connect(){
+ try{
+  const data=await api('/api/plan/catalog');meta=data;
+  refill($('heroProfile'),profileOptions(),'builtin:a17_v5');
+  refill($('players'),Array.from({length:8},(_,i)=>({value:String(i+2),label:(i+2)+'-max'})),'9');
+  refill($('heroScenario'),Object.entries(SCENARIOS).map(([value,label])=>({value,label})),'rfi');
+  renderPositions($('heroPosition'),'3');
+  $('oppCount').value='3';opponents=Array.from({length:5},(_,i)=>({
+   profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two','builtin:gto_heuristic'][i],
+   position:['9','4','BB','SB','5'][i],scenario:'rfi',players:9,selector:'active'}));
+  renderOpponents();$('viewOpponent').value='0';
+  sessionStorage.setItem('skachkov_key',token());
+  await loadHero();await loadVillain();
+  $('connection').textContent='Подключено';$('connection').className='badge ok';
+ }catch(e){$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
+}
+$('connect').onclick=connect;
+$('heroProfile').onchange=loadHero;
+$('heroPosition').onchange=loadHero;$('heroScenario').onchange=loadHero;$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero()};
+$('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty()}};
+$('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
+$('oppCount').onchange=updateOppCount;
+$('viewOpponent').onchange=loadVillain;
+$('matrixMode').onchange=drawMatrices;
+$('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices()};
+$('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
+$('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
+$('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
+$('resetHand').onclick=()=>{if(!hero)return;snapshotUndo();delete hero.hands[selected];noteDirty();paintEditor()};
+$('undo').onclick=()=>{const prev=undos.pop();if(!prev)return;hero.hands=prev.hands;hero.boxes=prev.boxes;noteDirty();paintEditor();$('undo').disabled=!undos.length};
+$('save').onclick=()=>savePlan(false);$('saveCopy').onclick=()=>savePlan(true);
+$('delete').onclick=async()=>{
+ if(!hero||hero.readonly||!confirm('Переместить все версии '+hero.name+' в корзину?'))return;
+ try{await api('/api/plan/strategies/'+hero.id,{method:'DELETE'});meta=await api('/api/plan/catalog');refill($('heroProfile'),profileOptions(),'builtin:a17_v5');await loadHero();msg('Стратегия перенесена в корзину.')}catch(e){msg(e.message,true)}
+};
+$('computeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,currentPeople());
+$('computeActual').onclick=async()=>{const matrix=await startCalculation('actual','selected',currentPeople());if(matrix)await calculateRangeEquity()};
+$('computeAny').onclick=()=>startCalculation('any','any_two',currentPeople().slice(0,1));
+$('handComputeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,currentPeople());
+$('handComputeActual').onclick=()=>startCalculation('actual','selected',currentPeople());
+$('key').value=sessionStorage.getItem('skachkov_key')||'';
+if(token())connect();
+</script></body></html>
