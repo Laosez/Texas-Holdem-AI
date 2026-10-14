@@ -22,7 +22,8 @@ def create_bot(btype: str) -> BotAdapter:
       smart              SmartBot (heuristic)
       split:pre:post      Independent street bases, e.g. split:gto:tag_punisher
       gto_fixed           Legacy GTO charts with correct facing-raise boundary
-      a17_tag             gto_fixed preflop + tag_punisher postflop
+      a17_preflop         A17 9-max positional RFI, full-range SB limp
+      a17_tag             a17_preflop + tag_punisher postflop
       final, final_survival
                           TournamentHybridBot survival profile
       final_aggro         TournamentHybridBot aggro profile
@@ -93,14 +94,18 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.gto_fixed_bot import FixedGTOPreflopBot
         return _wrap(FixedGTOPreflopBot())
 
+    if btype == "a17_preflop":
+        from bots.a17_preflop_bot import A17PreflopBot
+        return _wrap(A17PreflopBot())
+
     if btype == "a17_tag":
         # Named experimental player with a unique analytics/exporter label.
-        # Original GTOBot and TAG Punisher remain untouched.
+        # Original GTOBot, fixed-GTO baseline and TAG remain untouched.
         from bots.street_split_bot import StreetSplitBot
         return StreetSplitBot(
-            create_bot("gto_fixed"),
+            create_bot("a17_preflop"),
             create_bot("tag_punisher"),
-            preflop_name="gto_fixed",
+            preflop_name="a17_preflop",
             postflop_name="tag_punisher",
         )
 
@@ -145,7 +150,7 @@ def create_bot(btype: str) -> BotAdapter:
                      "maniac_trigger, maniac_mixed, overbet_merchant, "
                      "calling_station, nit, folder, loose_passive, minraise, "
                      "minraiser, baseline_sane, pressure_filler, tag_punisher, "
-                     "wide_defender, gto_fixed, a17_tag, "
+                     "wide_defender, gto_fixed, a17_preflop, a17_tag, "
                      "split:<preflop_bot>:<postflop_bot>")
 
 
