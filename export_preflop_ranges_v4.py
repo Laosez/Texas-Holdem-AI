@@ -752,10 +752,18 @@ def main():
             result[metric] = round(100*c[metric+'_n']/denom,4) if denom else None
         result['net_bb_100'] = round(100*c['net_bb_units']/c['net_hands'],4) if c['net_hands'] else None
         return result
-    post_rows=[['bot']+list(post_fields)]
+    # Persist numerators and denominators for independent audit and CI.
+    raw_fields = tuple(field for street in ('flop','turn','river')
+                       for field in (street+'_aggressive',street+'_calls')) + (
+        'cbet_n','cbet_opp','fold_to_bet_n','fold_to_bet_opp',
+        'check_raise_n','check_raise_opp','wsd_n','wsd_opp',
+        'net_bb_units','net_hands')
+    post_rows=[['bot']+list(post_fields)+list(raw_fields)]
     for name in names:
         metrics=pf_metrics(name)
-        post_rows.append([name]+[metrics[m] if metrics[m] is not None else '' for m in post_fields])
+        raw=post_agg[name]
+        post_rows.append([name]+[metrics[m] if metrics[m] is not None else '' for m in post_fields]+
+                         [raw[f] for f in raw_fields])
     csv_write(output/'postflop_summary.csv',post_rows)
     for filename, table_rows in {**report_tables, **bot_tables}.items():
         csv_write(output/filename, table_rows)
@@ -791,7 +799,11 @@ def main():
                  'Fold-to-steal uses numeric positions 4,3,SB (cutoff, button, small blind).',
                  'Tournament starting seating rotates by one physical seat per tournament when seat_mode=rotate.',
                  'n9 includes only hands starting with nine active seats; n2 is heads-up (SB is button); all includes every stage.',
-                 'Denominator hands_observed includes every player receiving hole cards, even if no preflop action was required.']
+                 'Denominator hands_observed includes every player receiving hole cards, even if no preflop action was required.',
+                 'Postflop AF is (bets+raises)/calls; a zero-call sample has undefined AF and is blank.',
+                 'C-bet: last preflop aggressor gets first unraised flop opportunity; Fold to bet and Check-raise use eligible decisions.',
+                 'W$SD credits a player winning a showdown side pot, including ties.',
+                 'Net bb/100 is whole-hand net chips normalized by BB at each deal, times 100 / dealt hands; not isolated postflop EV.']
     },ensure_ascii=False,indent=2),encoding='utf-8')
     print(f'\nTotal simulated hands: {total_hands}')
     print('BOT                    HANDS   VPIP%    PFR%    RFI%  3BET%  4BET%')
