@@ -14,7 +14,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .matrixGrid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;min-width:600px}.matrixViewport{overflow-x:auto;padding:5px 2px 10px}.matrixPane{min-width:0;border:1px solid #304b64;background:#0d1e30;padding:13px;border-radius:9px}.matrixPane h3{margin:0 0 8px;font-size:13px}
 .hand{position:relative;min-width:0;aspect-ratio:1.06;max-height:64px;border:1px solid #38566e;background:#243c54;color:#eff7ff;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2px;cursor:pointer;gap:1px;font:inherit;font-weight:800;font-size:12px}.hand small{font-size:9px;color:#d0e5f8;opacity:.8;font-weight:600}.hand:focus-visible{outline:2px solid #a4d1ff}.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dim{opacity:.23}
 .hand.equityHit::after{content:"";position:absolute;inset:3px;border:2px dashed #efbf55;border-radius:4px;pointer-events:none;z-index:2}
-.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.boxhit{border-color:#b1d9fa;border-width:2px}.boxItem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.boxItem .coverage{font-size:10px;font-weight:700;color:#b8ecce}.boxItem .coverage.missing{color:#91a6bd}.hand.boxhit{outline:2px solid #a7d8ff;outline-offset:-2px}.hand.boxhit.dim{opacity:.72}.hand.dragging{opacity:.25}
+.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.boxhit{border-color:#b1d9fa;border-width:2px}.boxItem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.boxItem .coverage{font-size:10px;font-weight:700;color:#b8ecce}.boxItem .coverage.missing{color:#91a6bd}.hand.boxhit{outline:2px solid #a7d8ff;outline-offset:-2px}.hand.boxhit.dim{opacity:.72}.hand.boxhit.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dragging{opacity:.25}
 .comparisonCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,610px),1fr));gap:12px}
 .comparisonCard{min-width:0}
 .comparisonTitle{font-size:14px;font-weight:800;color:#edf5ff}
@@ -282,7 +282,7 @@ function renderComparisonGrid(parent,item){
  for(const h of HANDS){
   const mine=assignedParticipation(hero,h),theirs=assignedParticipation(item.doc,h);
   const category=mine===null||theirs===null?'unknown':mine===0&&theirs===0?'bothFold':Math.abs(mine-theirs)<0.01?'equal':mine>theirs?'heroMore':'oppMore';
-  const actionsDifferent=mine!==null&&theirs!==null&&JSON.stringify(hero.hands[h])!==JSON.stringify(item.doc.hands[h]);
+  const actionsDifferent=mine!==null&&theirs!==null&&Object.keys(ACTIONS).some(action=>Number(hero.hands[h]?.[action]||0)!==Number(item.doc.hands[h]?.[action]||0));
   const cell=el('button','comparisonCell '+category+(actionsDifferent?' actionDiff':'')+(selected===h?' selected':''),h);
   cell.type='button';
   const fmt=n=>n===null?'?':n.toFixed(0)+'%';
@@ -302,14 +302,17 @@ function renderPerOpponent(){
   const card=el('div','stat comparisonCard');
   card.append(el('div','comparisonTitle',`Соперник ${i+1} · ${item.label}`));
   card.append(el('small','',`${item.o.position} · ${SCENARIOS[item.o.scenario]||item.o.scenario}`));
+  const undefinedHands=item.doc?HANDS.filter(h=>assignedParticipation(hero,h)===null||assignedParticipation(item.doc,h)===null).length:null;
+  const incomplete=undefinedHands!==null&&undefinedHands>0;
   const metrics=el('div','comparisonMetrics');
   [
-   ['Overlap',item.compare?.overlap_pct==null?'—':pct(item.compare.overlap_pct)],
+   ['Overlap',incomplete||item.compare?.overlap_pct==null?'—':pct(item.compare.overlap_pct)],
    ['Equity HU диапазонов',pct(item.rangeEq?.equity_pct)],
-   ['Диапазон соперника',pct(item.compare?.villain_pct)],
-   ['Различия действий',item.compare?.different_action_combos==null?'—':item.compare.different_action_combos.toLocaleString('ru-RU')]
+   ['Диапазон соперника',incomplete?'—':pct(item.compare?.villain_pct)],
+   ['Различия заданных действий',item.compare?.different_action_combos==null?'—':item.compare.different_action_combos.toLocaleString('ru-RU')]
   ].forEach(([label,value])=>metrics.append(el('small','',label+' · '+value)));
   card.append(metrics);
+  if(incomplete)card.append(el('small','','Неопределённые назначения: '+undefinedHands+' из 169 классов. Общий Overlap и ширина диапазона скрыты, чтобы не выдавать отсутствие данных за Fold; рассчитанное Equity относится только к назначенной части.'));
   if(item.doc){
    const legend=el('div','comparisonLegend');
    [['equal','#1d5b52','Равны'],['heroMore','#275985','Мы чаще'],['oppMore','#784355','Соперник чаще'],['bothFold','#223348','Оба Fold'],['unknown','#354357','Нет данных']].forEach(([k,color,label])=>{
