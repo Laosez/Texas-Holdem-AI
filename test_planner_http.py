@@ -96,6 +96,8 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("button.append(tag)", page)
         self.assertIn("const tag=el('span','handBoxTag'", page)
         self.assertIn(".hand.played{border:2px solid #70b7ff", page)
+        # Action background shorthands must not erase the played-range gradient.
+        self.assertGreater(page.index(".hand.played{"), page.index(".hand.push{background:"))
         self.assertIn(".hand.boxhit::before", page)
         self.assertIn(".hand.equityHit::after", page)
         self.assertNotIn(".hand.boxhit{outline:2px solid #a7d8ff", page)
