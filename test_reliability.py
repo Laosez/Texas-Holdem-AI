@@ -191,6 +191,22 @@ class ReliabilityTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "Недопустимый путь"):
                     app.import_full_backup(dest.name)
 
+    def test_purge_trash_is_explicit_and_frees_space(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(app, "OUT", Path(td)):
+            root = Path(td) / ".trash" / "20261014_purge"
+            root.mkdir(parents=True)
+            (root / "job.json").write_text("{}")
+            self.assertEqual(app.purge_trash(), 1)
+            self.assertFalse(root.exists())
+            self.assertEqual(app.purge_trash(), 0)
+
+    def test_worker_limit_can_be_raised_only_with_admin_variable(self):
+        with patch.dict("os.environ", {"RAILWAY_PROJECT_ID": "test", "POKER_MAX_WORKERS": "2"}):
+            self.assertEqual(app.max_safe_workers(), 2)
+            self.assertEqual(app.validate_config({"parallel": 2})["parallel"], 2)
+            with self.assertRaisesRegex(ValueError, "не более 2"):
+                app.validate_config({"parallel": 3})
+
     def test_old_unversioned_run_cannot_resume(self):
         run_id = "20261014_unversioned"
         app.RUNS[run_id] = {"id": run_id, "status": "failed", "config": {"players": ["a17_tag", "gto"]}}
