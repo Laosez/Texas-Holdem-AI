@@ -13,7 +13,7 @@ This is a custom strategy, not solver-derived GTO.
 """
 from bots.a17_ranges import (
     A17_HAND_TO_BOX,
-    A17_MAX_OPEN_BOX_9MAX,
+    A17_MAX_OPEN_BOX_BY_POSITION,
     A17_SB_MAX_RAISE_BOX,
 )
 from bots.gto_bot import _hand_key
@@ -27,7 +27,7 @@ class A17PreflopBot(FixedGTOPreflopBot):
         n = len(state.stacks)
         pos = str(position).upper()
         # '10' (10-max) is not specified, nor is the BB defense chart.
-        if not 2 <= n <= 9 or pos == "BB" or pos not in A17_MAX_OPEN_BOX_9MAX:
+        if not 2 <= n <= 9 or pos == "BB" or pos not in A17_MAX_OPEN_BOX_BY_POSITION:
             return super()._preflop(hole, position, pot, to_call, legal, state)
 
         r1, r2 = hole[0][0], hole[1][0]
@@ -59,6 +59,6 @@ class A17PreflopBot(FixedGTOPreflopBot):
         if entered:
             return super()._preflop(hole, position, pot, to_call, legal, state)
 
-        if box <= A17_MAX_OPEN_BOX_9MAX[pos]:
+        if box <= A17_MAX_OPEN_BOX_BY_POSITION[pos]:
             return self._do_raise(legal, pot, sizing_frac=0.70)
         return self._do_fold_or_check(legal, to_call)
