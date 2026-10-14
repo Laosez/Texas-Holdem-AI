@@ -125,6 +125,16 @@ class PlanTests(unittest.TestCase):
         multi=eq.simulate_hand("AKs",[anytwo,anytwo,anytwo],trials=350,seed=111)
         self.assertLess(multi,hu)
 
+    def test_direct_range_equity_joint_distribution_and_split_pots(self):
+        anytwo=eq.WeightedRange(core.range_weights(core.preset("builtin:any_two")))
+        hero=core.range_weights(core.preset("builtin:any_two"))
+        hu=eq.simulate_range_equity(hero,[anytwo],trials=500,seed=91)
+        multi=eq.simulate_range_equity(hero,[anytwo,anytwo,anytwo],trials=500,seed=91)
+        self.assertEqual(hu["method"],"joint_range_multiway_MC_V1")
+        self.assertTrue(42<=hu["equity_pct"]<=58)
+        self.assertTrue(16<=multi["equity_pct"]<=34)
+        self.assertEqual(multi["trials"],500)
+
     def test_five_different_ranges(self):
         people=[
             {"profile":"builtin:any_two","position":"3","scenario":"rfi","players":9,"selector":"active"},
