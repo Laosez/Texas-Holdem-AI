@@ -82,6 +82,24 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(incomplete)card.append(", page)
         self.assertIn("cell.onclick=()=>{selected=h;drawMatrices();paintEditor()}", page)
 
+    def test_a17_moved_to_matrix_and_played_hand_encoding(self):
+        page = service.PLAN_UI.read_text(encoding="utf-8")
+        section02 = page[page.index('02 / </span>Equity-фильтр'):page.index('03 / </span>Матрицы стартовых рук')]
+        section03 = page[page.index('03 / </span>Матрицы стартовых рук'):page.index('04 / </span>Сравнение стратегий')]
+        self.assertNotIn('id="boxes"', section02)
+        self.assertIn('id="boxes"', section03)
+        self.assertIn('id="clearBoxes"', section03)
+        self.assertIn('id="heroMatrix"', section03)
+        self.assertEqual(page.count('id="boxes"'), 1)
+        self.assertIn("function knownActivePercent(doc,hand)", page)
+        self.assertIn("button.classList.add('played')", page)
+        self.assertIn("button.append(tag)", page)
+        self.assertIn("const tag=el('span','handBoxTag'", page)
+        self.assertIn(".hand.played{border:2px solid #70b7ff", page)
+        self.assertIn(".hand.boxhit::before", page)
+        self.assertIn(".hand.equityHit::after", page)
+        self.assertNotIn(".hand.boxhit{outline:2px solid #a7d8ff", page)
+
 
 if __name__=="__main__":
     unittest.main()
