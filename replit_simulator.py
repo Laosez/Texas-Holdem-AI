@@ -487,6 +487,23 @@ def delete_session(run_id: str) -> None:
         del RUNS[run_id]
 
 
+def purge_trash() -> int:
+    """Irreversible purge, never run implicitly or while an experiment is active."""
+    with MUTEX:
+        if any(j["status"] in ("running", "starting") for j in RUNS.values()):
+            raise RuntimeError("Сначала дождись завершения симуляции")
+        trash = OUT / ".trash"
+        if not trash.is_dir():
+            return 0
+        deleted = 0
+        for entry in trash.iterdir():
+            if entry.is_dir() and not entry.is_symlink() and RUN_ID_RE.fullmatch(entry.name):
+                if (entry / "job.json").is_file():
+                    shutil.rmtree(entry)
+                    deleted += 1
+        return deleted
+
+
 def restore_deleted(run_id: str) -> dict:
     if not RUN_ID_RE.fullmatch(run_id):
         raise ValueError("Некорректный ID")
@@ -858,6 +875,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         path = urlparse(self.path).path
         if not self.allowed():
+            return
+        if path == "/api/trash":
+            try:
+                self.reply(200, {"purged": purge_trash()})
+            except RuntimeError as exc:
+                self.reply(409, {"error": str(exc)})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)", path)
         if not match:
