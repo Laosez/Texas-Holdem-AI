@@ -175,6 +175,50 @@ def simulate_hand(hand, opponents, trials=200, seed=42):
     return round(100*payoff/accepted,2)
 
 
+def simulate_range_equity(hero_weights, opponents, trials=3000, seed=42):
+    """Direct joint range-vs-multiway equity, not an average of per-class equity.
+
+    Samples a weighted hero *concrete combination* together with all
+    opponent combinations; only collision-free joint deals enter the
+    conditional distribution. Correctly accounts for card-removal
+    differences across hero classes and multiway split pots.
+    """
+    if type(trials) is not int or not 200 <= trials <= 20000:
+        raise ValueError("Симуляций для range equity: 200–20000")
+    hero_range=WeightedRange(hero_weights)
+    if not 1 <= len(opponents) <= 5:
+        raise ValueError("Нужны 1–5 диапазонов соперников")
+    rng=random.Random(seed)
+    payoff=0.0
+    accepted=0
+    attempts=0
+    budget=max(3000,trials*300)
+    while accepted<trials and attempts<budget:
+        attempts+=1
+        hole=hero_range.sample(rng)
+        used=set(hole)
+        enemies=[]
+        for opponent in opponents:
+            cards=opponent.sample(rng)
+            if cards[0] in used or cards[1] in used:
+                break
+            used.update(cards)
+            enemies.append(cards)
+        if len(enemies)!=len(opponents):
+            continue
+        board=rng.sample([c for c in ALL_CARDS if c not in used],5)
+        scores=[score_seven((*hole,*board)),*(score_seven((*x,*board)) for x in enemies)]
+        top=max(scores)
+        if scores[0]==top:
+            payoff+=1/sum(s==top for s in scores)
+        accepted+=1
+    if accepted<trials:
+        raise ValueError(f"Несовместимые диапазоны при совместном выставлении: {accepted}/{trials} допустимых раздач")
+    return {"equity_pct":round(100*payoff/accepted,2),
+            "trials":accepted,"method":"joint_range_multiway_MC_V1",
+            "note":"Monte Carlo: совместное распределение без конфликтующих карт; доля банка при равенстве делится между победителями."}
+
+
 def config_hash(opponents,model,trials):
     raw=json.dumps({"model":model,"opponents":opponents,"trials":trials,
                     "engine":"SKACHKOV_MULTIWAY_MC_V1"},
