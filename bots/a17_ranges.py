@@ -26,8 +26,7 @@ A17_BOX_HANDS = {
     17: "Q8o Q7o J7o Q6o J6o T6o Q5o J5o T5o 95o Q4o J4o T4o 94o 84o Q3o J3o T3o 93o 83o 73o 63o 53o 43o Q2o J2o T2o 92o 82o 72o 62o 52o 42o 32o",
 }
 
-A17_MAX_OPEN_BOX_9MAX = {
-    "9": 9,   # UTG
+# The numeric rank stays the same as table size shrinks.\n# In 6-max, rank "6" is UTG but still has its originally approved A01-A10.\nA17_MAX_OPEN_BOX_BY_POSITION = {\n    "9": 9,   # UTG
     "8": 9,   # UTG+1
     "7": 9,   # MP
     "6": 10,  # LJ
@@ -39,7 +38,7 @@ A17_MAX_OPEN_BOX_9MAX = {
 
 # Applies at every tournament stage, including heads-up.
 # A01-A16: raise whenever legal; A17: call/complete/check.
-A17_SB_MAX_RAISE_BOX = 16
+A17_SB_MAX_RAISE_BOX = 16\n\n# Compatibility for existing reports/tests referring to the 9-max template.\nA17_MAX_OPEN_BOX_9MAX = A17_MAX_OPEN_BOX_BY_POSITION
 
 
 def _hand_to_box():
