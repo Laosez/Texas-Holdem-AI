@@ -753,7 +753,13 @@ $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
 $('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
 $('resetHand').onclick=()=>{if(!hero)return;snapshotUndo();delete hero.hands[selected];invalidateEquity();noteDirty();paintEditor()};
-$('undo').onclick=()=>{const prev=undos.pop();if(!prev)return;hero.hands=prev.hands;hero.boxes=prev.boxes;hero.box_order=prev.box_order||boxOrder();invalidateEquity();noteDirty();paintEditor();$('undo').disabled=!undos.length};
+$('undo').onclick=()=>{
+ const prev=undos.pop();if(!prev)return;
+ const actionsChanged=JSON.stringify(hero.hands)!==JSON.stringify(prev.hands);
+ hero.hands=prev.hands;hero.boxes=prev.boxes;hero.box_order=prev.box_order||boxOrder();
+ if(actionsChanged){invalidateEquity();noteDirty()}else markBoxDirty();
+ $('undo').disabled=!undos.length;
+};
 $('save').onclick=()=>savePlan(false);$('saveCopy').onclick=()=>savePlan(true);
 $('delete').onclick=async()=>{
  if(!hero||hero.readonly||!confirm('Переместить все версии '+hero.name+' в корзину?'))return;
