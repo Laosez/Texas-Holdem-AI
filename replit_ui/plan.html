@@ -109,7 +109,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <span class="small" id="allInStatus" style="max-width:740px">Равные вклады всех участников; без побочных банков. Эффективный стек берётся из блока 01.</span>
 </div>
 <div class="metricLegend"><div class="swatch" id="metricLegendSwatch"></div><span id="metricLegendText">Градиент зависит от показателя в ячейке.</span></div>
-<div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>17 коробок A17</strong><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div><div id="boxes" class="boxList"></div><p class="boxInstructions">Стрелка раскрывает список рук. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. За значок ⠿ можно менять расположение коробок. Номер A01–A17 выделяет диапазон на матрице. Удаление из коробки не удаляет руку из стратегии.</p>
+<div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>A17 · редактор 17 коробок</strong><div class="buttons"><button class="btn sm ghost" id="expandAllBoxes">Показать все руки</button><button class="btn sm ghost" id="collapseAllBoxes">Свернуть списки</button><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div></div><div id="boxes" class="boxList"></div><p class="boxInstructions">Стрелка раскрывает список рук. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. За значок ⠿ можно менять расположение коробок. Номер A01–A17 выделяет диапазон на матрице. Удаление из коробки не удаляет руку из стратегии.</p>
 </div>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
@@ -749,6 +749,8 @@ $('cellMetric').onchange=drawMatrices;
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices();drawBoxes()};
+$('expandAllBoxes').onclick=()=>{expandedBoxes=new Set(Array.from({length:18},(_,i)=>i));drawBoxes()};
+$('collapseAllBoxes').onclick=()=>{expandedBoxes.clear();drawBoxes()};
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
 $('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
