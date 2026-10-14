@@ -317,7 +317,7 @@ async function connect(){
   renderPositions($('heroPosition'),'3');
   $('oppCount').value='3';opponents=Array.from({length:5},(_,i)=>({
    profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two','builtin:gto_heuristic'][i],
-   position:['9','4','BB','SB','5'][i],scenario:'rfi',players:9,selector:'active'}));
+   position:['9','4','6','SB','5'][i],scenario:'rfi',players:9,selector:'active'}));
   renderOpponents();$('viewOpponent').value='0';
   sessionStorage.setItem('skachkov_key',token());
   await loadHero();await loadVillain();
