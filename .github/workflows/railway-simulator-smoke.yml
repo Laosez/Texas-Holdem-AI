@@ -36,3 +36,18 @@ jobs:
             --seat-mode rotate --out output/railway_smoke
           test -f output/railway_smoke/tournament_report.json
           test -f output/railway_smoke/by_hand_position_169_all.csv
+      - name: Full 169-hand multiway equity smoke
+        run: |
+          python - <<'PY'
+          import time
+          from planner_equity import calculate_matrix
+          rows = [
+              {"profile":"builtin:any_two","position":p,"scenario":"rfi","players":9,"selector":"active"}
+              for p in ("9","4","BB","SB","3")
+          ]
+          started=time.perf_counter()
+          result=calculate_matrix(rows,model="selected",trials=50)
+          assert len(result["equity"])==169
+          assert all(0<=v<=100 for v in result["equity"].values())
+          print(f"169 hands x 5 opponents x 50 runouts: {time.perf_counter()-started:.2f}s")
+          PY
