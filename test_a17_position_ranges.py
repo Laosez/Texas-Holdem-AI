@@ -156,14 +156,14 @@ class A17PositionRangesTests(unittest.TestCase):
         bot = create_bot("a17_tag")
         control = create_bot("gto_fixed")
         open_raise = ({"street": "preflop", "pid": "P1", "type": "raise"},)
-        later_fourbet = (
-            {"street": "preflop", "pid": "P2", "type": "raise"},
-            {"street": "preflop", "pid": "P1", "type": "raise"},
-            {"street": "preflop", "pid": "P3", "type": "raise"},
-        )
         # The A17 SB A01-A16 rule applies only without a prior raise.
         # An opponent open (or 4-bet) is not a reason to 3-/5-bet J8o.
         for n in range(2, 10):
+            later_fourbet = (
+                {"street": "preflop", "pid": "P1", "type": "raise"},
+                {"street": "preflop", "pid": f"P{n}", "type": "raise"},
+                {"street": "preflop", "pid": "P1", "type": "raise"},
+            )
             for history in (open_raise, later_fourbet):
                 for hand in ("AA", "K9s", "J8o", "72o"):
                     with self.subTest(n=n, hand=hand, raises=len(history)):
