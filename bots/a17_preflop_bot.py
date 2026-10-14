@@ -1,7 +1,8 @@
 """A17 positional opening policy across 2-9 seated players.
 
 The user-approved numeric-position thresholds are stable across the
-elimination stages: '6' always has A01-A10, '3' always has A01-A15.
+elimination stages: '6' always opens A01-A10, '5' and '4' A01-A11,
+and '3' A01-A12 plus the non-contiguous A15 (not A13/A14).
 For 9-max, '9' is UTG; at 6-max, '6' is UTG and still opens A01-A10.
 
 The first response when facing exactly a three-bet takes precedence
@@ -20,6 +21,7 @@ import random
 from bots.a17_ranges import (
     A17_HAND_TO_BOX,
     A17_MAX_OPEN_BOX_BY_POSITION,
+    A17_RFI_EXTRA_BOXES_BY_POSITION,
     A17_SB_MAX_RAISE_BOX,
     A17_VS_3BET_CONTINUE_BOXES,
     A17_VS_3BET_FOURBET_FREQ,
@@ -97,6 +99,7 @@ class A17PreflopBot(FixedGTOPreflopBot):
         if entered:
             return super()._preflop(hole, position, pot, to_call, legal, state)
 
-        if box <= A17_MAX_OPEN_BOX_BY_POSITION[pos]:
+        if (box <= A17_MAX_OPEN_BOX_BY_POSITION[pos]
+                or box in A17_RFI_EXTRA_BOXES_BY_POSITION.get(pos, ())):
             return self._do_raise(legal, pot, sizing_frac=0.70)
         return self._do_fold_or_check(legal, to_call)
