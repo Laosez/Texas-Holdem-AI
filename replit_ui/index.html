@@ -100,7 +100,7 @@ function present(s){
  $('runStatus').textContent=({running:'Выполняется',starting:'Запускается',completed:'Завершена',imported:'Загружена',failed:'Ошибка',cancelled:'Остановлена',interrupted:'Прервана'})[s.status]||s.status;
  $('runStatus').className='badge'+(['completed','imported'].includes(s.status)?' ok':['failed','interrupted'].includes(s.status)?' fail':'');
  working=sessions.some(j=>['running','starting'].includes(j.status))||active;valid();
- $('stop').disabled=!active;$('resume').disabled=!['failed','cancelled','interrupted'].includes(s.status)||working;$('download').disabled=active;$('remove').disabled=active;$('restore').disabled=!s.config?.bots;
+ $('stop').disabled=!active;$('resume').disabled=!['failed','cancelled','interrupted'].includes(s.status)||working;$('download').disabled=active;$('remove').disabled=active;$('restore').disabled=!(s.config?.bots?.length||s.config?.players?.length);
  const report=s.report||{},prog=s.progress||{},total=prog.total||report.tournaments_requested||s.config?.tournaments||0;
  const done=prog.done??report.tournaments_completed??0;
  $('completed').textContent=report.tournaments_completed==null?done+'/'+(total||'—'):report.tournaments_completed+'/'+report.tournaments_requested;
@@ -163,7 +163,24 @@ $('sessionSelect').onchange=async()=>{
  try{present(await get('/api/runs/'+id))}catch(e){feedback(e.message,true)}
 };
 $('refresh').onclick=()=>refresh().catch(e=>feedback(e.message,true));
-$('restore').onclick=()=>{const c=selected?.config;if(!c?.bots){feedback('В этой сессии отсутствуют данные по отдельным стратегиям',true);return}bots=c.bots.map(b=>({pre:b.pre||'',post:b.post||''}));for(const id of [...numeric,'seat_mode'])if(c[id]!==undefined)$(id).value=c[id];drawBots();scrollTo({top:0,behavior:'smooth'});feedback('Параметры скопированы в редактор.')};
+function oldProfileToStreets(original){
+ const p=String(original||'').replace(/^P[0-9]+=/,'');
+ if(p==='a17_tag'||p==='a17_tag_legacy')return {pre:'a17_preflop_legacy',post:'tag_punisher'};
+ const parts=p.split(':');
+ if(parts.length===3&&parts[0]==='split')return {pre:parts[1],post:parts[2]};
+ if(values.includes(p))return {pre:p,post:p};
+ return {pre:'',post:''};
+}
+$('restore').onclick=()=>{
+ const c=selected?.config;
+ if(!c)return;
+ const extracted=(c.bots?.length?c.bots:c.players?.map(oldProfileToStreets))||[];
+ if(extracted.length<2||extracted.length>9){feedback('Состав ботов невозможно восстановить',true);return}
+ bots=extracted.map(b=>({pre:b.pre||'',post:b.post||''}));
+ for(const id of [...numeric,'seat_mode'])if(c[id]!==undefined)$(id).value=c[id];
+ drawBots();scrollTo({top:0,behavior:'smooth'});
+ feedback('Параметры скопированы. Старый a17_tag преобразован в A17 Legacy; новая серия не запущена.');
+};
 $('download').onclick=async()=>{if(!selected)return;try{feedback('Готовлю ZIP...');const response=await api('/api/runs/'+selected.id+'/download');const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SKACHKOV_'+selected.id+'.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),9000);feedback('ZIP сессии скачан.')}catch(e){feedback(e.message,true)}};
 $('upload').onclick=()=>$('file').click();
 $('file').onchange=async()=>{const file=$('file').files?.[0];if(!file)return;try{if(file.size>256*1024*1024)throw Error('Архив больше 256 МБ');const s=await get('/api/runs/import',{method:'POST',body:file});selected=s;await refresh();feedback('ZIP сессии импортирован')}catch(e){feedback(e.message,true)}finally{$('file').value=''}};
