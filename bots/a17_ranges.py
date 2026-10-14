@@ -1,4 +1,4 @@
-"""A17 hand-to-box mapping copied from the user's A17 edited JSON.
+"""Canonical A17 V5 ranges from strategy_catalog/a17_v5.json."""
 
 from __future__ import annotations
 import json
