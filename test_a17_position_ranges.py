@@ -6,7 +6,8 @@ from unittest.mock import patch
 from bots import create_bot
 from bots.a17_preflop_bot import A17PreflopBot
 from bots.a17_ranges import (
-    A17_HAND_TO_BOX, A17_MAX_OPEN_BOX_9MAX, A17_SB_MAX_RAISE_BOX,
+    A17_HAND_TO_BOX, A17_MAX_OPEN_BOX_9MAX,
+    A17_MAX_OPEN_BOX_BY_POSITION, A17_SB_MAX_RAISE_BOX,
 )
 
 
@@ -73,6 +74,7 @@ class A17PositionRangesTests(unittest.TestCase):
 
     def test_sb_raises_a01_a16_and_calls_a17_at_every_stage(self):
         bot = create_bot("a17_tag")
+        self.assertIs(A17_MAX_OPEN_BOX_9MAX, A17_MAX_OPEN_BOX_BY_POSITION)
         self.assertEqual(A17_SB_MAX_RAISE_BOX, 16)
         nraise = sum(
             6 if len(hand) == 2 else 4 if hand.endswith("s") else 12
