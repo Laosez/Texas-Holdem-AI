@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent
 UI = ROOT / "replit_ui" / "index.html"
-OUT = ROOT / "output" / "replit_runs"
+OUT = Path(os.environ.get("POKER_DATA_DIR", str(ROOT / "output" / "replit_runs"))).resolve()
 PORT = int(os.environ.get("PORT", "3000"))
 TOKEN = os.environ.get("POKER_RUNNER_KEY", "").strip()
 MAX_BODY = 16_384
@@ -275,7 +275,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(html)
             return
         if path == "/health":
-            self.reply(200, {"ok": True, "engine": "legacy", "configured": bool(TOKEN)})
+            self.reply(200 if TOKEN else 503, {"ok": bool(TOKEN), "engine": "legacy", "configured": bool(TOKEN)})
             return
         if not self.allowed():
             return
