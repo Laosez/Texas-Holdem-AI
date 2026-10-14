@@ -140,6 +140,57 @@ class ReliabilityTests(unittest.TestCase):
                 app.RUNS.clear()
                 app.RUNS.update(old)
 
+    def test_full_backup_and_collision_free_restore(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(app, "OUT", Path(td)):
+            id_ = "20261014_full"
+            folder = Path(td) / id_
+            folder.mkdir()
+            config = app.validate_config({"bots": [
+                {"pre": "gto", "post": "gto"}, {"pre": "gto", "post": "gto"}]})
+            job = {"id": id_, "status": "completed", "created": app.now(),
+                   "updated": app.now(), "config": config, "returncode": 0,
+                   "report": {"leaderboard": []}, "log": ["done"],
+                   "progress": {"done": 2, "total": 2},
+                   "strategy_fingerprint": app.strategy_fingerprint()}
+            (folder / "simulation.log").write_text("done\\n")
+            app.RUNS[id_] = job
+            before = set(app.RUNS)
+            try:
+                app.persist(job)
+                app.write_integrity_manifest(folder)
+                with tempfile.TemporaryFile() as archive:
+                    data = app.write_full_backup(archive)
+                    self.assertIn(id_, data["runs"])
+                    archive.seek(0)
+                    contents = zipfile.ZipFile(archive)
+                    self.assertIn("runs/" + id_ + "/job.json", contents.namelist())
+                    with tempfile.NamedTemporaryFile(suffix=".zip") as copy:
+                        archive.seek(0)
+                        copy.write(archive.read())
+                        copy.flush()
+                        result = app.import_full_backup(copy.name)
+                self.assertEqual(result["restored_count"], 1)
+                restored = result["ids"][0]
+                self.assertNotEqual(restored, id_)
+                self.assertIn(restored, app.RUNS)
+                self.assertTrue((Path(td) / id_ / "job.json").exists())
+                self.assertTrue((Path(td) / restored / "integrity.json").exists())
+            finally:
+                for k in list(app.RUNS):
+                    if k not in before:
+                        app.RUNS.pop(k, None)
+                app.RUNS.pop(id_, None)
+
+    def test_full_backup_path_traversal_rejected(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(app, "OUT", Path(td)):
+            with tempfile.NamedTemporaryFile(suffix=".zip") as dest:
+                with zipfile.ZipFile(dest.name, "w") as archive:
+                    archive.writestr("backup_manifest.json",
+                                     json.dumps({"format": "SKACHKOV_FULL_BACKUP_V1"}))
+                    archive.writestr("runs/20261014_safe/../outside.json", "{}")
+                with self.assertRaisesRegex(ValueError, "Недопустимый путь"):
+                    app.import_full_backup(dest.name)
+
     def test_old_unversioned_run_cannot_resume(self):
         run_id = "20261014_unversioned"
         app.RUNS[run_id] = {"id": run_id, "status": "failed", "config": {"players": ["a17_tag", "gto"]}}
