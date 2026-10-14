@@ -92,11 +92,15 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="fields" style="margin-top:12px"><div class="field wide"><div class="right" style="justify-content:space-between"><label for="equityMin">Золотая пунктирная рамка: equity не ниже</label><strong id="minLabel">40%</strong></div><input id="equityMin" type="range" min="0" max="100" step="1" value="40"></div></div>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 </section>
-<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие · цвет</option></select></div></div>
+<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие · цвет</option></select></div></div>
 <div class="metricControls hidden" id="evControls">
 <div class="field"><label for="evPot">Банк перед коллом, BB</label><input id="evPot" type="number" min="0" step="0.5" value="10"></div>
 <div class="field"><label for="evCost">Цена колла, BB</label><input id="evCost" type="number" min="0.1" step="0.5" value="5"></div>
 <span class="small" style="max-width:670px">Модель: все выбранные соперники уже all-in, без побочных банков и будущих ставок. Установлены примерные 10 / 5 BB — замените значениями вашей раздачи. EV сравнивается с Fold = 0.</span>
+</div>
+<div class="metricControls hidden" id="allInControls">
+<div class="field"><label for="allInDead">Дополнительные мёртвые деньги, BB</label><input id="allInDead" type="number" min="0" step="0.5" value="0"></div>
+<span class="small" id="allInStatus" style="max-width:740px">Равные вклады всех участников; без побочных банков. Эффективный стек берётся из блока 01.</span>
 </div>
 <div class="metricLegend"><div class="swatch" id="metricLegendSwatch"></div><span id="metricLegendText">Градиент зависит от показателя в ячейке.</span></div>
 <div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>17 коробок A17</strong><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div><div id="boxes" class="boxList"></div><p class="note">Под названием каждой коробки показывается доля её комбинаций, проходящих порог equity (не доля всего equity-диапазона). Клик — выбрать или снять коробку, фиолетовый маркер слева отмечает её руки на матрице. Процент под номером — доля комбинаций коробки выше equity-порога. Перетащите руку в коробку для переноса.</p>
@@ -234,6 +238,17 @@ function modelCallEv(equityPct,potBB,callBB){
  // Everyone is all-in, no side pots, no future betting, fold EV = 0.
  return (equityPct/100)*(potBB+callBB)-callBB;
 }
+function modelAllInEv(equityPct,stackBB,deadBB,opponentCount){
+ if(!Number.isFinite(equityPct)||equityPct<0||equityPct>100||
+    !Number.isFinite(stackBB)||stackBB<=0||
+    !Number.isFinite(deadBB)||deadBB<0||
+    !Number.isInteger(opponentCount)||opponentCount<1||opponentCount>5)return null;
+ // Full effective stacks, equal contributions by every participant, no side pots.
+ // ChipEV from BEFORE investment. Existing blinds are not counted twice:
+ // deadBB must be independent of each player's equal stake.
+ const finalPot=(opponentCount+1)*stackBB+deadBB;
+ return (equityPct/100)*finalPot-stackBB;
+}
 function metricGradient(metric,value,box,action){
  if(metric==='box'){
   if(!Number.isInteger(Number(box))||Number(box)<1||Number(box)>17)return null;
@@ -246,6 +261,15 @@ function metricGradient(metric,value,box,action){
   return hue===undefined?null:[`hsl(${hue} 59% 40%)`,`hsl(${hue} 52% 19%)`];
  }
  if(!Number.isFinite(value))return null;
+ if(metric==='evAllIn'){
+  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
+  if(!(stack>0)||!Number.isFinite(dead)||dead<0||!n)return null;
+  const maxLoss=stack,maxWin=n*stack+dead;
+  const magnitude=Math.min(1,Math.abs(value)/(value<0?maxLoss:(maxWin||1)));
+  const hue=Math.abs(value)<0.005?218:value>0?156:2;
+  return [`hsl(${hue} ${Math.round(22+53*magnitude)}% ${Math.round(24+15*magnitude)}%)`,
+          `hsl(${hue} ${Math.round(24+43*magnitude)}% ${Math.round(12+7*magnitude)}%)`];
+ }
  if(metric==='evCall'||metric==='delta'){
   const magnitude=metric==='delta'?Math.min(1,Math.abs(value)/100):
     Math.min(1,Math.abs(value)/(value<0?Number($('evCost').value)||1:Number($('evPot').value)||1));
@@ -260,8 +284,17 @@ function metricGradient(metric,value,box,action){
          `hsl(${hue} 61% ${Math.round(16+5*proportion)}%)`];
 }
 function setMetricLegend(){
- const metric=$('cellMetric').value,ev=metric==='evCall';
+ const metric=$('cellMetric').value,ev=metric==='evCall',allIn=metric==='evAllIn';
  $('evControls').classList.toggle('hidden',!ev);
+ $('allInControls').classList.toggle('hidden',!allIn);
+ if(allIn){
+  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
+  const valid=Number.isFinite(stack)&&stack>0&&Number.isFinite(dead)&&dead>=0&&n>0;
+  const pot=valid?(n+1)*stack+dead:NaN;
+  $('allInStatus').textContent=valid?
+   `${n+1} участника · каждый выставляет ${stack} BB · дополнительные мёртвые деньги ${dead} BB · итоговый банк ${pot.toFixed(1)} BB · безубыточность ${(100*stack/pot).toFixed(1)}% equity. Берём Multiway Equity выбранных соперников, без побочных банков / fold equity / ICM.`:
+   'Укажите положительный эффективный стек в блоке 01 и неотрицательные мёртвые деньги. Данные некорректны.';
+ }
  const settings={
   equity:['Equity: 0% → 100%, красный → зелёный. Без Monte Carlo нет значения.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
   participation:['Частота участия: 0% → 100%. Синяя рамка только при участии больше 0%.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
@@ -270,6 +303,7 @@ function setMetricLegend(){
   combos:['Комбинации: 4 → 6 → 12.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
   delta:['Δ участия: красный — меньше, нейтральный — равно, зелёный — больше.','linear-gradient(90deg,#873544,#414e64,#277d6b)'],
   evCall:['chipEV колла в BB (относительно Fold = 0): красный — убыток, зелёный — прибыль. Только для нашей матрицы.','linear-gradient(90deg,#873544,#414e64,#277d6b)'],
+  evAllIn:['All-in chipEV в BB: все соперники выставились на равные стеки; красный — EV < 0, зелёный — EV > 0. Рассчитывается по фактическому Multiway Equity выбранных соперников.','linear-gradient(90deg,#873544,#414e64,#277d6b)'],
   action:['Основное назначенное действие: разные цвета, не шкала силы.','linear-gradient(90deg,#375b9c,#39866f,#a26a4f,#9a426e)']
  };
  $('metricLegendText').textContent=settings[metric]?.[0]||'';
@@ -286,6 +320,8 @@ function matrix(root,doc){
  if(!doc){root.textContent='Выберите стратегию';return}
  const eq=equityResults.filter?.equity||{},min=Number($('equityMin').value),metric=$('cellMetric').value;
  const pot=Number($('evPot').value),cost=Number($('evCost').value);
+ const allInEquity=equityResults.actual?.equity||null;
+ const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
  for(const h of HANDS){
   const actions=doc.hands[h],action=major(actions),b=doc.boxes[h],button=el('button','hand '+action,h);
   button.type='button';button.title=handTooltip(h,doc);
@@ -318,6 +354,11 @@ function matrix(root,doc){
   }else if(metric==='evCall'){
    // Only HERO's hypothetical all-in call, never the opponent's own EV.
    value=doc===hero&&equity!==null?modelCallEv(equity,pot,cost):null;
+   displayed=value===null?'—':(value>0?'+':'')+value.toFixed(2)+' BB';
+  }else if(metric==='evAllIn'){
+   // Ignore the display-only equity model: all-in uses SELECTED villains only.
+   const actual=allInEquity?.[h];
+   value=doc===hero&&Number.isFinite(actual)?modelAllInEv(actual,stack,dead,n):null;
    displayed=value===null?'—':(value>0?'+':'')+value.toFixed(2)+' BB';
   }else if(metric==='action'){
    displayed=action==='none'?'—':ACTIONS[action]||action;
@@ -632,13 +673,14 @@ async function connect(){
 $('connect').onclick=connect;
 $('heroProfile').onchange=loadHero;
 $('heroPosition').onchange=loadHero;$('heroScenario').onchange=loadHero;$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero()};
-$('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty()}};
+$('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
 $('oppCount').onchange=updateOppCount;
 $('viewOpponent').onchange=loadVillain;
 $('matrixMode').onchange=drawMatrices;
 $('cellMetric').onchange=drawMatrices;
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
+$('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices();drawBoxes()};
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
