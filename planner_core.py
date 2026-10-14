@@ -283,8 +283,9 @@ def compare_docs(hero, villain):
     union = sum(COMBOS[h]*max(a.get(h, 0), b.get(h, 0)) for h in HANDS)
     hero_mass = sum(COMBOS[h]*a.get(h, 0) for h in HANDS)
     villain_mass = sum(COMBOS[h]*b.get(h, 0) for h in HANDS)
-    differing = sum(COMBOS[h] for h in HANDS if hero["hands"].get(h) != villain["hands"].get(h))
-                    if h in hero["hands"] and h in villain["hands"])
+    differing = sum(COMBOS[h] for h in HANDS
+                    if h in hero["hands"] and h in villain["hands"]
+                    and hero["hands"][h] != villain["hands"][h])
     return {"overlap_pct": round(100*overlap/union, 2) if union else None,
             "hero_pct": round(100*hero_mass/1326, 2),
             "villain_pct": round(100*villain_mass/1326, 2),
