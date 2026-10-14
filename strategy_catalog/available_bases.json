@@ -1,0 +1,33 @@
+{
+  "format": "SKACHKOV_STRATEGY_CATALOG_V1",
+  "required_streets": [
+    "pre",
+    "post"
+  ],
+  "bases": [
+    "gto",
+    "gto_fixed",
+    "a17_preflop",
+    "a17_preflop_legacy",
+    "smart",
+    "tag_punisher",
+    "wide_defender",
+    "baseline_sane",
+    "nit",
+    "loose_passive",
+    "maniac",
+    "maniac_mixed",
+    "pressure_filler",
+    "random",
+    "random_2",
+    "random_3",
+    "random_4",
+    "random_5",
+    "random_6",
+    "random_7",
+    "random_8",
+    "random_9",
+    "random_10"
+  ],
+  "notes": "Available split strategy parts; bot factory and web validator load same source."
+}
