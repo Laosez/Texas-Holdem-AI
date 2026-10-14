@@ -73,7 +73,7 @@ class PlanHttpTests(unittest.TestCase):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn(".hand.equityHit::after", page)
         self.assertIn("border:2px dashed #efbf55", page)
-        self.assertIn("if(hit)button.classList.add('equityHit')", page)
+        self.assertIn("if(hasEq&&equity>=min)button.classList.add('equityHit')", page)
         self.assertNotIn("if(hasEq&&eq[h]<min)button.classList.add('dim')", page)
         self.assertIn("function renderComparisonGrid(", page)
         self.assertIn("function assignedParticipation(", page)
@@ -96,7 +96,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("button.append(tag)", page)
         self.assertIn("const tag=el('span','handBoxTag'", page)
         self.assertIn(".hand.played{border:2px solid #70b7ff", page)
-        # Action background shorthands must not erase the played-range gradient.
+        # Played-range styling remains later than action backgrounds; it is only a border.
         self.assertGreater(page.index(".hand.played{"), page.index(".hand.push{background:"))
         self.assertIn(".hand.boxhit::before", page)
         self.assertIn(".hand.equityHit::after", page)
