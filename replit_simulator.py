@@ -6,6 +6,7 @@ Python standard library only; uses legacy engine for experiment parity.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import os
@@ -18,6 +19,7 @@ import subprocess
 import sys
 import threading
 import time
+import tempfile
 import zipfile
 from collections import deque
 from datetime import datetime, timezone
@@ -33,7 +35,10 @@ TOKEN = os.environ.get("POKER_RUNNER_KEY", "").strip()
 MAX_BODY = 32_768
 MAX_ZIP_BODY = 32 * 1024 * 1024
 MAX_ZIP_UNPACKED = 120 * 1024 * 1024
-MAX_LOG_LINES = 80
+MAX_LOG_LINES = 200
+MAX_ZIP_BODY = 256 * 1024 * 1024
+MAX_ZIP_UNPACKED = 400 * 1024 * 1024
+MAX_ARCHIVE_FILES = 5000
 RUNS: dict[str, dict] = {}
 MUTEX = threading.RLock()
 
@@ -50,7 +55,7 @@ DEFAULT_PLAYERS = [
 ]
 # Exact registry-approved profiles. No shell, path, script, or arbitrary Python input.
 BASE_BOTS = {
-    "smart", "gto", "gto_fixed", "a17_preflop", "a17_tag",
+    "smart", "gto", "gto_fixed", "a17_preflop", "a17_preflop_legacy", "a17_tag", "a17_tag_legacy",
     "tag_punisher", "baseline_sane", "pressure_filler",
     "wide_defender", "nit", "loose_passive", "maniac",
     "maniac_mixed", "random", "random_2", "random_3",
@@ -58,6 +63,7 @@ BASE_BOTS = {
 SPLIT_PARTS = BASE_BOTS - {"a17_tag", "random_2", "random_3"}
 SPLIT_PARTS.update({"random_2", "random_3"})
 SPLIT_PARTS.discard("a17_tag")
+SPLIT_PARTS.discard("a17_tag_legacy")
 
 # Each of the nine player seats has a separately editable preflop/postflop policy.
 # Blank means INCOMPLETE, never automatic inheritance.
@@ -77,6 +83,28 @@ PROGRESS_RE = re.compile(
 )
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9_]{5,64}$")
 ARCHIVE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,120}$")
+CHECKPOINT_RE = re.compile(r"^_checkpoints/(?:config\.json|[0-9]{6}\.json\.gz)$")
+
+def strategy_fingerprint():
+    # Binds experiment to implementation, including future policy modules.
+    paths = sorted((ROOT / "bots").glob("*.py")) + sorted((ROOT / "core").glob("*.py"))
+    paths += [ROOT / "export_preflop_ranges_v4.py",
+              ROOT / "run_tournament_stats.py", ROOT / "strategy_catalog" / "a17_v5.json"]
+    digest = hashlib.sha256()
+    for path in paths:
+        if path.is_file():
+            digest.update(str(path.relative_to(ROOT)).encode())
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
+def strategy_catalog():
+    import bots.street_split_bot as split
+    from bots.a17_ranges import CATALOG_ID
+    options = sorted(split.EXPERIMENT_BASES)
+    return {"strategies": options, "a17_version": CATALOG_ID,
+            "code_fingerprint": strategy_fingerprint(), "workers_max": 1 if os.environ.get("RAILWAY_PROJECT_ID") else 4,
+            "required_streets": ["pre", "post"]}
+
 
 
 
@@ -144,7 +172,7 @@ def validate_config(data: dict) -> dict:
     seat_mode = data.get("seat_mode", "rotate")
     if seat_mode not in ("rotate", "fixed"):
         raise ValueError("seat_mode: rotate или fixed")
-    return {
+    config = {
         "players": bots, "bots": rows,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
         "parallel": bounded_int(data.get("parallel", 1), "Потоки", 1, 4),
@@ -157,6 +185,9 @@ def validate_config(data: dict) -> dict:
         "max_hands": bounded_int(data.get("max_hands", 10000), "Лимит рук", 100, 100_000),
         "seat_mode": seat_mode,
     }
+    if os.environ.get("RAILWAY_PROJECT_ID") and config["parallel"] > 1:
+        raise ValueError("Railway с текущими ресурсами: максимум 1 процесс. Ранее параллельный запуск приводил к BrokenProcessPool.")
+    return config
 
 
 def now() -> str:
@@ -172,6 +203,7 @@ def snapshot(job: dict) -> dict:
         "progress": job.get("progress"),
         "stats": job.get("stats"),
         "performance": job.get("performance"),
+        "strategy_fingerprint": job.get("strategy_fingerprint"),
     }
 
 
@@ -179,7 +211,9 @@ def persist(job: dict) -> None:
     p = OUT / job["id"] / "job.json"
     data = snapshot(job)
     data.pop("log", None)
-    p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary = p.with_suffix(".tmp")
+    temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temporary, p)
 
 
 def _read_rows(file: Path) -> list[dict]:
@@ -239,11 +273,13 @@ def worker(job: dict) -> None:
         "--max-hands", str(config["max_hands"]),
         "--seat-mode", config["seat_mode"],
         "--out", str(output),
+        "--checkpoint-dir", str(output / "_checkpoints"),
     ]
     log_path = output / "simulation.log"
     try:
         env = dict(os.environ, THAI_ENGINE_IMPL="legacy", PYTHONUNBUFFERED="1")
-        with log_path.open("w", encoding="utf-8") as log:
+        with log_path.open("a", encoding="utf-8") as log:
+            log.write("\n[runner] Start or resume at " + now() + "\n")
             proc = subprocess.Popen(
                 cmd, cwd=ROOT, env=env, stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, text=True, bufsize=1,
@@ -266,6 +302,8 @@ def worker(job: dict) -> None:
                             "tpm": float(match.group(3)), "hps": float(match.group(4))
                         }
                     job["updated"] = now()
+                    if match:
+                        persist(job)
             exit_code = proc.wait()
         report_file = output / "tournament_report.json"
         report = json.loads(report_file.read_text(encoding="utf-8")) if report_file.exists() else None
@@ -305,7 +343,7 @@ def start_run(config: dict) -> dict:
             "id": run_id, "status": "starting", "created": now(), "updated": now(),
             "config": config, "returncode": None, "report": None,
             "progress": {"done": 0, "total": config["tournaments"], "tpm": None, "hps": None},
-            "stats": {}, "performance": None,
+            "stats": {}, "performance": None, "strategy_fingerprint": strategy_fingerprint(),
             "log": deque(maxlen=MAX_LOG_LINES),
         }
         RUNS[run_id] = job
@@ -313,6 +351,28 @@ def start_run(config: dict) -> dict:
         (OUT / run_id).mkdir(parents=True, exist_ok=True)
         persist(job)
         job["status"] = "running"
+        persist(job)
+    threading.Thread(target=worker, args=(job,), daemon=True).start()
+    return snapshot(job)
+
+
+def resume_run(run_id: str) -> dict:
+    with MUTEX:
+        job = RUNS.get(run_id)
+        if not job:
+            raise KeyError(run_id)
+        if job["status"] not in ("failed", "interrupted", "cancelled"):
+            raise RuntimeError("Возобновить можно только прерванную или неуспешную сессию")
+        if any(x["status"] in ("running", "starting") for x in RUNS.values()):
+            raise RuntimeError("Другая серия уже выполняется")
+        if not job["config"].get("players"):
+            raise ValueError("Старая сессия не содержит полного состава игроков")
+        if job.get("strategy_fingerprint") and job["strategy_fingerprint"] != strategy_fingerprint():
+            raise RuntimeError("Версия стратегий изменилась; старую сессию нельзя безопасно продолжить")
+        job["cancelled"] = False
+        job["status"] = "running"
+        job["returncode"] = None
+        job["updated"] = now()
         persist(job)
     threading.Thread(target=worker, args=(job,), daemon=True).start()
     return snapshot(job)
@@ -345,8 +405,27 @@ def delete_session(run_id: str) -> None:
         folder = OUT / run_id
         if not RUN_ID_RE.fullmatch(run_id) or not folder.is_dir():
             raise ValueError("Некорректная сессия")
-        shutil.rmtree(folder)
+        trash = OUT / ".trash"
+        trash.mkdir(exist_ok=True)
+        destination = trash / run_id
+        if destination.exists():
+            raise RuntimeError("В корзине уже есть сессия с таким ID")
+        os.replace(folder, destination)
         del RUNS[run_id]
+
+
+def restore_deleted(run_id: str) -> dict:
+    if not RUN_ID_RE.fullmatch(run_id):
+        raise ValueError("Некорректный ID")
+    with MUTEX:
+        directory = OUT / ".trash" / run_id
+        if not (directory / "job.json").is_file() or (OUT / run_id).exists():
+            raise KeyError(run_id)
+        os.replace(directory, OUT / run_id)
+        manifest = json.loads((OUT / run_id / "job.json").read_text(encoding="utf-8"))
+        manifest["log"] = deque(["Сессия восстановлена из корзины"], maxlen=MAX_LOG_LINES)
+        RUNS[run_id] = manifest
+        return snapshot(manifest)
 
 
 def import_session(raw: bytes) -> dict:
@@ -359,21 +438,22 @@ def import_session(raw: bytes) -> dict:
         raise ValueError("Некорректный ZIP") from None
     with archive:
         entries = archive.infolist()
-        if len(entries) > 140:
+        if len(entries) > MAX_ARCHIVE_FILES:
             raise ValueError("В архиве слишком много файлов")
         if sum(entry.file_size for entry in entries) > MAX_ZIP_UNPACKED:
             raise ValueError("Превышен допустимый размер данных")
         for entry in entries:
             name = entry.filename
-            if (not ARCHIVE_NAME_RE.fullmatch(name) or
-                    not name.endswith((".csv", ".json", ".log")) or
+            if (not (ARCHIVE_NAME_RE.fullmatch(name) or CHECKPOINT_RE.fullmatch(name)) or
+                    not (name.endswith((".csv", ".json", ".log", ".json.gz"))) or
                     entry.is_dir() or (entry.external_attr >> 16 & 0o170000) == 0o120000):
                 raise ValueError("В архиве есть недопустимый файл")
-        if "tournament_report.json" not in archive.namelist():
-            raise ValueError("В архиве нет tournament_report.json")
+        if "tournament_report.json" not in archive.namelist() and "session_manifest.json" not in archive.namelist():
+            raise ValueError("Нет отчёта или манифеста частичной сессии")
         try:
-            report = json.loads(archive.read("tournament_report.json"))
-            if not isinstance(report, dict) or not isinstance(report.get("leaderboard"), list):
+            report = (json.loads(archive.read("tournament_report.json"))
+                      if "tournament_report.json" in archive.namelist() else None)
+            if report is not None and (not isinstance(report, dict) or not isinstance(report.get("leaderboard"), list)):
                 raise ValueError("Неизвестный формат отчёта")
             manifest = (json.loads(archive.read("session_manifest.json"))
                         if "session_manifest.json" in archive.namelist() else {})
@@ -391,19 +471,26 @@ def import_session(raw: bytes) -> dict:
                 for entry in entries:
                     if entry.filename in ("job.json", "session_manifest.json"):
                         continue
-                    (folder / entry.filename).write_bytes(archive.read(entry))
+                    dest = folder / entry.filename
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    with archive.open(entry) as incoming, dest.open("wb") as outgoing:
+                        shutil.copyfileobj(incoming, outgoing, length=1024 * 1024)
                 config = manifest.get("config") or {}
                 if not isinstance(config, dict):
                     config = {}
                 job = {
-                    "id": run_id, "status": "imported", "created": now(), "updated": now(),
-                    "config": config, "returncode": 0, "report": report,
-                    "progress": {"done": report.get("tournaments_completed", 0),
-                                 "total": report.get("tournaments_requested", 0)},
+                    "id": run_id, "status": "imported" if report else "interrupted",
+                    "created": now(), "updated": now(),
+                    "config": config, "returncode": 0 if report else None, "report": report,
+                    "progress": {"done": (report or {}).get("tournaments_completed", 0),
+                                 "total": (report or {}).get("tournaments_requested", config.get("tournaments", 0))},
+                    "strategy_fingerprint": manifest.get("strategy_fingerprint"),
                     "stats": stats_for_folder(folder),
                     "performance": (json.loads((folder / "performance.json").read_text(encoding="utf-8"))
                                     if (folder / "performance.json").is_file() else None),
-                    "log": deque(["Сессия загружена из ZIP"], maxlen=MAX_LOG_LINES),
+                    "log": deque((folder / "simulation.log").read_text(encoding="utf-8", errors="replace").splitlines()[-MAX_LOG_LINES:]
+                                  if (folder / "simulation.log").is_file() else ["Сессия загружена из ZIP"],
+                                  maxlen=MAX_LOG_LINES),
                 }
                 persist(job)
                 RUNS[run_id] = job
@@ -418,12 +505,13 @@ def zip_results(job: dict) -> bytes:
     folder = OUT / job["id"]
     data = io.BytesIO()
     with zipfile.ZipFile(data, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
-        for path in sorted(folder.iterdir()):
+        for path in sorted(folder.rglob("*")):
             if path.is_file() and not path.is_symlink() and path.name not in ("job.json", "session_manifest.json"):
-                archive.write(path, arcname=path.name)
+                archive.write(path, arcname=str(path.relative_to(folder)))
         archive.writestr("session_manifest.json", json.dumps(
-            {"format": "SKACHKOV_SESSION_V1", "config": job.get("config", {}),
-             "created": job.get("created"), "source_id": job["id"]},
+            {"format": "SKACHKOV_SESSION_V2", "config": job.get("config", {}),
+             "created": job.get("created"), "source_id": job["id"],
+             "status": job.get("status"), "strategy_fingerprint": job.get("strategy_fingerprint")},
             ensure_ascii=False, indent=2))
     return data.getvalue()
 
@@ -470,10 +558,26 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not self.allowed():
             return
+        if path == "/api/catalog":
+            self.reply(200, strategy_catalog())
+            return
+        if path == "/api/trash":
+            trash = OUT / ".trash"
+            ids = sorted([p.name for p in trash.iterdir() if (p / "job.json").is_file()], reverse=True) if trash.exists() else []
+            self.reply(200, {"deleted": ids})
+            return
+        if path == "/api/integrity":
+            with MUTEX:
+                ids = sorted(RUNS)
+            files = {run_id: sorted(p.name for p in (OUT / run_id).iterdir() if p.is_file())
+                     for run_id in ids if (OUT / run_id).is_dir()}
+            self.reply(200, {"session_count": len(ids), "files": files,
+                             "volume_path": str(OUT), "strategy_fingerprint": strategy_fingerprint()})
+            return
         if path == "/api/runs":
             with MUTEX:
                 jobs = sorted(RUNS.values(), key=lambda x: x["created"], reverse=True)
-                data = [snapshot(j) for j in jobs[:40]]
+                data = [snapshot(j) for j in jobs]
             self.reply(200, {"runs": data})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/download", path)
@@ -553,6 +657,24 @@ class Handler(BaseHTTPRequestHandler):
             except RuntimeError as e:
                 self.reply(409, {"error": str(e)})
             return
+        match = re.fullmatch(r"/api/trash/([A-Za-z0-9_]+)/restore", path)
+        if match:
+            try:
+                self.reply(200, restore_deleted(match.group(1)))
+            except KeyError:
+                self.reply(404, {"error": "Не найдено в корзине"})
+            except (ValueError, RuntimeError) as e:
+                self.reply(409, {"error": str(e)})
+            return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/resume", path)
+        if match:
+            try:
+                self.reply(202, resume_run(match.group(1)))
+            except KeyError:
+                self.reply(404, {"error": "Сессия не найдена"})
+            except (ValueError, RuntimeError) as e:
+                self.reply(409, {"error": str(e)})
+            return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/cancel", path)
         if match:
             try:
@@ -565,7 +687,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def restore_history():
     OUT.mkdir(parents=True, exist_ok=True)
-    for manifest in sorted(OUT.glob("*/job.json"), reverse=True)[:40]:
+    for manifest in sorted(OUT.glob("*/job.json"), reverse=True):
         try:
             job = json.loads(manifest.read_text(encoding="utf-8"))
             if job["id"] != manifest.parent.name or not RUN_ID_RE.fullmatch(job["id"]):
@@ -577,6 +699,10 @@ def restore_history():
                     tail.extend(line.rstrip() for line in log)
             job["log"] = tail
             job["status"] = "interrupted" if job["status"] in ("starting", "running") else job["status"]
+            checkpoint_dir = manifest.parent / "_checkpoints"
+            if checkpoint_dir.is_dir() and job.get("progress"):
+                saved = len(list(checkpoint_dir.glob("*.json.gz")))
+                job["progress"]["done"] = max(job["progress"].get("done", 0), saved)
             if job.get("report") and not job.get("stats"):
                 job["stats"] = stats_for_folder(manifest.parent)
             perf = manifest.parent / "performance.json"
