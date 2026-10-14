@@ -54,7 +54,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="thirds"><div class="stat"><span>Overlap с выбранным соперником</span><strong id="compOverlap">—</strong><small>Взвешенный Jaccard, % комбинаций</small></div>
 <div class="stat"><span>Наш диапазон / контр-диапазон</span><strong id="compWidth">—</strong><small>Доля 1326 комбинаций</small></div>
 <div class="stat"><span>Различия действий</span><strong id="compDelta">—</strong><small>Комбинации с отличающимися частотами</small></div></div>
-<div class="thirds" style="margin-top:9px"><div class="stat"><span>Equity нашего диапазона vs все соперники</span><strong id="compEquity">—</strong><small>Weighted MC preflop showdown</small></div>
+<div class="thirds" style="margin-top:9px"><div class="stat"><span>Equity нашего диапазона vs все соперники</span><strong id="compEquity">—</strong><small>Совместная Monte Carlo-раздача диапазонов</small></div>
 <div class="stat"><span>Подтверждённые комбинации</span><strong id="compCombos">—</strong><small>Σ частот входа × реальных комбинаций</small></div>
 <div class="stat"><span>Расчёт vs все соперники</span><button class="btn sm" id="computeActual">Рассчитать</button><small id="actualState">Ожидание</small></div></div><p class="note">Equity при одновременном выставлении, без fold equity, ставок и ICM. Overlap сравнивается попарно с соперником, выбранным для второй матрицы.</p>
 </section>
@@ -74,7 +74,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0;
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null;
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -94,7 +94,7 @@ function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p
 function findSaved(profile){return meta.saved.find(x=>x.ref===profile)}
 function copy(x){return JSON.parse(JSON.stringify(x))}
 function preserveEdits(){return !dirty||confirm('Есть несохранённые изменения. Переключить контекст и отбросить их?')}
-function noteDirty(){dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';renderAll()}
+function noteDirty(){rangeEquityResult=null;dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';renderAll()}
 async function getSource(profile,position,scenario,players,stack_bb){
  return api('/api/plan/source?'+new URLSearchParams({profile,position,scenario,players,stack_bb}));
 }
@@ -117,7 +117,7 @@ async function loadHero(){
    $('heroScenario').value=stored.scenario;
   }
   const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
-  hero=doc;dirty=false;undos=[];setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
+  hero=doc;dirty=false;undos=[];rangeEquityResult=null;setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
  }catch(e){msg(e.message,true)}finally{loadingSource=false}
 }
 function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
@@ -141,7 +141,7 @@ function renderOpponents(){
 }
 function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
 function opponentsSelected(){return opponents.slice(0,Number($('oppCount').value)).map(o=>({...o}))}
-function invalidateEquity(){calcEpoch++;equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices()}
+function invalidateEquity(){calcEpoch++;equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -247,7 +247,7 @@ function pct(x){return x===null||x===undefined?'—':Number(x).toFixed(1)+'%'}
 function drawEquityStats(){
  const filter=equityResults.filter?.equity,actual=equityResults.actual?.equity,any=equityResults.any?.equity;
  $('handFilter').textContent=pct(filter?.[selected]);$('handActual').textContent=pct(actual?.[selected]);$('handAny').textContent=pct(any?.[selected]);
- $('compEquity').textContent=pct(rangeMean(actual));
+ $('compEquity').textContent=pct(rangeEquityResult?.equity_pct);
  const eq=equityResults.filter;
  $('equityStatus').textContent=eq?'Расчёт готов · '+eq.simulations_per_hand+' симуляций/руку · Monte Carlo (погрешность выборки)':'Расчёт не выполнен. Настройки соперников могут быть произвольными.';
  if(eq)$('equityFill').style.width='100%';
@@ -277,9 +277,23 @@ async function startCalculation(slot,model,people){
   if(slot==='any'&&model==='any_two'&&Number($('oppCount').value)===1&&$('equityModel').value==='any_two')equityResults.filter=job.result;
   $('actualState').textContent=equityResults.actual?'Готово · Monte Carlo':'Ожидание';
   drawMatrices();drawEquityStats();msg('Equity рассчитано для всех 169 рук'+(job.cached?' (из кэша)':'')+'.');
- }catch(e){msg('Equity: '+e.message,true);$('equityStatus').textContent='Ошибка расчёта: '+e.message}
+  return job.result;
+ }catch(e){msg('Equity: '+e.message,true);$('equityStatus').textContent='Ошибка расчёта: '+e.message;return null}
 }
 function currentPeople(){return opponentsSelected()}
+async function calculateRangeEquity(){
+ const revision=calcEpoch;
+ if(!hero)return;
+ try{
+  $('actualState').textContent='Оценка диапазона...';
+  const result=await post('/api/plan/range-equity',{hero,opponents:currentPeople(),trials:3000});
+  if(revision!==calcEpoch)return;
+  rangeEquityResult=result;
+  $('actualState').textContent='Готово · '+result.trials+' выставлений';
+  drawEquityStats();
+  msg('Showdown equity нашего диапазона: '+pct(result.equity_pct)+' против '+currentPeople().length+' соперников.');
+ }catch(e){$('actualState').textContent='Ошибка';msg('Equity диапазона: '+e.message,true)}
+}
 async function savePlan(forceNew=false){
  try{
   if(!hero)throw Error('Сначала выбери стратегию');
@@ -330,7 +344,7 @@ $('delete').onclick=async()=>{
  try{await api('/api/plan/strategies/'+hero.id,{method:'DELETE'});meta=await api('/api/plan/catalog');refill($('heroProfile'),profileOptions(),'builtin:a17_v5');await loadHero();msg('Стратегия перенесена в корзину.')}catch(e){msg(e.message,true)}
 };
 $('computeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,currentPeople());
-$('computeActual').onclick=()=>startCalculation('actual','selected',currentPeople());
+$('computeActual').onclick=async()=>{const matrix=await startCalculation('actual','selected',currentPeople());if(matrix)await calculateRangeEquity()};
 $('computeAny').onclick=()=>startCalculation('any','any_two',currentPeople().slice(0,1));
 $('handComputeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,currentPeople());
 $('handComputeActual').onclick=()=>startCalculation('actual','selected',currentPeople());
