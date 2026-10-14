@@ -43,6 +43,12 @@ A17_MAX_OPEN_BOX_BY_POSITION = {
 # A01-A16: raise whenever legal; A17: call/complete/check.
 A17_SB_MAX_RAISE_BOX = 16
 
+# Facing exactly a preflop 3-bet (second voluntary raise).
+# A01-A07 and A09: split 50% call / 50% 4-bet.
+# A08 and A10-A17: pure fold. Overrides SB and BB defaults.
+A17_VS_3BET_CONTINUE_BOXES = frozenset((1, 2, 3, 4, 5, 6, 7, 9))
+A17_VS_3BET_FOURBET_FREQ = 0.50
+
 # Compatibility for existing reports/tests referring to the 9-max template.
 A17_MAX_OPEN_BOX_9MAX = A17_MAX_OPEN_BOX_BY_POSITION
 
