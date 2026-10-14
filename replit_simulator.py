@@ -628,7 +628,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/runs":
             with MUTEX:
                 jobs = sorted(RUNS.values(), key=lambda x: x["created"], reverse=True)
-                data = [snapshot(j) for j in jobs]
+                data = [{
+                    "id": j["id"], "status": j["status"],
+                    "created": j["created"], "updated": j["updated"]
+                } for j in jobs]
             self.reply(200, {"runs": data})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/download", path)
