@@ -1,0 +1,6 @@
+entrypoint = "replit_simulator.py"
+run = "python3 -u replit_simulator.py"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
