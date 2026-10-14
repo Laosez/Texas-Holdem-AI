@@ -15,22 +15,12 @@ from core.bot_api import Action, BotAdapter, PlayerView
 # Curated experiment bases with known self-contained preflop/postflop code.
 # Stateful TournamentHybridBot and other advanced strategies need a
 # cross-street-memory audit before they are added here.
-EXPERIMENT_BASES = frozenset({
-    "gto",
-    "gto_fixed",  # Fixed blind-vs-raise detection; isolated from control GTO.
-    "a17_preflop_legacy",  # frozen pre-V5
-    "a17_preflop",  # User A17 positional 2–9-max RFI and SB A01–A16 raise.
-    "smart",
-    "tag_punisher",
-    "wide_defender",
-    "baseline_sane",
-    "nit",
-    "loose_passive",
-    "maniac",
-    "maniac_mixed",  # Same ManiacPolicy, lower jam/probe frequencies.
-    "pressure_filler",
-    "random",  # Stateless legal-action baseline; may be used on either street.
-} | {f"random_{i}" for i in range(2, 11)})  # Distinct exporter labels for clones.
+import json
+from pathlib import Path
+
+_CATALOG = Path(__file__).resolve().parents[1] / "strategy_catalog" / "available_bases.json"
+EXPERIMENT_BASES = frozenset(json.loads(_CATALOG.read_text(encoding="utf-8"))["bases"])
+
 
 
 class StreetSplitBot(BotAdapter):
