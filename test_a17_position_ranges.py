@@ -83,7 +83,7 @@ class A17PositionRangesTests(unittest.TestCase):
                     self.assertEqual(
                         bot.act(_view(hand, position="3", n=n)).type, "raise"
                     )
-            for hand in ("Q2s", "T9o", "Q9o", "J8o"):
+            for hand in ("Q2s", "T9o", "87o", "J8o"):
                 with self.subTest(n=n, hand=hand, action="fold"):
                     self.assertEqual(
                         bot.act(_view(hand, position="3", n=n)).type, "fold"
