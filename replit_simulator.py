@@ -171,6 +171,7 @@ def snapshot(job: dict) -> dict:
         "report": job.get("report"),
         "progress": job.get("progress"),
         "stats": job.get("stats"),
+        "performance": job.get("performance"),
     }
 
 
@@ -273,6 +274,8 @@ def worker(job: dict) -> None:
             job["report"] = report
             if report is not None:
                 job["stats"] = stats_for_folder(output)
+                perf_file = output / "performance.json"
+                job["performance"] = json.loads(perf_file.read_text(encoding="utf-8")) if perf_file.is_file() else None
                 job["progress"] = {
                     "done": report.get("tournaments_completed", 0),
                     "total": report.get("tournaments_requested", 0),
@@ -302,7 +305,7 @@ def start_run(config: dict) -> dict:
             "id": run_id, "status": "starting", "created": now(), "updated": now(),
             "config": config, "returncode": None, "report": None,
             "progress": {"done": 0, "total": config["tournaments"], "tpm": None, "hps": None},
-            "stats": {},
+            "stats": {}, "performance": None,
             "log": deque(maxlen=MAX_LOG_LINES),
         }
         RUNS[run_id] = job
@@ -398,6 +401,8 @@ def import_session(raw: bytes) -> dict:
                     "progress": {"done": report.get("tournaments_completed", 0),
                                  "total": report.get("tournaments_requested", 0)},
                     "stats": stats_for_folder(folder),
+                    "performance": (json.loads((folder / "performance.json").read_text(encoding="utf-8"))
+                                    if (folder / "performance.json").is_file() else None),
                     "log": deque(["Сессия загружена из ZIP"], maxlen=MAX_LOG_LINES),
                 }
                 persist(job)
@@ -574,6 +579,9 @@ def restore_history():
             job["status"] = "interrupted" if job["status"] in ("starting", "running") else job["status"]
             if job.get("report") and not job.get("stats"):
                 job["stats"] = stats_for_folder(manifest.parent)
+            perf = manifest.parent / "performance.json"
+            if perf.is_file() and not job.get("performance"):
+                job["performance"] = json.loads(perf.read_text(encoding="utf-8"))
             RUNS[job["id"]] = job
         except (KeyError, OSError, ValueError):
             pass
