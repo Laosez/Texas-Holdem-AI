@@ -45,9 +45,9 @@ class ScreenOneTests(unittest.TestCase):
         for bad in ([{}, base[1]], [{"pre": "bad-bot", "post": "gto"}, base[1]]):
             with self.assertRaises(ValueError):
                 app.validate_config({"bots": bad})
-        for count in (1, 10):
+        for rows in ([base[0]], base * 5):
             with self.assertRaises(ValueError):
-                app.validate_config({"bots": base * count})
+                app.validate_config({"bots": rows})
 
     def test_source_label_preserves_strategy_identity(self):
         import bots
