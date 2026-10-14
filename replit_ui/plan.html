@@ -292,7 +292,7 @@ function setMetricLegend(){
   const valid=Number.isFinite(stack)&&stack>0&&Number.isFinite(dead)&&dead>=0&&n>0;
   const pot=valid?(n+1)*stack+dead:NaN;
   $('allInStatus').textContent=valid?
-   `${n+1} участника · каждый выставляет ${stack} BB · дополнительные мёртвые деньги ${dead} BB · итоговый банк ${pot.toFixed(1)} BB · безубыточность ${(100*stack/pot).toFixed(1)}% equity. Берём Multiway Equity выбранных соперников, без побочных банков / fold equity / ICM.`:
+   `${n+1} участника · каждый выставляет ${stack} BB · дополнительные мёртвые деньги ${dead} BB · итоговый банк ${pot.toFixed(1)} BB · безубыточность ${(100*stack/pot).toFixed(1)}% equity. Берём Multiway Equity выбранных соперников, без побочных банков / fold equity / ICM. EV приблизителен: погрешность Monte Carlo растёт вместе с размером банка.`:
    'Укажите положительный эффективный стек в блоке 01 и неотрицательные мёртвые деньги. Данные некорректны.';
  }
  const settings={
@@ -359,7 +359,7 @@ function matrix(root,doc){
    // Ignore the display-only equity model: all-in uses SELECTED villains only.
    const actual=allInEquity?.[h];
    value=doc===hero&&Number.isFinite(actual)?modelAllInEv(actual,stack,dead,n):null;
-   displayed=value===null?'—':(value>0?'+':'')+value.toFixed(2)+' BB';
+   displayed=value===null?'—':'≈'+(value>0?'+':'')+value.toFixed(1)+' BB';
   }else if(metric==='action'){
    displayed=action==='none'?'—':ACTIONS[action]||action;
   }
