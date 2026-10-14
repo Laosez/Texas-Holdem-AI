@@ -1,0 +1,233 @@
+"""HTTP controller for Screen 2 (Plan), using standard-library only.
+
+No untrusted file paths; all protected endpoints remain behind the existing
+X-Runner-Key authentication in replit_simulator.Handler.
+"""
+from __future__ import annotations
+import hashlib
+import json
+import os
+from pathlib import Path
+import secrets
+import threading
+
+import planner_core as core
+import planner_equity as equity
+
+LOCK = threading.RLock()
+EQUITY_TASKS = {}
+CACHE_PATH = core.DATA_ROOT / "plan_equity_cache"
+
+
+def catalog():
+    return {"builtins": [{"ref": ref, "name": label} for ref, label in core.BUILTINS.items()],
+            "saved": core.list_saved(), "hands": list(core.HANDS),
+            "boxes": core.boxes_v5(), "actions": list(core.ACTIONS),
+            "scenarios": {s: list(actions) for s, actions in core.SCENARIOS.items()},
+            "max_opponents": 5, "method": "Monte Carlo all-in, split-pot equity"}
+
+
+def _path(p):
+    if not isinstance(p, str) or len(p) > 160:
+        raise ValueError("Неверная ссылка на пресет")
+    return p
+
+
+def resolve(profile, position, scenario, players=9, stack_bb=20):
+    return core.preset(_path(profile), str(position), str(scenario), int(players), float(stack_bb))
+
+
+def _source_hash():
+    sha=hashlib.sha256()
+    for filename in ("planner_core.py","planner_equity.py",
+                     "strategy_catalog/a17_v5.json","bots/gto_bot.py"):
+        file=core.ROOT/filename
+        sha.update(hashlib.sha256(file.read_bytes()).digest())
+    return sha.hexdigest()
+
+
+def _query_identity(payload):
+    # Cached output is invalidated by any source/range revision or MC method change.
+    parts={"model":payload["model"],"trials":payload["trials"],
+           "opponents":[],"source":_source_hash()}
+    for p in payload["opponents"]:
+        profile=p["profile"]
+        if profile.startswith("saved:"):
+            doc=core.get_saved(profile)
+        else:
+            scenario="rfi" if payload["model"]!="selected" else p["scenario"]
+            doc=resolve(profile,p["position"],scenario,p["players"])
+        parts["opponents"].append({"profile":doc.get("ref",profile),"position":doc["position"],
+                                   "scenario":doc["scenario"],"weights":core.range_weights(
+                                   doc,p.get("selector","active") if payload["model"]=="selected" else "active")})
+    packed=json.dumps(parts,ensure_ascii=False,sort_keys=True,separators=(",",":"))
+    return hashlib.sha256(packed.encode()).hexdigest()
+
+
+def _validate_request(raw):
+    if not isinstance(raw,dict):
+        raise ValueError("Неверный формат фильтра")
+    opponents=raw.get("opponents")
+    if not isinstance(opponents,list) or not 1<=len(opponents)<=5:
+        raise ValueError("Выбери 1–5 соперников")
+    model=raw.get("model","selected")
+    if model not in ("selected","any_two","gto_heuristic"):
+        raise ValueError("Неизвестная модель equity")
+    trials=raw.get("trials",200)
+    if type(trials) is not int or not 50<=trials<=2000:
+        raise ValueError("Симуляций на руку должно быть 50–2000")
+    cleaned=[]
+    for entry in opponents:
+        if not isinstance(entry,dict):
+            raise ValueError("Неверная настройка соперника")
+        source=entry.get("profile","builtin:any_two")
+        if source not in core.BUILTINS and not core.REF.fullmatch(str(source)):
+            raise ValueError("Неизвестная стратегия соперника")
+        pos=str(entry.get("position","3"))
+        scen=str(entry.get("scenario","rfi"))
+        n=entry.get("players",9)
+        if type(n) is not int:
+            raise ValueError("Некорректный формат стола")
+        core.validate_context(n,pos,scen)
+        selector=str(entry.get("selector","active"))
+        if selector!="active" and selector not in core.ACTIONS:
+            raise ValueError("Неизвестный фильтр действий")
+        cleaned.append({"profile":source,"position":pos,"scenario":scen,
+                        "players":n,"selector":selector})
+    return {"opponents":cleaned,"model":model,"trials":trials}
+
+
+def start_equity(raw, busy=False):
+    if busy:
+        raise RuntimeError("Дождись завершения турниров перед тяжёлым расчётом equity")
+    payload=_validate_request(raw)
+    # Validate range availability synchronously; no 169-hand job for empty ranges.
+    equity.build_ranges(payload["opponents"],payload["model"])
+    identity=_query_identity(payload)
+    CACHE_PATH.mkdir(parents=True,exist_ok=True)
+    target=CACHE_PATH/(identity+".json")
+    if target.is_file():
+        cached=json.loads(target.read_text(encoding="utf-8"))
+        if len(cached.get("equity",{}))==169:
+            return {"id":identity,"status":"completed","done":169,"total":169,"result":cached,"cached":True}
+    with LOCK:
+        if identity in EQUITY_TASKS:
+            return public_task(EQUITY_TASKS[identity])
+        if any(t["status"]=="running" for t in EQUITY_TASKS.values()):
+            raise RuntimeError("Уже выполняется расчёт equity. Дождись его завершения.")
+        if len(EQUITY_TASKS)>16:
+            for key in list(EQUITY_TASKS):
+                if EQUITY_TASKS[key]["status"]!="running":
+                    EQUITY_TASKS.pop(key)
+                if len(EQUITY_TASKS)<=12: break
+        job={"id":identity,"status":"running","done":0,"total":169,
+             "result":None,"error":None,"cached":False}
+        EQUITY_TASKS[identity]=job
+    def execute():
+        try:
+            def progress(done,total):
+                with LOCK:
+                    job["done"]=done
+                    job["total"]=total
+            result=equity.calculate_matrix(**payload,progress=progress)
+            tmp=target.with_suffix(".partial")
+            tmp.write_text(json.dumps(result,ensure_ascii=False,separators=(",",":")),
+                           encoding="utf-8")
+            os.replace(tmp,target)
+            with LOCK:
+                job.update(status="completed",done=169,result=result)
+        except Exception as exc:
+            with LOCK:
+                job.update(status="failed",error=str(exc))
+    threading.Thread(target=execute,daemon=True).start()
+    return public_task(job)
+
+
+def public_task(job):
+    with LOCK:
+        return dict(job)
+
+
+def get_task(id_):
+    if not len(id_)==64 or not all(x in "0123456789abcdef" for x in id_):
+        raise ValueError("Неверный ID расчёта")
+    with LOCK:
+        if id_ in EQUITY_TASKS:
+            return public_task(EQUITY_TASKS[id_])
+    target=CACHE_PATH/(id_+".json")
+    if target.is_file():
+        return {"id":id_,"status":"completed","done":169,"total":169,
+                "result":json.loads(target.read_text(encoding="utf-8")),"cached":True}
+    raise KeyError(id_)
+
+
+def get_route(handler,path):
+    from urllib.parse import parse_qs,urlparse
+    q=parse_qs(urlparse(handler.path).query)
+    if path=="/api/plan/catalog":
+        handler.reply(200,catalog())
+        return True
+    if path=="/api/plan/source":
+        p=lambda k,d:q.get(k,[d])[0]
+        try:
+            doc=resolve(p("profile","builtin:a17_v5"),p("position","3"),
+                        p("scenario","rfi"),int(p("players",9)),float(p("stack_bb",20)))
+            handler.reply(200,doc)
+        except KeyError:
+            handler.reply(404,{"error":"Стратегия не найдена"})
+        except (ValueError,TypeError) as exc:
+            handler.reply(400,{"error":str(exc)})
+        return True
+    if path.startswith("/api/plan/equity/"):
+        try:
+            handler.reply(200,get_task(path.rsplit("/",1)[-1]))
+        except KeyError:
+            handler.reply(404,{"error":"Расчёт не найден"})
+        except ValueError as exc:
+            handler.reply(400,{"error":str(exc)})
+        return True
+    return False
+
+
+def post_route(handler,path,payload,busy=False):
+    if path=="/api/plan/strategies":
+        parent=payload.get("parent") if isinstance(payload,dict) else None
+        try:
+            result=core.save_plan(payload.get("plan"),parent)
+            handler.reply(201,result)
+        except (ValueError,TypeError) as exc:
+            handler.reply(400,{"error":str(exc)})
+        except (KeyError,RuntimeError) as exc:
+            handler.reply(409,{"error":str(exc)})
+        return True
+    if path=="/api/plan/equity":
+        try:
+            result=start_equity(payload,busy=busy)
+            handler.reply(200 if result["status"]=="completed" else 202,result)
+        except (ValueError,TypeError,KeyError) as exc:
+            handler.reply(400,{"error":str(exc)})
+        except RuntimeError as exc:
+            handler.reply(409,{"error":str(exc)})
+        return True
+    if path=="/api/plan/compare":
+        try:
+            hero=core.validate_plan(payload["hero"])
+            villain=core.validate_plan(payload["villain"])
+            handler.reply(200,core.compare_docs(hero,villain))
+        except (ValueError,KeyError,TypeError) as exc:
+            handler.reply(400,{"error":str(exc)})
+        return True
+    return False
+
+
+def delete_route(handler,path):
+    match=__import__("re").fullmatch(r"/api/plan/strategies/([a-f0-9]{12})",path)
+    if not match:
+        return False
+    try:
+        handler.reply(200,core.delete_plan(match.group(1)))
+    except KeyError:
+        handler.reply(404,{"error":"Стратегия не найдена"})
+    except ValueError as exc:
+        handler.reply(400,{"error":str(exc)})
+    return True
