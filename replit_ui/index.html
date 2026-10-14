@@ -125,8 +125,8 @@ async function refresh(){
  const selector=$('sessionSelect'),id=selected?.id;
  selector.replaceChildren();const nil=el('option','','— Выбрать сессию —');nil.value='';selector.append(nil);
  sessions.forEach(x=>{let o=el('option','',x.id+' · '+x.status);o.value=x.id;selector.append(o)});
- if(id&&sessions.some(x=>x.id===id))present(sessions.find(x=>x.id===id));
- else if(sessions.length)present(sessions[0]);else empty();
+ const chosen=(id&&sessions.some(x=>x.id===id))?id:(sessions[0]?.id||null);
+ if(chosen)present(await get('/api/runs/'+chosen));else empty();
  working=sessions.some(x=>['running','starting'].includes(x.status));valid();
 }
 async function loadCatalog(){
@@ -157,7 +157,11 @@ $('resume').onclick=async()=>{
  try{const r=await get('/api/runs/'+selected.id+'/resume',{method:'POST',body:'{}'});selected=r;await refresh();feedback('Серия возобновлена.')}catch(e){feedback(e.message,true)}
 };
 $('stop').onclick=async()=>{if(!selected||!confirm('Остановить текущую серию?'))return;try{await get('/api/runs/'+selected.id+'/cancel',{method:'POST',body:'{}'});feedback('Остановка запрошена');await refresh()}catch(e){feedback(e.message,true)}};
-$('sessionSelect').onchange=()=>{const s=sessions.find(x=>x.id===$('sessionSelect').value);if(s)present(s)};
+$('sessionSelect').onchange=async()=>{
+ const id=$('sessionSelect').value;
+ if(!id)return;
+ try{present(await get('/api/runs/'+id))}catch(e){feedback(e.message,true)}
+};
 $('refresh').onclick=()=>refresh().catch(e=>feedback(e.message,true));
 $('restore').onclick=()=>{const c=selected?.config;if(!c?.bots){feedback('В этой сессии отсутствуют данные по отдельным стратегиям',true);return}bots=c.bots.map(b=>({pre:b.pre||'',post:b.post||''}));for(const id of [...numeric,'seat_mode'])if(c[id]!==undefined)$(id).value=c[id];drawBots();scrollTo({top:0,behavior:'smooth'});feedback('Параметры скопированы в редактор.')};
 $('download').onclick=async()=>{if(!selected)return;try{feedback('Готовлю ZIP...');const response=await api('/api/runs/'+selected.id+'/download');const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SKACHKOV_'+selected.id+'.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),9000);feedback('ZIP сессии скачан.')}catch(e){feedback(e.message,true)}};
