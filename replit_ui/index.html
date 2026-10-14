@@ -41,7 +41,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="column">
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><span id="runStatus" class="badge">—</span></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn danger" id="purgeTrash">Очистить корзину</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="12">Нет результатов</td></tr></tbody></table></div>
@@ -193,6 +193,16 @@ $('trash').onclick=async()=>{
   if(!id)return;
   const job=await get('/api/trash/'+encodeURIComponent(id.trim())+'/restore',{method:'POST',body:'{}'});
   selected=job;await refresh();feedback('Сессия восстановлена из корзины.');
+ }catch(e){feedback(e.message,true)}
+};
+$('purgeTrash').onclick=async()=>{
+ try{
+  const found=await get('/api/trash');
+  if(!found.deleted?.length){feedback('Корзина пуста.');return}
+  const confirmation=prompt('Безвозвратно удалить '+found.deleted.length+' сессий из корзины?\\nДля подтверждения введи УДАЛИТЬ');
+  if(confirmation!=='УДАЛИТЬ'){feedback('Очистка отменена.');return}
+  const data=await get('/api/trash',{method:'DELETE'});
+  feedback('Безвозвратно очищено сессий: '+data.purged);
  }catch(e){feedback(e.message,true)}
 };
 $('backupAll').onclick=async()=>{
