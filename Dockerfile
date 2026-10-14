@@ -15,5 +15,14 @@ RUN THAI_ENGINE_IMPL=legacy python -u export_preflop_ranges_v4.py \
     test -f /tmp/screen1_smoke/tournament_report.json && \
     test -f /tmp/screen1_checkpoints/000001.json.gz && \
     rm -rf /tmp/screen1_smoke /tmp/screen1_checkpoints
+# Control regression: prove 90 full nine-player tournaments without multiprocessing on Railway.
+RUN THAI_ENGINE_IMPL=legacy python -u export_preflop_ranges_v4.py \
+    --players split:gto:smart,split:gto:gto,split:gto:tag_punisher,split:gto:maniac_mixed,split:gto:baseline_sane,split:a17_preflop:tag_punisher,split:gto:random,split:gto:random_2,split:gto:pressure_filler \
+    --tournaments 90 --parallel 1 --seed 2042 --chips 500 --sb 1 --bb 2 \
+    --blind-increase-every 50 --max-hands 10000 --seat-mode rotate \
+    --out /tmp/reliability_90 --checkpoint-dir /tmp/reliability_90_checkpoint && \
+    test -f /tmp/reliability_90/tournament_report.json && \
+    test -f /tmp/reliability_90_checkpoint/000090.json.gz && \
+    rm -rf /tmp/reliability_90 /tmp/reliability_90_checkpoint
 EXPOSE 3000
 CMD ["python", "-u", "replit_simulator.py"]
