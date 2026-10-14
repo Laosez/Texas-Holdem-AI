@@ -74,7 +74,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false;
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0;
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -141,12 +141,14 @@ function renderOpponents(){
 }
 function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
 function opponentsSelected(){return opponents.slice(0,Number($('oppCount').value)).map(o=>({...o}))}
-function invalidateEquity(){equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices()}
+function invalidateEquity(){calcEpoch++;equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
+ const revision=++villainEpoch;
  const i=Number($('viewOpponent').value||0),o=opponentsSelected()[i];if(!o)return;
- try{villain=await getSource(o.profile,o.position,o.scenario,o.players,20);refreshComparison();drawMatrices()}
+ try{const doc=await getSource(o.profile,o.position,o.scenario,o.players,20);
+ if(revision!==villainEpoch)return;villain=doc;refreshComparison();drawMatrices()}
  catch(e){villain=null;drawMatrices();msg('Соперник #'+(i+1)+': '+e.message,true)}
 }
 function major(actions){if(!actions)return 'none';const entries=Object.entries(actions).filter(x=>x[1]>0);if(!entries.length)return 'none';entries.sort((a,b)=>b[1]-a[1]);return entries[0][0]}
@@ -252,6 +254,7 @@ function drawEquityStats(){
  $('handDetail').textContent='Моя: '+handTooltip(selected,hero)+' | Контр: '+handTooltip(selected,villain);
 }
 async function startCalculation(slot,model,people){
+ const revision=calcEpoch;
  try{
   const trials=Number($('trials').value);
   msg('Запущен Monte Carlo: '+people.length+' соперник(ов), '+trials+' симуляций на руку.');
@@ -267,6 +270,7 @@ async function startCalculation(slot,model,people){
    job=await api('/api/plan/equity/'+job.id);progress(job);
   }
   if(job.status!=='completed')throw Error(job.error||'Расчёт не завершён');
+  if(revision!==calcEpoch){msg('Состав соперников изменился: устаревший расчёт не применяется.');return}
   equityResults[slot]=job.result;
   if(slot==='filter'&&model==='selected')equityResults.actual=job.result;
   if(slot==='actual'&&$('equityModel').value==='selected')equityResults.filter=job.result;
