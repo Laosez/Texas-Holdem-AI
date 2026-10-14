@@ -11,13 +11,13 @@ h1{font-size:clamp(27px,4vw,42px);margin:6px 0 6px;letter-spacing:-1.2px}h2{font
 </style>
 </head>
 <body><main>
-<header><div class="brand">SKACHKOV / POKER SYSTEM<strong>TOURNAMENT SIMULATOR</strong></div><span class="pill">Replit · Этап 01 · v4 legacy engine</span></header>
+<header><div class="brand">SKACHKOV / POKER SYSTEM<strong>TOURNAMENT SIMULATOR</strong></div><span class="pill">Railway · Этап 01 · v4 legacy engine</span></header>
 <div class="intro"><h1>Симулятор турниров</h1><p>Реальный движок и стратегии из GitHub. Стартуй серии, наблюдай прогресс, сравнивай ботов и выгружай те же CSV/JSON, что использует Preflop Lab.</p></div>
-<div id="keyNotice" class="notice" hidden>Для запуска укажи секрет <b>POKER_RUNNER_KEY</b> в Replit Secrets, перезапусти приложение и введи тот же ключ ниже. Без секрета управление симулятором отключено.</div>
+<div id="keyNotice" class="notice" hidden>Для запуска укажи переменную <b>POKER_RUNNER_KEY</b> в Railway → Variables, перезапусти приложение и введи тот же ключ ниже. Без секрета управление симулятором отключено.</div>
 <div class="layout">
  <section class="panel">
   <h2>Параметры эксперимента</h2>
-  <div class="field"><label for="key">Ключ доступа (Replit Secrets → POKER_RUNNER_KEY)</label><input id="key" type="password" autocomplete="off" placeholder="Ключ для запуска и просмотра серий"></div>
+  <div class="field"><label for="key">Ключ доступа (Railway Variables → POKER_RUNNER_KEY)</label><input id="key" type="password" autocomplete="off" placeholder="Ключ для запуска и просмотра серий"></div>
   <div class="btns" style="margin-top:8px"><button id="connect">Подключиться</button><button id="preset">Восстановить контроль V3</button></div>
   <div class="field"><label for="players">Игроки · 2–9 разных ботов, через запятую</label><textarea id="players" spellcheck="false"></textarea></div>
   <div class="row">
@@ -33,14 +33,14 @@ h1{font-size:clamp(27px,4vw,42px);margin:6px 0 6px;letter-spacing:-1.2px}h2{font
   <div class="field"><label for="seat_mode">Начальная рассадка</label><select id="seat_mode"><option value="rotate">Rotate · сбалансированная</option><option value="fixed">Fixed · фиксированная</option></select></div>
   <div class="btns"><button class="primary" id="run">▶ Запустить серию</button><button class="stop" id="stop" disabled>■ Остановить</button><button id="download" disabled>↓ ZIP с результатами</button></div>
   <div id="msg" role="status"></div>
-  <p class="help">Один эксперимент за раз. Движок: <code>THAI_ENGINE_IMPL=legacy</code>. Параметры контроля: 9 ботов, 500 фишек, 1/2, каждые 50 рук, seed 2042. Стандартные процессы Replit могут останавливаться при простое; длинные расчёты лучше выполнять на постоянной вычислительной среде.</p>
+  <p class="help">Один эксперимент за раз. Движок: <code>THAI_ENGINE_IMPL=legacy</code>. Параметры контроля: 9 ботов, 500 фишек, 1/2, каждые 50 рук, seed 2042. Длительные турниры требуют достаточных CPU/RAM. Запуски могут прерываться при новом деплое; сохраняй ZIP и подключи Railway Volume.</p>
  </section>
  <div class="stack">
   <section class="panel"><h2>Текущая серия</h2><div class="statuses"><div class="stat"><small>Статус</small><strong id="status">—</strong></div><div class="stat"><small>Выполнено</small><strong id="progress">—</strong></div><div class="stat"><small>Победитель</small><strong id="best">—</strong></div></div><div id="history" class="history"></div></section>
   <section class="panel"><h2>Результаты турниров</h2><div id="leader"><p>После завершения здесь появятся победы и средние позиции.</p></div></section>
   <section class="panel"><h2>Журнал выполнения</h2><pre id="log">Сначала введи ключ доступа и нажми «Подключиться».</pre></section>
  </div>
-</div><p class="note">Сервер не меняет стратегии ботов. Данные хранятся в <code>output/replit_runs/</code> и не отправляются автоматически в GitHub. Для сравнения воспроизводимости сохраняй одинаковые версии кода, seed, состав ботов и параметры. Перед удалением Replit обязательно скачай ZIP.</p>
+</div><p class="note">Сервер не меняет стратегии ботов. Данные хранятся в <code>output/replit_runs/</code> и не отправляются автоматически в GitHub. Для сравнения воспроизводимости сохраняй одинаковые версии кода, seed, состав ботов и параметры. Перед удалением проекта или тома скачай ZIP.</p>
 </main>
 <script>
 'use strict';
