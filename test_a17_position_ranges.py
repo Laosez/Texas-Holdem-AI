@@ -7,7 +7,8 @@ from bots import create_bot
 from bots.a17_preflop_bot import A17PreflopBot
 from bots.a17_ranges import (
     A17_HAND_TO_BOX, A17_MAX_OPEN_BOX_9MAX,
-    A17_MAX_OPEN_BOX_BY_POSITION, A17_SB_MAX_RAISE_BOX,
+    A17_MAX_OPEN_BOX_BY_POSITION, A17_RFI_EXTRA_BOXES_BY_POSITION,
+    A17_SB_MAX_RAISE_BOX,
 )
 
 
@@ -45,15 +46,17 @@ class A17PositionRangesTests(unittest.TestCase):
         )
         self.assertEqual(
             A17_MAX_OPEN_BOX_9MAX,
-            {"9": 9, "8": 9, "7": 9, "6": 10, "5": 12,
-             "4": 14, "3": 15, "SB": 17},
+            {"9": 9, "8": 9, "7": 9, "6": 10, "5": 11,
+             "4": 11, "3": 12, "SB": 17},
         )
+        self.assertEqual(A17_RFI_EXTRA_BOXES_BY_POSITION, {"3": frozenset({15})})
         self.assertEqual(
             {p: sum(6 if len(h) == 2 else 4 if h.endswith("s") else 12
-                    for h, box in A17_HAND_TO_BOX.items() if box <= max_box)
+                    for h, box in A17_HAND_TO_BOX.items()
+                    if box <= max_box or box in A17_RFI_EXTRA_BOXES_BY_POSITION.get(p, ()))
              for p, max_box in A17_MAX_OPEN_BOX_9MAX.items()},
-            {"9": 306, "8": 306, "7": 306, "6": 402, "5": 550,
-             "4": 774, "3": 858, "SB": 1326},
+            {"9": 306, "8": 306, "7": 306, "6": 402, "5": 454,
+             "4": 454, "3": 634, "SB": 1326},
         )
 
     def test_pure_open_raise_at_every_user_defined_boundary(self):
@@ -64,13 +67,37 @@ class A17PositionRangesTests(unittest.TestCase):
             ("8", "98s", "KJo"),
             ("7", "98s", "KJo"),
             ("6", "Q9o", "K2s"),
-            ("5", "A2o", "Q2s"),
-            ("4", "T9o", "K8o"),
-            ("3", "K8o", "J8o"),
+            ("5", "K2s", "A9o"),
+            ("4", "K2s", "A9o"),
+            ("3", "K8o", "T9o"),
         ]:
             with self.subTest(position=pos):
                 self.assertEqual(bot.act(_view(inside, position=pos)).type, "raise")
                 self.assertEqual(bot.act(_view(outside, position=pos)).type, "fold")
+
+    def test_btn_non_contiguous_a15_without_a13_a14(self):
+        bot = create_bot("a17_tag")
+        for n in range(3, 10):
+            for hand in ("A9o", "A2o", "K8o", "K2o"):
+                with self.subTest(n=n, hand=hand, action="raise"):
+                    self.assertEqual(
+                        bot.act(_view(hand, position="3", n=n)).type, "raise"
+                    )
+            for hand in ("Q2s", "T9o", "87o", "J8o"):
+                with self.subTest(n=n, hand=hand, action="fold"):
+                    self.assertEqual(
+                        bot.act(_view(hand, position="3", n=n)).type, "fold"
+                    )
+
+    def test_hj_and_co_stop_at_a11(self):
+        bot = create_bot("a17_tag")
+        for pos in ("5", "4"):
+            for hand in ("K6s", "Q5s", "A9o", "A2o", "K8o"):
+                want = "raise" if A17_HAND_TO_BOX[hand] <= 11 else "fold"
+                with self.subTest(position=pos, hand=hand):
+                    self.assertEqual(
+                        bot.act(_view(hand, position=pos)).type, want
+                    )
 
     def test_sb_raises_a01_a16_and_calls_a17_at_every_stage(self):
         bot = create_bot("a17_tag")
@@ -144,9 +171,9 @@ class A17PositionRangesTests(unittest.TestCase):
             ("8", "98s", "KJo"),
             ("7", "98s", "KJo"),
             ("6", "Q9o", "K2s"),
-            ("5", "A2o", "Q2s"),
-            ("4", "T9o", "K8o"),
-            ("3", "K8o", "J8o"),
+            ("5", "K2s", "A9o"),
+            ("4", "K2s", "A9o"),
+            ("3", "K8o", "T9o"),
         ]
         for n in range(3, 10):
             for pos, inside, outside in positions:
