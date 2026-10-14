@@ -171,6 +171,23 @@ class PlanTests(unittest.TestCase):
                 self.assertEqual(len(core.list_saved()),2)
                 self.assertEqual(core.get_saved(created["ref"])["boxes"]["JTo"],14)
 
+    def test_initial_multiway_opponents_have_nonempty_defined_ranges(self):
+        """On first launch the three default opponent policies must be calculable."""
+        opponents=[
+            {"profile":"builtin:gto_heuristic","position":"9","scenario":"rfi","players":9,"selector":"active"},
+            {"profile":"builtin:any_two","position":"4","scenario":"rfi","players":9,"selector":"active"},
+            {"profile":"builtin:a17_v5","position":"6","scenario":"rfi","players":9,"selector":"active"},
+        ]
+        for model in ("selected","any_two","gto_heuristic"):
+            ranges, provenance = eq.build_ranges(opponents,model)
+            self.assertEqual(len(ranges),3)
+            self.assertTrue(all(r.total>0 for r in ranges))
+            self.assertEqual(len(provenance),3)
+        # A17 BB RFI remains genuinely undefined; don't invent a range to hide errors.
+        opponents[2]["position"]="BB"
+        with self.assertRaisesRegex(ValueError,"пустой диапазон"):
+            eq.build_ranges(opponents,"selected")
+
     def test_endpoint_request_rejects_unsupported_scenarios(self):
         req={"model":"selected","trials":100,"opponents":[{
             "profile":"builtin:a17_v5","position":"9","scenario":"vs_open","players":9,
