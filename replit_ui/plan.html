@@ -95,7 +95,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="metricControls hidden" id="evControls">
 <div class="field"><label for="evPot">Банк перед коллом, BB</label><input id="evPot" type="number" min="0" step="0.5" value="10"></div>
 <div class="field"><label for="evCost">Цена колла, BB</label><input id="evCost" type="number" min="0.1" step="0.5" value="5"></div>
-<text class="small">Модель: все выбранные соперники уже all-in, без побочных банков и будущих ставок. Установлены примерные 10 / 5 BB — замените значениями вашей раздачи. EV сравнивается с Fold = 0.</text>
+<span class="small" style="max-width:670px">Модель: все выбранные соперники уже all-in, без побочных банков и будущих ставок. Установлены примерные 10 / 5 BB — замените значениями вашей раздачи. EV сравнивается с Fold = 0.</span>
 </div>
 <div class="metricLegend"><div class="swatch" id="metricLegendSwatch"></div><span id="metricLegendText">Градиент зависит от показателя в ячейке.</span></div>
 <div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>17 коробок A17</strong><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div><div id="boxes" class="boxList"></div><p class="note">Под названием каждой коробки показывается доля её комбинаций, проходящих порог equity (не доля всего equity-диапазона). Клик — выбрать или снять коробку, фиолетовый маркер слева отмечает её руки на матрице. Процент под номером — доля комбинаций коробки выше equity-порога. Перетащите руку в коробку для переноса.</p>
