@@ -102,6 +102,25 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn(".hand.equityHit::after", page)
         self.assertNotIn(".hand.boxhit{outline:2px solid #a7d8ff", page)
 
+    def test_metric_gradient_is_independent_of_played_outline(self):
+        page = service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn(".hand.played{border:2px solid #70b7ff}", page)
+        self.assertIn(".hand.metricShade{background-image:linear-gradient(", page)
+        self.assertNotIn("--play-alpha", page)
+        self.assertIn("function metricGradient(metric,value,box,action)", page)
+        self.assertIn("const colors=metricGradient(metric,value,b,action)", page)
+        self.assertIn("if(participation!==null&&participation>0)button.classList.add('played')", page)
+        for name in ("equity","participation","dominant","box","combos","delta","evCall","action"):
+            self.assertIn('value="'+name+'"', page)
+
+    def test_all_in_call_ev_never_claims_to_be_full_action_ev(self):
+        page = service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("function modelCallEv(equityPct,potBB,callBB)", page)
+        self.assertIn("return (equityPct/100)*(potBB+callBB)-callBB;", page)
+        self.assertIn("value=doc===hero&&equity!==null?modelCallEv", page)
+        self.assertIn("без побочных банков и будущих ставок", page)
+        self.assertIn("EV сравнивается с Fold = 0", page)
+
 
 if __name__=="__main__":
     unittest.main()
