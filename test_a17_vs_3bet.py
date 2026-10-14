@@ -135,26 +135,41 @@ class A17VersusThreeBetTests(unittest.TestCase):
 
     def test_one_open_is_not_threebet_and_a_fourbet_is_not_threebet(self):
         bot = create_bot("a17_tag")
-        # Under existing SB rule, A08 (K9s) always raises unless
-        # actually facing a three-bet, where it becomes a pure fold.
+        control = create_bot("gto_fixed")
+
+        # No voluntary raise: SB opens A08 (K9s).
         self.assertEqual(
             bot.act(view("K9s", position="SB", raises=0, to_call=1)).type,
             "raise",
         )
-        self.assertEqual(
-            bot.act(view("K9s", position="SB", raises=1)).type,
-            "raise",
-        )
+
+        # One opponent open: SB follows regular fixed-GTO mixed defense,
+        # not automatic re-raise with boxes A01-A16.
+        vs_open = view("K9s", position="SB", raises=1)
+        vs_open.history[0]["pid"] = "P1"
+        with patch("bots.gto_fixed_bot.random.random", return_value=0.40):
+            self.assertEqual(bot.act(vs_open), control.act(vs_open))
+            self.assertEqual(bot.act(vs_open).type, "fold")
+
+        # Two raises, last by opponent: dedicated A17 3-bet response.
         self.assertEqual(
             bot.act(view("K9s", position="SB", raises=2)).type,
             "fold",
         )
-        # In this test, the last aggression after three prior raises
-        # is still handled by SB's pre-existing (not 3-bet) policy.
-        self.assertEqual(
-            bot.act(view("K9s", position="SB", raises=3)).type,
-            "raise",
-        )
+        with patch("bots.a17_preflop_bot.random.random", return_value=0.49):
+            self.assertEqual(
+                bot.act(view("98s", position="SB", raises=2)).type,
+                "raise",
+            )
+
+        # Three raises, last by opponent: standard fixed-GTO (4-bet
+        # defense), NOT the 50/50 response to exactly a 3-bet.
+        vs_fourbet = view("K9s", position="SB", raises=3)
+        vs_fourbet.history[0]["pid"] = "P1"
+        vs_fourbet.history[1]["pid"] = vs_fourbet.me
+        with patch("bots.gto_fixed_bot.random.random", return_value=0.40):
+            self.assertEqual(bot.act(vs_fourbet), control.act(vs_fourbet))
+            self.assertEqual(bot.act(vs_fourbet).type, "fold")
 
     def test_3bet_detection_requires_hero_facing_opponent_bet(self):
         state = view("AA")
