@@ -398,7 +398,7 @@ $('computeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,
 $('computeActual').onclick=async()=>{const matrix=await startCalculation('actual','selected',currentPeople());if(matrix){await calculateRangeEquity();await calculatePerOpponent()}};
 $('computeAny').onclick=()=>startCalculation('any','any_two',currentPeople().slice(0,1));
 $('handComputeFilter').onclick=()=>startCalculation('filter',$('equityModel').value,currentPeople());
-$('handComputeActual').onclick=()=>startCalculation('actual','selected',currentPeople());
+$('handComputeActual').onclick=async()=>{const result=await startCalculation('actual','selected',currentPeople());if(result)await calculatePerOpponent()};
 $('key').value=sessionStorage.getItem('skachkov_key')||'';
 if(token())connect();
 </script></body></html>
