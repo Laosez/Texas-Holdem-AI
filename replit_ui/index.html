@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SKACHKOV · Poker Simulator</title>
+<style>
+:root{color-scheme:dark;--bg:#091322;--card:#14243a;--card2:#112033;--line:#31445d;--text:#edf5ff;--muted:#9db0c8;--blue:#659ef5;--ok:#5acbaa;--bad:#ff8e9c}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,system-ui,sans-serif;color:var(--text);background:radial-gradient(ellipse at 50% -25%,#23446b,transparent 60%),var(--bg)}
+main{max-width:1240px;padding:28px 22px 70px;margin:auto}header{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:22px}.brand{font-size:12px;letter-spacing:2px;color:#a3c8f6;font-weight:800}.brand strong{display:block;font-size:25px;letter-spacing:-.7px;color:white;margin-top:6px}.pill{border:1px solid #456b83;color:#b6d4ed;padding:7px 11px;border-radius:40px;font-size:11px}
+h1{font-size:clamp(27px,4vw,42px);margin:6px 0 6px;letter-spacing:-1.2px}h2{font-size:18px;margin:0 0 13px}h3{font-size:14px;margin:0 0 8px}p{color:var(--muted)}.intro{margin-bottom:22px}.panel{background:linear-gradient(155deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:15px;padding:20px;min-width:0}.layout{display:grid;grid-template-columns:390px minmax(0,1fr);gap:16px;align-items:start}.field{margin:10px 0}.field label{display:block;font-weight:650;font-size:11px;color:#b2c6db;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;min-width:0;padding:10px;background:#0b1829;color:var(--text);border:1px solid #3c5572;border-radius:8px;font:inherit}.field textarea{resize:vertical;min-height:110px;font-size:12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}button{border:1px solid #466080;background:#19344f;color:#eff6ff;font-weight:700;padding:10px 13px;border-radius:8px;cursor:pointer;font:inherit}button.primary{background:#347ce2;border-color:#5798f2;color:#fff;font-weight:750}button:hover{filter:brightness(1.2)}button:disabled{opacity:.45;cursor:not-allowed}button.stop{border-color:#965666;color:#ffd4db}#msg{color:#b9d0e6;min-height:22px;margin-top:10px;font-size:12px}.help{font-size:11px;color:#94abc3;line-height:1.5}.statuses{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 18px}.stat{background:#0e2035;border:1px solid #314b69;border-radius:11px;padding:12px}.stat strong{display:block;font-size:23px;margin-top:5px;font-variant-numeric:tabular-nums}.stat small{font-size:11px;color:#9fb5ca}#status{font-weight:750}#log{height:340px;background:#071423;border:1px solid #2c4968;color:#bfd5eb;white-space:pre-wrap;overflow:auto;padding:13px;border-radius:10px;font:11px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.leader{width:100%;border-collapse:collapse;font-size:12px}.leader td,.leader th{padding:9px 7px;border-bottom:1px solid #2d4057;text-align:right}.leader td:first-child,.leader th:first-child{text-align:left}.leader th{color:#9db6cf}.leader tbody tr:first-child{color:#73dfbf}.stack{display:grid;gap:15px}.history{display:flex;flex-wrap:wrap;gap:7px}.history button{font-size:11px;padding:7px}.notice{border:1px solid #725b41;background:#37281b;color:#ffe2b6;padding:12px;border-radius:9px;font-size:12px;margin-bottom:15px}.notice[hidden]{display:none!important}.note{font-size:11px;color:#8da6c0;margin-top:20px}@media(max-width:900px){.layout{grid-template-columns:1fr}}@media(max-width:560px){main{padding:18px 12px}.row{grid-template-columns:1fr}.statuses{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><main>
+<header><div class="brand">SKACHKOV / POKER SYSTEM<strong>TOURNAMENT SIMULATOR</strong></div><span class="pill">Replit · Этап 01 · v4 legacy engine</span></header>
+<div class="intro"><h1>Симулятор турниров</h1><p>Реальный движок и стратегии из GitHub. Стартуй серии, наблюдай прогресс, сравнивай ботов и выгружай те же CSV/JSON, что использует Preflop Lab.</p></div>
+<div id="keyNotice" class="notice" hidden>Для запуска укажи секрет <b>POKER_RUNNER_KEY</b> в Replit Secrets, перезапусти приложение и введи тот же ключ ниже. Без секрета управление симулятором отключено.</div>
+<div class="layout">
+ <section class="panel">
+  <h2>Параметры эксперимента</h2>
+  <div class="field"><label for="key">Ключ доступа (Replit Secrets → POKER_RUNNER_KEY)</label><input id="key" type="password" autocomplete="off" placeholder="Ключ для запуска и просмотра серий"></div>
+  <div class="btns" style="margin-top:8px"><button id="connect">Подключиться</button><button id="preset">Восстановить контроль V3</button></div>
+  <div class="field"><label for="players">Игроки · 2–9 разных ботов, через запятую</label><textarea id="players" spellcheck="false"></textarea></div>
+  <div class="row">
+   <div class="field"><label for="tournaments">Турниры</label><input id="tournaments" type="number" min="1" max="3000" value="90"></div>
+   <div class="field"><label for="parallel">Параллельные процессы</label><select id="parallel"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
+   <div class="field"><label for="seed">Seed</label><input id="seed" type="number" min="0" value="2042"></div>
+   <div class="field"><label for="chips">Начальный стек</label><input id="chips" type="number" min="10" value="500"></div>
+   <div class="field"><label for="sb">Small blind</label><input id="sb" type="number" min="1" value="1"></div>
+   <div class="field"><label for="bb">Big blind</label><input id="bb" type="number" min="2" value="2"></div>
+   <div class="field"><label for="blind_increase_every">Рост блайндов, рук</label><input id="blind_increase_every" type="number" min="0" value="50"></div>
+   <div class="field"><label for="max_hands">Лимит рук / турнир</label><input id="max_hands" type="number" min="100" value="10000"></div>
+  </div>
+  <div class="field"><label for="seat_mode">Начальная рассадка</label><select id="seat_mode"><option value="rotate">Rotate · сбалансированная</option><option value="fixed">Fixed · фиксированная</option></select></div>
+  <div class="btns"><button class="primary" id="run">▶ Запустить серию</button><button class="stop" id="stop" disabled>■ Остановить</button><button id="download" disabled>↓ ZIP с результатами</button></div>
+  <div id="msg" role="status"></div>
+  <p class="help">Один эксперимент за раз. Движок: <code>THAI_ENGINE_IMPL=legacy</code>. Параметры контроля: 9 ботов, 500 фишек, 1/2, каждые 50 рук, seed 2042. Стандартные процессы Replit могут останавливаться при простое; длинные расчёты лучше выполнять на постоянной вычислительной среде.</p>
+ </section>
+ <div class="stack">
+  <section class="panel"><h2>Текущая серия</h2><div class="statuses"><div class="stat"><small>Статус</small><strong id="status">—</strong></div><div class="stat"><small>Выполнено</small><strong id="progress">—</strong></div><div class="stat"><small>Победитель</small><strong id="best">—</strong></div></div><div id="history" class="history"></div></section>
+  <section class="panel"><h2>Результаты турниров</h2><div id="leader"><p>После завершения здесь появятся победы и средние позиции.</p></div></section>
+  <section class="panel"><h2>Журнал выполнения</h2><pre id="log">Сначала введи ключ доступа и нажми «Подключиться».</pre></section>
+ </div>
+</div><p class="note">Сервер не меняет стратегии ботов. Данные хранятся в <code>output/replit_runs/</code> и не отправляются автоматически в GitHub. Для сравнения воспроизводимости сохраняй одинаковые версии кода, seed, состав ботов и параметры. Перед удалением Replit обязательно скачай ZIP.</p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const DEFAULT_BOTS='split:gto:smart,split:gto:gto,split:gto:tag_punisher,split:gto:maniac_mixed,split:gto:baseline_sane,a17_tag,split:gto:random,split:gto:random_2,split:gto:pressure_filler';
+let current=null,ticker=null;
+function preset(){
+  $('players').value=DEFAULT_BOTS;
+  for(const [id,value] of Object.entries({tournaments:90,parallel:2,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate'}))$(id).value=value;
+}
+function notice(s,bad=false){$('msg').textContent=s;$('msg').style.color=bad?'#ffadb7':'#bdd8f0'}
+function key(){return $('key').value.trim()}
+async function api(path,options={}){
+ const headers={'X-Runner-Key':key(),...(options.body?{'Content-Type':'application/json'}:{})};
+ const response=await fetch(path,{...options,headers});
+ if(!response.ok){let err;try{err=await response.json()}catch{err={error:response.statusText}}throw Error(err.error||response.statusText)}
+ return response;
+}
+function params(){
+ let obj={players:$('players').value.trim(),seat_mode:$('seat_mode').value};
+ for(let id of ['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'])obj[id]=Number($(id).value);
+ return obj;
+}
+function lead(report){
+ if(!report){$('leader').innerHTML='<p>Результат ещё не готов.</p>';return}
+ let rows=report.leaderboard||[];
+ if(!rows.length){$('leader').innerHTML='<p>Нет данных.</p>';return}
+ const table=document.createElement('table');table.className='leader';
+ table.innerHTML='<thead><tr><th>Бот</th><th>Победы</th><th>Win %</th><th>Среднее место</th></tr></thead>';
+ const body=document.createElement('tbody');
+ for(let r of rows){
+   const tr=document.createElement('tr');
+   for(const val of [r.bot,r.wins,r.win_pct_completed==null?'—':r.win_pct_completed.toFixed(1)+'%',r.avg_position_completed==null?'—':r.avg_position_completed.toFixed(2)]){let td=document.createElement('td');td.textContent=String(val);tr.append(td)}
+   body.append(tr);
+ }
+ table.append(body);$('leader').replaceChildren(table);
+}
+function show(data){
+ current=data;
+ $('status').textContent=({running:'Идёт',starting:'Запуск',completed:'Готово',failed:'Ошибка',cancelled:'Отменено',interrupted:'Прервано'})[data.status]||data.status;
+ const matches=(data.log||[]).join('\n').match(/(\d+)\/(\d+) tournaments/g);
+ $('progress').textContent=matches?matches[matches.length-1].replace(' tournaments',''):(data.report?data.report.tournaments_completed+'/'+data.report.tournaments_requested:'—');
+ const leader=data.report?.leaderboard||[];
+ $('best').textContent=leader.length?leader[0].bot:'—';
+ $('log').textContent=(data.log||[]).join('\n')||'Ожидание вывода симулятора...';
+ $('log').scrollTop=$('log').scrollHeight;
+ $('run').disabled=['running','starting'].includes(data.status);
+ $('stop').disabled=!['running','starting'].includes(data.status);
+ $('download').disabled=['running','starting'].includes(data.status);
+ lead(data.report);
+}
+async function refresh(){
+ if(!current||!key())return;
+ try{const r=await api('/api/runs/'+current.id);show(await r.json())}catch(e){notice(e.message,true)}
+}
+async function refreshList(){
+ const response=await api('/api/runs');
+ const data=await response.json();const root=$('history');root.replaceChildren();
+ for(const run of data.runs.slice(0,7)){let btn=document.createElement('button');btn.textContent=run.id+' · '+run.status;btn.onclick=()=>{show(run);refresh()};root.append(btn)}
+ if(!current&&data.runs.length)show(data.runs[0]);
+}
+$('connect').onclick=async()=>{
+ if(!key()){notice('Введи POKER_RUNNER_KEY.',true);return}
+ try{await refreshList();notice('Подключено. Можно запускать турниры.')}catch(e){notice(e.message,true)}
+};
+$('run').onclick=async()=>{
+ try{const response=await api('/api/runs',{method:'POST',body:JSON.stringify(params())});show(await response.json());notice('Серия запущена.');await refreshList()}
+ catch(e){notice(e.message,true)}
+};
+$('stop').onclick=async()=>{
+ if(!current||!confirm('Остановить вычисление?'))return;
+ try{await api('/api/runs/'+current.id+'/cancel',{method:'POST',body:'{}'});notice('Запрошена остановка');await refresh()}catch(e){notice(e.message,true)}
+};
+$('download').onclick=async()=>{
+ if(!current)return;
+ try{
+   notice('Формирую ZIP...');
+   const response=await api('/api/runs/'+current.id+'/download');
+   const blob=await response.blob(),url=URL.createObjectURL(blob);
+   const a=document.createElement('a');a.href=url;a.download='SKACHKOV_'+current.id+'.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+   notice('Архив сохранён.');
+ }catch(e){notice(e.message,true)}
+};
+$('preset').onclick=preset;
+preset();
+fetch('/health').then(r=>r.json()).then(v=>{$('keyNotice').hidden=v.configured}).catch(()=>{});
+ticker=setInterval(()=>{if(current)refresh()},2500);
+</script>
+</body></html>
