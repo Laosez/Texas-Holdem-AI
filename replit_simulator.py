@@ -594,6 +594,131 @@ def import_session(raw: bytes | str | Path) -> dict:
                 raise
 
 
+
+def write_full_backup(stream) -> dict:
+    """Full export of session folders and trash; download it to independent storage."""
+    if any(j["status"] in ("running", "starting") for j in RUNS.values()):
+        raise RuntimeError("Дождись завершения активной серии перед резервным копированием")
+    details = {"format": "SKACHKOV_FULL_BACKUP_V1", "created": now(),
+               "strategy_fingerprint": strategy_fingerprint(),
+               "runs": [], "trash": []}
+    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=3) as archive:
+        for prefix, root in (("runs", OUT), ("trash", OUT / ".trash")):
+            if not root.exists():
+                continue
+            for directory in sorted(root.iterdir()):
+                if not directory.is_dir() or not RUN_ID_RE.fullmatch(directory.name):
+                    continue
+                if not (directory / "job.json").is_file():
+                    continue
+                details[prefix].append(directory.name)
+                for item in sorted(directory.rglob("*")):
+                    if item.is_file() and not item.is_symlink():
+                        arcname = f"{prefix}/{directory.name}/{item.relative_to(directory).as_posix()}"
+                        archive.write(item, arcname=arcname)
+        for name in ("a17_v5.json", "available_bases.json"):
+            catalog = ROOT / "strategy_catalog" / name
+            if catalog.is_file():
+                archive.write(catalog, arcname="reference/" + name)
+        archive.writestr("backup_manifest.json", json.dumps(details, ensure_ascii=False, indent=2))
+    return details
+
+
+def import_full_backup(source: str | Path) -> dict:
+    """Restore archive folders safely without overwriting existing experiments."""
+    if any(j["status"] in ("running", "starting") for j in RUNS.values()):
+        raise RuntimeError("Дождись завершения серии для восстановления")
+    if Path(source).stat().st_size > MAX_ZIP_BODY:
+        raise ValueError("Резервная копия превышает лимит импорта")
+    temp_dir = OUT / (".restore_" + secrets.token_hex(8))
+    temp_dir.mkdir(parents=True, exist_ok=False)
+    committed = []
+    try:
+        with zipfile.ZipFile(source) as archive:
+            entries = archive.infolist()
+            if len(entries) > MAX_ARCHIVE_FILES:
+                raise ValueError("Слишком много файлов в резервной копии")
+            if sum(e.file_size for e in entries) > MAX_ZIP_UNPACKED:
+                raise ValueError("Распакованная копия превышает лимит")
+            if "backup_manifest.json" not in archive.namelist():
+                raise ValueError("Отсутствует backup_manifest.json")
+            manifest = json.loads(archive.read("backup_manifest.json"))
+            if manifest.get("format") != "SKACHKOV_FULL_BACKUP_V1":
+                raise ValueError("Неподдерживаемый формат резервной копии")
+            destinations = {}
+            used_paths = set()
+            for entry in entries:
+                name = entry.filename
+                if name == "backup_manifest.json" or name.startswith("reference/"):
+                    continue
+                segments = name.split("/")
+                if (len(segments) not in (3, 4)
+                        or segments[0] not in ("runs", "trash")
+                        or not RUN_ID_RE.fullmatch(segments[1])
+                        or (len(segments) == 4 and (segments[2] != "_checkpoints"
+                            or not CHECKPOINT_RE.fullmatch("/".join(segments[2:]))))
+                        or (len(segments) == 3 and not ARCHIVE_NAME_RE.fullmatch(segments[2]))
+                        or entry.is_dir() or (entry.external_attr >> 16 & 0o170000) == 0o120000):
+                    raise ValueError("Недопустимый путь в полной резервной копии")
+                if not name.endswith((".json", ".csv", ".log", ".json.gz")):
+                    raise ValueError("Недопустимый тип файла в копии")
+                if name in used_paths:
+                    raise ValueError("Дублирование файла в копии")
+                used_paths.add(name)
+                key = (segments[0], segments[1])
+                if key not in destinations:
+                    new_id = "restore_" + secrets.token_hex(8)
+                    destinations[key] = new_id
+                dest = temp_dir / segments[0] / destinations[key] / "/".join(segments[2:])
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(entry) as incoming, dest.open("wb") as outgoing:
+                    shutil.copyfileobj(incoming, outgoing, length=1024 * 1024)
+            if not destinations:
+                raise ValueError("В резервной копии нет сессий")
+            # Validate every job before promoting any restored directory.
+            for (kind, _old), id_ in destinations.items():
+                stage = temp_dir / kind / id_
+                manifest_file = stage / "job.json"
+                if not manifest_file.is_file():
+                    raise ValueError("В резервной копии отсутствует job.json")
+                job = json.loads(manifest_file.read_text(encoding="utf-8"))
+                if not isinstance(job, dict) or not isinstance(job.get("config"), dict):
+                    raise ValueError("Повреждён манифест сессии")
+                job["id"] = id_
+                if job.get("status") in ("running", "starting"):
+                    job["status"] = "interrupted"
+                manifest_file.write_text(json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8")
+                checksum = stage / "integrity.json"
+                if checksum.is_file():
+                    hashes = json.loads(checksum.read_text(encoding="utf-8")).get("files", {})
+                    if not isinstance(hashes, dict):
+                        raise ValueError("Некорректный SHA-манифест в копии")
+                    for path, sha in hashes.items():
+                        if (not isinstance(path, str) or
+                                not (ARCHIVE_NAME_RE.fullmatch(path) or CHECKPOINT_RE.fullmatch(path))):
+                            raise ValueError("Некорректный путь в SHA-манифесте")
+                        target = stage / path
+                        if not target.is_file() or sha256_file(target) != sha:
+                            raise ValueError("Повреждён файл полной копии: " + path)
+            with MUTEX:
+                for (kind, _old), id_ in destinations.items():
+                    final = (OUT if kind == "runs" else OUT / ".trash") / id_
+                    final.parent.mkdir(parents=True, exist_ok=True)
+                    if final.exists():
+                        raise RuntimeError("Конфликт нового ID при восстановлении")
+                    os.replace(temp_dir / kind / id_, final)
+                    committed.append(id_)
+                    if kind == "runs":
+                        job = json.loads((final / "job.json").read_text(encoding="utf-8"))
+                        logfile = final / "simulation.log"
+                        job["log"] = deque(logfile.read_text(encoding="utf-8", errors="replace").splitlines()[-MAX_LOG_LINES:]
+                                           if logfile.is_file() else [], maxlen=MAX_LOG_LINES)
+                        RUNS[id_] = job
+        return {"restored_count": len(committed), "ids": committed}
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
 def zip_results(job: dict, stream=None) -> bytes | None:
     # Generate ZIP on demand. Avoid archives as part of Git history.
     folder = OUT / job["id"]
@@ -654,6 +779,23 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/catalog":
             self.reply(200, strategy_catalog())
+            return
+        if path == "/api/backup":
+            with MUTEX:
+                if any(j["status"] in ("running", "starting") for j in RUNS.values()):
+                    self.reply(409, {"error": "Сначала заверши текущий запуск"})
+                    return
+            with tempfile.TemporaryFile() as archive:
+                write_full_backup(archive)
+                size = archive.tell()
+                archive.seek(0)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Disposition", 'attachment; filename="SKACHKOV_ALL_SESSIONS.zip"')
+                self.send_header("Content-Length", str(size))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                shutil.copyfileobj(archive, self.wfile, length=1024 * 1024)
             return
         if path == "/api/trash":
             trash = OUT / ".trash"
@@ -737,11 +879,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             size = int(self.headers.get("Content-Length", "0"))
-            limit = MAX_ZIP_BODY if path == "/api/runs/import" else MAX_BODY
+            limit = MAX_ZIP_BODY if path in ("/api/runs/import", "/api/backup/restore") else MAX_BODY
             if size <= 0 or size > limit:
                 self.reply(413, {"error": "Слишком большой запрос"})
                 return
-            if path == "/api/runs/import":
+            if path in ("/api/runs/import", "/api/backup/restore"):
                 with tempfile.NamedTemporaryFile(prefix="poker_upload_", suffix=".zip") as upload:
                     remaining = size
                     while remaining:
@@ -752,7 +894,8 @@ class Handler(BaseHTTPRequestHandler):
                         remaining -= len(chunk)
                     upload.flush()
                     try:
-                        self.reply(201, import_session(upload.name))
+                        self.reply(201, import_session(upload.name) if path == "/api/runs/import"
+                                   else import_full_backup(upload.name))
                     except ValueError as exc:
                         self.reply(400, {"error": str(exc)})
                     except RuntimeError as exc:
