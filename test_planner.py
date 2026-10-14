@@ -139,6 +139,28 @@ class PlanTests(unittest.TestCase):
         result=eq.simulate_hand("AKs",ranges,trials=50,seed=8)
         self.assertTrue(0<=result<=100)
 
+    def test_full_archive_preserves_versioned_strategies(self):
+        import replit_simulator as service
+        with tempfile.TemporaryDirectory() as td:
+            location=Path(td)
+            with patch.object(service,"OUT",location),patch.object(core,"STORE",location/"strategy_plans"):
+                created=core.save_plan(core.preset("builtin:a17_v5","3","rfi"))
+                with tempfile.TemporaryFile() as stream:
+                    summary=service.write_full_backup(stream)
+                    self.assertEqual(summary["strategy_revisions"],1)
+                    stream.seek(0)
+                    self.assertIn("reference/saved_strategies.json",__import__("zipfile").ZipFile(stream).namelist())
+                    stream.seek(0)
+                    import tempfile as temporary
+                    with temporary.NamedTemporaryFile(suffix=".zip") as back:
+                        back.write(stream.read())
+                        back.flush()
+                        restored=service.import_full_backup(back.name)
+                self.assertEqual(restored["strategies_restored"],1)
+                self.assertEqual(restored["strategy_revisions_restored"],1)
+                self.assertEqual(len(core.list_saved()),2)
+                self.assertEqual(core.get_saved(created["ref"])["boxes"]["JTo"],14)
+
     def test_endpoint_request_rejects_unsupported_scenarios(self):
         req={"model":"selected","trials":100,"opponents":[{
             "profile":"builtin:a17_v5","position":"9","scenario":"vs_open","players":9,
