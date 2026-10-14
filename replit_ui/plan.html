@@ -10,11 +10,21 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .btn{padding:9px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.18)}.btn:disabled{opacity:.42;cursor:not-allowed}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.danger{background:#332232;border-color:#835063;color:#ffbdc6}.btn.ghost{background:transparent}.btn.sm{padding:6px 9px;font-size:11px}.buttons{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.note{font-size:11px;color:#9aafc8;margin:9px 0 0}.badge{padding:4px 9px;border:1px solid #587998;border-radius:25px;font-size:11px;color:#b2cbe7}.badge.ok{border-color:#468873;color:#81e1c0}.badge.warn{border-color:#895f3f;color:#f2c693}.muted{color:var(--muted)}
 .profile{background:#10243a;border:1px solid #37516d;border-radius:9px;padding:14px}.profile h3{margin:0 0 11px;font-size:13px}.profile .summary{font-size:11px;color:#8eafcd}
 .oppHead,.oppRow{display:grid;grid-template-columns:27px minmax(160px,1fr) 100px 126px 115px;gap:7px;align-items:center}.oppHead{font-size:10px;color:#a6c1d8;margin:11px 0 5px}.oppRow{margin-bottom:7px}.oppRow .num{font-weight:850;color:#88b4f1}.oppRow select{font-size:11px;padding:8px 5px}
-.filterTop{display:grid;grid-template-columns:minmax(170px,1fr) 155px 120px;gap:11px;align-items:end}.boxList{display:grid;grid-template-columns:repeat(17,minmax(0,1fr));gap:5px;margin-top:13px}.boxItem{background:#18334a;border:1px solid #476079;color:#a9c8e2;font-size:11px;font-weight:800;min-height:35px;border-radius:6px;cursor:pointer}.boxItem.active{background:#2d6694;color:#fff;border-color:#79b6ea}.boxItem.dragover{border:2px dashed #bce5ff}.boxList+.note{margin-top:8px}
+.filterTop{display:grid;grid-template-columns:minmax(170px,1fr) 155px 120px;gap:11px;align-items:end}.boxList{display:grid;grid-template-columns:repeat(17,minmax(0,1fr));gap:5px;margin-top:13px}.boxItem{background:#18334a;border:1px solid #476079;color:#a9c8e2;font-size:11px;font-weight:800;min-height:35px;border-radius:6px;cursor:pointer}.boxItem.active{background:#503a73;color:#fff;border-color:#a891d1}.boxItem.dragover{border:2px dashed #bce5ff}.boxList+.note{margin-top:8px}
 .matrixGrid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;min-width:600px}.matrixViewport{overflow-x:auto;padding:5px 2px 10px}.matrixPane{min-width:0;border:1px solid #304b64;background:#0d1e30;padding:13px;border-radius:9px}.matrixPane h3{margin:0 0 8px;font-size:13px}
 .hand{position:relative;min-width:0;aspect-ratio:1.06;max-height:64px;border:1px solid #38566e;background:#243c54;color:#eff7ff;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2px;cursor:pointer;gap:1px;font:inherit;font-weight:800;font-size:12px}.hand small{font-size:9px;color:#d0e5f8;opacity:.8;font-weight:600}.hand:focus-visible{outline:2px solid #a4d1ff}.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dim{opacity:.23}
 .hand.equityHit::after{content:"";position:absolute;inset:3px;border:2px dashed #efbf55;border-radius:4px;pointer-events:none;z-index:2}
-.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.boxhit{border-color:#b1d9fa;border-width:2px}.boxItem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.boxItem .coverage{font-size:10px;font-weight:700;color:#b8ecce}.boxItem .coverage.missing{color:#91a6bd}.hand.boxhit{outline:2px solid #a7d8ff;outline-offset:-2px}.hand.boxhit.dim{opacity:.72}.hand.boxhit.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dragging{opacity:.25}
+.hand.selected{outline:2px solid #fff;outline-offset:-2px}
+.boxItem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.boxItem .coverage{font-size:10px;font-weight:700;color:#b8ecce}
+.boxItem .coverage.missing{color:#91a6bd}
+.hand.played{border:2px solid #70b7ff;background-image:linear-gradient(140deg,rgba(65,159,253,var(--play-alpha)),rgba(18,91,192,var(--play-alpha-low)))}
+.hand.boxhit::before{content:"";position:absolute;left:0;top:24%;height:52%;width:3px;border-radius:4px;background:#d2a9ff;pointer-events:none;z-index:3}
+.hand .handBoxTag{position:absolute;top:2px;right:3px;font-size:8px;line-height:1.2;font-weight:800;letter-spacing:-.2px;color:#a9b9ca;opacity:.95;pointer-events:none}
+.hand.boxhit .handBoxTag{color:#e0c0ff}
+.hand.played .handBoxTag{color:#e1efff}
+.hand.boxhit.played .handBoxTag{color:#f1ceff}
+.hand.dragging{opacity:.25}
 .comparisonCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,610px),1fr));gap:12px}
 .comparisonCard{min-width:0}
 .comparisonTitle{font-size:14px;font-weight:800;color:#edf5ff}
@@ -65,18 +75,19 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <p class="note">Каждый диапазон задаётся самостоятельно. Можно сравнивать даже одинаковые позиции; это исследовательская модель, не реальная рассадка.</p></div></div>
 <div class="statusLine" role="status" id="feedback"></div>
 </section>
-<section class="panel"><div class="heading"><h2><span class="index">02 / </span>Equity-фильтр + A17</h2><span class="badge">Подсветка не редактирует стратегию</span></div>
+<section class="panel"><div class="heading"><h2><span class="index">02 / </span>Equity-фильтр</h2><span class="badge">Подсветка не редактирует стратегию</span></div>
 <div class="filterTop"><div class="field"><label for="equityModel">Источник equity</label><select id="equityModel"><option value="selected">Выбранные соперники · Multiway</option><option value="any_two">Any Two · N соперников</option><option value="gto_heuristic">GTO Bot · эвристические диапазоны</option></select></div>
 <div class="field"><label for="trials">Точность Monte Carlo</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div>
 <button class="btn primary" id="computeAll">Рассчитать Monte Carlo</button></div>
 <div class="fields" style="margin-top:12px"><div class="field wide"><div class="right" style="justify-content:space-between"><label for="equityMin">Золотая пунктирная рамка: equity не ниже</label><strong id="minLabel">40%</strong></div><input id="equityMin" type="range" min="0" max="100" step="1" value="40"></div></div>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
-<div class="heading" style="margin-top:19px"><strong>17 коробок A17</strong><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div><div id="boxes" class="boxList"></div><p class="note">Под названием каждой коробки показывается доля её комбинаций, проходящих порог equity (не доля всего equity-диапазона). Клик — выделить/снять диапазон. Можно выбрать несколько. Перетащите руку из матрицы в коробку для переноса; базовая A17 V5 остаётся неизменной.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option></select></div></div>
+<div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>17 коробок A17</strong><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div><div id="boxes" class="boxList"></div><p class="note">Под названием каждой коробки показывается доля её комбинаций, проходящих порог equity (не доля всего equity-диапазона). Клик — выбрать или снять коробку, фиолетовый маркер слева отмечает её руки на матрице. Процент под номером — доля комбинаций коробки выше equity-порога. Перетащите руку в коробку для переноса.</p>
+</div>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
-<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Заливка = назначенное действие. Золотой пунктир = equity не ниже порога. Голубой контур = выбранная коробка A17. Руки ниже порога не затемняются.</p>
+<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Заливка = назначенное действие. Золотой пунктир = equity не ниже порога. Синяя рамка = рука входит в активный диапазон стратегии (хотя бы с ненулевой частотой). Интенсивность синего градиента = частота участия. Номер A01–A17 в правом верхнем углу = коробка данной стратегии. Фиолетовая метка слева = выделенная коробка нашей стратегии. Руки ниже equity-порога не затемняются.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Отдельно по каждому сопернику · HU + Multiway</span></div>
 <div class="profile" style="margin-bottom:14px"><h3>Матрица equity стратегий · каждая с каждой</h3>
@@ -200,6 +211,12 @@ function drawBoxes(){
   root.append(btn);
  }
 }
+function knownActivePercent(doc,hand){
+ const acts=doc?.hands?.[hand];
+ if(!acts||!Object.keys(acts).length)return null;
+ const share=Object.entries(acts).reduce((s,[action,freq])=>s+(action==='fold'?0:Number(freq)||0),0);
+ return Math.min(100,Math.max(0,share));
+}
 function matrix(root,doc){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
@@ -208,12 +225,20 @@ function matrix(root,doc){
   const actions=doc.hands[h],action=major(actions),b=doc.boxes[h],button=el('button','hand '+action,h);
   button.type='button';button.title=handTooltip(h,doc);
   button.setAttribute('aria-label',button.title);
-  // The selected A17 boxes belong to HERO. Highlight the same hand classes
-  // on both matrices even if the opponent has different box geometry.
+  // A17 selection is a violet left-edge marker. Blue border exclusively means played.
+  // For the opponent pane, highlighted memberships still follow HERO's box layout.
   const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
+  const participation=knownActivePercent(doc,h);
+  if(participation!==null&&participation>0){
+   button.classList.add('played');
+   button.style.setProperty('--play-alpha',(0.12+0.40*participation/100).toFixed(3));
+   button.style.setProperty('--play-alpha-low',(0.04+0.24*participation/100).toFixed(3));
+  }
+  const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
+  button.append(tag);
   const hasEq=Object.prototype.hasOwnProperty.call(eq,h);
   const hit=hasEq&&eq[h]>=min;
-  // The A17 box overlay is an outline only, never an opacity filter.
+  // A17 is now an accent marker; no blue outline is associated with boxes.
   if(boxhit)button.classList.add('boxhit');
   if(hit)button.classList.add('equityHit');
   // Below-threshold hands retain original action colors.
@@ -231,7 +256,10 @@ function matrix(root,doc){
    displayed=ours===null||against===null?'—':(ours-against>0?'+':'')+(ours-against).toFixed(0)+' п.п.';
   }
   button.append(el('small','',displayed));
-  button.title += ' · '+$('cellMetric').selectedOptions[0].textContent+': '+displayed;
+  button.title += ' · '+$('cellMetric').selectedOptions[0].textContent+': '+displayed+
+    (participation===null?' · Действие не определено':' · Участие: '+participation.toFixed(1)+'%')+
+    (boxhit?' · Коробка выбрана':'');
+  button.setAttribute('aria-label',button.title);
   button.onclick=()=>{selected=h;drawMatrices();paintEditor()};
   button.draggable=true;
   button.ondragstart=e=>e.dataTransfer.setData('text/plain',h);
