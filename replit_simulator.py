@@ -257,6 +257,41 @@ def stats_for_folder(folder: Path) -> dict:
     return observed
 
 
+def audit_session(job: dict) -> dict:
+    """Inspect actual persisted files, reports and tournament checkpoint counts."""
+    folder = OUT / job["id"]
+    expected = [
+        "tournament_report.json", "performance.json", "metadata.json",
+        "tournaments.csv", "tournament_players.csv", "leaderboard.csv",
+        "summary_all.csv", "by_hand_169_all.csv", "by_hand_position_169_all.csv",
+        "simulation.log", "job.json",
+    ]
+    partial = job.get("status") not in ("completed", "imported")
+    missing = [name for name in (["job.json"] if partial else expected)
+               if not (folder / name).is_file()]
+    checked = sum(1 for path in folder.rglob("*") if path.is_file() and not path.is_symlink()) if folder.exists() else 0
+    checkpoints = folder / "_checkpoints"
+    saved = len(list(checkpoints.glob("[0-9][0-9][0-9][0-9][0-9][0-9].json.gz"))) if checkpoints.is_dir() else 0
+    observations = []
+    if not partial:
+        try:
+            real = json.loads((folder / "tournament_report.json").read_text(encoding="utf-8"))
+            completed = real["tournaments_completed"]
+            if sum(r["wins"] for r in real["leaderboard"]) != completed:
+                observations.append("Число побед не равно числу завершённых турниров")
+            if completed + real["tournaments_unfinished"] != real["tournaments_requested"]:
+                observations.append("Несогласованное количество турниров")
+        except (OSError, ValueError, KeyError, TypeError):
+            observations.append("Не удалось проверить tournament_report.json")
+    if partial and saved:
+        observations.append(f"Есть {saved} сохранённых checkpoints; возможен рестарт")
+    return {
+        "id": job["id"], "status": job.get("status"), "files": checked,
+        "checkpoints": saved, "missing": missing, "observations": observations,
+        "ok": not missing and not any("не " in x.lower() or "несоглас" in x.lower() for x in observations),
+    }
+
+
 def worker(job: dict) -> None:
     config = job["config"]
     output = OUT / job["id"]
@@ -338,6 +373,10 @@ def start_run(config: dict) -> dict:
     with MUTEX:
         if any(j["status"] in {"running", "starting"} for j in RUNS.values()):
             raise RuntimeError("Уже запущена серия турниров; дождитесь завершения или остановите её")
+        OUT.mkdir(parents=True, exist_ok=True)
+        free = shutil.disk_usage(OUT).free
+        if free < 40 * 1024 * 1024:
+            raise RuntimeError("На томе с результатами меньше 40 МБ свободного места; скачай резервные ZIP и освободи место")
         run_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S") + "_" + secrets.token_hex(3)
         job = {
             "id": run_id, "status": "starting", "created": now(), "updated": now(),
@@ -575,10 +614,16 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/integrity":
             with MUTEX:
                 ids = sorted(RUNS)
-            files = {run_id: sorted(p.name for p in (OUT / run_id).iterdir() if p.is_file())
-                     for run_id in ids if (OUT / run_id).is_dir()}
-            self.reply(200, {"session_count": len(ids), "files": files,
-                             "volume_path": str(OUT), "strategy_fingerprint": strategy_fingerprint()})
+            with MUTEX:
+                inspections = [audit_session(RUNS[run_id]) for run_id in ids if run_id in RUNS]
+            disk = shutil.disk_usage(OUT)
+            self.reply(200, {"session_count": len(inspections),
+                             "healthy_sessions": sum(x["ok"] for x in inspections),
+                             "issues": [x for x in inspections if not x["ok"]],
+                             "sessions": inspections,
+                             "volume": {"path": str(OUT), "total_bytes": disk.total,
+                                        "used_bytes": disk.used, "free_bytes": disk.free},
+                             "strategy_fingerprint": strategy_fingerprint()})
             return
         if path == "/api/runs":
             with MUTEX:
