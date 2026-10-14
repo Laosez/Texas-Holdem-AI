@@ -22,7 +22,7 @@ def create_bot(btype: str) -> BotAdapter:
       smart              SmartBot (heuristic)
       split:pre:post      Independent street bases, e.g. split:gto:tag_punisher
       gto_fixed           Legacy GTO charts with correct facing-raise boundary
-      a17_preflop         A17 9-max positional RFI, full-range SB limp
+      a17_preflop         A17 2–9-max positional RFI; SB raises A01-A16
       a17_tag             a17_preflop + tag_punisher postflop
       final, final_survival
                           TournamentHybridBot survival profile
