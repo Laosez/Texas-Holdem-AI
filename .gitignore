@@ -42,3 +42,7 @@ output/.algo-mccfr-findings.txt
 
 # Phase 5 ablation eval run logs (reproducible via eval_final_bot.py --p5-arms all)
 eval_runs/
+
+# Replit experiment artifacts (local only)
+output/replit_runs/
+output/replit_smoke/
