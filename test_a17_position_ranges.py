@@ -1,11 +1,13 @@
-"""A17 9-max positional RFI and full-range SB limp, from user's 169-hand JSON."""
+"""A17 opening ranges across tournament sizes, and SB A01-A16 raises."""
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from bots import create_bot
 from bots.a17_preflop_bot import A17PreflopBot
-from bots.a17_ranges import A17_HAND_TO_BOX, A17_MAX_OPEN_BOX_9MAX
+from bots.a17_ranges import (
+    A17_HAND_TO_BOX, A17_MAX_OPEN_BOX_9MAX, A17_SB_MAX_RAISE_BOX,
+)
 
 
 def _view(hand, position="9", n=9, history=(), to_call=2, legal=None):
@@ -24,7 +26,7 @@ def _view(hand, position="9", n=9, history=(), to_call=2, legal=None):
         else:
             ranks = [(hand[0], "s"), (hand[1], "d")]
     return SimpleNamespace(
-        me="P9", street="preflop", position=position,
+        me=f"P{n}", street="preflop", position=position,
         hole_cards=ranks, pot=3, board=[],
         to_call=to_call, legal_actions=legal,
         stacks={f"P{i}": 500 for i in range(1, n + 1)},
@@ -69,15 +71,50 @@ class A17PositionRangesTests(unittest.TestCase):
                 self.assertEqual(bot.act(_view(inside, position=pos)).type, "raise")
                 self.assertEqual(bot.act(_view(outside, position=pos)).type, "fold")
 
-    def test_sb_completes_every_hand_in_unopened_or_limped_pot(self):
+    def test_sb_raises_a01_a16_and_calls_a17_at_every_stage(self):
         bot = create_bot("a17_tag")
-        for h in ("AA", "72o", "32o"):
-            for history in ((), ({"street": "preflop", "pid": "P1", "type": "call"},)):
-                with self.subTest(hand=h, history=bool(history)):
-                    self.assertEqual(
-                        bot.act(_view(h, position="SB", history=history)).type,
-                        "call",
-                    )
+        self.assertEqual(A17_SB_MAX_RAISE_BOX, 16)
+        nraise = sum(
+            6 if len(hand) == 2 else 4 if hand.endswith("s") else 12
+            for hand, box in A17_HAND_TO_BOX.items()
+            if box <= A17_SB_MAX_RAISE_BOX
+        )
+        self.assertEqual(nraise, 918)
+        for n in range(2, 10):
+            for history in (
+                (),
+                ({"street": "preflop", "pid": "P1", "type": "call"},),
+                ({"street": "preflop", "pid": "P1", "type": "raise"},),
+            ):
+                for hand in ("AA", "J8o", "74o"):
+                    with self.subTest(n=n, action="raise", hand=hand, history=history):
+                        self.assertEqual(
+                            bot.act(_view(hand, position="SB", n=n, history=history)).type,
+                            "raise",
+                        )
+                for hand in ("72o", "32o"):
+                    with self.subTest(n=n, action="call", hand=hand, history=history):
+                        self.assertEqual(
+                            bot.act(_view(hand, position="SB", n=n, history=history)).type,
+                            "call",
+                        )
+
+    def test_sb_legal_action_fallback_when_raise_unavailable(self):
+        bot = create_bot("a17_tag")
+        call_only = [{"type": "fold"}, {"type": "call"}]
+        check_only = [{"type": "check"}]
+        self.assertEqual(
+            bot.act(_view("AA", position="SB", n=2, legal=call_only)).type,
+            "call",
+        )
+        self.assertEqual(
+            bot.act(_view("AA", position="SB", n=2, to_call=0, legal=check_only)).type,
+            "check",
+        )
+        self.assertEqual(
+            bot.act(_view("72o", position="SB", n=2, to_call=0, legal=check_only)).type,
+            "check",
+        )
 
     def test_preflop_prior_limp_uses_fixed_gto_instead_of_rfi(self):
         bot = create_bot("a17_tag")
@@ -87,27 +124,49 @@ class A17PositionRangesTests(unittest.TestCase):
         with patch("bots.gto_fixed_bot.random.random", return_value=0.90):
             self.assertEqual(bot.act(_view("98s", history=history)).type, "call")
 
-    def test_facing_real_raise_does_not_use_a17_rfi_or_sb_limp(self):
+    def test_facing_real_raise_keeps_old_defense_off_sb(self):
         bot = create_bot("a17_tag")
         history = ({"street": "preflop", "pid": "P1", "type": "raise"},)
         with patch("bots.gto_fixed_bot.random.random", return_value=0.90):
             self.assertEqual(bot.act(_view("98s", history=history)).type, "fold")
-            self.assertEqual(bot.act(_view("72o", position="SB", history=history)).type, "fold")
-
-    def test_short_handed_and_bb_use_existing_fixed_gto(self):
-        bot = create_bot("a17_tag")
-        baseline = create_bot("gto_fixed")
-        short = _view("72o", position="8", n=8)
-        with patch("bots.gto_fixed_bot.random.random", return_value=0.90):
-            self.assertEqual(bot.act(short), baseline.act(short))
-            self.assertEqual(bot.act(short).type, "call")
-
-        bb = _view(
-            "72o", position="BB", n=9, to_call=0,
-            legal=[{"type": "check"}, {"type": "raise", "min": 4, "max": 100}],
+        # Unlike numeric positions, SB follows its user-defined always-raise rule.
+        self.assertEqual(
+            bot.act(_view("J8o", position="SB", history=history)).type,
+            "raise",
         )
-        with patch("bots.gto_fixed_bot.random.random", return_value=0.50):
-            self.assertEqual(bot.act(bb).type, "check")
+
+    def test_short_handed_numeric_positions_keep_same_cutoffs(self):
+        bot = create_bot("a17_tag")
+        positions = [
+            ("9", "98s", "KJo"),
+            ("8", "98s", "KJo"),
+            ("7", "98s", "KJo"),
+            ("6", "Q9o", "K2s"),
+            ("5", "A2o", "Q2s"),
+            ("4", "T9o", "K8o"),
+            ("3", "K8o", "J8o"),
+        ]
+        for n in range(3, 10):
+            for pos, inside, outside in positions:
+                if int(pos) > n:
+                    continue
+                with self.subTest(n=n, position=pos):
+                    self.assertEqual(
+                        bot.act(_view(inside, position=pos, n=n)).type, "raise"
+                    )
+                    self.assertEqual(
+                        bot.act(_view(outside, position=pos, n=n)).type, "fold"
+                    )
+
+    def test_bb_remains_fixed_gto_even_on_short_handed_tables(self):
+        bot = create_bot("a17_tag")
+        for n in (2, 4, 9):
+            bb = _view(
+                "72o", position="BB", n=n, to_call=0,
+                legal=[{"type": "check"}, {"type": "raise", "min": 4, "max": 100}],
+            )
+            with patch("bots.gto_fixed_bot.random.random", return_value=0.50):
+                self.assertEqual(bot.act(bb).type, "check")
 
     def test_base_gto_controls_remain_distinct_from_user_a17_policy(self):
         control = create_bot("split:gto:tag_punisher")
