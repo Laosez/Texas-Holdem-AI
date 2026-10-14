@@ -257,6 +257,26 @@ def stats_for_folder(folder: Path) -> dict:
     return observed
 
 
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as file:
+        for block in iter(lambda: file.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def write_integrity_manifest(folder: Path) -> None:
+    files = {}
+    for file in sorted(folder.rglob("*")):
+        if file.is_file() and not file.is_symlink() and file.name not in ("job.json", "integrity.json"):
+            files[str(file.relative_to(folder))] = sha256_file(file)
+    target = folder / "integrity.json"
+    tmp = target.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"format": "SKACHKOV_INTEGRITY_V1", "files": files},
+                              ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, target)
+
+
 def audit_session(job: dict) -> dict:
     """Inspect actual persisted files, reports and tournament checkpoint counts."""
     folder = OUT / job["id"]
@@ -283,12 +303,29 @@ def audit_session(job: dict) -> dict:
                 observations.append("Несогласованное количество турниров")
         except (OSError, ValueError, KeyError, TypeError):
             observations.append("Не удалось проверить tournament_report.json")
+    checksum_file = folder / "integrity.json"
+    if checksum_file.is_file():
+        try:
+            manifest = json.loads(checksum_file.read_text(encoding="utf-8"))
+            files = manifest.get("files")
+            if not isinstance(files, dict):
+                raise ValueError("Неправильная структура SHA")
+            for name, expected_sha in files.items():
+                path = folder / name
+                if not path.is_file() or sha256_file(path) != expected_sha:
+                    observations.append("SHA-256 отличается или файл отсутствует: " + name)
+        except (OSError, ValueError, TypeError):
+            observations.append("Невозможно прочитать integrity.json")
+    elif not partial:
+        observations.append("Нет SHA-256 манифеста (историческая сессия)")
     if partial and saved:
         observations.append(f"Есть {saved} сохранённых checkpoints; возможен рестарт")
     return {
         "id": job["id"], "status": job.get("status"), "files": checked,
         "checkpoints": saved, "missing": missing, "observations": observations,
-        "ok": not missing and not any("не " in x.lower() or "несоглас" in x.lower() for x in observations),
+        "ok": not missing and not any(
+            x.startswith(("SHA-256", "Невозможно", "Не удалось", "Несогласованное", "Число побед"))
+            for x in observations),
     }
 
 
@@ -342,6 +379,8 @@ def worker(job: dict) -> None:
             exit_code = proc.wait()
         report_file = output / "tournament_report.json"
         report = json.loads(report_file.read_text(encoding="utf-8")) if report_file.exists() else None
+        if report is not None and exit_code == 0:
+            write_integrity_manifest(output)
         with MUTEX:
             job["returncode"] = exit_code
             job["report"] = report
@@ -520,6 +559,19 @@ def import_session(raw: bytes | str | Path) -> dict:
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     with archive.open(entry) as incoming, dest.open("wb") as outgoing:
                         shutil.copyfileobj(incoming, outgoing, length=1024 * 1024)
+                integrity = folder / "integrity.json"
+                if integrity.is_file():
+                    check = json.loads(integrity.read_text(encoding="utf-8"))
+                    hashes = check.get("files", {})
+                    if not isinstance(hashes, dict):
+                        raise ValueError("Неверный SHA-256 манифест")
+                    for name, sha in hashes.items():
+                        if (not isinstance(name, str) or
+                                not (ARCHIVE_NAME_RE.fullmatch(name) or CHECKPOINT_RE.fullmatch(name))):
+                            raise ValueError("Неподдерживаемый путь в SHA-256 манифесте")
+                        file = folder / name
+                        if not file.is_file() or sha256_file(file) != sha:
+                            raise ValueError("Контрольная сумма ZIP не совпадает: " + name)
                 config = manifest.get("config") or {}
                 if not isinstance(config, dict):
                     config = {}
