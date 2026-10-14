@@ -18,7 +18,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .boxItem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .boxItem .coverage{font-size:10px;font-weight:700;color:#b8ecce}
 .boxItem .coverage.missing{color:#91a6bd}
-.hand.played{border:2px solid #70b7ff;background-image:linear-gradient(140deg,rgba(65,159,253,var(--play-alpha)),rgba(18,91,192,var(--play-alpha-low)))}
+
 .hand.boxhit::before{content:"";position:absolute;left:0;top:24%;height:52%;width:3px;border-radius:4px;background:#d2a9ff;pointer-events:none;z-index:3}
 .hand .handBoxTag{position:absolute;top:2px;right:3px;font-size:8px;line-height:1.2;font-weight:800;letter-spacing:-.2px;color:#a9b9ca;opacity:.95;pointer-events:none}
 .hand.boxhit .handBoxTag{color:#e0c0ff}
@@ -52,6 +52,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 
 
 .hand.none{background:#203144}.hand.fold{background:#334159}.hand.open{background:#245e9a}.hand.limp{background:#7755a3}.hand.call{background:#1d8178}.hand.threebet{background:#99652e}.hand.fourbet{background:#94516f}.hand.push{background:#a24d73}
+.hand.played{border:2px solid #70b7ff;background-image:linear-gradient(140deg,rgba(65,159,253,var(--play-alpha)),rgba(18,91,192,var(--play-alpha-low)))}
 .matrixOptions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.matrixOptions select{width:auto}.matrixLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.matrixLayout.double{grid-template-columns:repeat(2,minmax(0,1fr))}.matrixLayout.double .matrixGrid{min-width:480px;gap:2px}.matrixLayout.double .hand{font-size:10px;max-height:43px}.matrixLayout.double .hand small{font-size:8px}
 .stat{background:#10243b;border:1px solid #36516e;padding:13px;border-radius:8px;min-width:0}.stat span{display:block;color:#a4bbd3;font-size:10px}.stat strong{font-size:21px;font-variant-numeric:tabular-nums}.stat small{display:block;color:#9ab0ca;font-size:10px}
 .editorHead{display:flex;justify-content:space-between;gap:20px;align-items:center}.bigHand{font-size:40px;font-weight:850;letter-spacing:-2px}.actionGrid{display:grid;grid-template-columns:repeat(4,minmax(80px,1fr));gap:9px}.actionGrid input{text-align:right}.actionGrid label{font-size:11px}.handStatus{padding:10px 12px;border:1px solid #3a5771;border-radius:8px;background:#0e2334}.progress{height:8px;background:#0a1825;border:1px solid #304a65;border-radius:99px;overflow:hidden}.progress>div{height:100%;width:0;background:#5f9fdb;transition:width .3s}
