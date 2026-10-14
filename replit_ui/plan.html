@@ -12,7 +12,27 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .oppHead,.oppRow{display:grid;grid-template-columns:27px minmax(160px,1fr) 100px 126px 115px;gap:7px;align-items:center}.oppHead{font-size:10px;color:#a6c1d8;margin:11px 0 5px}.oppRow{margin-bottom:7px}.oppRow .num{font-weight:850;color:#88b4f1}.oppRow select{font-size:11px;padding:8px 5px}
 .filterTop{display:grid;grid-template-columns:minmax(170px,1fr) 155px 120px;gap:11px;align-items:end}.boxList{display:grid;grid-template-columns:repeat(17,minmax(0,1fr));gap:5px;margin-top:13px}.boxItem{background:#18334a;border:1px solid #476079;color:#a9c8e2;font-size:11px;font-weight:800;min-height:35px;border-radius:6px;cursor:pointer}.boxItem.active{background:#2d6694;color:#fff;border-color:#79b6ea}.boxItem.dragover{border:2px dashed #bce5ff}.boxList+.note{margin-top:8px}
 .matrixGrid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;min-width:600px}.matrixViewport{overflow-x:auto;padding:5px 2px 10px}.matrixPane{min-width:0;border:1px solid #304b64;background:#0d1e30;padding:13px;border-radius:9px}.matrixPane h3{margin:0 0 8px;font-size:13px}
-.hand{position:relative;min-width:0;aspect-ratio:1.06;max-height:64px;border:1px solid #38566e;background:#243c54;color:#eff7ff;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2px;cursor:pointer;gap:1px;font:inherit;font-weight:800;font-size:12px}.hand small{font-size:9px;color:#d0e5f8;opacity:.8;font-weight:600}.hand:focus-visible{outline:2px solid #a4d1ff}.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dim{opacity:.23}.hand.hit{box-shadow:inset 0 0 0 2px #a4ddb8}.hand.boxhit{border-color:#b1d9fa;border-width:2px}.boxItem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.boxItem .coverage{font-size:10px;font-weight:700;color:#b8ecce}.boxItem .coverage.missing{color:#91a6bd}.hand.boxhit{outline:2px solid #a7d8ff;outline-offset:-2px}.hand.boxhit.dim{opacity:.72}.hand.dragging{opacity:.25}
+.hand{position:relative;min-width:0;aspect-ratio:1.06;max-height:64px;border:1px solid #38566e;background:#243c54;color:#eff7ff;border-radius:6px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2px;cursor:pointer;gap:1px;font:inherit;font-weight:800;font-size:12px}.hand small{font-size:9px;color:#d0e5f8;opacity:.8;font-weight:600}.hand:focus-visible{outline:2px solid #a4d1ff}.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dim{opacity:.23}
+.hand.equityHit::after{content:"";position:absolute;inset:3px;border:2px dashed #efbf55;border-radius:4px;pointer-events:none;z-index:2}
+.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.boxhit{border-color:#b1d9fa;border-width:2px}.boxItem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.boxItem .coverage{font-size:10px;font-weight:700;color:#b8ecce}.boxItem .coverage.missing{color:#91a6bd}.hand.boxhit{outline:2px solid #a7d8ff;outline-offset:-2px}.hand.boxhit.dim{opacity:.72}.hand.dragging{opacity:.25}
+.comparisonCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,610px),1fr));gap:12px}
+.comparisonCard{min-width:0}
+.comparisonTitle{font-size:14px;font-weight:800;color:#edf5ff}
+.comparisonMetrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0}
+.comparisonMetrics small{background:#0c1c2e;border-radius:5px;padding:6px;color:#b1cce7;font-size:11px}
+.comparisonLegend{display:flex;flex-wrap:wrap;gap:9px;margin:8px 0;font-size:10px;color:#b5c9de}
+.comparisonLegend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-2px;margin-right:4px}
+.comparisonViewport{overflow-x:auto;max-width:100%}
+.comparisonGrid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));min-width:440px;gap:2px}
+.comparisonCell{aspect-ratio:1.18;min-width:0;border:1px solid #38566e;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;color:#f0f7ff;cursor:pointer;font:800 10px/1.2 Inter,system-ui,sans-serif}
+.comparisonCell small{display:block;font-size:8px;line-height:1.2;color:#d1deea}
+.comparisonCell.equal{background:#1d5b52}.comparisonCell.heroMore{background:#275985}.comparisonCell.oppMore{background:#784355}
+.comparisonCell.bothFold{background:#223348;color:#a9b8c8}
+.comparisonCell.unknown{background:repeating-linear-gradient(135deg,#233347,#233347 5px,#1a283a 5px,#1a283a 10px);color:#a3b5c6}
+.comparisonCell.actionDiff{box-shadow:inset 0 0 0 2px #e0b76b}
+.comparisonCell.selected{outline:2px solid white;outline-offset:-2px}
+.comparisonCell:hover{filter:brightness(1.22)}
+
 .hand.none{background:#203144}.hand.fold{background:#334159}.hand.open{background:#245e9a}.hand.limp{background:#7755a3}.hand.call{background:#1d8178}.hand.threebet{background:#99652e}.hand.fourbet{background:#94516f}.hand.push{background:#a24d73}
 .matrixOptions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.matrixOptions select{width:auto}.matrixLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.matrixLayout.double{grid-template-columns:repeat(2,minmax(0,1fr))}.matrixLayout.double .matrixGrid{min-width:480px;gap:2px}.matrixLayout.double .hand{font-size:10px;max-height:43px}.matrixLayout.double .hand small{font-size:8px}
 .stat{background:#10243b;border:1px solid #36516e;padding:13px;border-radius:8px;min-width:0}.stat span{display:block;color:#a4bbd3;font-size:10px}.stat strong{font-size:21px;font-variant-numeric:tabular-nums}.stat small{display:block;color:#9ab0ca;font-size:10px}
@@ -41,19 +61,19 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="filterTop"><div class="field"><label for="equityModel">Источник equity</label><select id="equityModel"><option value="selected">Выбранные соперники · Multiway</option><option value="any_two">Any Two · N соперников</option><option value="gto_heuristic">GTO Bot · эвристические диапазоны</option></select></div>
 <div class="field"><label for="trials">Точность Monte Carlo</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div>
 <button class="btn primary" id="computeAll">Рассчитать Monte Carlo</button></div>
-<div class="fields" style="margin-top:12px"><div class="field wide"><div class="right" style="justify-content:space-between"><label for="equityMin">Подсвечивать руки с equity не ниже</label><strong id="minLabel">40%</strong></div><input id="equityMin" type="range" min="0" max="100" step="1" value="40"></div></div>
+<div class="fields" style="margin-top:12px"><div class="field wide"><div class="right" style="justify-content:space-between"><label for="equityMin">Золотая пунктирная рамка: equity не ниже</label><strong id="minLabel">40%</strong></div><input id="equityMin" type="range" min="0" max="100" step="1" value="40"></div></div>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 <div class="heading" style="margin-top:19px"><strong>17 коробок A17</strong><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div><div id="boxes" class="boxList"></div><p class="note">Под названием каждой коробки показывается доля её комбинаций, проходящих порог equity (не доля всего equity-диапазона). Клик — выделить/снять диапазон. Можно выбрать несколько. Перетащите руку из матрицы в коробку для переноса; базовая A17 V5 остаётся неизменной.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select></div></div>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
-<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Цвет ячейки = преобладающее назначенное действие. Голубая рамка = выбранная коробка, зелёная = equity выше порога.</p>
+<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Заливка = назначенное действие. Золотой пунктир = equity не ниже порога. Голубой контур = выбранная коробка A17. Руки ниже порога не затемняются.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Отдельно по каждому сопернику · HU + Multiway</span></div>
-<div id="perOpponentComparison" class="matrixLayout" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px"></div>
+<div id="perOpponentComparison" class="comparisonCards"></div>
 <div class="thirds" style="margin-top:12px"><div class="stat"><span>Equity нашего диапазона vs все соперники одновременно</span><strong id="compEquity">—</strong><small>Совместная Monte Carlo-раздача, не среднее HU</small></div><div class="stat"><span>Число соперников</span><strong id="comparisonCount">—</strong><small>Выбраны в блоке 02</small></div><div class="stat"><span>Расчёт vs все соперники</span><small id="actualState">Ожидание общего расчёта</small></div></div>
-<p class="note">Overlap — взвешенное совпадение диапазонов. Equity — доля банка при выставлении без ставок, fold equity и ICM. Индивидуальные HU рассчитываются отдельно; multiway — совместно.</p>
+<p class="note">В матрицах сравниваются частоты участия (любое действие, кроме Fold) для одной и той же руки; зелёный — одинаковая частота, синий — мы участвуем чаще, розовый — соперник чаще. Золотой сплошной контур — различаются частоты конкретных действий. Пустая стратегия обозначается «?», а не Fold. Overlap взвешен по комбинациям; HU и Multiway Equity — отдельные расчёты.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">05 / </span>Редактор выбранной руки</h2><div class="buttons"><button class="btn sm ghost" id="undo" disabled>↶ Отменить</button><button class="btn sm ghost" id="resetHand">Снять назначение</button></div></div>
 <div class="two"><div class="profile"><div class="editorHead"><div><span class="small">СТАРТОВАЯ РУКА</span><div id="selectedHand" class="bigHand">AQs</div><span id="handCombos" class="muted">4 комбинации</span></div>
@@ -182,12 +202,12 @@ function matrix(root,doc){
   const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   const hasEq=Object.prototype.hasOwnProperty.call(eq,h);
   const hit=hasEq&&eq[h]>=min;
-  if(selectedBoxes.size&&!boxhit)button.classList.add('dim');
+  // The A17 box overlay is an outline only, never an opacity filter.
   if(boxhit)button.classList.add('boxhit');
-  if(hit)button.classList.add('hit');
-  if(hasEq&&eq[h]<min)button.classList.add('dim');
+  if(hit)button.classList.add('equityHit');
+  // Below-threshold hands retain original action colors.
   if(h===selected)button.classList.add('selected');
-  if(hasEq)button.append(el('small','',eq[h].toFixed(1)+'%'));
+  if(hasEq&&Number.isFinite(eq[h]))button.append(el('small','',eq[h].toFixed(1)+'%'));
   button.onclick=()=>{selected=h;drawMatrices();paintEditor()};
   button.draggable=true;
   button.ondragstart=e=>e.dataTransfer.setData('text/plain',h);
@@ -248,24 +268,57 @@ async function refreshComparison(){
   }catch(e){if(revision===comparisonEpoch){perOpponentData[i].error=e.message;renderPerOpponent()}}
  }));
 }
+function assignedParticipation(doc,hand){
+ if(!doc||!Object.prototype.hasOwnProperty.call(doc.hands||{},hand))return null;
+ const actions=doc.hands[hand];
+ if(!actions||!Object.keys(actions).length)return null;
+ const total=Object.values(actions).reduce((sum,n)=>sum+Number(n),0);
+ if(!Number.isFinite(total)||total<99.99||total>100.01)return null;
+ return Object.entries(actions).reduce((sum,[action,value])=>sum+(action==='fold'?0:Number(value)),0);
+}
+function renderComparisonGrid(parent,item){
+ const view=el('div','comparisonViewport'),grid=el('div','comparisonGrid');
+ grid.setAttribute('role','group');grid.setAttribute('aria-label','Матрица сравнения 169 рук');
+ for(const h of HANDS){
+  const mine=assignedParticipation(hero,h),theirs=assignedParticipation(item.doc,h);
+  const category=mine===null||theirs===null?'unknown':mine===0&&theirs===0?'bothFold':Math.abs(mine-theirs)<0.01?'equal':mine>theirs?'heroMore':'oppMore';
+  const actionsDifferent=mine!==null&&theirs!==null&&JSON.stringify(hero.hands[h])!==JSON.stringify(item.doc.hands[h]);
+  const cell=el('button','comparisonCell '+category+(actionsDifferent?' actionDiff':'')+(selected===h?' selected':''),h);
+  cell.type='button';
+  const fmt=n=>n===null?'?':n.toFixed(0)+'%';
+  cell.append(el('small','',fmt(mine)+' / '+fmt(theirs)));
+  cell.title=h+' · Мы: '+fmt(mine)+' · Соперник: '+fmt(theirs)+' · частота участия в раздаче'+(actionsDifferent?' · частоты действий различаются':'');
+  cell.setAttribute('aria-label',cell.title);
+  cell.onclick=()=>{selected=h;drawMatrices();paintEditor()};
+  grid.append(cell);
+ }
+ view.append(grid);parent.append(view);
+}
 function renderPerOpponent(){
  const root=$('perOpponentComparison'),hands=$('perOpponentHands');
  if(!root||!hands)return;
  root.replaceChildren();hands.replaceChildren();
  perOpponentData.forEach((item,i)=>{
-  const card=el('div','stat');
-  card.style.minWidth='0';
-  card.append(el('strong','',`Соперник ${i+1} · ${item.label}`));
-  const subtitle=el('small','',`${item.o.position} · ${SCENARIOS[item.o.scenario]||item.o.scenario}`);
-  card.append(subtitle);
-  const pairs=[
+  const card=el('div','stat comparisonCard');
+  card.append(el('div','comparisonTitle',`Соперник ${i+1} · ${item.label}`));
+  card.append(el('small','',`${item.o.position} · ${SCENARIOS[item.o.scenario]||item.o.scenario}`));
+  const metrics=el('div','comparisonMetrics');
+  [
    ['Overlap',item.compare?.overlap_pct==null?'—':pct(item.compare.overlap_pct)],
    ['Equity HU диапазонов',pct(item.rangeEq?.equity_pct)],
    ['Диапазон соперника',pct(item.compare?.villain_pct)],
    ['Различия действий',item.compare?.different_action_combos==null?'—':item.compare.different_action_combos.toLocaleString('ru-RU')]
-  ];
-  pairs.forEach(([label,value])=>card.append(el('small','',label+' · '+value)));
-  if(item.error)card.append(el('small','',item.error));
+  ].forEach(([label,value])=>metrics.append(el('small','',label+' · '+value)));
+  card.append(metrics);
+  if(item.doc){
+   const legend=el('div','comparisonLegend');
+   [['equal','#1d5b52','Равны'],['heroMore','#275985','Мы чаще'],['oppMore','#784355','Соперник чаще'],['bothFold','#223348','Оба Fold'],['unknown','#354357','Нет данных']].forEach(([k,color,label])=>{
+    const marker=el('span');const swatch=el('i');swatch.style.background=color;marker.append(swatch,document.createTextNode(label));legend.append(marker);
+   });
+   const diffMarker=el('span');const swatch=el('i');swatch.style.border='2px solid #e0b76b';diffMarker.append(swatch,document.createTextNode('Различие действий'));legend.append(diffMarker);
+   card.append(legend);
+   renderComparisonGrid(card,item);
+  }else card.append(el('small','',item.error?'Ошибка: '+item.error:'Загрузка диапазона…'));
   root.append(card);
   const line=el('div','stat');line.style.marginBottom='6px';
   line.append(el('span','',`#${i+1} ${item.label} · HU`));
