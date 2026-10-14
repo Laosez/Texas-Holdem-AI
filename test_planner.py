@@ -46,13 +46,53 @@ class PlanTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"несовместимо"):
             core.validate_plan(doc)
 
-    def test_box_classification_protects_last_member(self):
-        doc=core.preset("builtin:a17_v5","3","rfi")
-        for h in core.HANDS:
-            if doc["boxes"][h]==17:
-                doc["boxes"][h]=16
-        with self.assertRaisesRegex(ValueError,"Все 17"):
+    def test_box_pool_allows_empty_boxes_but_keeps_all_169_classes(self):
+        doc = core.preset("builtin:a17_v5","3","rfi")
+        for hand in core.HANDS:
+            if doc["boxes"][hand] == 17:
+                doc["boxes"][hand] = 0
+        clean = core.validate_plan(doc)
+        self.assertEqual(set(clean["boxes"]),set(core.HANDS))
+        self.assertNotIn(17,clean["boxes"].values())
+        self.assertIn(0,clean["boxes"].values())
+        self.assertEqual(clean["hands"],core.validate_plan(doc)["hands"])
+        self.assertEqual(set(core.boxes_v5().values()),set(range(1,18)))
+        doc["boxes"]["AA"] = -1
+        with self.assertRaisesRegex(ValueError,"Номер коробки"):
             core.validate_plan(doc)
+        doc["boxes"]["AA"] = True
+        with self.assertRaisesRegex(ValueError,"Номер коробки"):
+            core.validate_plan(doc)
+        doc["boxes"].pop("AA")
+        with self.assertRaisesRegex(ValueError,"169"):
+            core.validate_plan(doc)
+
+    def test_visual_box_reorder_persists_with_unassigned_pool(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(core,"STORE",Path(td)):
+            base = core.preset("builtin:a17_v5","3","rfi")
+            original_hands = base["hands"].copy()
+            old_box = base["boxes"]["AQs"]
+            base["boxes"]["AQs"] = 0
+            base["box_order"] = [17,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+            first = core.save_plan(base)
+            self.assertEqual(first["box_order"][0],17)
+            self.assertEqual(first["boxes"]["AQs"],0)
+            self.assertEqual(first["hands"],core.validate_plan(base)["hands"])
+            self.assertEqual(core.get_saved(first["ref"])["box_order"],base["box_order"])
+            self.assertEqual(core.get_saved(first["ref"])["boxes"]["AQs"],0)
+            second = core.save_plan(first,parent=first["ref"])
+            self.assertEqual(second["version"],2)
+            self.assertEqual(second["box_order"][0],17)
+            self.assertEqual(core.boxes_v5()["AQs"],old_box)
+            bad = dict(base,box_order=[1]*17)
+            with self.assertRaisesRegex(ValueError,"повторяться"):
+                core.validate_plan(bad)
+            bad["box_order"] = [1,2]
+            with self.assertRaisesRegex(ValueError,"17 номеров"):
+                core.validate_plan(bad)
+            legacy = dict(base)
+            legacy.pop("box_order")
+            self.assertEqual(core.validate_plan(legacy)["box_order"],list(range(1,18)))
 
     def test_gto_heuristic_label_and_range(self):
         doc=core.preset("builtin:gto_heuristic","9","rfi")
