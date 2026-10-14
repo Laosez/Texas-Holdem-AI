@@ -99,6 +99,47 @@ class ReliabilityTests(unittest.TestCase):
                     if job_id == original_id or job_id.startswith("import_"):
                         app.RUNS.pop(job_id, None)
 
+    def test_integrity_file_detects_tampering(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(app, "OUT", Path(td)):
+            directory = Path(td) / "20261014_integrity"
+            directory.mkdir()
+            file = directory / "test.csv"
+            file.write_text("a,b\\n1,2\\n")
+            app.write_integrity_manifest(directory)
+            manifest = json.loads((directory / "integrity.json").read_text())
+            self.assertEqual(manifest["files"]["test.csv"], app.sha256_file(file))
+            file.write_text("changed")
+            check = app.audit_session({"id": directory.name, "status": "cancelled"})
+            self.assertFalse(check["ok"])
+            self.assertTrue(any("SHA-256" in line for line in check["observations"]))
+
+    def test_integrity_zip_roundtrip_validated(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(app, "OUT", Path(td)):
+            folder = Path(td) / "20261014_checksum"
+            folder.mkdir()
+            (folder / "tournament_report.json").write_text(json.dumps({"leaderboard": []}))
+            (folder / "simulation.log").write_text("correct log")
+            app.write_integrity_manifest(folder)
+            job = {"id": folder.name, "config": {}, "created": app.now(),
+                   "status": "completed", "strategy_fingerprint": app.strategy_fingerprint()}
+            archive = app.zip_results(job)
+            old = dict(app.RUNS)
+            try:
+                imported = app.import_session(archive)
+                self.assertEqual(imported["status"], "imported")
+                corrupted = io.BytesIO()
+                with zipfile.ZipFile(io.BytesIO(archive)) as source, zipfile.ZipFile(corrupted, "w") as output:
+                    for entry in source.infolist():
+                        payload = source.read(entry.filename)
+                        if entry.filename == "simulation.log":
+                            payload = b"malicious modification"
+                        output.writestr(entry.filename, payload)
+                with self.assertRaisesRegex(ValueError, "Контрольная сумма"):
+                    app.import_session(corrupted.getvalue())
+            finally:
+                app.RUNS.clear()
+                app.RUNS.update(old)
+
     def test_old_unversioned_run_cannot_resume(self):
         run_id = "20261014_unversioned"
         app.RUNS[run_id] = {"id": run_id, "status": "failed", "config": {"players": ["a17_tag", "gto"]}}
