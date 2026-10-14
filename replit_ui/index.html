@@ -138,11 +138,10 @@ async function loadCatalog(){
    drawBots();
   }
   const parallel=$('parallel');
-  if(catalog.workers_max===1){
-   parallel.value='1';
-   Array.from(parallel.options).forEach(o=>o.disabled=o.value!=='1');
-   parallel.title='Railway: 1 GB RAM; parallel>1 has caused worker pool failure';
-  }
+  const limit=Number(catalog.workers_max||1);
+  parallel.value=String(Math.min(Number(parallel.value),limit));
+  Array.from(parallel.options).forEach(o=>o.disabled=Number(o.value)>limit);
+  if(limit===1)parallel.title='Railway: при 1 ГБ RAM выполняется один процесс; увеличение требует изменения ресурса и POKER_MAX_WORKERS';
  }catch(e){feedback('Каталог недоступен: '+e.message,true)}
 }
 async function connect(){try{await loadCatalog();await refresh();$('connection').textContent='Подключено';$('connection').className='badge ok';sessionStorage.setItem('skachkov_key',token());feedback('Подключено к Railway.')}catch(e){$('connection').textContent='Ошибка';$('connection').className='badge fail';feedback(e.message,true)}}
