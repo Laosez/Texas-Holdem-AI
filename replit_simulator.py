@@ -26,9 +26,11 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
+import planner_api
 
 ROOT = Path(__file__).resolve().parent
 UI = ROOT / "replit_ui" / "index.html"
+PLAN_UI = ROOT / "replit_ui" / "plan.html"
 OUT = Path(os.environ.get("POKER_DATA_DIR", str(ROOT / "output" / "replit_runs"))).resolve()
 PORT = int(os.environ.get("PORT", "3000"))
 TOKEN = os.environ.get("POKER_RUNNER_KEY", "").strip()
@@ -759,7 +761,7 @@ def zip_results(job: dict, stream=None) -> bytes | None:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "SKACHKOV-Simulator/2.0"
+    server_version = "SKACHKOV-Simulator/2.1"
 
     def reply(self, code: int, data: dict):
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
@@ -783,8 +785,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path == "/":
-            html = UI.read_bytes()
+        if path in ("/", "/plan"):
+            html = (PLAN_UI if path == "/plan" else UI).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(html)))
@@ -799,6 +801,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200 if TOKEN else 503, {"ok": bool(TOKEN), "engine": "legacy", "configured": bool(TOKEN)})
             return
         if not self.allowed():
+            return
+        if planner_api.get_route(self,path):
             return
         if path == "/api/catalog":
             self.reply(200, strategy_catalog())
@@ -884,6 +888,8 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if not self.allowed():
             return
+        if planner_api.delete_route(self,path):
+            return
         if path == "/api/trash":
             try:
                 self.reply(200, {"purged": purge_trash()})
@@ -934,6 +940,11 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError):
             self.reply(400, {"error": "Некорректный JSON"})
             return
+        if path.startswith("/api/plan/"):
+            with MUTEX:
+                busy = any(j["status"] in ("running","starting") for j in RUNS.values())
+            if planner_api.post_route(self,path,payload,busy=busy):
+                return
         if path == "/api/runs":
             try:
                 config = validate_config(payload)
