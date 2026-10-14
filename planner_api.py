@@ -209,6 +209,39 @@ def post_route(handler,path,payload,busy=False):
         except RuntimeError as exc:
             handler.reply(409,{"error":str(exc)})
         return True
+    if path=="/api/plan/range-equity":
+        try:
+            if busy:
+                raise RuntimeError("Сначала заверши турнирную серию")
+            settings=_validate_request({"opponents":payload["opponents"],"model":"selected","trials":200})
+            trials=payload.get("trials",3000)
+            if type(trials) is not int or not 200<=trials<=20000:
+                raise ValueError("Симуляций для range equity: 200–20000")
+            hero=core.validate_plan(payload["hero"])
+            sources,_=equity.build_ranges(settings["opponents"],"selected")
+            weights=core.range_weights(hero)
+            if not weights:
+                raise ValueError("Выбранная стратегия не содержит активного диапазона")
+            key_data={"hero_weights":weights,"opponents":_query_identity(settings),
+                      "trials":trials,"source":_source_hash()}
+            key=hashlib.sha256(json.dumps(key_data,sort_keys=True).encode()).hexdigest()
+            CACHE_PATH.mkdir(parents=True,exist_ok=True)
+            target=CACHE_PATH/("range_"+key+".json")
+            if target.is_file():
+                result=json.loads(target.read_text(encoding="utf-8"))
+                result["cached"]=True
+            else:
+                result=equity.simulate_range_equity(weights,sources,trials=trials,seed=int(key[:15],16))
+                tmp=target.with_suffix(".partial")
+                tmp.write_text(json.dumps(result,ensure_ascii=False),encoding="utf-8")
+                os.replace(tmp,target)
+                result["cached"]=False
+            handler.reply(200,result)
+        except (ValueError,TypeError,KeyError) as exc:
+            handler.reply(400,{"error":str(exc)})
+        except RuntimeError as exc:
+            handler.reply(409,{"error":str(exc)})
+        return True
     if path=="/api/plan/compare":
         try:
             hero=core.validate_plan(payload["hero"])
