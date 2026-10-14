@@ -121,6 +121,22 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("без побочных банков и будущих ставок", page)
         self.assertIn("EV сравнивается с Fold = 0", page)
 
+    def test_multiway_all_in_ev_uses_actual_selected_equity(self):
+        page = service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('value="evAllIn"', page)
+        self.assertIn('id="allInDead"', page)
+        self.assertIn('id="allInStatus"', page)
+        self.assertIn('function modelAllInEv(equityPct,stackBB,deadBB,opponentCount)',page)
+        self.assertIn('const finalPot=(opponentCount+1)*stackBB+deadBB;',page)
+        self.assertIn('return (equityPct/100)*finalPot-stackBB;',page)
+        self.assertIn("const allInEquity=equityResults.actual?.equity||null;",page)
+        self.assertIn("value=doc===hero&&Number.isFinite(actual)?modelAllInEv(actual,stack,dead,n):null;",page)
+        self.assertIn("if(metric==='evAllIn'){",page)
+        self.assertIn("if(allIn){",page)
+        self.assertIn("$('allInDead').oninput=drawMatrices;",page)
+        self.assertIn("noteDirty();drawMatrices()",page)
+        self.assertIn("без побочных банков / fold equity / ICM",page)
+
 
 if __name__=="__main__":
     unittest.main()
