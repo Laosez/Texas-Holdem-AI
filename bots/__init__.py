@@ -22,6 +22,7 @@ def create_bot(btype: str) -> BotAdapter:
       smart              SmartBot (heuristic)
       split:pre:post      Independent street bases, e.g. split:gto:tag_punisher
       gto_fixed           Legacy GTO charts with correct facing-raise boundary
+      pc_gto_80bb        80bb PokerCoaching RFI (25% steps); other preflop uses GTO Fixed
       a17_preflop         A17 2–9-max positional RFI; SB raises A01-A16
       a17_tag             a17_preflop + tag_punisher postflop
       final, final_survival
@@ -90,6 +91,10 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.exploitative_bot import ExploitativeBot
         return _wrap(ExploitativeBot())
 
+    if btype == "pc_gto_80bb":
+        from bots.pc_gto_80bb_bot import PCGTO80bbBot
+        return _wrap(PCGTO80bbBot())
+
     if btype == "gto_fixed":
         from bots.gto_fixed_bot import FixedGTOPreflopBot
         return _wrap(FixedGTOPreflopBot())
@@ -157,7 +162,7 @@ def create_bot(btype: str) -> BotAdapter:
                      "maniac_trigger, maniac_mixed, overbet_merchant, "
                      "calling_station, nit, folder, loose_passive, minraise, "
                      "minraiser, baseline_sane, pressure_filler, tag_punisher, "
-                     "wide_defender, gto_fixed, a17_preflop, a17_preflop_legacy, a17_tag, a17_tag_legacy, "
+                     "wide_defender, gto_fixed, pc_gto_80bb, a17_preflop, a17_preflop_legacy, a17_tag, a17_tag_legacy, "
                      "split:<preflop_bot>:<postflop_bot>")
 
 
