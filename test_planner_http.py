@@ -170,7 +170,6 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(!Number.isFinite(eq[h]))return null;",page)
         self.assertIn("const w=COMBOS(h);mass+=w;total+=w*eq[h]",page)
         self.assertIn("return mass?total/mass:null;",page)
-        self.assertIn("const eq=groupWeightedEquity(b);",page)
         self.assertIn("const groupEq=groupWeightedEquity(b);",page)
         self.assertIn("const groupEq=groupWeightedEquity(box);",page)
         self.assertNotIn('id="computeBoxes"',page)
