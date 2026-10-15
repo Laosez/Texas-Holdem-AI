@@ -217,7 +217,9 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn('class="plannerWorkspace"',page)
         self.assertIn('class="panel editorSection"',page)
         self.assertIn('id="groupDrawer"',page)
-        self.assertIn('id="boxPalette"',page)
+        self.assertNotIn('id="boxPalette"',page)
+        self.assertIn('class="a17Workbench unifiedGroupEditor"',page)
+        self.assertIn('id="groupDrawer" class="groupDrawer unifiedGroupList"',page)
         self.assertIn('id="brushInspect"',page)
         self.assertIn('id="brushPaint"',page)
         self.assertIn('id="brushTarget"',page)
@@ -238,7 +240,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn('snapshotUndo();',page)
         self.assertIn('markBoxDirty();',page)
         self.assertIn('id="groupEditor" class="groupDrawer groupEditor"',page)
-        self.assertIn('<div id="groupDrawer" class="groupDrawer">',page)
+        self.assertIn('id="groupDrawer" class="groupDrawer unifiedGroupList"',page)
         self.assertNotIn("expandedBoxes",page)
         self.assertNotIn('id="expandAllBoxes"',page)
         self.assertNotIn('id="collapseAllBoxes"',page)
@@ -248,10 +250,12 @@ class PlanHttpTests(unittest.TestCase):
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         for label in ('id="heroMatrix"','id="villainMatrix"','id="handBox"',
-                      'id="actionInputs"','id="selectionInfo"','id="boxPalette"',
+                      'id="actionInputs"','id="selectionInfo"','id="boxes"',
                       'id="perOpponentHands"','id="groupEditor"'):
             self.assertIn(label,page)
-        self.assertIn('function drawBoxPalette()',page)
+        self.assertNotIn('function drawBoxPalette()',page)
+        self.assertIn('function drawBoxes()',page)
+        self.assertIn('brushTarget=b;',page)
         self.assertIn('function groupWeightedEquity(b)',page)
         self.assertIn('class="actionLegend"',page)
         self.assertIn("if(stripe)button.append(stripe)",page)
@@ -263,7 +267,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("function visibleMetricScale(metric,docs)",page)
         self.assertIn("function metricTextColor(metric,value,scale)",page)
         self.assertIn("Math.min(...values),max:Math.max(...values)",page)
-        self.assertIn("const scale=visibleMetricScale($('cellMetric').value,twice?[hero,villain]:[hero])",page)
+        self.assertIn("const scale=visibleMetricScale($('cellMetric').value,showOpponent?[hero,villain]:[hero])",page)
         self.assertIn("if(color)center.style.color=color;",page)
         self.assertIn("Math.abs(value)<0.000001)return '#d7e1ee'",page)
         self.assertIn("const hue=value<0?3:159;",page)
@@ -300,7 +304,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_single_outer_group_disclosure_and_trash_deletion(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('<details id="groupEditor"',page)
-        self.assertIn('<div id="groupDrawer" class="groupDrawer">',page)
+        self.assertIn('id="groupDrawer" class="groupDrawer unifiedGroupList"',page)
         self.assertNotIn('id="expandAllBoxes"',page)
         self.assertNotIn('id="collapseAllBoxes"',page)
         self.assertNotIn("const exp=el('button','boxExpand'",page)
@@ -310,6 +314,34 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(result.deleted!==id)throw Error(",page)
         self.assertIn("hero=null;dirty=false;undos=[];bulkSelected.clear();",page)
         self.assertIn("await loadHero();",page)
+
+    def test_vertical_equal_matrices_default_and_collapsible_opponent(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('<details id="villainPane" class="matrixPane comparisonDisclosure" open>',page)
+        self.assertIn('<summary><span>02 · Соперник</span>',page)
+        self.assertIn("const showOpponent=$('villainPane').open;",page)
+        self.assertIn("if(showOpponent)matrix($('villainMatrix'),villain,scale);",page)
+        self.assertIn("else $('villainMatrix').replaceChildren();",page)
+        self.assertIn("$('villainPane').ontoggle=()=>{if(hero)drawMatrices()};",page)
+        self.assertIn('.matrixLayout{display:flex;flex-direction:column;gap:10px}',page)
+        self.assertIn('.matrixLayout>.matrixPane{width:100%;min-width:0;box-sizing:border-box}',page)
+        self.assertNotIn('id="matrixMode"',page)
+        self.assertNotIn(".matrixLayout.double .hand{",page)
+
+    def test_a17_brush_and_groups_are_one_panel(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertEqual(page.count('id="groupEditor"'),1)
+        self.assertEqual(page.count('id="boxes"'),1)
+        self.assertNotIn('id="boxPalette"',page)
+        self.assertNotIn('function drawBoxPalette()',page)
+        self.assertIn('class="a17Workbench unifiedGroupEditor"',page)
+        self.assertIn('id="groupDrawer" class="groupDrawer unifiedGroupList"',page)
+        self.assertIn("updateBrushControls();drawStudioStats();",page)
+        self.assertIn("choose.title='Выбрать рабочую коробку для кисти и переноса'",page)
+        self.assertIn('brushTarget=b;',page)
+        self.assertIn("card.style.setProperty('--group-color',groupPaletteColor(b))",page)
+        self.assertIn("for(const b of [...boxOrder(),0])",page)
+        self.assertIn("function groupWeightedEquity(b)",page)
 
 
 if __name__=="__main__":
