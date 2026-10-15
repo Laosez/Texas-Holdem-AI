@@ -48,7 +48,9 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .hand.candidateGold::after{color:#f3c45c}.hand.candidateRed::after{color:#ee6d75}
 .hand.selected{outline:2px solid #fff;outline-offset:-2px}
 
-.hand.boxhit::before{content:"";position:absolute;left:0;top:24%;height:52%;width:3px;border-radius:4px;background:#d2a9ff;pointer-events:none;z-index:3}
+.matrixGrid .hand.boxhit{outline:2px solid #f0f7ff;outline-offset:-3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.42);z-index:2}
+.matrixGrid .hand.boxhit.selected{outline:3px solid #ffffff;outline-offset:-3px}
+.matrixGrid .hand.boxhit::before{content:none}
 .hand.dragging{opacity:.25}
 .comparisonCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,610px),1fr));gap:12px}
 .comparisonCard{min-width:0}
@@ -669,6 +671,22 @@ function groupWeightedEquity(b){
  for(const h of HANDS){if(hero.boxes[h]!==b)continue;if(!Number.isFinite(eq[h]))return null;const w=COMBOS(h);mass+=w;total+=w*eq[h]}
  return mass?total/mass:null;
 }
+function groupWeightedAllInEV(b){
+ if(!hero||!Number.isInteger(b)||b<1||b>17)return null;
+ const eq=equityResults.actual?.equity;
+ if(!eq)return null;
+ const pots=equityResults.actual?.pot_multiple;
+ const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
+ let mass=0,sum=0;
+ for(const h of HANDS){
+  if(hero.boxes[h]!==b)continue;
+  if(!Number.isFinite(eq[h]))return null;
+  const ev=modelConditionalAllInEv(eq[h],pots?.[h],stack,dead,n);
+  if(!Number.isFinite(ev))return null;
+  const w=COMBOS(h);mass+=w;sum+=w*ev;
+ }
+ return mass?sum/mass:null;
+}
 function groupPaletteColor(b){
  if(b===0)return '#8494a6';
  return 'hsl('+Math.round(b*137.508%360)+' 65% 63%)';
@@ -695,7 +713,7 @@ function updateBrushControls(){
  $('brushApply').disabled=!bulkSelected.size||!hero;
  $('brushHint').textContent=paint?
   'Проведи мышью или пальцем по рукам матрицы — они перейдут в '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'«Без коробки»')+'. Одно движение = один шаг отмены. Частоты Raise/Fold не изменятся.':
-  'Выбери руки кнопкой «Выделить руки коробки» или Shift/Ctrl+кликами по рукам → выбери целевую коробку → «Перенести выбранные». В правой панели кнопка переноса также действует на все выделенные руки.';
+  'Нажми номер коробки для белой рамки её рук (повторное нажатие снимет рамку). Для переноса: Shift+клик по рукам → выбери коробку в поле «В коробку» → «Перенести выбранные».';
 }
 function moveHandsToBox(hands,target){
  if(!hero||!Number.isInteger(target)||target<0||target>17)return false;
@@ -745,25 +763,27 @@ function drawBoxes(){
  for(const b of [...boxOrder(),0]){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
-  const groupEq=groupWeightedEquity(b);
+  const groupEV=groupWeightedAllInEV(b);
   const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':'')+(b>0&&members.some(h=>handInRange(hero,h))?' inRange':''));
   card.style.setProperty('--group-color',groupPaletteColor(b));
   const head=el('div','boxCardHead');
   {
    const choose=el('button','boxSelect',b?'A'+String(b).padStart(2,'0'):'Без коробки');
-   choose.type='button';choose.title='Выбрать рабочую коробку для кисти и переноса';
+   choose.type='button';choose.title='Выделить / снять белую рамку всех рук коробки';
    choose.setAttribute('aria-pressed',String(brushTarget===b));
    choose.onclick=e=>{
-    brushTarget=b;
+    // A second ordinary click on the same box must remove its white outlines.
+    const wasSelected=selectedBoxes.has(b);
     if(e.ctrlKey||e.metaKey){
-     if(selectedBoxes.has(b))selectedBoxes.delete(b);else selectedBoxes.add(b);
-    }else selectedBoxes=b?new Set([b]):new Set();
+     if(wasSelected)selectedBoxes.delete(b);else selectedBoxes.add(b);
+    }else selectedBoxes=wasSelected?new Set():new Set([b]);
+    brushTarget=b;
     drawBoxes();drawMatrices();
    };
    head.append(choose);
   }
-  const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · Eq '+(groupEq===null?'—':groupEq.toFixed(1)+'%')));
-  summary.title='Взвешенное equity по 4/6/12 комбинациям из рассчитанных 169 рук; обновляется при переносе без новых MC.';head.append(summary);
+  const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · EV '+(groupEV===null?'—':(groupEV>0?'+':'')+groupEV.toFixed(1)+' BB')));
+  summary.title='EV условного выставления в BB, среднее по комбинациям всех рук коробки. Это не EV открытия или полного плана.';head.append(summary);
   card.append(head);
   const list=el('div','boxHandList');
   if(members.length)for(const h of members)list.append(boxChip(h));
@@ -1096,7 +1116,7 @@ function matrix(root,doc,scale,metricChoice){
   const actions=doc.hands?.[h],b=doc.boxes?.[h];
   const button=el('button','hand '+major(actions));
   button.type='button';button.title=handTooltip(h,doc);button.dataset.hand=h;
-  const boxhit=doc===hero&&selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
+  const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero?.boxes?.[h]);
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
   // Membership is shown by the triangle overlay in all three metric modes.
@@ -1557,7 +1577,7 @@ $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
 $('brushInspect').onclick=()=>{finishBoxStroke();brushMode='inspect';drawMatrices();updateBrushControls()};
 $('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControls()};
-$('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);selectedBoxes=brushTarget?new Set([brushTarget]):new Set();drawBoxes();drawMatrices()};
+$('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBoxes();drawMatrices()};
 $('brushSelectGroup').onclick=()=>{if(!hero)return;bulkSelected=new Set(HANDS.filter(h=>hero.boxes[h]===brushTarget));drawMatrices();updateBrushControls();paintEditor()};
 $('brushApply').onclick=()=>moveHandsToBox([...bulkSelected],brushTarget);
 $('brushClear').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls();paintEditor()};
