@@ -25,6 +25,35 @@ def archive_with(files):
 
 
 class ScreenOneTests(unittest.TestCase):
+    def test_pc_gto_80bb_preset_registered(self):
+        import bots
+        from bots.pc_gto_80bb_ranges import HANDS, RAISE, rfi_actions, weighted_rfi, chart_position
+        import planner_core
+        self.assertEqual(len(HANDS),169)
+        self.assertEqual(set(RAISE),{"UTG","UTG1","LJ","HJ","CO","BTN","SB"})
+        self.assertEqual(chart_position("3",9),"BTN")
+        self.assertEqual(chart_position("4",9),"CO")
+        self.assertEqual(chart_position("9",9),"UTG")
+        self.assertIsNone(chart_position("BB",9))
+        chart=planner_core.preset("builtin:pc_gto_80bb",position="3",players=9)
+        self.assertEqual(len(chart["hands"]),169)
+        self.assertEqual(chart["hands"]["AA"],{"fold":0,"open":100})
+        self.assertEqual(rfi_actions("AA","3",9),{"fold":0,"open":100})
+        self.assertEqual(rfi_actions("72o","9",9),{"fold":100,"open":0})
+        sb=planner_core.preset("builtin:pc_gto_80bb",position="SB",players=9)
+        self.assertTrue(any(x.get("limp",0)>0 for x in sb["hands"].values()))
+        for name,want in (("UTG",16.20),("UTG1",18.80),("LJ",22.05),
+                          ("HJ",27.86),("CO",35.31),("BTN",53.89)):
+            self.assertLess(abs(weighted_rfi(name)["raise"]-want),0.5,name)
+        self.assertLess(abs(weighted_rfi("SB")["raise"]-8.16),1.5)
+        self.assertLess(abs(weighted_rfi("SB")["limp"]-82.72),1.5)
+        for name in RAISE:
+            self.assertEqual(round(sum(weighted_rfi(name).values()),6),100)
+        chosen=app.validate_config({"bots":[{"pre":"pc_gto_80bb","post":"gto"},
+                                           {"pre":"gto","post":"gto"}]})
+        self.assertEqual(chosen["players"][0],"P1=split:pc_gto_80bb:gto")
+        self.assertIsNotNone(bots.create_bot(chosen["players"][0].split("=",1)[1]))
+
     def test_complete_a17_bot_and_duplicate_profiles(self):
         rows = [{"pre": "gto", "post": "gto"},
                 {"pre": "gto", "post": "gto"},
