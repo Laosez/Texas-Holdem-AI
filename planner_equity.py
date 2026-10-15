@@ -103,7 +103,7 @@ class WeightedRange:
         for pair, weight in ((c, float(class_weights[h]))
                              for h in planner.HANDS for c in HAND_COMBOS[h]
                              if class_weights.get(h, 0) > 0):
-            self.combo_weights[pair] = weight
+            self.combo_weights[tuple(sorted(pair))] = weight
             self.card_mass[pair[0]] += weight
             self.card_mass[pair[1]] += weight
 
