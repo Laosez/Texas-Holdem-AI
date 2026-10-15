@@ -158,6 +158,19 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("label:'Без коробки'",page)
         self.assertNotIn("Последняя рука не может покинуть коробку",page)
 
+    def test_group_equity_and_multi_cycle_ui(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('id="computeBoxes"',page)
+        self.assertIn('id="cycles"',page)
+        self.assertIn("const eq=boxEquityResult?.equity||null;",page)
+        self.assertIn("const groupEq=members.length&&Number.isFinite(eq?.[String(b)])",page)
+        self.assertIn("/api/plan/boxes-equity",page)
+        self.assertIn("while(job.status==='running'||job.status==='queued')",page)
+        self.assertIn("boxEquityEpoch++;boxEquityResult=null;",page)
+        self.assertIn("cycles:Number($('cycles').value)",page)
+        self.assertIn("Eq</strong> — реальное showdown equity диапазона всей коробки",page)
+        self.assertNotIn("Доля комбинаций с equity выше порога';head.append(summary)",page)
+
 
 if __name__=="__main__":
     unittest.main()
