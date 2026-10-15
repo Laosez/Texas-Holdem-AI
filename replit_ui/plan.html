@@ -285,7 +285,8 @@ async function api(path,opts={}){
  return response.json();
 }
 const post=(path,data)=>api(path,{method:'POST',body:JSON.stringify(data)});
-function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
+function positionCaption(pos){return String(pos)==='3'?'BTN (позиция 3)':String(pos)}
+function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'BTN · позиция 3'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
 function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p.ref})),...meta.saved.map(p=>({value:p.ref,label:p.name+' · v'+p.version+' · '+p.position+' '+SCENARIOS[p.scenario]}))]}
 function findSaved(profile){return meta.saved.find(x=>x.ref===profile)}
 function copy(x){return JSON.parse(JSON.stringify(x))}
@@ -313,7 +314,10 @@ async function loadHero(){
    $('heroScenario').value=stored.scenario;
   }
   const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
-  hero=doc;dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
+  hero=doc;dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg(doc.id==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'?
+  'PC GTO 80bb: источник содержит BTN RFI и другие открытия; для '+SCENARIOS[doc.scenario]+' чарты пока не загружены. Пустые руки — не Fold.':
+  'Загружена стратегия: '+doc.name+(doc.position==='3'?' · BTN RFI':''));
+
  }catch(e){msg(e.message,true)}finally{loadingSource=false}
 }
 function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
@@ -773,8 +777,8 @@ function drawMatrices(){
  if(!hero)return;
  setMetricLegend();
  const showOpponent=$('villainPane').open;
- $('heroMatrixLabel').textContent=hero.name+' · '+hero.position+' · '+SCENARIOS[hero.scenario];
- $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?.position||'—');
+ $('heroMatrixLabel').textContent=hero.name+' · '+positionCaption(hero.position)+' · '+SCENARIOS[hero.scenario];
+ $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?positionCaption(villain.position):'—');
  // Collapsed matrix is excluded from the visible min/max color scale.
  const scale=visibleMetricScale($('cellMetric').value,showOpponent?[hero,villain]:[hero]);
  matrix($('heroMatrix'),hero,scale);
