@@ -116,12 +116,15 @@ function present(s){
  $('hands').textContent=fmt(report.total_hands);$('hps').textContent=fmt(prog.hps);
  $('started').textContent=s.created?s.created.slice(0,16).replace('T',' '):'—';
  const ratio=total?Math.min(100,done/total*100):0;$('fill').style.width=ratio.toFixed(1)+'%';
- $('progress').textContent=done+'/'+(total||'—')+' · '+ratio.toFixed(1)+'%';
+ $('progress').textContent=done+'/'+(total||'—')+' · '+ratio.toFixed(1)+'%'+
+   (s.status==='failed'&&total&&done>=total?' · симуляция завершена, ошибка финального экспорта':'');
  $('eta').textContent=active&&prog.tpm>0?'≈ '+Math.ceil((total-done)/prog.tpm)+' мин':'';
  const tbody=$('leader');tbody.replaceChildren();
  for(const x of report.leaderboard||[]){const st=s.stats?.[x.bot]||{};const fields=[title(x.bot),x.wins||0,pct(x.win_pct_completed),fmt(x.avg_position_completed),pct(st.top3_pct),fmt(st.median_position),pct(st.vpip),pct(st.pfr),pct(st.rfi),pct(st.threebet),pct(st.fourbet),fmt(st.flop_af),fmt(st.turn_af),fmt(st.river_af),pct(st.cbet),pct(st.fold_to_bet),pct(st.check_raise),pct(st.wsd),fmt(st.net_bb_100),fmt(st.hands_observed)];const tr=el('tr');fields.forEach((v,i)=>{let td=el('td',i===1&&Number(v)>0?'leader':'',String(v));tr.append(td)});tbody.append(tr)}
  if(!report.leaderboard?.length){const tr=el('tr'),td=el('td','','Нет завершённого отчёта');td.colSpan=20;tr.append(td);tbody.append(tr)}
- $('logLabel').textContent=s.id+' · '+s.updated;const log=$('log');log.textContent=(s.log||[]).join('\n')||'Журнал пуст';log.scrollTop=log.scrollHeight;
+ $('runStatus').title=s.error||'';
+ $('logLabel').textContent=s.id+' · '+s.updated+(s.error?' · '+s.error:'');
+ const log=$('log');log.textContent=(s.log||[]).join('\n')||'Журнал пуст';log.scrollTop=log.scrollHeight;
  $('sessionSelect').value=s.id;
 }
 function empty(){
