@@ -758,15 +758,16 @@ function doApply(toBoxes=false){
 async function refreshComparison(){
  if(!hero||!meta)return;
  const revision=++comparisonEpoch,people=currentPeople();
- perOpponentData=people.map((o,i)=>({o,label:(profileOptions().find(p=>p.value===o.profile)?.label||o.profile),compare:null,handEq:null,rangeEq:null,error:null}));
+ perOpponentData=people.map(o=>({o,label:profileOptions().find(p=>p.value===o.profile)?.label||o.profile,
+  doc:null,handEq:null,error:null}));
  renderPerOpponent();
  await Promise.all(people.map(async(o,i)=>{
   try{
    const doc=await getSource(o.profile,o.position,o.scenario,o.players,20);
-   const compare=await post('/api/plan/compare',{hero,villain:doc});
    if(revision!==comparisonEpoch)return;
-   perOpponentData[i].compare=compare;perOpponentData[i].doc=doc;renderPerOpponent();
-  }catch(e){if(revision===comparisonEpoch){perOpponentData[i].error=e.message;renderPerOpponent()}}
+   perOpponentData[i].doc=doc;
+  }catch(e){if(revision===comparisonEpoch)perOpponentData[i].error=e.message}
+  if(revision===comparisonEpoch)renderPerOpponent();
  }));
 }
 function assignedParticipation(doc,hand){
