@@ -497,40 +497,6 @@ function modelAllInEv(equityPct,stackBB,deadBB,opponentCount){
  const finalPot=(opponentCount+1)*stackBB+deadBB;
  return (equityPct/100)*finalPot-stackBB;
 }
-function metricGradient(metric,value,box,action){
- if(metric==='box'){
-  if(!Number.isInteger(Number(box))||Number(box)<1||Number(box)>17)return null;
-  // Discrete categorical colours: adjacent A17 numbers do NOT imply more strength.
-  const hue=Math.round((Number(box)*137.508)%360);
-  return [`hsl(${hue} 60% 40%)`,`hsl(${hue} 50% 19%)`];
- }
- if(metric==='action'){
-  const hue={none:220,fold:226,open:209,limp:264,call:172,threebet:34,fourbet:329,push:352}[action];
-  return hue===undefined?null:[`hsl(${hue} 59% 40%)`,`hsl(${hue} 52% 19%)`];
- }
- if(!Number.isFinite(value))return null;
- if(metric==='evAllIn'){
-  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
-  if(!(stack>0)||!Number.isFinite(dead)||dead<0||!n)return null;
-  const maxLoss=stack,maxWin=n*stack+dead;
-  const magnitude=Math.min(1,Math.abs(value)/(value<0?maxLoss:(maxWin||1)));
-  const hue=Math.abs(value)<0.005?218:value>0?156:2;
-  return [`hsl(${hue} ${Math.round(22+53*magnitude)}% ${Math.round(24+15*magnitude)}%)`,
-          `hsl(${hue} ${Math.round(24+43*magnitude)}% ${Math.round(12+7*magnitude)}%)`];
- }
- if(metric==='evCall'||metric==='delta'){
-  const magnitude=metric==='delta'?Math.min(1,Math.abs(value)/100):
-    Math.min(1,Math.abs(value)/(value<0?Number($('evCost').value)||1:Number($('evPot').value)||1));
-  const hue=Math.abs(value)<1e-9?218:value>0?156:2;
-  return [`hsl(${hue} ${Math.round(22+53*magnitude)}% ${Math.round(24+15*magnitude)}%)`,
-          `hsl(${hue} ${Math.round(24+43*magnitude)}% ${Math.round(12+7*magnitude)}%)`];
- }
- const low=metric==='combos'?4:0,high=metric==='combos'?12:100;
- const proportion=Math.max(0,Math.min(1,(value-low)/(high-low)));
- const hue=Math.round(3+150*proportion);
- return [`hsl(${hue} 65% ${Math.round(30+12*proportion)}%)`,
-         `hsl(${hue} 61% ${Math.round(16+5*proportion)}%)`];
-}
 function setMetricLegend(){
  const metric=$('cellMetric').value,ev=metric==='evCall',allIn=metric==='evAllIn';
  $('evControls').classList.toggle('hidden',!ev);
@@ -812,26 +778,9 @@ function assignedParticipation(doc,hand){
  return Object.entries(actions).reduce((sum,[action,value])=>sum+(action==='fold'?0:Number(value)),0);
 }
 function renderPerOpponent(){
- const root=$('perOpponentComparison'),hands=$('perOpponentHands');
- if(!root||!hands)return;
- root.replaceChildren();hands.replaceChildren();
+ const hands=$('perOpponentHands');if(!hands)return;
+ hands.replaceChildren();
  perOpponentData.forEach((item,i)=>{
-  const card=el('div','stat comparisonCard');
-  card.append(el('div','comparisonTitle',`Соперник ${i+1} · ${item.label}`));
-  card.append(el('small','',`${item.o.position} · ${SCENARIOS[item.o.scenario]||item.o.scenario}`));
-  const undefinedHands=item.doc?HANDS.filter(h=>assignedParticipation(hero,h)===null||assignedParticipation(item.doc,h)===null).length:null;
-  const incomplete=undefinedHands!==null&&undefinedHands>0;
-  const metrics=el('div','comparisonMetrics');
-  [
-   ['Overlap',incomplete||item.compare?.overlap_pct==null?'—':pct(item.compare.overlap_pct)],
-   ['Equity HU диапазонов',pct(item.rangeEq?.equity_pct)],
-   ['Диапазон соперника',incomplete?'—':pct(item.compare?.villain_pct)],
-   ['Различия заданных действий',item.compare?.different_action_combos==null?'—':item.compare.different_action_combos.toLocaleString('ru-RU')]
-  ].forEach(([label,value])=>metrics.append(el('small','',label+' · '+value)));
-  card.append(metrics);
-  if(incomplete)card.append(el('small','','Неопределённые назначения: '+undefinedHands+' из 169 классов. Общий Overlap и ширина диапазона скрыты, чтобы не выдавать отсутствие данных за Fold; рассчитанное Equity относится только к назначенной части.'));
-  if(!item.doc)card.append(el('small','',item.error?'Ошибка: '+item.error:'Загрузка диапазона…'));
-  root.append(card);
   const line=el('div','stat');line.style.marginBottom='6px';
   line.append(el('span','',`#${i+1} ${item.label} · HU`));
   line.append(el('strong','',pct(item.handEq?.equity?.[selected])));
@@ -839,7 +788,6 @@ function renderPerOpponent(){
   line.append(el('small','',actions?Object.entries(actions).map(([a,v])=>(ACTIONS[a]||a)+' '+v+'%').join(' · '):'Частоты действий не назначены'));
   hands.append(line);
  });
- $('comparisonCount').textContent=String(perOpponentData.length);
 }
 async function calculatePerOpponent(){
  const epoch=calcEpoch,items=perOpponentData.slice();
@@ -856,8 +804,6 @@ async function calculatePerOpponent(){
    if(task.status!=='completed')throw Error(task.error||'HU расчёт не завершён');
    if(epoch!==calcEpoch)return;
    item.handEq=task.result;
-   // Independent HU range-vs-range showdown, not a mean of hand equities.
-   item.rangeEq=await post('/api/plan/range-equity',{hero,opponents:[item.o],trials:3000});
    if(epoch!==calcEpoch)return;
   }catch(e){if(epoch!==calcEpoch)return;item.error=e.message}
   renderPerOpponent();
@@ -887,7 +833,6 @@ async function startCalculation(slot,model,people){
     $('equityStatus').textContent=j.status==='queued'?'В очереди Monte Carlo…':
      j.status==='running'?'Monte Carlo: '+j.done+'/'+total+' этапов (циклы × 169 рук)':j.status;
    }
-   if(slot==='actual')$('actualState').textContent=j.status==='queued'?'В очереди':'Расчёт '+j.done+'/'+total;
   };
   progress(job);
   while(job.status==='running'||job.status==='queued'){
@@ -900,54 +845,11 @@ async function startCalculation(slot,model,people){
   if(slot==='filter'&&model==='selected')equityResults.actual=job.result;
   if(slot==='actual'&&$('equityModel').value==='selected')equityResults.filter=job.result;
   if(slot==='any'&&model==='any_two'&&Number($('oppCount').value)===1&&$('equityModel').value==='any_two')equityResults.filter=job.result;
-  $('actualState').textContent=equityResults.actual?'Готово · Monte Carlo':'Ожидание';
   drawMatrices();drawEquityStats();msg('Equity рассчитано для всех 169 рук'+(job.cached?' (из кэша)':'')+'.');
   return job.result;
  }catch(e){msg('Equity: '+e.message,true);$('equityStatus').textContent='Ошибка расчёта: '+e.message;return null}
 }
-async function calculateBoxesEquity(){
- if(!hero||boxesComputing)return null;
- const revision=++boxEquityEpoch,epoch=calcEpoch;
- const boxes=copy(hero.boxes),people=currentPeople();
- boxesComputing=true;$('computeBoxes').disabled=true;
- try{
-  const settings={boxes,opponents:people,trials:Number($('trials').value),cycles:Number($('cycles').value)};
-  let job=await post('/api/plan/boxes-equity',settings);
-  while(job.status==='running'||job.status==='queued'){
-   if(revision!==boxEquityEpoch||epoch!==calcEpoch)return null;
-   $('computeBoxes').textContent=job.status==='queued'?'Eq: в очереди…': 'Eq: '+job.done+'/'+(job.total||17);
-   await new Promise(resolve=>setTimeout(resolve,1100));
-   if(revision!==boxEquityEpoch||epoch!==calcEpoch)return null;
-   job=await api('/api/plan/equity/'+job.id);
-  }
-  if(job.status!=='completed')throw Error(job.error||'Расчёт equity коробок не завершён');
-  if(revision!==boxEquityEpoch||epoch!==calcEpoch)return null;
-  boxEquityResult=job.result;
-  drawBoxes();
-  msg('Equity коробок рассчитано против '+people.length+' соперника(ов) совместно'+(job.cached?' (кэш)':'')+'.');
-  return job.result;
- }catch(e){
-  if(revision===boxEquityEpoch)msg('Equity коробок: '+e.message,true);
-  return null;
- }finally{
-  boxesComputing=false;$('computeBoxes').disabled=false;
-  $('computeBoxes').textContent='Пересчитать Eq коробок';
- }
-}
 function currentPeople(){return opponentsSelected()}
-async function calculateRangeEquity(){
- const revision=calcEpoch;
- if(!hero)return;
- try{
-  $('actualState').textContent='Оценка диапазона...';
-  const result=await post('/api/plan/range-equity',{hero,opponents:currentPeople(),trials:3000});
-  if(revision!==calcEpoch)return;
-  rangeEquityResult=result;
-  $('actualState').textContent='Готово · '+result.trials+' выставлений';
-  drawEquityStats();
-  msg('Showdown equity нашего диапазона: '+pct(result.equity_pct)+' против '+currentPeople().length+' соперников.');
- }catch(e){$('actualState').textContent='Ошибка';msg('Equity диапазона: '+e.message,true)}
-}
 async function savePlan(forceNew=false){
  try{
   if(!hero)throw Error('Сначала выбери стратегию');
