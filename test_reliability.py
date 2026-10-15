@@ -66,7 +66,7 @@ class ReliabilityTests(unittest.TestCase):
 
     def test_resume_accepts_only_audited_legacy_exporter(self):
         legacy=app.strategy_fingerprint(exporter.LEGACY_EXPORTER_SHA256)
-        with tempfile.TemporaryDirectory() as td, patch.object(app,"OUT",Path(td)), \\
+        with tempfile.TemporaryDirectory() as td, patch.object(app,"OUT",Path(td)), \
              patch.dict(app.RUNS,{},clear=True):
             run_id="20261015_450_export"
             folder=Path(td)/run_id;folder.mkdir()
