@@ -148,7 +148,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("Единый протокол V1",page)
         self.assertIn('id="compareRfi"',page)
         self.assertIn("bots=Array.from({length:9}",page)
-        self.assertIn("post:'tag_punisher'",page)
+        self.assertIn("post:'tag_postflop_v1'",page)
         self.assertIn("savedForComparison.filter",page)
         self.assertIn("$('seat_mode').value='rotate'",page)
         self.assertIn("Покрытие ИСХОДНЫХ алгоритмов",page)
@@ -317,7 +317,7 @@ class ScreenOneTests(unittest.TestCase):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
                          {"a17_preflop", "pc_gto_80bb"})
-        self.assertIn("tag_punisher", catalog["postflop_strategies"])
+        self.assertIn("tag_postflop_v1", catalog["postflop_strategies"])
         self.assertNotIn("gto",catalog["preflop_strategies"])
         self.assertIn("gto",catalog["postflop_strategies"])
         self.assertIn("gto",app.PREFLOP_CHOICES)  # archival compatibility
@@ -333,7 +333,7 @@ class ScreenOneTests(unittest.TestCase):
         page=app.UI.read_text(encoding="utf-8")
         self.assertIn("GTO Old · Postflop (Monte Carlo)",page)
         self.assertIn('id="compareOldGto"',page)
-        self.assertIn("postflops=['gto','gto_postflop_v1','tag_punisher']",page)
+        self.assertIn("postflops=['gto','gto_postflop_v1','tag_postflop_v1']",page)
         self.assertIn("pre:'pc_gto_80bb',post:postflops[i%3]",page)
         self.assertIn("preflopValues=['','a17_preflop','pc_gto_80bb']",page)
 
@@ -371,7 +371,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("'post'));", page)
         self.assertIn("preflop_strategies", page)
         self.assertNotIn("values=['','gto','gto_fixed'", page)
-        self.assertIn("['pc_gto_80bb','smart']",page)
+        self.assertIn("['pc_gto_80bb','chaser_postflop_v1']",page)
         self.assertNotIn("['gto','smart']",page)
 
     def test_two_upper_workspaces_full_width_journal_and_results(self):

@@ -87,10 +87,10 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
-<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button><button class="btn sm primary" id="comparePost" type="button">GTO Postflop vs LAG · 8 мест</button><button class="btn sm outline" id="compareOldGto" type="button">GTO Old vs GTO V1 vs TAG · 9 мест</button></div>
+<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button><button class="btn sm primary" id="comparePost" type="button">GTO Postflop vs LAG · 8 мест</button><button class="btn sm outline" id="compareOldGto" type="button">GTO Old vs GTO V1 vs TAG V1 · 9 мест</button><button class="btn sm" id="compareFivePost" type="button">5 постфлоп-стилей · 9 мест</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
-<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO Old / GTO V1 / LAG · блефы и дро</summary>
+<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO / TAG / LAG / Chaser / Trapper · модели поведения</summary>
 <table class="coverageTable"><thead><tr><th>Механика</th><th>GTO Postflop V1</th><th>LAG Postflop V1</th></tr></thead><tbody>
 <tr><td>Готовые сильные руки</td><td>Вэлью-ставки / частичные ловушки</td><td>Чаще ставит и повышает</td></tr>
 <tr><td>Сильные дро</td><td>Сдержанный полублеф</td><td>Частые полублефы / чек-рейзы</td></tr>
@@ -98,6 +98,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <tr><td>Ривер без усиления</td><td>Редкий блеф при блокерах / промахе дро</td><td>Чаще блефует с блокерами / промахом дро</td></tr>
 <tr><td>Мультипот</td><td>Частота блефа снижается</td><td>Частота блефа снижается</td></tr>
 </tbody></table>
+<p class="note"><strong>TAG V1:</strong> выборочное вэлью и дисциплинированная защита по цене. <strong>Chaser V1:</strong> склонность переоплачивать дро. <strong>Trapper V1:</strong> слоуплей сильных рук, с поправкой на опасность борда и мультипот. Все пять профилей являются эвристическими моделями поведения, не солверами.</p>
 <p class="note"><strong>GTO Old:</strong> исходный Monte Carlo бот (100 симуляций Equity на постфлоп-решение), с C-bet, полублефами и блефами на ривере. Восстановлен только в списке Postflop как контрольный алгоритм. <strong>GTO V1</strong> — отдельная GTO-inspired эвристика; ни один из них не является solver-GTO. Старые стратегии и результаты не изменены.</p></details>
 <details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
@@ -138,10 +139,11 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb'];
-let postflopValues=['','gto','gto_postflop_v1','lag_postflop_v1','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',lag_postflop_v1:'LAG Postflop V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+let postflopValues=['','gto_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1','gto','random'];
+const legacyPostflopValues=['smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler'];
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',lag_postflop_v1:'LAG Postflop V1',tag_postflop_v1:'TAG Postflop V1',chaser_postflop_v1:'Draw Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
-const preset=[['pc_gto_80bb','smart'],['pc_gto_80bb','tag_punisher'],['pc_gto_80bb','wide_defender'],['pc_gto_80bb','maniac_mixed'],['pc_gto_80bb','baseline_sane'],['a17_preflop','tag_punisher'],['pc_gto_80bb','random'],['pc_gto_80bb','random'],['pc_gto_80bb','pressure_filler']];
+const preset=[['a17_preflop','gto_postflop_v1'],['pc_gto_80bb','gto_postflop_v1'],['a17_preflop','lag_postflop_v1'],['pc_gto_80bb','lag_postflop_v1'],['pc_gto_80bb','tag_postflop_v1'],['pc_gto_80bb','chaser_postflop_v1'],['pc_gto_80bb','trapper_postflop_v1'],['pc_gto_80bb','random']];
 let bots=[],sessions=[],selected=null,working=false,savedForComparison=[];
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
@@ -156,7 +158,11 @@ function botOptions(value,fn,street){
   const o=el('option','',street==='post'&&v==='gto'?'GTO Old · Postflop (Monte Carlo)':(names[v]||v));o.value=v;s.append(o)
 }
  const normalized=street==='post'&&isRandom(value)?'random':value;
- s.value=options.includes(normalized)?normalized:'';
+ // An archived profile is listed only when reopening an old experiment.
+ if(street==='post'&&legacyPostflopValues.includes(normalized)&&!options.includes(normalized)){
+  const opt=el('option','','Архив · '+(names[normalized]||normalized));opt.value=normalized;s.append(opt);
+ }
+ s.value=options.includes(normalized)||street==='post'&&legacyPostflopValues.includes(normalized)?normalized:'';
  s.onchange=()=>fn(s.value);
  if(!s.value)s.classList.add('invalid');
  return s;
@@ -164,7 +170,7 @@ function botOptions(value,fn,street){
 function valid(){
  const invalid=bots.flatMap((b,i)=>{
   const pre=preflopValues.includes(b.pre)&&b.pre!=='';
-  const post=postflopValues.includes(b.post)&&b.post!==''||isRandom(b.post);
+  const post=(postflopValues.includes(b.post)&&b.post!=='')||legacyPostflopValues.includes(b.post)||isRandom(b.post);
   return pre&&post?[]:['P'+(i+1)];
  });
  $('botError').textContent=invalid.length?'Выбери допустимые Preflop и Postflop для '+invalid.join(', '):'';
@@ -253,7 +259,7 @@ async function loadCatalog(){
    }
    $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
     ' пользовательских стратегий синхронизировано с редактором. Сохранённая версия используется как Preflop; Postflop выбирается отдельно. Неотредактированные позиции — исходный алгоритм.';
-   postflopValues=['',...(catalog.postflop_strategies||['gto','gto_postflop_v1','lag_postflop_v1','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v))];
+   postflopValues=['',...(catalog.postflop_strategies||['gto_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1','gto','random']).filter(v=>values.includes(v))];
    drawBots();
   }
   const parallel=$('parallel');
@@ -276,14 +282,32 @@ $('syncStrategies').onclick=async()=>{await loadCatalog();feedback('Катало
 $('compareOldGto').onclick=()=>{
  // Exactly 3 identical preflop policies per postflop profile.
  // One shared defense protocol and a rotating seat order.
- const postflops=['gto','gto_postflop_v1','tag_punisher'];
+ const postflops=['gto','gto_postflop_v1','tag_postflop_v1'];
  bots=Array.from({length:9},(_,i)=>({
   pre:'pc_gto_80bb',post:postflops[i%3]
  }));
  $('preflop_protocol').value='standard_v1';
  $('seat_mode').value='rotate';
  drawBots();
- feedback('Контроль готов: GTO Old / GTO V1 / TAG — по 3 места, один PC GTO Preflop и общая защита, ротация. Проверь параметры и запусти эксперимент.');
+ feedback('Контроль готов: GTO Old / GTO V1 / TAG V1 — по 3 места, один PC GTO Preflop и общая защита, ротация. Проверь параметры и запусти эксперимент.');
+};
+$('compareFivePost').onclick=()=>{
+ const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) && /(оптимиз|optimi[sz])/i.test(x.name));
+ const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
+ const hero=optimized?.token||'a17_preflop';
+ const lineup=[
+  [hero,'gto_postflop_v1'],
+  ['pc_gto_80bb','gto_postflop_v1'],['pc_gto_80bb','gto_postflop_v1'],
+  ['pc_gto_80bb','tag_postflop_v1'],['pc_gto_80bb','tag_postflop_v1'],
+  ['pc_gto_80bb','lag_postflop_v1'],['pc_gto_80bb','lag_postflop_v1'],
+  ['pc_gto_80bb','chaser_postflop_v1'],
+  ['pc_gto_80bb','trapper_postflop_v1']
+ ];
+ bots=lineup.map(([pre,post])=>({pre,post}));
+ $('preflop_protocol').value='standard_v1';
+ $('seat_mode').value='rotate';
+ drawBots();
+ feedback('Сборка готова: 1 A17 + 8 PC, пять постфлоп-архетипов; единый префлоп-протокол и ротация. Проверь и запусти эксперимент.');
 };
 $('comparePost').onclick=()=>{
  const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
@@ -309,12 +333,12 @@ $('compareRfi').onclick=()=>{
   /(оптимиз|optimi[sz])/i.test(x.name));
  const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
  const hero=optimized?.token||'a17_preflop';
- bots=Array.from({length:9},(_,i)=>({pre:i%2===0?hero:'pc_gto_80bb',post:'tag_punisher'}));
+ bots=Array.from({length:9},(_,i)=>({pre:i%2===0?hero:'pc_gto_80bb',post:'tag_postflop_v1'}));
  $('preflop_protocol').value='standard_v1';
  $('seat_mode').value='rotate';
  drawBots();
  feedback('Контроль подготовлен: '+(optimized?optimized.name+' v'+optimized.version:'A17 V5')+
-  ' против PC GTO; общий Postflop TAG Punisher, один протокол ответов, ротация мест. Проверь параметры и нажми «Запустить».');
+  ' против PC GTO; общий Postflop TAG V1, один протокол ответов, ротация мест. Проверь параметры и нажми «Запустить».');
 };
 $('forget').onclick=()=>{sessionStorage.removeItem('skachkov_key');$('key').value='';$('connection').textContent='Отключено';$('connection').className='badge';valid()};
 $('start').onclick=async()=>{try{const c=config();working=true;valid();const s=await get('/api/runs',{method:'POST',body:JSON.stringify(c)});selected=s;await refresh();feedback('Сессия запущена.')}catch(e){working=false;valid();feedback(e.message,true)}};

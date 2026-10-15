@@ -24,6 +24,8 @@ def create_bot(btype: str) -> BotAdapter:
       gto_fixed           Legacy GTO charts with correct facing-raise boundary
       gto_postflop_v1, lag_postflop_v1
                           GTO-inspired and LAG postflop-only profiles (not solver GTO)
+      tag_postflop_v1, chaser_postflop_v1, trapper_postflop_v1
+                          Distinct TAG / draw chaser / trapping postflop policies
       pc_gto_80bb        80bb PokerCoaching RFI (25% steps); other preflop uses GTO Fixed
       a17_preflop         A17 2–9-max positional RFI; SB raises A01-A16
       a17_tag             a17_preflop + tag_punisher postflop
@@ -97,6 +99,10 @@ def create_bot(btype: str) -> BotAdapter:
     if btype in ("exploitative", "exploitativebot"):
         from bots.exploitative_bot import ExploitativeBot
         return _wrap(ExploitativeBot())
+
+    if btype in ("tag_postflop_v1", "chaser_postflop_v1", "trapper_postflop_v1"):
+        from bots.postflop_archetypes_v1 import HumanPostflopBot
+        return HumanPostflopBot(btype)
 
     if btype in ("gto_postflop_v1","lag_postflop_v1"):
         from bots.postflop_profiles import PostflopProfileBot

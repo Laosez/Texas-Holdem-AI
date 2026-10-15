@@ -6,6 +6,7 @@ on:
       - feat/simulator-screen-1-20261014
       - feat/reliability-a17-20261014
       - feat/plan-multiway-editor-20261014
+      - feat/five-postflop-archetypes-20261015
   pull_request:
     branches:
       - feat/railway-simulator-20261014
@@ -24,7 +25,7 @@ jobs:
           python-version: '3.11'
       - name: Unit tests
         run: |
-          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http -v
+          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_postflop_profiles test_human_postflop_profiles -v
       - name: Two-tournament smoke
         env:
           THAI_ENGINE_IMPL: legacy
