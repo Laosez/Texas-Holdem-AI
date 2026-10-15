@@ -87,7 +87,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
-<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button></div>
+<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button><button class="btn sm primary" id="comparePost" type="button">GTO Postflop vs LAG · 8 мест</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
 <details class="coverageAudit" id="postflopModels"><summary>Postflop V1 · GTO-inspired против LAG · блефы и дро</summary>
@@ -273,6 +273,25 @@ $('resetBots').onclick=()=>{bots=preset.map(x=>({pre:x[0],post:x[1]}));drawBots(
 $('addBot').onclick=()=>{if(bots.length<9){bots.push({pre:'',post:''});drawBots()}};
 $('key').oninput=valid;$('connect').onclick=connect;
 $('syncStrategies').onclick=async()=>{await loadCatalog();feedback('Каталог стратегий обновлён из редактора.')};
+$('comparePost').onclick=()=>{
+ const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
+  /(оптимиз|optimi[sz])/i.test(x.name));
+ const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
+ const a17=optimized?.token||'a17_preflop';
+ // Factorial design: 2 preflop ranges x 2 postflop engines x 2 seats each.
+ // Eight comparable participants; all use the same preflop defense protocol.
+ const combos=[
+  [a17,'gto_postflop_v1'],['pc_gto_80bb','gto_postflop_v1'],
+  [a17,'lag_postflop_v1'],['pc_gto_80bb','lag_postflop_v1']
+ ];
+ bots=Array.from({length:8},(_,i)=>{
+  const c=combos[i%4];return {pre:c[0],post:c[1]};
+ });
+ $('preflop_protocol').value='standard_v1';
+ $('seat_mode').value='rotate';
+ drawBots();
+ feedback('Готово: 2×2 A17/PC × GTO/LAG Postflop, по два места на сочетание. Все префлоп-защиты единые, места ротируются. Проверь и запусти эксперимент.');
+};
 $('compareRfi').onclick=()=>{
  const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
   /(оптимиз|optimi[sz])/i.test(x.name));
