@@ -95,7 +95,7 @@ class PlanTests(unittest.TestCase):
             b,pb=eq.build_ranges([{**rfi_op, "position": "3"}])
             self.assertEqual(pa[0]["position"], "9")
             self.assertEqual(pb[0]["position"], "3")
-            self.assertNotEqual(a[0].weights, b[0].weights)
+            self.assertNotEqual(a[0].total, b[0].total)
 
     def test_old_v1_saved_strategy_migrates_non_destructively(self):
         with tempfile.TemporaryDirectory() as td, patch.object(core, "STORE", Path(td)):
