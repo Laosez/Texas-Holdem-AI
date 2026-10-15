@@ -179,11 +179,31 @@ def existing_saved_token(token):
 def strategy_catalog():
     options = sorted(SPLIT_PARTS)
     saved = saved_preflop_options()
-    preflop = sorted(PREFLOP_CHOICES) + [item["token"] for item in saved]
+    # Legacy "gto" remains loadable for old exports, direct CLI and saved
+    # tournament manifests, but is no longer offered for NEW sessions.
+    preflop = sorted(PREFLOP_CHOICES - {"gto"}) + [item["token"] for item in saved]
+    postflop = sorted(POSTFLOP_CHOICES - {"gto"})
     return {"strategies": sorted(set(options) | set(preflop)),
             "preflop_strategies": preflop,
             "saved_preflop": saved,
-            "postflop_strategies": sorted(POSTFLOP_CHOICES),
+            "postflop_strategies": postflop,
+            "preflop_coverage": {
+                "pc_gto_80bb": {
+                    "rfi": "PokerCoaching 80bb RFI 169-hand chart, 25% rounding (9-max chart indexed by position)",
+                    "vs_open": "fallback:gto_fixed:positional heuristic, not PC source 3-bet chart",
+                    "bb_vs_open": "fallback:gto_fixed:first-raise BB defense, no PC source chart",
+                    "vs_threebet": "fallback:gto_fixed:positional heuristic, not PC source 4-bet chart",
+                    "vs_fourbet": "fallback:gto_fixed:no separate PC chart"
+                },
+                "a17_preflop": {
+                    "rfi": "A17 V5 position/box rules",
+                    "vs_open": "fallback:gto_fixed except shared first BB defense",
+                    "bb_vs_open": "fallback:gto_fixed:first-raise BB defense",
+                    "vs_threebet": "A17 A01-A07+A09: 50% 4-bet, 50% call; others fold",
+                    "vs_fourbet": "fallback:gto_fixed:no dedicated 5-bet chart"
+                },
+                "gto_fixed": "heuristic fallback only; no PC source response charts"
+            },
             "a17_version": "A17_V5",
             "code_fingerprint": strategy_fingerprint(), "workers_max": max_safe_workers(),
             "required_streets": ["pre", "post"]}
