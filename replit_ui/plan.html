@@ -16,7 +16,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .boxCardMeta{flex:1;min-width:0;font-size:10px;color:#9dbbd4;text-align:center}
 .boxHandle{cursor:grab;border:1px dashed #4d6885;background:transparent;color:#91b8dd;border-radius:5px;padding:5px 8px;font-size:16px}.boxExpand{cursor:pointer;border:1px solid #39536b;background:#1e3852;color:#c4dcf5;border-radius:5px;padding:5px 7px}
 .boxHandList{display:flex;gap:4px;flex-wrap:wrap;margin-top:9px;padding-top:8px;border-top:1px solid #30475d;max-height:200px;overflow-y:auto;min-height:25px}
-.boxHandChip{display:flex;align-items:center;gap:2px;border:1px solid #476b88;border-radius:5px;background:#233e5a;color:#e8f4ff;font-weight:700;font-size:11px}.boxHandChip.played{border-color:#70b7ff}
+.boxHandChip{display:flex;align-items:center;gap:2px;border:1px solid #476b88;border-radius:5px;background:#233e5a;color:#e8f4ff;font-weight:700;font-size:11px}
 .boxHandSelect{border:0;color:inherit;background:transparent;padding:4px 3px 4px 6px;font-size:11px;cursor:pointer;font-weight:700}
 .boxHandRemove{border:0;border-radius:0 4px 4px 0;background:rgba(0,0,0,.2);color:#b9d0e5;cursor:pointer;padding:4px 5px;font-size:11px}.boxHandRemove:hover{background:#7d3948;color:white}
 .boxPool{border-style:dashed}.boxEmpty{font-size:11px;color:#88a3bd}.boxInstructions{font-size:11px;color:#9fb9d0;margin:9px 0 3px}
@@ -54,7 +54,8 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 
 
 .hand.none{background:#203144}.hand.fold{background:#334159}.hand.open{background:#245e9a}.hand.limp{background:#7755a3}.hand.call{background:#1d8178}.hand.threebet{background:#99652e}.hand.fourbet{background:#94516f}.hand.push{background:#a24d73}
-.hand.played{border:2px solid #70b7ff}
+.handBoxTag{position:absolute;top:2px;right:3px;z-index:5;line-height:1.1;font-size:8px;letter-spacing:-.1px;font-weight:800;color:#dce6f3;opacity:.83;pointer-events:none;text-shadow:0 1px 2px #101923}
+.matrixLayout.double .handBoxTag{top:1px;right:2px;font-size:7px}
 .hand.metricShade{background-image:linear-gradient(135deg,var(--shade-top),var(--shade-bottom))}
 .hand.metricMissing{background:#253448;color:#a9bbcf}
 .hand.metricNeutral{background:#37404b;color:#edf1f7}
@@ -109,7 +110,6 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие · цвет</option></select></div></div>
-<div class="metricControls" id="rangeBorderControls"><div class="field" style="width:min(310px,100%)"><label for="minPlayFrequency">Синяя рамка: частота участия не ниже <strong id="playMinLabel">20%</strong></label><input id="minPlayFrequency" type="range" min="0" max="100" value="20" step="1"></div><span class="small" style="max-width:650px">В GTO Bot неприоритетные руки играются с частотой 15%; порог 20% не относит их к основному диапазону, сохраняя реальную частоту в подсказке.</span></div>
 <div class="metricControls hidden" id="evControls">
 <div class="field"><label for="evPot">Банк перед коллом, BB</label><input id="evPot" type="number" min="0" step="0.5" value="10"></div>
 <div class="field"><label for="evCost">Цена колла, BB</label><input id="evCost" type="number" min="0.1" step="0.5" value="5"></div>
@@ -125,7 +125,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
-<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Градиент заливки = выбранная метрика, а НЕ частота участия по умолчанию. Золотой пунктир = equity не ниже порога. Синяя рамка = рука участвует с частотой не ниже выбранного порога (по умолчанию 20%). Номер коробки доступен по наведению. Фиолетовая метка слева = выделенная коробка нашей стратегии. Руки ниже equity-порога не затемняются.</p>
+<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Градиент заливки = выбранная метрика, а НЕ частота участия по умолчанию. Золотой пунктир = equity не ниже порога. Нижняя полоска каждой руки показывает доли Fold / Raise / Limp / Call; синяя рамка больше не используется. Номер коробки A01–A17 показан справа сверху. Фиолетовая метка слева = выделенная коробка нашей стратегии. Руки ниже equity-порога не затемняются.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Отдельно по каждому сопернику · HU + Multiway</span></div>
 <div class="profile" style="margin-bottom:14px"><h3>Матрица equity стратегий · каждая с каждой</h3>
@@ -247,7 +247,7 @@ function boxDropped(e,target){
  if(HANDS.includes(h))moveHandToBox(h,target);
 }
 function boxChip(h){
- const chip=el('div','boxHandChip'+(knownActivePercent(hero,h)>=Math.max(1,Number($('minPlayFrequency').value))?' played':''));
+ const chip=el('div','boxHandChip');
  chip.draggable=true;
  chip.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-hand',h);e.dataTransfer.setData('text/plain',h)};
  const show=el('button','boxHandSelect',h);show.type='button';show.title='Редактировать '+h;
@@ -375,7 +375,7 @@ function setMetricLegend(){
  const settings={
   none:['Нейтральный серый фон: цвет не зависит от расчётов, выделение игрового диапазона определяется отдельно.','linear-gradient(90deg,#37404b,#37404b)'],
   equity:['Equity: 0% → 100%, красный → зелёный. Без Monte Carlo нет значения.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
-  participation:['Частота участия: 0% → 100%. Синяя рамка только при участии больше 0%.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
+  participation:['Частота участия: 0% → 100%; нижняя полоска показывает частоты действий.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
   dominant:['Частота основного действия: 0% → 100%.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
   box:['Коробки A01–A17: 17 разных цветов, без шкалы силы.','linear-gradient(90deg,#97446f,#476f9d,#43976c,#b48b46)'],
   combos:['Комбинации: 4 → 6 → 12.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
@@ -404,7 +404,6 @@ function handMetricsRows(hand,doc){
  pair('Число комбинаций',COMBOS(hand));
  pair('Коробка A17',Number.isInteger(box)&&box>0?'A'+String(box).padStart(2,'0'):'Без коробки');
  pair('Участие в диапазоне',f(frequency));
- pair('Синяя рамка от',$('minPlayFrequency').value+'%');
  const actions=doc?.hands?.[hand];
  if(actions&&Object.keys(actions).length){
   for(const [action,pct] of Object.entries(actions))pair(ACTIONS[action]||action,f(Number(pct)));
@@ -479,7 +478,7 @@ function matrix(root,doc){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
  const eq=equityResults.filter?.equity||{},min=Number($('equityMin').value),metric=$('cellMetric').value;
- const pot=Number($('evPot').value),cost=Number($('evCost').value),minPlayed=Number($('minPlayFrequency').value);
+ const pot=Number($('evPot').value),cost=Number($('evCost').value);
  const allInEquity=equityResults.actual?.equity||null;
  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
  for(const h of HANDS){
@@ -487,12 +486,16 @@ function matrix(root,doc){
   button.type='button';button.title=handTooltip(h,doc);
   const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   const participation=knownActivePercent(doc,h);
-  // A blue outline marks a played hand only. It is never used for equity or boxes.
-  if(participation!==null&&participation>0&&participation>=minPlayed)button.classList.add('played');
+  // Action-frequency segments, not a blue frame, describe how the hand is played.
   const hasEq=Number.isFinite(eq[h]),equity=hasEq?eq[h]:null;
   if(hasEq&&equity>=min)button.classList.add('equityHit');
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
+  if(Number.isInteger(b)&&b>=1&&b<=17){
+   const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
+   tag.setAttribute('aria-hidden','true');
+   button.append(tag);
+  }
 
   let displayed='—',value=null;
   if(metric==='none'){
@@ -882,7 +885,6 @@ $('oppCount').onchange=updateOppCount;
 $('viewOpponent').onchange=loadVillain;
 $('matrixMode').onchange=drawMatrices;
 $('cellMetric').onchange=()=>{hideHandHover();drawMatrices()};
-$('minPlayFrequency').oninput=()=>{$('playMinLabel').textContent=$('minPlayFrequency').value+'%';drawMatrices();drawBoxes()};
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices();drawBoxes()};
