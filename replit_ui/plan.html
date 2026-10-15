@@ -58,6 +58,14 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .hand.metricShade{background-image:none}
 .hand.metricMissing{background:#303b49;color:#a9bbcf}
 .hand.metricNeutral{background:#303b49;color:#edf1f7}
+/* Range membership is independent of the displayed numeric metric.
+   Active hands remain blue in Equity, call EV, all-in EV and box views. */
+.matrixGrid .hand.playedRange:not(.rangeIntersection){
+ background:#285e8c;border-color:#477eab;color:#f3f8ff;
+}
+.matrixGrid .hand:not(.playedRange):not(.rangeIntersection){
+ background:#303b49;color:#dce8f4;
+}
 .actionStripe{position:absolute;bottom:2px;left:3px;right:3px;height:5px;display:flex;overflow:hidden;border-radius:2px;pointer-events:none;z-index:4;background:#344352}
 .actionStripe .fold{background:#8995a2}.actionStripe .raise{background:#e36b6e}.actionStripe .limp{background:#53b98b}.actionStripe .call{background:#63b2cf}
 .actionLegend{display:flex;gap:13px;flex-wrap:wrap;align-items:center;margin:9px 0 6px;font-size:11px;color:#a7bdd4}
@@ -787,7 +795,7 @@ function setMetricLegend(){
  $('metricLegendText').textContent=(descriptions[metric]||'')+
   (metric==='intersection'
    ?' Это сравнение классов рук, а не Equity; точные частоты Hero и соперника смотри при наведении.'
-   :' Фон ячеек постоянный. Цветной уголок — коробка A17, без белой рамки. Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.');
+   :' Синий фон — рука участвует в выбранном диапазоне (>0%), серый — не участвует / не назначена. Цветной уголок — коробка A17, без белой рамки. Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.');
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -1082,6 +1090,11 @@ function matrix(root,doc,scale,metricChoice){
   const boxhit=doc===hero&&selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
+  if(!showIntersection){
+   // Use the selected opponent action filter when presenting the villain grid.
+   const inRange=doc===villain?(villainSelectedShare(h)||0)>0:handInRange(doc,h);
+   if(inRange)button.classList.add('playedRange');
+  }
   if(showIntersection){
    const membership=intersectionMembership(h);
    button.classList.add('rangeIntersection','intersection'+
