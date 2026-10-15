@@ -154,7 +154,14 @@ class ScreenOneTests(unittest.TestCase):
                 self.assertEqual(restored["id"],run_id)
                 self.assertTrue((Path(td)/run_id/"job.json").is_file())
                 app.delete_session(run_id)
-                self.assertEqual(app.purge_trash(),1)
+                # Trash is independent of the live tournament directories.
+                active_id="ongoing_live_job"
+                app.RUNS[active_id]={"id":active_id,"status":"running"}
+                try:
+                    self.assertEqual(app.purge_trash(),1)
+                    self.assertIn(active_id,app.RUNS)
+                finally:
+                    app.RUNS.pop(active_id,None)
                 self.assertFalse((Path(td)/".trash"/run_id).exists())
                 self.assertEqual(app.purge_trash(),0)
             finally:
