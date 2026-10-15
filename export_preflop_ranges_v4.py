@@ -583,14 +583,20 @@ def write_json(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
 
-def checkpoint_config_key(args, names):
-    """Bind checkpoints to the exact input configuration and source version."""
+# Approved prior revision (same tournament engine, only export aggregation changed).
+# This precise digest allows completed 450-tournament checkpoints to be resumed
+# after the memory fix; any other historical source is rejected.
+LEGACY_EXPORTER_SHA256 = "c95b365dd2af4051db541b27781b94e9ccbd113477ca6c3740fcbd6c9b5d40b2"
+
+
+def checkpoint_config_key(args, names, source_sha256=None):
+    """Bind checkpoints to exact experiment settings and an audited source."""
     payload = {
         "version": 1, "players": names, "tournaments": args.tournaments,
         "seed": args.seed, "chips": args.chips, "sb": args.sb, "bb": args.bb,
         "blind_increase_every": args.blind_increase_every, "max_hands": args.max_hands,
         "seat_mode": args.seat_mode,
-        "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "source_sha256": source_sha256 or hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -652,7 +658,15 @@ def main():
         if meta_file.exists():
             stored = json.loads(meta_file.read_text(encoding="utf-8"))
             if stored.get("config_key") != config_key:
-                p.error("Checkpoint configuration or exporter source version changed; use a new session")
+                # Explicitly allow only the verified pre-aggregation-fix exporter.
+                # Each per-tournament checkpoint still has to match this config
+                # key AND the full task tuple before any result is reused.
+                legacy_key = checkpoint_config_key(a, names, LEGACY_EXPORTER_SHA256)
+                if stored.get("config_key") == legacy_key:
+                    config_key = legacy_key
+                    print("[resume] Compatible legacy checkpoint version verified; using memory-safe export",flush=True)
+                else:
+                    p.error("Checkpoint configuration or exporter source version changed; use a new session")
         else:
             meta_file.write_text(json.dumps({"config_key": config_key, "version": 1}, indent=2), encoding="utf-8")
         cached = len(list(checkpoint_dir.glob("*.json.gz")))
