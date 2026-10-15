@@ -309,6 +309,32 @@ class PlanHttpTests(unittest.TestCase):
         self.assertEqual(core.preset("builtin:pc_gto_80bb",position="BB",
                           scenario="rfi",players=9,stack_bb=80)["hands"],{})
 
+    def test_range_ev_overlap_and_reverse_opponent_matrix_controls(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        for identifier in ("rangeEvSummary","rangeEvPlayed","rangeEvDealt",
+                           "rangeEvNegative","rangeEvMissed","rangeEvNote",
+                           "rangeIntersect","rangeIntersectionStats",
+                           "villainMetric","villainReverseStatus","computeVillainReverse"):
+            self.assertIn('id="'+identifier+'"',page)
+        self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents)",page)
+        self.assertIn("const combos=COMBOS(hand);",page)
+        self.assertIn("activeMass+=combos*play;evMass+=combos*play*ev;",page)
+        self.assertIn("loss+=combos*play*Math.max(0,-ev);",page)
+        self.assertIn("missed+=combos*fold*Math.max(0,ev);",page)
+        self.assertIn("played:activeMass?evMass/activeMass:null,dealt:evMass/1326",page)
+        self.assertIn("function intersectionStats()",page)
+        self.assertIn("inter+=mass*Math.min(first,second);",page)
+        self.assertIn("uni+=mass*Math.max(first,second);",page)
+        self.assertIn("function runOpponentReverse()",page)
+        self.assertIn("profile:'inline:hero'",page)
+        self.assertIn("if(calcEpoch!==epoch||comparisonEpoch!==revision||heroRangeSignature()!==signature)",page)
+        self.assertIn("selectedVillain?selectedReverseResult()?.equity?.[h]:null",page)
+        self.assertIn("await runOpponentReverse();",page)
+        self.assertIn("const mainMetric=$('cellMetric').value,villainMetric=$('villainMetric').value;",page)
+        self.assertIn("matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric)",page)
+        self.assertIn("button.classList.add(both?'intersectionMatched':'intersectionMuted')",page)
+        self.assertIn("Режим пересечения показывает только руки",page)
+
     def test_matrix_action_copy_paste_between_positions_preserves_boxes(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="copyMatrix"',page)
