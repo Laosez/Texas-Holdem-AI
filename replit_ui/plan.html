@@ -176,6 +176,14 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .comparisonDisclosure:not([open])>summary .foldIndicator::after{content:"▾"}
 .comparisonDisclosure:not([open])>summary{padding-bottom:3px}
 .comparisonDisclosure:focus-within{border-color:#698bad}
+
+/* One unified A17 editing surface: palette and duplicate headers removed. */
+.unifiedGroupEditor{margin:11px 0 0}
+.unifiedGroupList{border-top:1px solid #304b66;margin-top:12px;padding-top:12px}
+.unifiedGroupList .boxCard{border-left:3px solid var(--group-color,#8494a6)}
+.unifiedGroupList .boxCard.brushTarget{border-color:#96c5fa;background:linear-gradient(155deg,#1b3856,#122a43);box-shadow:inset 0 0 0 1px #6ba6e6}
+.unifiedGroupList .boxCard.brushTarget .boxSelect{color:#fff}
+.unifiedGroupList .boxSelect[aria-pressed="true"]{text-decoration:underline;text-underline-offset:3px}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -220,16 +228,25 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="matrixMetric"><span>Выбрано в A17</span><strong id="studioGroupHands">—</strong><small id="studioGroupCombos">комбинаций</small></div>
 <div class="matrixMetric"><span>Классы без группы</span><strong id="studioUnassigned">—</strong><small>размещаются в пуле</small></div>
 </div>
-<details id="groupEditor" class="groupDrawer groupEditor"><summary>Редактор групп A17 · кисть · перенос рук · 17 коробок</summary><div class="a17Workbench"><div class="heading"><strong>A17 / Кисть групп</strong><span id="brushStatus" class="badge">Режим: выбор</span></div>
-<div class="brushbar"><button class="brushTool active" id="brushInspect" type="button">◉ Выбирать</button><button class="brushTool" id="brushPaint" type="button">✎ Кисть A17</button>
-<label for="brushTarget" style="margin:0">Коробка</label><select id="brushTarget" aria-label="Куда перемещать руки"></select>
-<button class="btn sm" id="brushSelectGroup" type="button">Выделить группу</button><span class="brushStats" id="brushSelectedCount">0 выбрано</span>
-<button class="btn sm primary" id="brushApply" type="button" disabled>Перенести выбранные</button><button class="btn sm ghost" id="brushClear" type="button">Снять выбор</button></div>
-<div id="boxPalette" class="a17Palette" aria-label="Быстрый выбор коробок A17"></div>
-<div id="brushHint" class="brushHint">Выбирай A17 нажатием на коробку. Shift+клик — несколько рук; кистью можно проводить по матрице. Состав стратегии и действия Raise/Fold не меняются.</div>
-</div><div id="groupDrawer" class="groupDrawer"><div class="groupDrawerTitle">Состав коробок · перетаскивание рук · сортировка</div>
-<div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>A17 · редактор 17 коробок</strong><div class="buttons"><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div></div><div id="boxes" class="boxList"></div><p class="boxInstructions">Все коробки открыты. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. За значок ⠿ можно менять расположение коробок. <strong>Eq</strong> — средневзвешенное equity рук коробки по 4/6/12 комбинациям. Пересчёт мгновенный при переносе; новые Monte Carlo не запускаются. Номер A01–A17 выделяет диапазон на матрице. Удаление из коробки не удаляет руку из стратегии.</p>
-</div></div></details>
+<details id="groupEditor" class="groupDrawer groupEditor"><summary>Редактор A17 · кисть и 17 коробок</summary>
+<div class="a17Workbench unifiedGroupEditor">
+<div class="heading"><strong>Коробки A17 · единый редактор</strong><span id="brushStatus" class="badge">Режим: выбор</span></div>
+<div class="brushbar">
+<button class="brushTool active" id="brushInspect" type="button">◉ Выбор</button>
+<button class="brushTool" id="brushPaint" type="button">✎ Кисть</button>
+<label for="brushTarget" style="margin:0">Рабочая коробка</label><select id="brushTarget" aria-label="Выбрать коробку для кисти и переноса"></select>
+<button class="btn sm" id="brushSelectGroup" type="button">Выделить руки коробки</button>
+<span class="brushStats" id="brushSelectedCount">0 выбрано</span>
+<button class="btn sm primary" id="brushApply" type="button" disabled>Перенести выбранные</button>
+<button class="btn sm ghost" id="brushClear" type="button">Снять выделение</button>
+<button class="btn sm ghost" id="clearBoxes" type="button">Снять подсветку A17</button>
+</div>
+<div id="brushHint" class="brushHint">Нажмите на коробку ниже — она станет рабочей для кисти и массового переноса. Shift+клик по рукам выделяет несколько, перетаскивание переносит руки между коробками.</div>
+<div id="groupDrawer" class="groupDrawer unifiedGroupList">
+<div id="boxes" class="boxList"></div>
+<p class="boxInstructions">Одна панель для выбора коробки, кисти, ручного переноса и сортировки. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. Значок ⠿ переставляет коробки. <strong>Eq</strong> — средневзвешенное Equity рук по 4/6/12 комбинациям, мгновенно без дополнительного Monte Carlo. Перенос между коробками не меняет частоты действий.</p>
+</div>
+</div></details>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="heroMatrix" class="matrixGrid"></div></div></div></div>
 <details id="villainPane" class="matrixPane comparisonDisclosure" open><summary><span>02 · Соперник</span><strong id="villainMatrixLabel">Стратегия соперника</strong><span class="foldIndicator" aria-hidden="true"></span></summary><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div></details></div>
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
@@ -374,32 +391,6 @@ function groupPaletteColor(b){
  if(b===0)return '#8494a6';
  return 'hsl('+Math.round(b*137.508%360)+' 65% 63%)';
 }
-function drawBoxPalette(){
- const root=$('boxPalette');
- if(!root||!hero)return;
- root.replaceChildren();
- for(const b of [...boxOrder(),0]){
-  const hands=HANDS.filter(h=>hero.boxes[h]===b);
-  const total=hands.reduce((sum,h)=>sum+COMBOS(h),0);
-  const eq=groupWeightedEquity(b);
-  const button=el('button','paletteBox'+(brushTarget===b?' active':'')+(b===0?' unassigned':''));
-  button.type='button';
-  button.style.setProperty('--group-color',groupPaletteColor(b));
-  button.title=(b===0?'Без коробки':'Коробка A'+String(b).padStart(2,'0'))+
-    ' · '+hands.length+' рук · '+total+' комбинаций'+
-    (Number.isFinite(eq)?' · Eq '+Number(eq).toFixed(1)+'%':'');
-  button.append(el('strong','',b===0?'Без A17':'A'+String(b).padStart(2,'0')));
-  button.append(el('small','',hands.length+' рук'+(Number.isFinite(eq)?' · '+Number(eq).toFixed(0)+'%':'')));
-  button.setAttribute('aria-pressed',String(brushTarget===b));
-  button.draggable=b!==0;
-  if(b!==0)button.ondragstart=e=>{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-box',String(b))};
-  button.onclick=()=>{brushTarget=b;selectedBoxes=b?new Set([b]):new Set();drawBoxes();drawMatrices()};
-  button.ondragover=e=>{e.preventDefault();e.dataTransfer.dropEffect='move'};
-  button.ondrop=e=>boxDropped(e,b);
-  root.append(button);
- }
- updateBrushControls();drawStudioStats();
-}
 function drawStudioStats(){
  if(!hero)return;
  const known=HANDS.filter(h=>hero.hands[h]&&Object.keys(hero.hands[h]).length).length;
@@ -422,7 +413,7 @@ function updateBrushControls(){
  $('brushApply').disabled=!bulkSelected.size||!hero;
  $('brushHint').textContent=paint?
   'Проведи мышью или пальцем по рукам матрицы — они перейдут в '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'«Без коробки»')+'. Одно движение = один шаг отмены. Частоты Raise/Fold не изменятся.':
-  'Обычный клик — редактор руки; Shift+клик — выделение нескольких рук. Для переноса группы: исходная A17 → «Выделить группу» → целевая A17 → «Перенести выбранные». Коробки можно переставлять перетаскиванием.';
+  'Выбери исходную коробку → «Выделить руки коробки» → нажми целевую коробку → «Перенести выбранные». Ctrl+клик по коробкам подсвечивает несколько. Кисть переносит руки в рабочую коробку при проведении по матрице.';
 }
 function moveHandsToBox(hands,target){
  if(!hero||!Number.isInteger(target)||target<0||target>17)return false;
@@ -468,14 +459,20 @@ function drawBoxes(){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
   const groupEq=groupWeightedEquity(b);
-  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===0?' boxPool':''));
+  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':''));
+  card.style.setProperty('--group-color',groupPaletteColor(b));
   const head=el('div','boxCardHead');
-  if(b===0){
-   const label=el('strong','','Без коробки');label.style.flex='1';head.append(label);
-  }else{
-   const choose=el('button','boxSelect','A'+String(b).padStart(2,'0'));choose.type='button';
-   choose.setAttribute('aria-pressed',String(selectedBoxes.has(b)));
-   choose.onclick=()=>{if(selectedBoxes.has(b))selectedBoxes.delete(b);else selectedBoxes.add(b);drawBoxes();drawMatrices()};
+  {
+   const choose=el('button','boxSelect',b?'A'+String(b).padStart(2,'0'):'Без коробки');
+   choose.type='button';choose.title='Выбрать рабочую коробку для кисти и переноса';
+   choose.setAttribute('aria-pressed',String(brushTarget===b));
+   choose.onclick=e=>{
+    brushTarget=b;
+    if(e.ctrlKey||e.metaKey){
+     if(selectedBoxes.has(b))selectedBoxes.delete(b);else selectedBoxes.add(b);
+    }else selectedBoxes=b?new Set([b]):new Set();
+    drawBoxes();drawMatrices();
+   };
    head.append(choose);
   }
   const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · Eq '+(groupEq===null?'—':groupEq.toFixed(1)+'%')));
@@ -495,7 +492,7 @@ function drawBoxes(){
   card.ondrop=e=>{card.classList.remove('dragover');boxDropped(e,b)};
   root.append(card);
  }
- drawBoxPalette();
+ updateBrushControls();drawStudioStats();
 }
 function reorderBox(from,to){
  if(!hero||from===to)return;
@@ -1051,7 +1048,7 @@ $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
 $('brushInspect').onclick=()=>{finishBoxStroke();brushMode='inspect';drawMatrices();updateBrushControls()};
 $('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControls()};
-$('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBoxPalette();drawMatrices()};
+$('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);selectedBoxes=brushTarget?new Set([brushTarget]):new Set();drawBoxes();drawMatrices()};
 $('brushSelectGroup').onclick=()=>{if(!hero)return;bulkSelected=new Set(HANDS.filter(h=>hero.boxes[h]===brushTarget));drawMatrices();updateBrushControls();paintEditor()};
 $('brushApply').onclick=()=>moveHandsToBox([...bulkSelected],brushTarget);
 $('brushClear').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls();paintEditor()};
