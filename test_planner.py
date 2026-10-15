@@ -60,6 +60,80 @@ class PlanTests(unittest.TestCase):
         bb_3bet = core.preset("builtin:a17_v5", "BB", "vs_threebet", 9)
         self.assertEqual(bb_3bet["hands"]["AA"], {"call": 50, "fourbet": 50})
 
+    def test_one_saved_strategy_contains_multiple_positions(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(core, "STORE", Path(td)):
+            utg=core.preset("builtin:a17_v5", "9", "rfi", 9)
+            utg["hands"]["AA"]={"fold": 100}
+            first=core.save_plan(utg)
+            self.assertEqual(first["format"], "SKACHKOV_PLAN_V2")
+            self.assertEqual(len(first["contexts"]), 1)
+            # A saved ID can now resolve BTN without resetting to its old UTG.
+            btn=core.preset(first["ref"], "3", "rfi", 9)
+            self.assertEqual(btn["position"], "3")
+            self.assertEqual(btn["hands"]["AA"], {"open": 100})
+            self.assertFalse(btn["context_saved"])
+            btn["hands"]["AA"]={"fold": 25, "open": 75}
+            second=core.save_plan(btn, parent=first["ref"])
+            self.assertEqual(second["id"], first["id"])
+            self.assertEqual(second["version"], 2)
+            self.assertEqual(len(second["contexts"]), 2)
+            # Saved UTG work survives editing BTN and later switching back.
+            utg_restored=core.preset(second["ref"], "9", "rfi", 9)
+            self.assertEqual(utg_restored["hands"]["AA"], {"fold": 100.0})
+            btn_restored=core.preset(second["ref"], "3", "rfi", 9)
+            self.assertEqual(btn_restored["hands"]["AA"],
+                             {"fold": 25.0, "open": 75.0})
+            self.assertEqual(core.get_saved(first["ref"])["hands"]["AA"],
+                             {"fold": 100.0})
+            self.assertEqual(core.get_saved(first["ref"])["contexts"].keys(),
+                             {core.context_key(9, "9", "rfi")})
+            # Equity opponent selection respects the requested position,
+            # not just the saved document's last-active metadata.
+            rfi_op={"profile": second["ref"], "scenario": "rfi",
+                    "players": 9, "selector": "active"}
+            a,pa=eq.build_ranges([{**rfi_op, "position": "9"}])
+            b,pb=eq.build_ranges([{**rfi_op, "position": "3"}])
+            self.assertEqual(pa[0]["position"], "9")
+            self.assertEqual(pb[0]["position"], "3")
+            self.assertNotEqual(a[0].weights, b[0].weights)
+
+    def test_old_v1_saved_strategy_migrates_non_destructively(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(core, "STORE", Path(td)):
+            old=core.preset("builtin:a17_v5", "9", "rfi", 9)
+            old["name"]="Legacy single-seat save"
+            old["hands"]["AA"]={"fold":100}
+            old["id"]="abcdefabcdef"
+            old["version"]=1
+            old["ref"]="saved:abcdefabcdef@v1"
+            old["format"]="SKACHKOV_PLAN_V1"
+            old.pop("contexts", None)
+            old.pop("base_profile", None)
+            location=core._file(old["id"], 1)
+            location.parent.mkdir(parents=True)
+            location.write_text(json.dumps(old),encoding="utf-8")
+            original=location.read_text(encoding="utf-8")
+            loaded=core.get_saved(old["ref"])
+            self.assertEqual(len(loaded["contexts"]), 1)
+            self.assertEqual(loaded["hands"]["AA"], {"fold":100})
+            other=core.preset(old["ref"],"4","rfi",9)
+            newer=core.save_plan(other,parent=old["ref"])
+            self.assertEqual(newer["version"], 2)
+            self.assertEqual(len(newer["contexts"]), 2)
+            self.assertEqual(location.read_text(encoding="utf-8"), original)
+
+    def test_multi_position_validation_rejects_invalid_or_foreign_hands(self):
+        original=core.preset("builtin:a17_v5","9","rfi",9)
+        original["contexts"]={"9|3|rfi":{"hands":{"AA":{"open":100}}, "stack_bb":80},
+                              "9|BB|vs_open":{"hands":{"AKs":{"call":50,"threebet":50}}, "stack_bb":80}}
+        clean=core.validate_plan(original)
+        self.assertEqual(len(clean["contexts"]),3)
+        original["contexts"]["9|BB|vs_open"]["hands"]["AKs"]={"open":100}
+        with self.assertRaisesRegex(ValueError, "несовместимо"):
+            core.validate_plan(original)
+        original["contexts"]={"9|2|rfi":{"hands":{}, "stack_bb":80}}
+        with self.assertRaises(ValueError):
+            core.validate_plan(original)
+
     def test_blank_not_fold_and_boxes_independent(self):
         doc=core.preset("builtin:a17_v5","3","vs_open")
         self.assertFalse(doc["hands"])
