@@ -30,7 +30,10 @@
     "random_7",
     "random_8",
     "random_9",
-    "random_10"
+    "random_10",
+    "tag_postflop_v1",
+    "chaser_postflop_v1",
+    "trapper_postflop_v1"
   ],
   "notes": "Available split strategy parts; bot factory and web validator load same source."
 }
