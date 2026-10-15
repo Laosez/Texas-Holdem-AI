@@ -122,7 +122,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_metric_gradient_and_action_stripe_are_independent(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn(".hand.none,.hand.fold,.hand.open,.hand.limp,.hand.call,.hand.threebet,.hand.fourbet,.hand.push{background:#303b49}",page)
-        self.assertIn(".matrixPane .hand{background:#303b49!important;background-image:none!important",page)
+        self.assertIn(".matrixPane .hand{background:#303b49;background-image:none;",page)
         self.assertIn("const center=el('span','handMetric'",page)
         self.assertNotIn("function metricGradient(",page)
         self.assertNotIn("const colors=metricGradient(",page)
@@ -476,10 +476,10 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("badge.style.setProperty('--group-color',groupPaletteColor(brushTarget))",page)
         self.assertIn("badge.classList.toggle('inRange',handInRange(hero,hand))",page)
         self.assertIn("if(!brushTarget){tag?.remove();return}",page)
-        # Keep gold/red candidate highlighting and the unchanged matrix background.
+        # Keep candidate highlighting while allowing blue fill for participating hands.
         self.assertIn(".hand.candidateGold{border:2px solid #f3c45c}",page)
         self.assertIn(".hand.candidateRed{border:2px solid #ee6d75}",page)
-        self.assertIn(".matrixPane .hand{background:#303b49!important",page)
+        self.assertIn(".matrixPane .hand{background:#303b49;background-image:none;",page)
 
     def test_numeric_metric_labels_use_visible_min_max_scale(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
@@ -490,7 +490,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(color)center.style.color=color;",page)
         self.assertIn("Math.abs(value)<0.000001)return '#d7e1ee'",page)
         self.assertIn("const hue=value<0?3:159;",page)
-        self.assertIn(".matrixPane .hand{background:#303b49!important;background-image:none!important",page)
+        self.assertIn(".matrixPane .hand{background:#303b49;background-image:none;",page)
 
     def test_live_action_sliders_and_multiselection_contract(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
