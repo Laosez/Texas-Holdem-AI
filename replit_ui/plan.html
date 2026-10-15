@@ -672,7 +672,37 @@ function candidateSwaps(metric){
  }
  return {gold,red};
 }
-function matrix(root,doc){
+// A shared scale is calculated from all currently visible matrix cells.
+// Only the numeric label changes color; card background and action bar stay fixed.
+function visibleMetricScale(metric,docs){
+ const values=[];
+ if(!['none','box','action'].includes(metric)){
+  for(const doc of docs){
+   if(!doc)continue;
+   for(const h of HANDS){
+    const value=cellMetricValue(doc,h,metric).value;
+    if(Number.isFinite(value))values.push(value);
+   }
+  }
+ }
+ return values.length?{min:Math.min(...values),max:Math.max(...values),
+  negativeMax:Math.max(0,...values.filter(v=>v<0).map(v=>-v)),
+  positiveMax:Math.max(0,...values.filter(v=>v>0))}:null;
+}
+function metricTextColor(metric,value,scale){
+ if(!Number.isFinite(value)||!scale||['none','box','action'].includes(metric))return '';
+ if(['evAllIn','evCall','delta'].includes(metric)){
+  if(Math.abs(value)<0.000001)return '#d7e1ee';
+  const limit=value<0?scale.negativeMax:scale.positiveMax;
+  const intensity=limit>0?Math.min(1,Math.abs(value)/limit):0;
+  const hue=value<0?3:159;
+  return 'hsl('+hue+' '+Math.round(45+37*intensity)+'% '+Math.round(79-17*intensity)+'%)';
+ }
+ if(scale.max===scale.min)return '#dce7f4';
+ const t=Math.max(0,Math.min(1,(value-scale.min)/(scale.max-scale.min)));
+ return 'hsl('+Math.round(8+151*t)+' 83% '+Math.round(77-12*t)+'%)';
+}
+function matrix(root,doc,scale){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
  const metric=$('cellMetric').value,candidates=doc===hero?candidateSwaps(metric):{gold:new Set(),red:new Set()};
@@ -691,6 +721,8 @@ function matrix(root,doc){
   const info=cellMetricValue(doc,h,metric);
   if(info.display!==''){
    const center=el('span','handMetric'+(info.display.length>6?' compact':''),info.display);
+   const color=metricTextColor(metric,info.value,scale);
+   if(color)center.style.color=color;
    button.append(center);
   }
   const stripe=handActionStripe(actions);
@@ -732,7 +764,8 @@ function drawMatrices(){
  $('villainPane').classList.toggle('hidden',!twice);
  $('heroMatrixLabel').textContent=hero.name+' · '+hero.position+' · '+SCENARIOS[hero.scenario];
  $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?.position||'—');
- matrix($('heroMatrix'),hero);$('heroMatrix').classList.toggle('brushActive',brushMode==='paint');if(twice)matrix($('villainMatrix'),villain);
+ const scale=visibleMetricScale($('cellMetric').value,twice?[hero,villain]:[hero]);
+ matrix($('heroMatrix'),hero,scale);$('heroMatrix').classList.toggle('brushActive',brushMode==='paint');if(twice)matrix($('villainMatrix'),villain,scale);
 }
 function actionDraft(){const val={};for(const field of $('actionInputs').querySelectorAll('input[data-action]')){if(field.value.trim()&&Number(field.value)>0)val[field.dataset.action]=Number(field.value)}return val}
 function paintEditor(){
