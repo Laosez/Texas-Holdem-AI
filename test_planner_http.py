@@ -88,6 +88,19 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("hands.replaceChildren();",page)
 
 
+    def test_pc_btn_is_explicit_and_non_rfi_not_falsely_filled(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("'3':'BTN · позиция 3'",page)
+        self.assertIn("function positionCaption(pos)",page)
+        self.assertIn("positionCaption(hero.position)",page)
+        self.assertIn("doc.id==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'",page)
+        btn=core.preset("builtin:pc_gto_80bb",position="3",
+                        scenario="rfi",players=9,stack_bb=80)
+        self.assertEqual(len(btn["hands"]),169)
+        self.assertEqual(btn["hands"]["K2s"]["open"],100)
+        self.assertEqual(core.preset("builtin:pc_gto_80bb",position="3",
+                        scenario="vs_open",players=9,stack_bb=80)["hands"],{})
+
     def test_a17_in_matrix_with_corner_labels_and_action_bars(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         section03 = page[page.index('03 / </span>Матрицы стартовых рук'):page.index('04 / </span>Редактор выбранной руки')]
