@@ -55,7 +55,8 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
-<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button></div>
+<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
+<p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning">Preflop: A17 / GTO (Old) / GTO (PC). <strong>GTO (PC)</strong> использует чарты PC 80 BB для RFI на всех позициях, включая <strong>BTN (позиция 3; ~53,9% Raise)</strong>. При ответах на чужой рейз пока используется GTO Fixed. В Postflop выбирай только постфлоп-алгоритм. Random имеет один пункт; номера назначаются автоматически.</div>
 <div id="botError" class="bad" role="alert"></div>
 <div class="buttons"><button class="btn primary" id="start">▶ Запустить</button><button class="btn danger" id="stop" disabled>■ Остановить</button><button class="btn" id="resume" disabled>↻ Продолжить</button></div>
@@ -101,7 +102,9 @@ function el(t,cls,txt){const x=document.createElement(t);if(cls)x.className=cls;
 const isRandom=value=>value==='random'||/^random_(?:[2-9]|10)$/.test(value);
 function botOptions(value,fn,street){
  const s=el('select'),options=street==='pre'?preflopValues:postflopValues;
- for(const v of options){const o=el('option','',names[v]||v);o.value=v;s.append(o)}
+ for(const v of options){
+  const o=el('option','',names[v]||v);o.value=v;s.append(o)
+}
  const normalized=street==='post'&&isRandom(value)?'random':value;
  s.value=options.includes(normalized)?normalized:'';
  s.onchange=()=>fn(s.value);
@@ -190,7 +193,14 @@ async function loadCatalog(){
   const catalog=await get('/api/catalog');
   if(catalog.strategies?.length){
    values=['',...catalog.strategies];
-   preflopValues=['',...(catalog.preflop_strategies||['a17_preflop','gto','pc_gto_80bb']).filter(v=>values.includes(v)).sort((a,b)=>['a17_preflop','gto','pc_gto_80bb'].indexOf(a)-['a17_preflop','gto','pc_gto_80bb'].indexOf(b))];
+   const defaults=['a17_preflop','gto','pc_gto_80bb'];
+   const offered=catalog.preflop_strategies||defaults;
+   preflopValues=['',...defaults.filter(v=>offered.includes(v)),...offered.filter(v=>!defaults.includes(v))];
+   for(const saved of catalog.saved_preflop||[]){
+    names[saved.token]=saved.name+' · v'+saved.version+' · моя стратегия';
+   }
+   $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
+    ' пользовательских стратегий синхронизировано с редактором. Сохранённая версия используется как Preflop; Postflop выбирается отдельно. Неотредактированные позиции — исходный алгоритм.';
    postflopValues=['',...(catalog.postflop_strategies||['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v))];
    drawBots();
   }
@@ -210,6 +220,7 @@ $('preset').onclick=()=>{reset();feedback('Контрольные парамет
 $('resetBots').onclick=()=>{bots=preset.map(x=>({pre:x[0],post:x[1]}));drawBots()};
 $('addBot').onclick=()=>{if(bots.length<9){bots.push({pre:'',post:''});drawBots()}};
 $('key').oninput=valid;$('connect').onclick=connect;
+$('syncStrategies').onclick=async()=>{await loadCatalog();feedback('Каталог стратегий обновлён из редактора.')};
 $('forget').onclick=()=>{sessionStorage.removeItem('skachkov_key');$('key').value='';$('connection').textContent='Отключено';$('connection').className='badge';valid()};
 $('start').onclick=async()=>{try{const c=config();working=true;valid();const s=await get('/api/runs',{method:'POST',body:JSON.stringify(c)});selected=s;await refresh();feedback('Сессия запущена.')}catch(e){working=false;valid();feedback(e.message,true)}};
 $('resume').onclick=async()=>{
