@@ -114,7 +114,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("const tag=el('span','handBoxTag'",page)
         self.assertIn(".matrixPane .handRank{position:absolute;top:2px;left:3px",page)
         self.assertIn(".matrixPane .handBoxTag{position:absolute;top:2px;right:3px",page)
-        self.assertIn("const stripe=handActionStripe(actions)",page)
+        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
         self.assertIn(".hand.boxhit::before",page)
         self.assertNotIn(".hand.equityHit::after",page)
 
@@ -210,7 +210,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_hand_action_frequency_stripes_accurately_defined(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("function handActionStripe(actions)",page)
-        self.assertIn("const stripe=handActionStripe(actions);",page)
+        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
         self.assertIn("if(stripe)button.append(stripe)",page)
         for css in (".actionStripe{",".actionStripe .fold{background:#8995a2}",
                     ".actionStripe .raise{background:#e36b6e}",
