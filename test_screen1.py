@@ -319,9 +319,24 @@ class ScreenOneTests(unittest.TestCase):
                          {"a17_preflop", "pc_gto_80bb"})
         self.assertIn("tag_punisher", catalog["postflop_strategies"])
         self.assertNotIn("gto",catalog["preflop_strategies"])
-        self.assertNotIn("gto",catalog["postflop_strategies"])
+        self.assertIn("gto",catalog["postflop_strategies"])
         self.assertIn("gto",app.PREFLOP_CHOICES)  # archival compatibility
         self.assertIn("gto",app.POSTFLOP_CHOICES)  # archival compatibility
+        self.assertEqual(catalog["postflop_profiles"]["gto"]["model"],"legacy_heuristic")
+        self.assertIn("100 Monte Carlo",catalog["postflop_profiles"]["gto"]["features"][0])
+        from bots import create_bot
+        from bots.street_split_bot import StreetSplitBot
+        split=create_bot("split:pc_gto_80bb:gto")
+        self.assertIsInstance(split,StreetSplitBot)
+        self.assertEqual(split.preflop_name,"pc_gto_80bb")
+        self.assertEqual(split.postflop_name,"gto")
+        page=app.UI.read_text(encoding="utf-8")
+        self.assertIn("GTO Old · Postflop (Monte Carlo)",page)
+        self.assertIn('id="compareOldGto"',page)
+        self.assertIn("postflops=['gto','gto_postflop_v1','tag_punisher']",page)
+        self.assertIn("pre:'pc_gto_80bb',post:postflops[i%3]",page)
+        self.assertIn("preflopValues=['','a17_preflop','pc_gto_80bb']",page)
+
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_threebet"])
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_fourbet"])
         self.assertIn("50% 4-bet",catalog["preflop_coverage"]["a17_preflop"]["vs_threebet"])
