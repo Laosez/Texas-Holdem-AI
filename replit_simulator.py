@@ -96,12 +96,39 @@ def strategy_fingerprint():
             digest.update(hashlib.sha256(path.read_bytes()).digest())
     return digest.hexdigest()
 
+def _container_memory_limit_gb():
+    """Read actual cgroup memory limit, not host RAM (v2 and v1 supported)."""
+    for name in ("/sys/fs/cgroup/memory.max",
+                 "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            raw=Path(name).read_text().strip()
+            if raw=="max":
+                continue
+            limit=int(raw)
+            if 0 < limit < 1 << 55:
+                return limit / (1024 ** 3)
+        except (OSError,ValueError):
+            continue
+    return None
+
+
 def max_safe_workers():
-    default = 1 if os.environ.get("RAILWAY_PROJECT_ID") else 4
-    try:
-        return max(1, min(4, int(os.environ.get("POKER_MAX_WORKERS", str(default)))))
-    except ValueError:
-        return default
+    """CPU-process concurrency under a conservative Railway memory budget."""
+    override=os.environ.get("POKER_MAX_WORKERS")
+    if override is not None:
+        try:return max(1,min(4,int(override)))
+        except ValueError:pass
+    if not os.environ.get("RAILWAY_PROJECT_ID"):
+        return max(1,min(4,os.cpu_count() or 4))
+    memory=_container_memory_limit_gb()
+    # Each independent engine process loads substantial evaluator state.
+    # 1 GiB Railway containers stay serial; >=2.25 GiB unlock 2 workers,
+    # and larger containers unlock 3-4 without requiring manual env changes.
+    if memory is None:return 1
+    if memory >= 4.5:return 4
+    if memory >= 3.35:return 3
+    if memory >= 2.25:return 2
+    return 1
 
 
 def strategy_catalog():
