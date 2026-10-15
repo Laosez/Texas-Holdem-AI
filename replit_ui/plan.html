@@ -573,7 +573,9 @@ function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
  const revision=++villainEpoch;
- const i=Number($('viewOpponent').value||0),o=opponentsSelected()[i];if(!o)return;
+ const i=Number($('viewOpponent').value||0),o=opponentsSelected()[i];
+ villain=null;drawMatrices(); // Never display the previous opponent during an async switch.
+ if(!o)return;
  try{const doc=await getSource(o.profile,o.position,o.scenario,o.players,20);
  if(revision!==villainEpoch)return;villain=doc;drawMatrices()}
  catch(e){villain=null;drawMatrices();msg('Соперник #'+(i+1)+': '+e.message,true)}
