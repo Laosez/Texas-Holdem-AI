@@ -577,10 +577,12 @@ def delete_session(run_id: str) -> None:
 
 
 def purge_trash() -> int:
-    """Irreversible purge, never run implicitly or while an experiment is active."""
+    """Explicit irreversible purge of archived sessions, isolated from live RUNS.
+
+    Active tournament folders are outside .trash; the same mutex serializes
+    backup, restore and deletion, so no tournament needs to be interrupted.
+    """
     with MUTEX:
-        if any(j["status"] in ("running", "starting") for j in RUNS.values()):
-            raise RuntimeError("Сначала дождись завершения симуляции")
         trash = OUT / ".trash"
         if not trash.is_dir():
             return 0
