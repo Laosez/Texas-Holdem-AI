@@ -138,8 +138,8 @@ def safe_inline_weights(weights):
 
 
 def build_ranges(opponents, model="selected"):
-    if not isinstance(opponents,list) or not 1 <= len(opponents) <= 5:
-        raise ValueError("Нужны от одного до пяти соперников")
+    if not isinstance(opponents,list) or not 1 <= len(opponents) <= 8:
+        raise ValueError("Нужны от одного до восьми соперников")
     if model not in ("selected","any_two","gto_heuristic"):
         raise ValueError("Неизвестная модель equity")
     ranges=[]
@@ -157,7 +157,7 @@ def build_ranges(opponents, model="selected"):
         n=int(opp.get("players",9))
         entry_mode = opp.get("entry_mode", "always")
         entry_pct = opp.get("entry_pct", 100.0)
-        if entry_mode not in ("always", "range", "manual"):
+        if entry_mode not in ("always", "range", "manual", "never"):
             raise ValueError("Недопустимый режим вероятности входа")
         if type(entry_pct) not in (int, float) or not math.isfinite(entry_pct) or not 0 <= entry_pct <= 100:
             raise ValueError("Вероятность входа должна быть от 0 до 100%")
@@ -176,6 +176,10 @@ def build_ranges(opponents, model="selected"):
         if profile in ("builtin:gto_heuristic","builtin:any_two"):
             selector="active"
         weights=planner.range_weights(doc,selector=selector)
+        # An explicitly inactive seat must not require a playable range
+        # (e.g. BB RFI is empty). Its cards are never sampled.
+        if entry_mode=="never":
+            weights={"AA":1.0}
         ranges.append(WeightedRange(weights))
         provenance.append({"profile":profile,"position":doc["position"],
                            "scenario":doc["scenario"],"selector":selector,
@@ -226,6 +230,8 @@ def simulate_hand(hand, opponents, trials=200, seed=42):
 
 def _player_entry_probability(opponent, spec, hero):
     mode = spec.get("entry_mode", "always")
+    if mode == "never":
+        return 0.0
     if mode == "range":
         return opponent.probability_versus_hero(hero)
     if mode == "manual":
@@ -320,8 +326,8 @@ def simulate_range_equity(hero_weights, opponents, trials=3000, seed=42):
     if type(trials) is not int or not 200 <= trials <= 20000:
         raise ValueError("Симуляций для range equity: 200–20000")
     hero_range=WeightedRange(hero_weights)
-    if not 1 <= len(opponents) <= 5:
-        raise ValueError("Нужны 1–5 диапазонов соперников")
+    if not 1 <= len(opponents) <= 8:
+        raise ValueError("Нужны 1–8 диапазонов соперников")
     rng=random.Random(seed)
     payoff=0.0
     accepted=0

@@ -227,6 +227,44 @@ class PlanTests(unittest.TestCase):
         legacy=api._validate_request(req)
         self.assertEqual(legacy["opponents"][0]["entry_mode"],"always")
 
+    def test_eight_opponents_zero_and_guaranteed_entry_modes(self):
+        eight=[{"profile":"builtin:any_two","position":([*map(str,range(9,2,-1)),"SB"])[i],"scenario":"rfi",
+                "players":9,"selector":"active","entry_mode":"never"} for i in range(8)]
+        cleaned=api._validate_request({"opponents":eight,"trials":50,"cycles":1})
+        self.assertEqual(len(cleaned["opponents"]),8)
+        self.assertTrue(all(x["entry_mode"]=="never" for x in cleaned["opponents"]))
+        sources,specs=eq.build_ranges(eight)
+        self.assertEqual(len(sources),8)
+        counts,choices=eq.entry_distributions("AKs",sources,specs)
+        self.assertEqual(len(counts),9)
+        self.assertAlmostEqual(counts[0],1.0)
+        self.assertTrue(all(p==0 for p in counts[1:]))
+        equity,pot,counts=eq.simulate_hand_variable("AKs",sources,specs,trials=50)
+        self.assertIsNone(equity)
+        self.assertIsNone(pot)
+        eight[2]["entry_mode"]="always"
+        counts,_=eq.entry_distributions("AKs",*eq.build_ranges(eight))
+        self.assertAlmostEqual(counts[1],1.0)
+        self.assertAlmostEqual(counts[0],0.0)
+        eighth=api._validate_request({"opponents":eight,"trials":50,"cycles":1})
+        self.assertEqual(eighth["opponents"][2]["entry_mode"],"always")
+        with self.assertRaisesRegex(ValueError,"1–8"):
+            api._validate_request({"opponents":eight+[eight[0]],"trials":50})
+        with self.assertRaises(ValueError):
+            eq.build_ranges(eight+[eight[0]])
+        self.assertAlmostEqual(eq._player_entry_probability(
+            sources[0],{"entry_mode":"never"},eq.HAND_COMBOS["AKs"][0]),0.0)
+        self.assertAlmostEqual(eq._player_entry_probability(
+            sources[0],{"entry_mode":"always"},eq.HAND_COMBOS["AKs"][0]),1.0)
+        # BB RFI has no opening range. An explicitly inactive seat
+        # cannot make an otherwise valid multiway calculation fail.
+        inactive={"profile":"builtin:pc_gto_80bb","position":"BB",
+                  "scenario":"rfi","players":9,"entry_mode":"never"}
+        skipped,prov=eq.build_ranges([inactive])
+        self.assertEqual(prov[0]["entry_mode"],"never")
+        self.assertAlmostEqual(eq._player_entry_probability(
+            skipped[0],prov[0],eq.HAND_COMBOS["AKs"][0]),0.0)
+
     def test_entry_probability_complete_matrix_and_no_showdown(self):
         opts=[
           {"profile":"builtin:any_two","position":"9","scenario":"rfi",

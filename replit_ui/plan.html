@@ -9,15 +9,17 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.thirds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{min-width:0}.wide{grid-column:1/-1}label{display:block;font-size:11px;color:#adc4dc;font-weight:700;margin-bottom:5px}input,select{width:100%;min-width:0;padding:9px;background:#081626;color:#edf4ff;border:1px solid #395572;border-radius:7px;font:inherit}input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent)}input[type=range]{accent-color:var(--accent);padding:0}
 .btn{padding:9px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.18)}.btn:disabled{opacity:.42;cursor:not-allowed}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.danger{background:#332232;border-color:#835063;color:#ffbdc6}.btn.ghost{background:transparent}.btn.sm{padding:6px 9px;font-size:11px}.buttons{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.note{font-size:11px;color:#9aafc8;margin:9px 0 0}.badge{padding:4px 9px;border:1px solid #587998;border-radius:25px;font-size:11px;color:#b2cbe7}.badge.ok{border-color:#468873;color:#81e1c0}.badge.warn{border-color:#895f3f;color:#f2c693}.muted{color:var(--muted)}
 .profile{background:#10243a;border:1px solid #37516d;border-radius:9px;padding:14px}.profile h3{margin:0 0 11px;font-size:13px}.profile .summary{font-size:11px;color:#8eafcd}
-.oppHead,.oppRow{display:grid;grid-template-columns:27px minmax(155px,1fr) 100px 126px 115px minmax(155px,190px);gap:7px;align-items:center}
+.oppHead,.oppTable{max-width:100%;overflow-x:auto;padding-bottom:3px}
+.oppHead,.oppRow{display:grid;grid-template-columns:27px minmax(160px,1fr) 85px 115px 100px 180px;gap:7px;align-items:center;min-width:755px}
+.oppHead>span{min-width:0}
 .oppRow .entryControl{display:flex;align-items:center;gap:5px;min-width:0;flex-wrap:wrap}
-.oppRow .entryControl select{width:125px;max-width:100%}
-.oppRow .entryControl input{width:63px;font-size:11px;padding:7px 4px}
+/* Preset participation only; no manual VPIP percentage input. */
+.oppRow .entryControl select{width:174px;max-width:100%}
 .oppRow .entryHint{font-size:10px;color:#a6c2dd;flex-basis:100%;line-height:1.3}
 .oppEntryDistribution{margin:10px 0 0;border:1px solid #38506b;border-radius:8px;padding:10px;background:#102137}
 .oppEntryDistribution .entryRow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .oppEntryDistribution .entryCell{border:1px solid #405b78;border-radius:6px;padding:5px 8px;font-size:11px}
-@media(max-width:1100px){.oppRow{grid-template-columns:27px minmax(130px,1fr) 85px 100px 100px minmax(135px,1fr)}}.oppHead{font-size:10px;color:#a6c1d8;margin:11px 0 5px}.oppRow{margin-bottom:7px}.oppRow .num{font-weight:850;color:#88b4f1}.oppRow select{font-size:11px;padding:8px 5px}
+@media(max-width:1100px){.oppHead,.oppRow{min-width:755px}}.oppHead{font-size:10px;color:#a6c1d8;margin:11px 0 5px}.oppRow{margin-bottom:7px}.oppRow .num{font-weight:850;color:#88b4f1}.oppRow select{font-size:11px;padding:8px 5px}
 .filterTop{display:grid;grid-template-columns:minmax(170px,1fr) 155px 130px minmax(145px,1fr);gap:11px;align-items:end}.boxList{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:13px;align-items:start}
 .boxCard{min-width:0;border:1px solid #405e7c;border-radius:9px;background:#12273d;padding:9px}.boxCard.active{border-color:#ae90db;background:#202945}.boxCard.dragover{border:2px dashed #9cccf7;padding:8px}
 .boxCardHead{display:flex;align-items:center;gap:5px}.boxSelect{padding:6px;border-radius:6px;border:1px solid #49627b;color:#c0dbf2;background:#1d3650;font-weight:800;cursor:pointer}.boxCard.active .boxSelect{background:#613e7c;color:white;border-color:#b19ed8}
@@ -57,6 +59,14 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .hand.metricShade{background-image:none}
 .hand.metricMissing{background:#303b49;color:#a9bbcf}
 .hand.metricNeutral{background:#303b49;color:#edf1f7}
+/* Range membership is independent of the displayed numeric metric.
+   Active hands remain blue in Equity, call EV, all-in EV and box views. */
+.matrixGrid .hand.playedRange:not(.rangeIntersection){
+ background:#285e8c;border-color:#477eab;color:#f3f8ff;
+}
+.matrixGrid .hand:not(.playedRange):not(.rangeIntersection){
+ background:#303b49;color:#dce8f4;
+}
 .actionStripe{position:absolute;bottom:2px;left:3px;right:3px;height:5px;display:flex;overflow:hidden;border-radius:2px;pointer-events:none;z-index:4;background:#344352}
 .actionStripe .fold{background:#8995a2}.actionStripe .raise{background:#e36b6e}.actionStripe .limp{background:#53b98b}.actionStripe .call{background:#63b2cf}
 .actionLegend{display:flex;gap:13px;flex-wrap:wrap;align-items:center;margin:9px 0 6px;font-size:11px;color:#a7bdd4}
@@ -167,7 +177,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
  color:#fff;
 }
 .matrixGrid .hand.rangeIntersection.intersectionBoth{
- background:#337fc9;border-color:#72aae6;
+ background:#3b4652;border-color:#9bddfc;
 }
 .matrixGrid .hand.rangeIntersection .intersectionTriangle,
 .intersectionKey .rangeSwatch .intersectionTriangle{
@@ -194,7 +204,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
  position:relative;display:inline-block;width:18px;height:18px;
  border-radius:3px;border:1px solid #728497;background:#3b4652;overflow:hidden;
 }
-.intersectionKey .rangeSwatch.both{background:#337fc9}
+.intersectionKey .rangeSwatch.both{background:#3b4652}
 
 .matrixPane .handBoxTag.inRange{
  outline:none;border:0;box-shadow:none;background:var(--group-color,#8494a6);
@@ -267,10 +277,10 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="field"><label for="stack">Эфф. стек (BB)</label><input id="stack" type="number" min="1" max="1000" value="20"></div>
 <div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
 </div><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
-<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Соперники</h3><div style="width:150px"><select id="oppCount" aria-label="Количество соперников"><option value="1">1 соперник</option><option value="2">2 соперника</option><option value="3">3 соперника</option><option value="4">4 соперника</option><option value="5">5 соперников</option></select></div></div>
-<div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Вероятность входа</span></div><div id="opponents"></div>
+<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Соперники</h3><div style="width:150px"><select id="oppCount" aria-label="Количество соперников"><option value="1">1 соперник</option><option value="2">2 соперника</option><option value="3">3 соперника</option><option value="4">4 соперника</option><option value="5">5 соперников</option><option value="6">6 соперников</option><option value="7">7 соперников</option><option value="8">8 соперников</option></select></div></div>
+<div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Вероятность входа</span></div><div id="opponents"></div></div>
 <div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div id="entryDistribution" class="entryRow">Сначала рассчитай Monte Carlo.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
-<p class="note">«Из диапазона» — вероятность получить игровую руку, автоматически с учётом 4/6/12 комбинаций, частот и блокеров наших карт. «Вручную» — общий шанс входа в банк (например, известный VPIP/RFI), а диапазон задаёт руки после входа. Предполагается независимое решение каждого игрока; динамика последовательных рейзов не моделируется.</p></div></div>
+<p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div></div>
 <div class="statusLine" role="status" id="feedback"></div>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Расчёт Equity</h2><span class="badge">169 рук · Multiway Monte Carlo</span></div>
@@ -285,9 +295,9 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Моя матрица</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="intersection">Пересечение диапазонов · диагональ</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select><label for="villainMetric" style="margin:0">Соперник</label><select id="villainMetric"><option value="equity">Equity vs меня</option><option value="evAllIn">EV выставления vs меня</option><option value="evCall">EV колла vs меня</option><option value="participation">Диапазон %</option><option value="action">Действия</option></select><button class="btn sm" id="rangeIntersect" type="button" aria-pressed="false">Пересечение диапазонов</button></div></div>
 <div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 5px">Выбери соперника для сравнения диапазонов.</div>
 <div id="intersectionKey" class="intersectionKey hidden" aria-label="Цветовая легенда пересечения">
-<span><span class="rangeSwatch both"></span>Оба диапазона</span>
-<span><span class="rangeSwatch"><span class="intersectionTriangle upper"></span></span>Только Hero · верхний треугольник</span>
-<span><span class="rangeSwatch"><span class="intersectionTriangle lower"></span></span>Только оппонент · нижний треугольник</span>
+<span><span class="rangeSwatch both"><span class="intersectionTriangle upper"></span><span class="intersectionTriangle lower"></span></span>Оба · синий + красный</span>
+<span><span class="rangeSwatch"><span class="intersectionTriangle upper"></span></span>Только Hero · синий верх</span>
+<span><span class="rangeSwatch"><span class="intersectionTriangle lower"></span></span>Только оппонент · красный низ</span>
 <span><span class="rangeSwatch"></span>Нет ни у кого</span>
 </div>
 <div class="buttons matrixClipboardBar" style="margin:0 0 9px;gap:8px;align-items:center">
@@ -506,7 +516,7 @@ function refreshEntryHints(){
   const value=entryPreviewMass(item?.doc,opp.selector);
   node.textContent=opp.entry_mode==='range'
    ?(Number.isFinite(value)?'≈ '+value.toFixed(1)+'% по 1326 комбо; MC учитывает блокеры':'Загружается шанс диапазона…')
-   :opp.entry_mode==='manual'?'Ваш шанс входа; диапазон определяет руки после входа.':'Участие всегда: 100%.';
+   :opp.entry_mode==='never'?'Не участвует в банке: 0%.':'Участие всегда: 100%.';
  }
 }
 function renderEntryDistribution(){
@@ -523,7 +533,7 @@ function renderEntryDistribution(){
   cell.textContent=index+' соп. · '+Number(value).toFixed(1)+'%';target.append(cell);
  });
  $('entryDistributionNote').textContent='Все сбросили: '+Number(percentages[0]).toFixed(1)+
-  '%. Equity матрицы условно на ≥1 активного соперника. Вероятности с учётом блокеров наших карт.';
+  '%. Equity матрицы условно на ≥1 активного соперника. Вероятности с учётом блокеров наших карт; до 8 оппонентов.';
 }
 function renderOpponents(){
  const count=Number($('oppCount').value);
@@ -540,26 +550,16 @@ function renderOpponents(){
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
   const entry=el('div','entryControl'),mode=el('select');
-  refill(mode,[{value:'range',label:'Из диапазона'}, {value:'manual',label:'Вручную %'},
-               {value:'always',label:'Всегда 100%'}],opp.entry_mode||'range');
-  mode.title='Как рассчитать вероятность входа соперника';
-  const chance=el('input');chance.type='number';chance.min='0';chance.max='100';chance.step='0.5';
-  chance.value=Number(opp.entry_pct??100);
-  chance.title='Вероятность входа в банк, 0–100%';
-  chance.disabled=mode.value!=='manual';
+  refill(mode,[{value:'range',label:'Ширина диапазона'},
+               {value:'always',label:'100% · входит в банк'},
+               {value:'never',label:'0% · не участвует'}],opp.entry_mode==='manual'?'range':opp.entry_mode||'range');
+  mode.title='Вероятность входа: ширина диапазона / 100% / 0%';
   mode.onchange=()=>{
-   opponents[i].entry_mode=mode.value;chance.disabled=mode.value!=='manual';
-   invalidateEquity();loadVillain();
+   opponents[i].entry_mode=mode.value;
+   opponents[i].entry_pct=mode.value==='never'?0:100;
+   invalidateEquity();loadVillain();refreshEntryHints();
   };
-  chance.onchange=()=>{
-   const pct=Number(chance.value);
-   if(!Number.isFinite(pct)||pct<0||pct>100){
-    chance.value=String(opponents[i].entry_pct??100);
-    msg('Вероятность входа: от 0 до 100%.',true);return;
-   }
-   opponents[i].entry_pct=pct;invalidateEquity();loadVillain();
-  };
-  entry.append(mode,chance);
+  entry.append(mode);
   const hint=el('span','entryHint');hint.id='opEntryHint'+i;entry.append(hint);
   row.append(entry);target.append(row);
  });
@@ -790,13 +790,13 @@ function setMetricLegend(){
   box:'Коробка A17 — категория, а не сила.',
   combos:'Комбинации: 4 suited / 6 pair / 12 offsuit.',
   delta:'Разница участия с соперником, п.п.',
-  intersection:'Пересечение: полная синяя клетка — рука есть у обоих. Синий верхний треугольник — только Hero. Красный нижний — только выбранный соперник. Серая клетка — ни у кого. Учитываются любые положительные частоты участия.',
+  intersection:'Пересечение: если рука есть у обоих — вся клетка закрашена по диагонали синим (верх Hero) и красным (низ оппонент). Если рука есть только у одного — закрашена лишь его половина, другая серая. Если нет ни у кого — серая. Любая положительная частота участия означает наличие руки.',
   action:'Основное действие; частоты в нижней полоске.'
  };
  $('metricLegendText').textContent=(descriptions[metric]||'')+
   (metric==='intersection'
    ?' Это сравнение классов рук, а не Equity; точные частоты Hero и соперника смотри при наведении.'
-   :' Фон ячеек постоянный. Цветной уголок — коробка A17, без белой рамки. Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.');
+   :' Синий фон — рука участвует в выбранном диапазоне (>0%), серый — не участвует / не назначена. Цветной уголок — коробка A17, без белой рамки. Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.');
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -855,7 +855,7 @@ function renderIntersectionStats(){
   ' · пересечение '+stats.comboIntersection.toFixed(1)+
   ' комбо-экв. · Jaccard '+stats.jaccard.toFixed(1)+'% · мои '+
   stats.aCombos.toFixed(1)+' / соперника '+stats.bCombos.toFixed(1)+' комбо-экв.'+
-  (intersectionOnly?' · верх Hero / низ оппонент':' · включи «Пересечение диапазонов» для цветной матрицы');
+  (intersectionOnly?' · синий верх: Hero / красный низ: оппонент; пустая половина = нет руки':' · включи «Пересечение диапазонов» для цветной матрицы');
 }
 function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples){
  if(!doc||!equity)return null;
@@ -1091,14 +1091,21 @@ function matrix(root,doc,scale,metricChoice){
   const boxhit=doc===hero&&selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
+  if(!showIntersection){
+   // Use the selected opponent action filter when presenting the villain grid.
+   const inRange=doc===villain?(villainSelectedShare(h)||0)>0:handInRange(doc,h);
+   if(inRange)button.classList.add('playedRange');
+  }
   if(showIntersection){
    const membership=intersectionMembership(h);
    button.classList.add('rangeIntersection','intersection'+
     ({both:'Both',hero:'HeroOnly',opponent:'OpponentOnly',none:'Neither'})[membership.state]);
    button.title='Hero '+membership.heroShare.toFixed(1)+'% · Оппонент '+
     membership.opponentShare.toFixed(1)+'% · '+handTooltip(h,doc);
-   if(membership.state==='hero')button.append(el('span','intersectionTriangle upper'));
-   if(membership.state==='opponent')button.append(el('span','intersectionTriangle lower'));
+   if(membership.state==='both'||membership.state==='hero')
+    button.append(el('span','intersectionTriangle upper'));
+   if(membership.state==='both'||membership.state==='opponent')
+    button.append(el('span','intersectionTriangle lower'));
   }
   if(doc===hero&&bulkSelected.has(h))button.classList.add('multiSelected');
   if(candidates.gold.has(h))button.classList.add('candidateGold');
@@ -1511,9 +1518,10 @@ async function connect(){
   refill($('players'),Array.from({length:8},(_,i)=>({value:String(i+2),label:(i+2)+'-max'})),'9');
   refill($('heroScenario'),Object.entries(SCENARIOS).map(([value,label])=>({value,label})),'rfi');
   renderPositions($('heroPosition'),'3');
-  $('oppCount').value='3';opponents=Array.from({length:5},(_,i)=>({
-   profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two','builtin:gto_heuristic'][i],
-   position:['9','4','6','SB','5'][i],scenario:'rfi',players:9,selector:'active',
+  $('oppCount').value='3';opponents=Array.from({length:8},(_,i)=>({
+   profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two',
+            'builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two'][i],
+   position:['9','8','7','6','5','4','3','SB'][i],scenario:'rfi',players:9,selector:'active',
    entry_mode:'range',entry_pct:100}));
   renderOpponents();$('viewOpponent').value='0';
   sessionStorage.setItem('skachkov_key',token());
