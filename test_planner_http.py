@@ -93,8 +93,9 @@ class PlanHttpTests(unittest.TestCase):
         self.assertEqual(page.count('id="boxes"'), 1)
         self.assertIn("function knownActivePercent(doc,hand)", page)
         self.assertIn("button.classList.add('played')", page)
-        self.assertIn("button.append(tag)", page)
-        self.assertIn("const tag=el('span','handBoxTag'", page)
+        self.assertNotIn("button.append(tag)", page)
+        self.assertNotIn("handBoxTag", page)
+        self.assertIn("pair('Коробка A17'", page)
         self.assertIn(".hand.played{border:2px solid #70b7ff", page)
         # Played-range styling remains later than action backgrounds; it is only a border.
         self.assertGreater(page.index(".hand.played{"), page.index(".hand.push{background:"))
@@ -108,8 +109,8 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn(".hand.metricShade{background-image:linear-gradient(", page)
         self.assertNotIn("--play-alpha", page)
         self.assertIn("function metricGradient(metric,value,box,action)", page)
-        self.assertIn("const colors=metricGradient(metric,value,b,action)", page)
-        self.assertIn("if(participation!==null&&participation>0)button.classList.add('played')", page)
+        self.assertIn("const colors=metric==='none'?null:metricGradient(metric,value,b,action)", page)
+        self.assertIn("if(participation!==null&&participation>0&&participation>=minPlayed)button.classList.add('played')", page)
         for name in ("equity","participation","dominant","box","combos","delta","evCall","action"):
             self.assertIn('value="'+name+'"', page)
 
@@ -170,6 +171,40 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("cycles:Number($('cycles').value)",page)
         self.assertIn("Eq</strong> — реальное showdown equity диапазона всей коробки",page)
         self.assertNotIn("Доля комбинаций с equity выше порога';head.append(summary)",page)
+
+    def test_gto_range_threshold_neutral_mode_and_hover(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('value="none">Нет · серый фон',page)
+        self.assertIn(".hand.metricNeutral{background:#37404b",page)
+        self.assertIn('id="minPlayFrequency"',page)
+        self.assertIn('id="playMinLabel"',page)
+        self.assertIn('value="20" step="1"',page)
+        self.assertIn('id="handHoverCard"',page)
+        self.assertIn("function handMetricsRows(hand,doc)",page)
+        self.assertIn("function showHandHover(hand,doc,event)",page)
+        self.assertIn("function hideHandHover()",page)
+        self.assertIn("button.onmouseenter=e=>showHandHover(h,doc,e)",page)
+        self.assertIn("pair('Equity · выбранные соперники'",page)
+        self.assertIn("pair('Equity коробки · multiway'",page)
+        self.assertIn("pair('EV выставления'",page)
+        self.assertNotIn("handBoxTag",page)
+
+    def test_hand_action_frequency_stripes_accurately_defined(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("function handActionStripe(actions)",page)
+        self.assertIn("const stripe=handActionStripe(actions);",page)
+        self.assertIn("if(stripe)button.append(stripe)",page)
+        for css in (".actionStripe{",".actionStripe .fold{background:#8995a2}",
+                    ".actionStripe .raise{background:#e36b6e}",
+                    ".actionStripe .limp{background:#53b98b}",
+                    ".actionStripe .call{background:#63b2cf}",
+                    "class=\"actionLegend\""):
+            self.assertIn(css,page)
+        self.assertIn("['fold',Number(actions.fold)||0]",page)
+        self.assertIn("['limp',Number(actions.limp)||0]",page)
+        self.assertIn("['call',Number(actions.call)||0]",page)
+        self.assertIn("['open','threebet','fourbet','push']",page)
+        self.assertIn("segment.style.width=(100*value/total).toFixed(3)+'%'",page)
 
 
 if __name__=="__main__":
