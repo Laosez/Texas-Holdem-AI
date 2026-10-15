@@ -64,6 +64,22 @@ SPLIT_PARTS = frozenset(json.loads(
     (ROOT / "strategy_catalog" / "available_bases.json").read_text(encoding="utf-8")
 )["bases"])
 
+# Screen 1 choices are street-specific. The full engine catalog remains
+# available for legacy CLI exports and reproducible historical sessions.
+PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb"})
+POSTFLOP_CHOICES = frozenset({
+    "gto", "smart", "tag_punisher", "wide_defender", "baseline_sane",
+    "nit", "loose_passive", "maniac", "maniac_mixed", "pressure_filler",
+    "random",
+})
+RANDOM_ALIAS_RE = re.compile(r"random_(?:[2-9]|10)\Z")
+if not PREFLOP_CHOICES | POSTFLOP_CHOICES <= SPLIT_PARTS:
+    raise RuntimeError("The UI contains an unregistered bot strategy")
+
+
+def available_postflop(name: str) -> bool:
+    return name in POSTFLOP_CHOICES or bool(RANDOM_ALIAS_RE.fullmatch(name))
+
 # Each of the nine player seats has a separately editable preflop/postflop policy.
 # Blank means INCOMPLETE, never automatic inheritance.
 DEFAULT_BOT_ROWS = [
@@ -139,7 +155,10 @@ def max_safe_workers():
 
 def strategy_catalog():
     options = sorted(SPLIT_PARTS)
-    return {"strategies": options, "a17_version": "A17_V5",
+    return {"strategies": options,
+            "preflop_strategies": sorted(PREFLOP_CHOICES),
+            "postflop_strategies": sorted(POSTFLOP_CHOICES),
+            "a17_version": "A17_V5",
             "code_fingerprint": strategy_fingerprint(), "workers_max": max_safe_workers(),
             "required_streets": ["pre", "post"]}
 
@@ -178,6 +197,7 @@ def validate_config(data: dict) -> dict:
             raise ValueError("Нужны от 2 до 9 строк ботов")
         rows = []
         bots = []
+        random_count = 0
         for i, row in enumerate(raw_rows, start=1):
             if not isinstance(row, dict):
                 raise ValueError(f"P{i}: выбери обе стратегии")
@@ -186,8 +206,15 @@ def validate_config(data: dict) -> dict:
                 raise ValueError(f"P{i}: некорректная стратегия")
             if not pre or not post:
                 raise ValueError(f"P{i}: Preflop и Postflop обязательны; пустое поле запрещает запуск")
-            if pre not in SPLIT_PARTS or post not in SPLIT_PARTS:
-                raise ValueError(f"P{i}: неподдерживаемая стратегия {pre}/{post}")
+            if pre not in PREFLOP_CHOICES:
+                raise ValueError(f"P{i}: {pre} не является доступной префлоп-стратегией")
+            if not available_postflop(post):
+                raise ValueError(f"P{i}: {post} не является доступной постфлоп-стратегией")
+            # One "Random" item in UI; unique identifiers keep per-seat
+            # reports separate while previous CLI profiles remain intact.
+            if post == "random" or RANDOM_ALIAS_RE.fullmatch(post):
+                random_count += 1
+                post = "random" if random_count == 1 else f"random_{random_count}"
             rows.append({"pre": pre, "post": post})
             bots.append(f"P{i}=split:{pre}:{post}")
     else:
