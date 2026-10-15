@@ -299,6 +299,38 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  main.plannerMain{grid-template-columns:minmax(0,1fr)}
  .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}
 }
+
+/* Persistent red/blue range overlay, independent of the metric or selected editor action. */
+.matrixGrid .hand.rangeIntersection{position:relative;background:#29394a!important;border-color:#486783}
+.matrixGrid .hand.rangeIntersection .intersectionTriangle{position:absolute;inset:0;display:block;pointer-events:none;z-index:1}
+.matrixGrid .hand.rangeIntersection .intersectionTriangle.upper{
+ background:#2786d2!important;clip-path:polygon(0 0,100% 0,100% 100%)
+}
+.matrixGrid .hand.rangeIntersection .intersectionTriangle.lower{
+ background:#d25168!important;clip-path:polygon(0 0,0 100%,100% 100%)
+}
+.matrixGrid .hand.rangeIntersection .handRank{position:relative;z-index:3}
+.matrixGrid .hand.rangeIntersection .handMetric{position:relative;z-index:4;color:#fff}
+.matrixGrid .hand.rangeIntersection .handBoxTag{
+ position:absolute;top:0;right:0;z-index:6;opacity:1;
+ background:var(--group-color,#8494a6)!important;color:#081424!important;
+ display:flex;align-items:center;justify-content:center;
+ width:21px;min-width:21px;height:14px;border:0;border-radius:0 3px 0 5px;
+ box-shadow:none;text-shadow:none
+}
+.unifiedGroupList .boxList{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;overflow:visible}
+.unifiedGroupList .boxCard{border-left:4px solid var(--group-color,#8494a6)}
+.unifiedGroupList .boxCard.active{outline:2px solid #f1f5ff;outline-offset:-2px}
+@media(max-width:930px){.unifiedGroupList .boxList{grid-template-columns:repeat(4,minmax(140px,1fr));overflow-x:auto}}
+/* Compact three-action frequency editor, retaining the gray/red/green key. */
+.editorSection .actionGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.editorSection .actionSliderField{padding:8px 6px;background:#0e2134;border:1px solid #34526d;border-radius:7px;gap:8px}
+.editorSection .actionSliderField .sliderHead{display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center}
+.editorSection .actionSliderField .sliderHead label{margin:0;font-size:11px}
+.editorSection .actionSliderField .sliderHead strong{font-size:18px;line-height:1.2}
+.editorSection .actionSliderField input[type=range]{height:18px;margin:0;cursor:pointer}
+.editorSection .actionSliderTicks{display:none}
+@media(max-width:440px){.editorSection .actionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -395,7 +427,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div style="min-width:155px"><label for="handBox">Коробка A17</label><select id="handBox"></select><button class="btn sm" id="moveBox" style="margin-top:7px;width:100%">Переместить</button></div></div>
 <div id="selectionInfo" class="selectionInfo hidden"><div class="selectionInfoHead"><strong id="selectionCount">Выбрано: 0</strong><button class="btn sm ghost" id="clearHandSelection" type="button">Снять мультивыбор</button></div><div id="selectedHandChips" class="selectedHandChips"></div></div>
 <h3>Действия и частоты (%)</h3><div id="actionInputs" class="actionGrid"></div><div id="actionStatus" class="note">Ползунки применяют частоты сразу · шаг 25% · сумма 100%.</div></div>
-<div class="profile"><h3>Equity выбранной руки при выставлении</h3><div id="perOpponentHands"></div><div class="thirds" style="margin-top:10px"><div class="stat"><span>Vs все одновременно</span><strong id="handActual">—</strong></div><div class="stat"><span>Vs фильтр 02</span><strong id="handFilter">—</strong></div><div class="stat"><span>Vs Any Two HU</span><strong id="handAny">—</strong></div></div>
+<div class="profile"><h3>Equity выбранной руки при выставлении</h3><div id="perOpponentHands"></div><div class="thirds" style="margin-top:10px"><div class="stat"><span>Vs все одновременно</span><strong id="handActual">—</strong></div><div class="stat"><span>Vs фильтр 02</span><strong id="handFilter">—</strong></div><div class="stat hidden"><span>Any Two HU · архив</span><strong id="handAny">—</strong></div></div>
 <p class="note">Все расчёты запускаются единой кнопкой Monte Carlo в блоке 02.</p>
 <div class="handStatus" style="margin-top:12px"><div id="handDetail" class="small">Нажмите на руку в матрице.</div></div><p class="note">Индивидуальное equity — HU против соответствующего диапазона; итоговое — совместный multiway, не сумма и не среднее.</p></div></div>
 </section>
