@@ -58,6 +58,11 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .hand.metricShade{background-image:linear-gradient(135deg,var(--shade-top),var(--shade-bottom))}
 .hand.metricMissing{background:#253448;color:#a9bbcf}
 .hand.metricNeutral{background:#37404b;color:#edf1f7}
+.actionStripe{position:absolute;bottom:2px;left:3px;right:3px;height:5px;display:flex;overflow:hidden;border-radius:2px;pointer-events:none;z-index:4;background:#344352}
+.actionStripe .fold{background:#8995a2}.actionStripe .raise{background:#e36b6e}.actionStripe .limp{background:#53b98b}.actionStripe .call{background:#63b2cf}
+.actionLegend{display:flex;gap:13px;flex-wrap:wrap;align-items:center;margin:9px 0 6px;font-size:11px;color:#a7bdd4}
+.actionLegend strong{color:#d5e2ef}.actionLegend .swatch{display:inline-block;width:18px;height:6px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.actionLegend .fold{background:#8995a2}.actionLegend .raise{background:#e36b6e}.actionLegend .limp{background:#53b98b}.actionLegend .call{background:#63b2cf}
 .handHoverCard{position:fixed;z-index:1000;width:min(328px,calc(100vw - 24px));max-height:min(540px,calc(100vh - 20px));overflow:auto;background:#101d30;color:#e8f3ff;border:1px solid #6991b9;border-radius:10px;padding:12px 13px;box-shadow:0 12px 36px rgba(0,0,0,.48);pointer-events:none;font-size:11px;line-height:1.45}
 .handHoverTitle{font-size:16px;font-weight:850;color:#fff;margin-bottom:7px}
 .handHoverSub{font-size:10px;color:#a8c8e9;margin-bottom:8px}
@@ -119,7 +124,8 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 </div>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
-<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Градиент заливки = выбранная метрика, а НЕ частота участия по умолчанию. Золотой пунктир = equity не ниже порога. Синяя рамка = рука входит в активный диапазон стратегии (хотя бы с ненулевой частотой). Номер коробки доступен по наведению. Фиолетовая метка слева = выделенная коробка нашей стратегии. Руки ниже equity-порога не затемняются.</p>
+<div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
+<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Градиент заливки = выбранная метрика, а НЕ частота участия по умолчанию. Золотой пунктир = equity не ниже порога. Синяя рамка = рука участвует с частотой не ниже выбранного порога (по умолчанию 20%). Номер коробки доступен по наведению. Фиолетовая метка слева = выделенная коробка нашей стратегии. Руки ниже equity-порога не затемняются.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Отдельно по каждому сопернику · HU + Multiway</span></div>
 <div class="profile" style="margin-bottom:14px"><h3>Матрица equity стратегий · каждая с каждой</h3>
@@ -448,6 +454,27 @@ function showHandHover(hand,doc,event){
  card.hidden=false;positionHandHover(event);
 }
 function hideHandHover(){const card=$('handHoverCard');if(card)card.hidden=true}
+function handActionStripe(actions){
+ if(!actions||!Object.keys(actions).length)return null;
+ const frequencies=[
+  ['fold',Number(actions.fold)||0],
+  ['raise',(['open','threebet','fourbet','push'].reduce((n,k)=>n+(Number(actions[k])||0),0))],
+  ['limp',Number(actions.limp)||0],
+  ['call',Number(actions.call)||0]
+ ];
+ const valid=frequencies.filter(([_,v])=>Number.isFinite(v)&&v>0);
+ if(!valid.length)return null;
+ const total=valid.reduce((n,[_,v])=>n+v,0);
+ if(total<=0)return null;
+ const bar=el('div','actionStripe');
+ bar.setAttribute('aria-hidden','true');
+ for(const [name,value] of valid){
+  const segment=el('span',name);
+  segment.style.width=(100*value/total).toFixed(3)+'%';
+  bar.append(segment);
+ }
+ return bar;
+}
 function matrix(root,doc){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
@@ -508,6 +535,8 @@ function matrix(root,doc){
    button.classList.add('metricMissing');
   }
   if(displayed)button.append(el('small','',displayed));
+  const stripe=handActionStripe(actions);
+  if(stripe)button.append(stripe);
   button.setAttribute('aria-label',handTooltip(h,doc)+', подробные показатели доступны при наведении или фокусе');
   button.setAttribute('aria-describedby','handHoverCard');
   button.onmouseenter=e=>showHandHover(h,doc,e);
