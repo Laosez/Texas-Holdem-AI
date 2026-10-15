@@ -90,6 +90,15 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
+<details class="coverageAudit" id="postflopModels"><summary>Postflop V1 · GTO-inspired против LAG · блефы и дро</summary>
+<table class="coverageTable"><thead><tr><th>Механика</th><th>GTO Postflop V1</th><th>LAG Postflop V1</th></tr></thead><tbody>
+<tr><td>Готовые сильные руки</td><td>Вэлью-ставки / частичные ловушки</td><td>Чаще ставит и повышает</td></tr>
+<tr><td>Сильные дро</td><td>Сдержанный полублеф</td><td>Частые полублефы / чек-рейзы</td></tr>
+<tr><td>Нет готовой руки</td><td>Выборочный C-bet и редкие блефы</td><td>Широкий C-bet / агрессия в позиции</td></tr>
+<tr><td>Ривер без усиления</td><td>Редкий блеф при блокерах / промахе дро</td><td>Чаще блефует с блокерами / промахом дро</td></tr>
+<tr><td>Мультипот</td><td>Частота блефа снижается</td><td>Частота блефа снижается</td></tr>
+</tbody></table>
+<p class="note"><strong>Важно:</strong> GTO Postflop V1 — эвристическая GTO-inspired модель, не solver equilibrium. Чарты конкретных бордов/стеков и рассчитанные GTO-частоты пока не загружены. TAG Punisher и прежний GTO Old не изменены.</p></details>
 <details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
@@ -129,8 +138,8 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb'];
-let postflopValues=['','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+let postflopValues=['','gto_postflop_v1','lag_postflop_v1','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',lag_postflop_v1:'LAG Postflop V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[['pc_gto_80bb','smart'],['pc_gto_80bb','tag_punisher'],['pc_gto_80bb','wide_defender'],['pc_gto_80bb','maniac_mixed'],['pc_gto_80bb','baseline_sane'],['a17_preflop','tag_punisher'],['pc_gto_80bb','random'],['pc_gto_80bb','random'],['pc_gto_80bb','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false,savedForComparison=[];
@@ -244,7 +253,7 @@ async function loadCatalog(){
    }
    $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
     ' пользовательских стратегий синхронизировано с редактором. Сохранённая версия используется как Preflop; Postflop выбирается отдельно. Неотредактированные позиции — исходный алгоритм.';
-   postflopValues=['',...(catalog.postflop_strategies||['smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v)&&v!=='gto')];
+   postflopValues=['',...(catalog.postflop_strategies||['gto_postflop_v1','lag_postflop_v1','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v)&&v!=='gto')];
    drawBots();
   }
   const parallel=$('parallel');
