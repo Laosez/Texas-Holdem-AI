@@ -3,6 +3,10 @@ import csv
 import io
 import json
 import tempfile
+import threading
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 import unittest
 import zipfile
 from collections import deque
@@ -165,6 +169,54 @@ class ScreenOneTests(unittest.TestCase):
                 self.assertFalse((Path(td)/".trash"/run_id).exists())
                 self.assertEqual(app.purge_trash(),0)
             finally:
+                with app.MUTEX:
+                    app.RUNS.clear();app.RUNS.update(old)
+
+    def test_trash_http_delete_list_restore_and_permanent_purge(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(app,"OUT",Path(td)), \
+             patch.object(app,"TOKEN","test_trash_key"):
+            run_id="test_http_trash_run"
+            folder=Path(td)/run_id
+            folder.mkdir()
+            record={"id":run_id,"status":"completed","created":app.now(),
+                    "updated":app.now(),"config":{},"log":[],
+                    "returncode":0}
+            (folder/"job.json").write_text(json.dumps(record),encoding="utf-8")
+            with app.MUTEX:
+                old=dict(app.RUNS);app.RUNS.clear();app.RUNS[run_id]=record
+            server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+            thread=threading.Thread(target=server.serve_forever,daemon=True)
+            thread.start()
+            url=f"http://127.0.0.1:{server.server_address[1]}"
+            def request(path,method="GET",body=None,authorized=True):
+                headers={"X-Runner-Key":"test_trash_key"} if authorized else {}
+                if body is not None:headers["Content-Type"]="application/json"
+                req=urllib.request.Request(url+path,method=method,headers=headers,
+                                           data=body.encode() if body is not None else None)
+                with urllib.request.urlopen(req,timeout=10) as response:
+                    return response.status,json.loads(response.read())
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as unauthorized:
+                    request("/api/trash",authorized=False)
+                self.assertEqual(unauthorized.exception.code,401)
+                code,deleted=request("/api/runs/"+run_id,method="DELETE")
+                self.assertEqual(code,200)
+                self.assertTrue(deleted["ok"])
+                _,trash=request("/api/trash")
+                self.assertEqual(trash["deleted"],[run_id])
+                _,restored=request("/api/trash/"+run_id+"/restore",method="POST",body="{}")
+                self.assertEqual(restored["id"],run_id)
+                _,empty=request("/api/trash")
+                self.assertEqual(empty["deleted"],[])
+                request("/api/runs/"+run_id,method="DELETE")
+                code,purged=request("/api/trash",method="DELETE")
+                self.assertEqual(code,200)
+                self.assertEqual(purged["purged"],1)
+                _,empty=request("/api/trash")
+                self.assertEqual(empty["deleted"],[])
+                self.assertFalse((Path(td)/".trash"/run_id).exists())
+            finally:
+                server.shutdown();server.server_close();thread.join(timeout=5)
                 with app.MUTEX:
                     app.RUNS.clear();app.RUNS.update(old)
 
