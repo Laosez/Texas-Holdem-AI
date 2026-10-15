@@ -10,12 +10,18 @@ import os
 from pathlib import Path
 import secrets
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import planner_core as core
 import planner_equity as equity
 
 LOCK = threading.RLock()
 EQUITY_TASKS = {}
+# Bounded background task pool. Two simultaneous independent MC runs, the rest
+# queue up without blocking HTTP threads. CPU Python work remains GIL-limited.
+MAX_EQUITY_WORKERS = 2
+MAX_EQUITY_PENDING = 8
+EQUITY_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_EQUITY_WORKERS,thread_name_prefix="poker-mc")
 CACHE_PATH = core.DATA_ROOT / "plan_equity_cache"
 
 
@@ -48,7 +54,7 @@ def _source_hash():
 
 def _query_identity(payload):
     # Cached output is invalidated by any source/range revision or MC method change.
-    parts={"model":payload["model"],"trials":payload["trials"],
+    parts={"model":payload["model"],"trials":payload["trials"],"cycles":payload.get("cycles",1),
            "opponents":[],"source":_source_hash()}
     for p in payload["opponents"]:
         profile=p["profile"]
@@ -73,6 +79,9 @@ def _validate_request(raw):
     model=raw.get("model","selected")
     if model not in ("selected","any_two","gto_heuristic"):
         raise ValueError("Неизвестная модель equity")
+    cycles=raw.get("cycles",1)
+    if type(cycles) is not int or not 1<=cycles<=4:
+        raise ValueError("Циклов расчёта должно быть от 1 до 4")
     trials=raw.get("trials",200)
     if type(trials) is not int or not 50<=trials<=2000:
         raise ValueError("Симуляций на руку должно быть 50–2000")
@@ -94,53 +103,104 @@ def _validate_request(raw):
             raise ValueError("Неизвестный фильтр действий")
         cleaned.append({"profile":source,"position":pos,"scenario":scen,
                         "players":n,"selector":selector})
-    return {"opponents":cleaned,"model":model,"trials":trials}
+    return {"opponents":cleaned,"model":model,"trials":trials,"cycles":cycles}
 
 
-def start_equity(raw, busy=False):
-    if busy:
-        raise RuntimeError("Дождись завершения турниров перед тяжёлым расчётом equity")
-    payload=_validate_request(raw)
-    # Validate range availability synchronously; no 169-hand job for empty ranges.
-    equity.build_ranges(payload["opponents"],payload["model"])
-    identity=_query_identity(payload)
-    CACHE_PATH.mkdir(parents=True,exist_ok=True)
+def _cached_task(identity):
     target=CACHE_PATH/(identity+".json")
     if target.is_file():
-        cached=json.loads(target.read_text(encoding="utf-8"))
-        if len(cached.get("equity",{}))==169:
-            return {"id":identity,"status":"completed","done":169,"total":169,"result":cached,"cached":True}
+        result=json.loads(target.read_text(encoding="utf-8"))
+        if isinstance(result,dict) and ("equity" not in result or len(result["equity"])==169):
+            return {"id":identity,"status":"completed","done":1,"total":1,"result":result,"cached":True}
+    return None
+
+
+def _schedule(identity,compute,total):
+    # In-memory task metadata is bounded; no unbounded thread spawning.
+    CACHE_PATH.mkdir(parents=True,exist_ok=True)
+    cached=_cached_task(identity)
+    if cached:return cached
     with LOCK:
-        if identity in EQUITY_TASKS:
-            return public_task(EQUITY_TASKS[identity])
-        if any(t["status"]=="running" for t in EQUITY_TASKS.values()):
-            raise RuntimeError("Уже выполняется расчёт equity. Дождись его завершения.")
-        if len(EQUITY_TASKS)>16:
+        current=EQUITY_TASKS.get(identity)
+        if current:return public_task(current)
+        pending=sum(t["status"] in ("queued","running") for t in EQUITY_TASKS.values())
+        if pending>=MAX_EQUITY_PENDING:
+            raise RuntimeError("Очередь Monte Carlo заполнена (8 циклов/расчётов). Дождись свободного слота.")
+        if len(EQUITY_TASKS)>24:
             for key in list(EQUITY_TASKS):
-                if EQUITY_TASKS[key]["status"]!="running":
+                if EQUITY_TASKS[key]["status"] not in ("queued","running"):
                     EQUITY_TASKS.pop(key)
-                if len(EQUITY_TASKS)<=12: break
-        job={"id":identity,"status":"running","done":0,"total":169,
+                if len(EQUITY_TASKS)<=16:break
+        job={"id":identity,"status":"queued","done":0,"total":total,
              "result":None,"error":None,"cached":False}
         EQUITY_TASKS[identity]=job
-    def execute():
-        try:
-            def progress(done,total):
-                with LOCK:
-                    job["done"]=done
-                    job["total"]=total
-            result=equity.calculate_matrix(**payload,progress=progress)
-            tmp=target.with_suffix(".partial")
-            tmp.write_text(json.dumps(result,ensure_ascii=False,separators=(",",":")),
-                           encoding="utf-8")
-            os.replace(tmp,target)
-            with LOCK:
-                job.update(status="completed",done=169,result=result)
-        except Exception as exc:
-            with LOCK:
-                job.update(status="failed",error=str(exc))
-    threading.Thread(target=execute,daemon=True).start()
-    return public_task(job)
+        def execute():
+            with LOCK:job["status"]="running"
+            try:
+                def progress(done,goal):
+                    with LOCK:job.update(done=done,total=goal)
+                result=compute(progress)
+                target=CACHE_PATH/(identity+".json")
+                # UUID temporary name protects the same cache from parallel writers.
+                tmp=CACHE_PATH/(identity+"."+secrets.token_hex(6)+".partial")
+                try:
+                    tmp.write_text(json.dumps(result,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
+                    os.replace(tmp,target)
+                finally:
+                    tmp.unlink(missing_ok=True)
+                with LOCK:job.update(status="completed",done=job["total"],result=result)
+            except Exception as exc:
+                with LOCK:job.update(status="failed",error=str(exc))
+        try:EQUITY_EXECUTOR.submit(execute)
+        except Exception:
+            EQUITY_TASKS.pop(identity,None)
+            raise
+        return public_task(job)
+
+
+def start_equity(raw,busy=False):
+    if busy:raise RuntimeError("Дождись завершения турниров перед тяжёлым расчётом equity")
+    payload=_validate_request(raw)
+    equity.build_ranges(payload["opponents"],payload["model"])
+    identity=_query_identity(payload)
+    return _schedule(identity,lambda progress:equity.calculate_matrix(**payload,progress=progress),
+                     len(core.HANDS)*payload["cycles"])
+
+
+def start_box_equity(raw,busy=False):
+    """True joint box-range vs all selected villain ranges (not threshold coverage)."""
+    if busy:raise RuntimeError("Дождись завершения турниров перед расчётом equity коробок")
+    if not isinstance(raw,dict):raise ValueError("Неверные настройки equity коробок")
+    payload=_validate_request({"opponents":raw.get("opponents"),"model":"selected",
+                               "trials":raw.get("trials",200),"cycles":raw.get("cycles",1)})
+    boxes=core.validate_boxes(raw.get("boxes"))
+    groups={str(b):{h:1.0 for h in core.HANDS if boxes[h]==b} for b in range(1,18)}
+    sources,_=equity.build_ranges(payload["opponents"],"selected")
+    # A complete map is provided, but the cache depends only on 17 memberships.
+    identity=hashlib.sha256(json.dumps(
+        {"type":"joint-box-equity-v1","groups":groups,"opponents":_query_identity(payload),
+         "trials":payload["trials"],"cycles":payload["cycles"],"source":_source_hash()},
+        ensure_ascii=False,sort_keys=True,separators=(",",":")).encode()).hexdigest()
+    total=sum(bool(v) for v in groups.values())*payload["cycles"]
+    def calculate(progress):
+        result={};done=0
+        for b,weights in groups.items():
+            if not weights:
+                result[b]=None
+                continue
+            outputs=[]
+            for cycle in range(payload["cycles"]):
+                seed=int(hashlib.sha256(f"{identity}:{b}:{cycle}".encode()).hexdigest()[:15],16)
+                outputs.append(equity.simulate_range_equity(weights,sources,
+                               trials=max(200,payload["trials"]),seed=seed)["equity_pct"])
+                done+=1
+                progress(done,total)
+            result[b]=round(sum(outputs)/len(outputs),2)
+        return {"method":"joint_range_multiway_MC_box_V1","equity":result,
+                "trials_per_box":max(200,payload["trials"])*payload["cycles"],
+                "cycles":payload["cycles"],
+                "note":"Прямое Monte Carlo выставление всех рук каждой коробки vs совместные диапазоны выбранных соперников; 4/6/12 комбо, блокеры, split pots. Пустые коробки не оцениваются."}
+    return _schedule(identity,calculate,total)
 
 
 def public_task(job):
@@ -198,6 +258,15 @@ def post_route(handler,path,payload,busy=False):
         except (ValueError,TypeError) as exc:
             handler.reply(400,{"error":str(exc)})
         except (KeyError,RuntimeError) as exc:
+            handler.reply(409,{"error":str(exc)})
+        return True
+    if path=="/api/plan/boxes-equity":
+        try:
+            result=start_box_equity(payload,busy=busy)
+            handler.reply(200 if result["status"]=="completed" else 202,result)
+        except (ValueError,TypeError,KeyError) as exc:
+            handler.reply(400,{"error":str(exc)})
+        except RuntimeError as exc:
             handler.reply(409,{"error":str(exc)})
         return True
     if path=="/api/plan/equity":
