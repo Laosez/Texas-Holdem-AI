@@ -87,10 +87,10 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
-<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
+<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
-<div class="warning"><strong>GTO (PC) 80 BB</strong>: точные исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
-<details class="coverageAudit" id="preflopAudit" open><summary>Покрытие префлоп-диапазонов · что реально исполняет бот</summary>
+<div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
+<details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
 <tr><td>BB vs Open</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
@@ -133,7 +133,7 @@ let postflopValues=['','smart','tag_punisher','wide_defender','baseline_sane','n
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[['pc_gto_80bb','smart'],['pc_gto_80bb','tag_punisher'],['pc_gto_80bb','wide_defender'],['pc_gto_80bb','maniac_mixed'],['pc_gto_80bb','baseline_sane'],['a17_preflop','tag_punisher'],['pc_gto_80bb','random'],['pc_gto_80bb','random'],['pc_gto_80bb','pressure_filler']];
-let bots=[],sessions=[],selected=null,working=false;
+let bots=[],sessions=[],selected=null,working=false,savedForComparison=[];
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const pct=n=>n===null||n===undefined||n===''?'—':Number(n).toFixed(1)+'%';
@@ -238,7 +238,8 @@ async function loadCatalog(){
    const defaults=['a17_preflop','pc_gto_80bb'];
    const offered=catalog.preflop_strategies||defaults;
    preflopValues=['',...defaults.filter(v=>offered.includes(v)),...offered.filter(v=>!defaults.includes(v)&&v!=='gto')];
-   for(const saved of catalog.saved_preflop||[]){
+   savedForComparison=catalog.saved_preflop||[];
+   for(const saved of savedForComparison){
     names[saved.token]=saved.name+' · v'+saved.version+' · моя стратегия';
    }
    $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
@@ -263,6 +264,18 @@ $('resetBots').onclick=()=>{bots=preset.map(x=>({pre:x[0],post:x[1]}));drawBots(
 $('addBot').onclick=()=>{if(bots.length<9){bots.push({pre:'',post:''});drawBots()}};
 $('key').oninput=valid;$('connect').onclick=connect;
 $('syncStrategies').onclick=async()=>{await loadCatalog();feedback('Каталог стратегий обновлён из редактора.')};
+$('compareRfi').onclick=()=>{
+ const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
+  /(оптимиз|optimi[sz])/i.test(x.name));
+ const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
+ const hero=optimized?.token||'a17_preflop';
+ bots=Array.from({length:9},(_,i)=>({pre:i%2===0?hero:'pc_gto_80bb',post:'tag_punisher'}));
+ $('preflop_protocol').value='standard_v1';
+ $('seat_mode').value='rotate';
+ drawBots();
+ feedback('Контроль подготовлен: '+(optimized?optimized.name+' v'+optimized.version:'A17 V5')+
+  ' против PC GTO; общий Postflop TAG Punisher, один протокол ответов, ротация мест. Проверь параметры и нажми «Запустить».');
+};
 $('forget').onclick=()=>{sessionStorage.removeItem('skachkov_key');$('key').value='';$('connection').textContent='Отключено';$('connection').className='badge';valid()};
 $('start').onclick=async()=>{try{const c=config();working=true;valid();const s=await get('/api/runs',{method:'POST',body:JSON.stringify(c)});selected=s;await refresh();feedback('Сессия запущена.')}catch(e){working=false;valid();feedback(e.message,true)}};
 $('resume').onclick=async()=>{
