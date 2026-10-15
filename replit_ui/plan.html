@@ -289,7 +289,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <select id="players" class="hidden" aria-label="Формат стола для модели" tabindex="-1"></select>
 <input id="stack" class="hidden" type="hidden" value="20">
 <div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
-</div><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
+</div><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Соперники</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
 <div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div id="entryDistribution" class="entryRow">Сначала рассчитай Monte Carlo.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
@@ -1623,6 +1623,45 @@ $('undo').onclick=()=>{
  $('undo').disabled=!undos.length;
 };
 $('save').onclick=()=>savePlan(false);$('saveCopy').onclick=()=>savePlan(true);
+function preserveA17Strategy(name){
+ const label=String(name||'').toLowerCase().trim().replace(/[—–_]+/g,'-').replace(/\s+/g,' ');
+ // The shipped initial A17 V5 is protected by the backend, not in meta.saved.
+ // Also keep any named user copy of initial A17 plus all optimized A17 revisions.
+ return /^(a17|а17)(?:[ -]*v\s*5)?$/.test(label) ||
+  (/^(a17|а17)/.test(label)&&(/оптимиз/.test(label)||/optimi[sz]/.test(label)));
+}
+$('cleanupStrategies').onclick=async()=>{
+ if(!meta)return;
+ if(dirty){msg('Сначала сохрани или отмените текущие правки.',true);return}
+ const saved=meta.saved||[];
+ const keep=saved.filter(x=>preserveA17Strategy(x.name));
+ const remove=saved.filter(x=>!preserveA17Strategy(x.name));
+ if(!remove.length){msg('Лишних сохранённых стратегий нет. Базовая A17 V5 защищена.');return}
+ const names=remove.map(x=>'• '+x.name+' (v'+x.version+')').join('\n');
+ const protectedNames=keep.map(x=>x.name).join(', ')||'только встроенная A17 V5';
+ if(!confirm('В корзину уйдут ВСЕ ВЕРСИИ '+remove.length+' других стратегий:\n'+names+
+  '\n\nСОХРАНИТЬ: встроенная A17 V5 и '+protectedNames+
+  '\n\nПродолжить? Данные старых турнирных сессий останутся.'))return;
+ const button=$('cleanupStrategies');button.disabled=true;
+ let done=0;const errors=[];
+ try{
+  for(const entry of remove){
+   try{
+    const result=await api('/api/plan/strategies/'+entry.id,{method:'DELETE'});
+    if(result.deleted!==entry.id)throw Error('Сервер не подтвердил перемещение');
+    done++;
+   }catch(e){errors.push(entry.name+': '+e.message)}
+  }
+  meta=await api('/api/plan/catalog');
+  if(hero?.id&&remove.some(x=>x.id===hero.id)){hero=null;dirty=false;undos=[];selectedBoxes.clear();
+   refill($('heroProfile'),profileOptions(),'builtin:a17_v5');await loadHero()}
+  else{refill($('heroProfile'),profileOptions(),hero?.ref);renderOpponents();renderAll()}
+  msg('В корзину перемещено '+done+' стратегий. Сохранены A17 и оптимизированная.'+
+   (errors.length?' Ошибки: '+errors.join('; '):''),!!errors.length);
+ }catch(e){msg('Очистка каталога: '+e.message,true)}
+ finally{button.disabled=false}
+};
+
 $('delete').onclick=async()=>{
  if(!hero||hero.readonly)return;
  const id=hero.id,displayName=hero.name;
