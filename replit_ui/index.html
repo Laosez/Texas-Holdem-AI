@@ -90,7 +90,7 @@ let preflopValues=['','a17_preflop','gto','pc_gto_80bb'];
 let postflopValues=['','gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
-const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random'],['pc_gto_80bb','pressure_filler']];
+const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random'],['gto','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false;
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
