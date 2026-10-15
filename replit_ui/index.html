@@ -21,6 +21,20 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 .statsTable td:nth-child(n+7):nth-child(-n+11){background:rgba(62,135,211,.065)}
 .statsTable td:nth-child(n+12):nth-child(-n+19){background:rgba(211,169,81,.055)}
 .statsTable tbody tr:hover td{filter:brightness(1.3)}
+
+/* Explicit, reversible trash management; no ID prompt or hidden purge step. */
+.trashPanel{border:1px solid #496481;background:#13263c;border-radius:9px;padding:13px;margin:11px 0 13px}
+.trashPanel[hidden]{display:none!important}
+.trashHeader{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.trashHeader strong{font-size:13px;color:#e8f3fc}
+.trashHeader .muted{font-size:11px;color:#a7b8cc}
+.trashHeader button{margin-left:auto}
+.trashItems{display:grid;gap:6px;margin:11px 0}
+.trashRow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1a3048;border:1px solid #37526e;border-radius:6px;padding:8px 10px}
+.trashRow code{overflow-wrap:anywhere;color:#d3e5f4;font-size:11px}
+.trashFooter{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:9px;border-top:1px solid #354e69}
+.trashConfirm{display:flex;align-items:center;gap:8px;font-size:11px;color:#e0c1c5;cursor:pointer;max-width:540px}
+.trashConfirm input{width:15px;height:15px;flex-shrink:0;accent-color:#cd6573}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><span id="connection" class="badge">Нет соединения</span></header>
 <div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -50,7 +64,14 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="column">
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><span id="runStatus" class="badge">—</span></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn danger" id="purgeTrash">Очистить корзину</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="trashPanel" id="trashPanel" hidden>
+<div class="trashHeader"><strong>Корзина турниров</strong><span class="muted" id="trashCount">0 сессий</span><button class="btn sm" id="trashReload" type="button">↻ Обновить</button></div>
+<div id="trashItems" class="trashItems"><p class="note">Нажми «Корзина», чтобы загрузить список.</p></div>
+<div class="trashFooter"><label class="trashConfirm"><input id="trashConfirm" type="checkbox"> Понимаю: очистка безвозвратно удалит все файлы сессий в корзине</label>
+<button class="btn danger sm" id="purgeTrash" type="button" disabled>Безвозвратно очистить корзину</button></div>
+<p class="note">Восстановление — отдельной кнопкой напротив нужной сессии. Очистка не затрагивает активные или завершённые сессии вне корзины.</p>
+</div>
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table class="statsTable"><thead><tr class="stageHead"><th colspan="6" class="generalGroup">ТУРНИРЫ / РЕЗУЛЬТАТ</th><th colspan="5" class="preflopGroup">PREFLOP</th><th colspan="9" class="postflopGroup">POSTFLOP / BB</th></tr><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th class="preflopStart">VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th><th class="postflopStart">Flop AF</th><th>Turn AF</th><th>River AF</th><th>C-bet %</th><th>Fold to bet %</th><th>Check-raise %</th><th>W$SD %</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="20">Нет результатов</td></tr></tbody></table></div>
@@ -199,26 +220,60 @@ $('restore').onclick=()=>{
 $('download').onclick=async()=>{if(!selected)return;try{feedback('Готовлю ZIP...');const response=await api('/api/runs/'+selected.id+'/download');const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SKACHKOV_'+selected.id+'.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),9000);feedback('ZIP сессии скачан.')}catch(e){feedback(e.message,true)}};
 $('upload').onclick=()=>$('file').click();
 $('file').onchange=async()=>{const file=$('file').files?.[0];if(!file)return;try{if(file.size>256*1024*1024)throw Error('Архив больше 256 МБ');const s=await get('/api/runs/import',{method:'POST',body:file});selected=s;await refresh();feedback('ZIP сессии импортирован')}catch(e){feedback(e.message,true)}finally{$('file').value=''}};
-$('remove').onclick=async()=>{if(!selected||!confirm('Перенести сессию '+selected.id+' в корзину?'))return;try{await get('/api/runs/'+selected.id,{method:'DELETE'});selected=null;await refresh();feedback('Сессия перемещена в корзину.')}catch(e){feedback(e.message,true)}};
-$('trash').onclick=async()=>{
+async function reloadTrash(){
+ const data=await get('/api/trash');
+ const ids=Array.isArray(data.deleted)?data.deleted:[];
+ const root=$('trashItems');root.replaceChildren();
+ $('trashCount').textContent=ids.length+' сессий';
+ $('trashConfirm').checked=false;
+ $('purgeTrash').disabled=true;
+ if(!ids.length){root.append(el('p','note','Корзина пуста.'));return}
+ for(const id of ids){
+  const row=el('div','trashRow');
+  row.append(el('code','',id));
+  const restore=el('button','btn sm','↶ Восстановить');restore.type='button';
+  restore.onclick=async()=>{
+   restore.disabled=true;
+   try{
+    const result=await get('/api/trash/'+encodeURIComponent(id)+'/restore',{method:'POST',body:'{}'});
+    if(result.id!==id)throw Error('Сервер не подтвердил восстановление');
+    selected=result;await refresh();await reloadTrash();
+    feedback('Сессия '+id+' восстановлена из корзины.');
+   }catch(e){restore.disabled=false;feedback('Не удалось восстановить: '+e.message,true)}
+  };
+  row.append(restore);root.append(row);
+ }
+}
+$('remove').onclick=async()=>{
+ if(!selected||!confirm('Переместить сессию '+selected.id+' в корзину?'))return;
+ const id=selected.id;const button=$('remove');button.disabled=true;
  try{
-  const data=await get('/api/trash');
-  if(!data.deleted?.length){feedback('Корзина пуста.');return}
-  const id=prompt('ID сессии для восстановления из корзины:\n'+data.deleted.join('\n'));
-  if(!id)return;
-  const job=await get('/api/trash/'+encodeURIComponent(id.trim())+'/restore',{method:'POST',body:'{}'});
-  selected=job;await refresh();feedback('Сессия восстановлена из корзины.');
- }catch(e){feedback(e.message,true)}
+  const result=await get('/api/runs/'+id,{method:'DELETE'});
+  if(!result.ok)throw Error('Сервер не подтвердил удаление');
+  selected=null;await refresh();
+  if(!$('trashPanel').hidden)await reloadTrash();
+  feedback('Сессия '+id+' перемещена в корзину.');
+ }catch(e){button.disabled=false;feedback('Не удалось перенести в корзину: '+e.message,true)}
+};
+$('trash').onclick=async()=>{
+ const panel=$('trashPanel');
+ panel.hidden=!panel.hidden;
+ $('trash').setAttribute('aria-expanded',String(!panel.hidden));
+ if(!panel.hidden)try{await reloadTrash()}catch(e){feedback('Не удалось открыть корзину: '+e.message,true)}
+};
+$('trashReload').onclick=()=>reloadTrash().catch(e=>feedback('Корзина: '+e.message,true));
+$('trashConfirm').onchange=()=>{
+ $('purgeTrash').disabled=!$('trashConfirm').checked||!$('trashItems').querySelector('.trashRow');
 };
 $('purgeTrash').onclick=async()=>{
+ if(!$('trashConfirm').checked||$('purgeTrash').disabled)return;
+ const button=$('purgeTrash');button.disabled=true;
  try{
-  const found=await get('/api/trash');
-  if(!found.deleted?.length){feedback('Корзина пуста.');return}
-  const confirmation=prompt('Безвозвратно удалить '+found.deleted.length+' сессий из корзины?\\nДля подтверждения введи УДАЛИТЬ');
-  if(confirmation!=='УДАЛИТЬ'){feedback('Очистка отменена.');return}
   const data=await get('/api/trash',{method:'DELETE'});
-  feedback('Безвозвратно очищено сессий: '+data.purged);
- }catch(e){feedback(e.message,true)}
+  if(!Number.isInteger(data.purged))throw Error('Сервер не подтвердил очистку');
+  await reloadTrash();
+  feedback('Корзина очищена безвозвратно: '+data.purged+' сессий.');
+ }catch(e){feedback('Не удалось очистить корзину: '+e.message,true)}
 };
 $('backupAll').onclick=async()=>{
  try{
