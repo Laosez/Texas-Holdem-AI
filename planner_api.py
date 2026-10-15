@@ -58,16 +58,19 @@ def _query_identity(payload):
            "opponents":[],"source":_source_hash()}
     for p in payload["opponents"]:
         profile=p["profile"]
+        entry={"entry_mode":p.get("entry_mode","always"),
+               "entry_pct":p.get("entry_pct",100.0)}
         scenario="rfi" if payload["model"]!="selected" else p["scenario"]
         if profile=="inline:hero":
             parts["opponents"].append({"profile":profile,"position":p["position"],
                                       "scenario":scenario,
-                                      "weights":equity.safe_inline_weights(p["weights"])})
+                                      "weights":equity.safe_inline_weights(p["weights"]),**entry})
             continue
         doc=resolve(profile,p["position"],scenario,p["players"])
         parts["opponents"].append({"profile":doc.get("ref",profile),"position":doc["position"],
                                    "scenario":doc["scenario"],"weights":core.range_weights(
-                                   doc,p.get("selector","active") if payload["model"]=="selected" else "active")})
+                                   doc,p.get("selector","active") if payload["model"]=="selected" else "active"),
+                                   **entry})
     packed=json.dumps(parts,ensure_ascii=False,sort_keys=True,separators=(",",":"))
     return hashlib.sha256(packed.encode()).hexdigest()
 
@@ -103,15 +106,26 @@ def _validate_request(raw):
         selector=str(entry.get("selector","active"))
         if selector!="active" and selector not in core.ACTIONS:
             raise ValueError("Неизвестный фильтр действий")
+        entry_mode=entry.get("entry_mode","always")
+        entry_pct=entry.get("entry_pct",100.0)
+        if entry_mode not in ("always","range","manual"):
+            raise ValueError("Режим вероятности входа неизвестен")
+        if type(entry_pct) not in (int,float) or not 0<=entry_pct<=100:
+            raise ValueError("Вероятность входа: 0–100%")
+        import math
+        if not math.isfinite(entry_pct):
+            raise ValueError("Вероятность входа должна быть конечным числом")
         if source=="inline:hero":
             if model!="selected" or selector!="active":
                 raise ValueError("Live-диапазон возможен только для selected/active")
             weights=equity.safe_inline_weights(entry.get("weights"))
             cleaned.append({"profile":source,"position":pos,"scenario":scen,
-                            "players":n,"selector":selector,"weights":weights})
+                            "players":n,"selector":selector,"weights":weights,
+                            "entry_mode":entry_mode,"entry_pct":float(entry_pct)})
         else:
             cleaned.append({"profile":source,"position":pos,"scenario":scen,
-                            "players":n,"selector":selector})
+                            "players":n,"selector":selector,
+                            "entry_mode":entry_mode,"entry_pct":float(entry_pct)})
     return {"opponents":cleaned,"model":model,"trials":trials,"cycles":cycles}
 
 
