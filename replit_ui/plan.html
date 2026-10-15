@@ -221,7 +221,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),expandedBoxes=new Set([0]),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),boxEquityResult=null,boxEquityEpoch=0,boxesComputing=false;
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),expandedBoxes=new Set([0]),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set();
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -241,7 +241,7 @@ function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p
 function findSaved(profile){return meta.saved.find(x=>x.ref===profile)}
 function copy(x){return JSON.parse(JSON.stringify(x))}
 function preserveEdits(){return !dirty||confirm('Есть несохранённые изменения. Переключить контекст и отбросить их?')}
-function noteDirty(){rangeEquityResult=null;dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';renderAll()}
+function noteDirty(){dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';renderAll()}
 async function getSource(profile,position,scenario,players,stack_bb){
  return api('/api/plan/source?'+new URLSearchParams({profile,position,scenario,players,stack_bb}));
 }
@@ -288,7 +288,7 @@ function renderOpponents(){
 }
 function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
 function opponentsSelected(){return opponents.slice(0,Number($('oppCount').value)).map(o=>({...o}))}
-function invalidateEquity(){boxEquityEpoch++;boxEquityResult=null;calcEpoch++;comparisonEpoch++;perOpponentData=[];equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices();refreshComparison()}
+function invalidateEquity(){calcEpoch++;comparisonEpoch++;perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -305,7 +305,7 @@ function boxOrder(){
  return Array.isArray(order)&&order.length===17&&new Set(order).size===17&&order.every(x=>Number.isInteger(x)&&x>=1&&x<=17) ? order : Array.from({length:17},(_,i)=>i+1);
 }
 function markBoxDirty(){
- boxEquityEpoch++;boxEquityResult=null;
+ 
  dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';
  drawBoxes();drawMatrices();paintEditor();
 }
@@ -432,7 +432,6 @@ function finishBoxStroke(){
 function drawBoxes(){
  if(!hero)return;
  const root=$('boxes');root.replaceChildren();
- const eq=boxEquityResult?.equity||null;
  for(const b of [...boxOrder(),0]){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
@@ -770,14 +769,6 @@ async function refreshComparison(){
   if(revision===comparisonEpoch)renderPerOpponent();
  }));
 }
-function assignedParticipation(doc,hand){
- if(!doc||!Object.prototype.hasOwnProperty.call(doc.hands||{},hand))return null;
- const actions=doc.hands[hand];
- if(!actions||!Object.keys(actions).length)return null;
- const total=Object.values(actions).reduce((sum,n)=>sum+Number(n),0);
- if(!Number.isFinite(total)||total<99.99||total>100.01)return null;
- return Object.entries(actions).reduce((sum,[action,value])=>sum+(action==='fold'?0:Number(value)),0);
-}
 function renderPerOpponent(){
  const hands=$('perOpponentHands');if(!hands)return;
  hands.replaceChildren();
@@ -810,7 +801,6 @@ async function calculatePerOpponent(){
   renderPerOpponent();
  }
 }
-function rangeMean(eq){if(!hero||!eq)return null;let mass=0,total=0;for(const h of HANDS){const v=Object.entries(hero.hands[h]||{}).filter(([a])=>a!=='fold').reduce((s,[a,p])=>s+p,0)/100;if(v>0){const w=COMBOS(h)*v;mass+=w;total+=w*eq[h]}}return mass?total/mass:null}
 function pct(x){return x===null||x===undefined?'—':Number(x).toFixed(1)+'%'}
 function drawEquityStats(){
  const filter=equityResults.filter?.equity,actual=equityResults.actual?.equity,any=equityResults.any?.equity;
