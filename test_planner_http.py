@@ -399,6 +399,20 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("Если рука есть только у одного",page)
         self.assertIn(".matrixGrid .hand.rangeIntersection.intersectionBoth",page)
 
+    def test_active_hands_have_blue_fill_in_equity_and_ev_matrix(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn(".matrixGrid .hand.playedRange:not(.rangeIntersection){",page)
+        self.assertIn("background:#285e8c",page)
+        self.assertIn(".matrixGrid .hand:not(.playedRange):not(.rangeIntersection){",page)
+        self.assertIn("background:#303b49;color:#dce8f4",page)
+        self.assertIn("if(!showIntersection){",page)
+        self.assertIn("const inRange=doc===villain?(villainSelectedShare(h)||0)>0:handInRange(doc,h)",page)
+        self.assertIn("if(inRange)button.classList.add('playedRange')",page)
+        self.assertIn("Синий фон — рука участвует в выбранном диапазоне",page)
+        self.assertIn("if(showIntersection){",page)
+        self.assertIn("if(membership.state==='both'||membership.state==='hero')",page)
+        self.assertIn("if(membership.state==='both'||membership.state==='opponent')",page)
+
     def test_matrix_action_copy_paste_between_positions_preserves_boxes(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="copyMatrix"',page)
