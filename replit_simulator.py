@@ -55,7 +55,7 @@ DEFAULT_PLAYERS = [
 ]
 # Exact registry-approved profiles. No shell, path, script, or arbitrary Python input.
 BASE_BOTS = {
-    "smart", "gto", "gto_fixed", "a17_preflop", "a17_preflop_legacy", "a17_tag", "a17_tag_legacy",
+    "smart", "gto", "gto_fixed", "pc_gto_80bb", "a17_preflop", "a17_preflop_legacy", "a17_tag", "a17_tag_legacy",
     "tag_punisher", "baseline_sane", "pressure_filler",
     "wide_defender", "nit", "loose_passive", "maniac",
     "maniac_mixed", "random", "random_2", "random_3",
@@ -90,7 +90,8 @@ def strategy_fingerprint(exporter_digest_override=None):
     # strategy fingerprint without accepting unknown gameplay changes.
     paths = sorted((ROOT / "bots").glob("*.py")) + sorted((ROOT / "core").glob("*.py"))
     paths += [ROOT / "export_preflop_ranges_v4.py",
-              ROOT / "run_tournament_stats.py", ROOT / "strategy_catalog" / "a17_v5.json"]
+              ROOT / "run_tournament_stats.py", ROOT / "strategy_catalog" / "a17_v5.json",
+              ROOT / "strategy_catalog" / "available_bases.json"]
     digest = hashlib.sha256()
     for path in paths:
         if path.is_file():
