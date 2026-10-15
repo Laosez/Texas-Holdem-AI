@@ -176,6 +176,10 @@ def build_ranges(opponents, model="selected"):
         if profile in ("builtin:gto_heuristic","builtin:any_two"):
             selector="active"
         weights=planner.range_weights(doc,selector=selector)
+        # An explicitly inactive seat must not require a playable range
+        # (e.g. BB RFI is empty). Its cards are never sampled.
+        if entry_mode=="never":
+            weights={"AA":1.0}
         ranges.append(WeightedRange(weights))
         provenance.append({"profile":profile,"position":doc["position"],
                            "scenario":doc["scenario"],"selector":selector,
