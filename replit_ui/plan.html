@@ -340,7 +340,7 @@ function boxChip(h){
  chip.draggable=true;
  chip.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-hand',h);e.dataTransfer.setData('text/plain',h)};
  const show=el('button','boxHandSelect',h);show.type='button';show.title='Редактировать '+h;
- show.onclick=e=>{if(e.shiftKey){if(!bulkSelected.size)bulkSelected.add(selected);if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h)}else{selected=h;bulkSelected.clear()}drawMatrices();paintEditor();updateBrushControls()};chip.append(show);
+ show.onclick=e=>{if(e.shiftKey){if(!bulkSelected.size){bulkSelected.add(selected);if(h!==selected)bulkSelected.add(h)}else if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h)}else{selected=h;bulkSelected.clear()}drawMatrices();paintEditor();updateBrushControls()};chip.append(show);
  if(hero.boxes[h]!==0){
   const remove=el('button','boxHandRemove','×');remove.type='button';
   remove.title='Убрать '+h+' из коробки';remove.setAttribute('aria-label',remove.title);
@@ -737,8 +737,10 @@ function matrix(root,doc,scale){
   button.onclick=e=>{
    if(doc!==hero){selected=h;bulkSelected.clear();drawMatrices();paintEditor();return}
    if(e.shiftKey){
-    if(!bulkSelected.size)bulkSelected.add(selected);
-    if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h);
+    if(!bulkSelected.size){
+     bulkSelected.add(selected);
+     if(h!==selected)bulkSelected.add(h);
+    }else if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h);
     updateBrushControls();drawMatrices();paintEditor();return;
    }
    if(brushMode==='paint'){
