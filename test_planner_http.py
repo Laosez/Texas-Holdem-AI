@@ -149,7 +149,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn('const finalPot=(opponentCount+1)*stackBB+deadBB;',page)
         self.assertIn('return (equityPct/100)*finalPot-stackBB;',page)
         self.assertIn("equityResults.actual?.equity?.[h]",page)
-        self.assertIn("modelAllInEv(actual,Number($('stack').value),Number($('allInDead').value),currentPeople().length)",page)
+        self.assertIn("const opponents=ours?currentPeople().length:1;",page)
         self.assertIn("if(metric==='evAllIn'){",page)
         self.assertIn("$('allInDead').oninput=drawMatrices;",page)
 
@@ -309,6 +309,32 @@ class PlanHttpTests(unittest.TestCase):
         self.assertEqual(core.preset("builtin:pc_gto_80bb",position="BB",
                           scenario="rfi",players=9,stack_bb=80)["hands"],{})
 
+    def test_range_ev_overlap_and_reverse_opponent_matrix_controls(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        for identifier in ("rangeEvSummary","rangeEvPlayed","rangeEvDealt",
+                           "rangeEvNegative","rangeEvMissed","rangeEvNote",
+                           "rangeIntersect","rangeIntersectionStats",
+                           "villainMetric","villainReverseStatus","computeVillainReverse"):
+            self.assertIn('id="'+identifier+'"',page)
+        self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents)",page)
+        self.assertIn("const combos=COMBOS(hand);",page)
+        self.assertIn("activeMass+=combos*play;evMass+=combos*play*ev;",page)
+        self.assertIn("loss+=combos*play*Math.max(0,-ev);",page)
+        self.assertIn("missed+=combos*fold*Math.max(0,ev);",page)
+        self.assertIn("played:activeMass?evMass/activeMass:null,dealt:evMass/1326",page)
+        self.assertIn("function intersectionStats()",page)
+        self.assertIn("inter+=mass*Math.min(first,second);",page)
+        self.assertIn("uni+=mass*Math.max(first,second);",page)
+        self.assertIn("function runOpponentReverse()",page)
+        self.assertIn("profile:'inline:hero'",page)
+        self.assertIn("if(calcEpoch!==epoch||comparisonEpoch!==revision||heroRangeSignature()!==signature)",page)
+        self.assertIn("selectedVillain?selectedReverseResult()?.equity?.[h]:null",page)
+        self.assertIn("await runOpponentReverse();",page)
+        self.assertIn("const mainMetric=$('cellMetric').value,villainMetric=$('villainMetric').value;",page)
+        self.assertIn("matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric)",page)
+        self.assertIn("button.classList.add(both?'intersectionMatched':'intersectionMuted')",page)
+        self.assertIn("Режим пересечения показывает только руки",page)
+
     def test_matrix_action_copy_paste_between_positions_preserves_boxes(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="copyMatrix"',page)
@@ -379,7 +405,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("function visibleMetricScale(metric,docs)",page)
         self.assertIn("function metricTextColor(metric,value,scale)",page)
         self.assertIn("Math.min(...values),max:Math.max(...values)",page)
-        self.assertIn("const scale=visibleMetricScale($('cellMetric').value,showOpponent?[hero,villain]:[hero])",page)
+        self.assertIn("const scale=visibleMetricScale(mainMetric,[hero]);",page)
         self.assertIn("if(color)center.style.color=color;",page)
         self.assertIn("Math.abs(value)<0.000001)return '#d7e1ee'",page)
         self.assertIn("const hue=value<0?3:159;",page)
@@ -432,7 +458,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn('<details id="villainPane" class="matrixPane comparisonDisclosure" open>',page)
         self.assertIn('<summary><span>02 · Соперник</span>',page)
         self.assertIn("const showOpponent=$('villainPane').open;",page)
-        self.assertIn("if(showOpponent)matrix($('villainMatrix'),villain,scale);",page)
+        self.assertIn("if(showOpponent)matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric);",page)
         self.assertIn("else $('villainMatrix').replaceChildren();",page)
         self.assertIn("$('villainPane').ontoggle=()=>{if(hero)drawMatrices()};",page)
         self.assertIn('.matrixLayout{display:flex;flex-direction:column;gap:10px}',page)

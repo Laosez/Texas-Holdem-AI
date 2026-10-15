@@ -134,6 +134,37 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             core.validate_plan(original)
 
+    def test_inline_live_hero_range_for_reverse_opponent_hu(self):
+        import planner_equity as eq
+        import planner_api as api
+        live={"AA":1.0, "AKs":0.25, "72o":0.0}
+        request={"model":"selected","trials":50,"cycles":1,
+                 "opponents":[{"profile":"inline:hero","position":"9",
+                               "scenario":"rfi","players":9,"selector":"active",
+                               "weights":live}]}
+        validated=api._validate_request(request)
+        self.assertEqual(validated["opponents"][0]["weights"],
+                         {"AA":1.0,"AKs":0.25})
+        ranges,provenance=eq.build_ranges(validated["opponents"])
+        self.assertAlmostEqual(ranges[0].total,7.0)
+        self.assertEqual(provenance[0]["profile"],"inline:hero")
+        self.assertEqual(provenance[0]["weights"]["AKs"],0.25)
+        self.assertTrue(0<=eq.simulate_hand("KK",ranges,trials=50,seed=43)<=100)
+        k1=api._query_identity(validated)
+        request["opponents"][0]["weights"]={"AA":0.75,"AKs":0.25}
+        k2=api._query_identity(api._validate_request(request))
+        self.assertNotEqual(k1,k2)
+        for bad in ({"ZZs":1}, {"AA":-0.1}, {"AA":1.01},
+                    {"AA":float("nan")}, {"AA":"1"}, {"AA":True},
+                    {"AA":0.0}):
+            request["opponents"][0]["weights"]=bad
+            with self.subTest(bad=bad),self.assertRaises(ValueError):
+                api._validate_request(request)
+        request["opponents"][0]["weights"]={"AA":1.0}
+        request["model"]="any_two"
+        with self.assertRaises(ValueError):
+            api._validate_request(request)
+
     def test_blank_not_fold_and_boxes_independent(self):
         doc=core.preset("builtin:a17_v5","3","vs_open")
         self.assertFalse(doc["hands"])
