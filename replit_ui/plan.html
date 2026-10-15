@@ -466,7 +466,7 @@ function handActionStripe(actions){
  if(!valid.length)return null;
  const total=valid.reduce((n,[_,v])=>n+v,0);
  if(total<=0)return null;
- const bar=el('div','actionStripe');
+ const bar=el('span','actionStripe');
  bar.setAttribute('aria-hidden','true');
  for(const [name,value] of valid){
   const segment=el('span',name);
