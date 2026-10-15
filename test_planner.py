@@ -270,9 +270,9 @@ class PlanTests(unittest.TestCase):
         def fake_range(weights,sources,trials,seed):
             seen.append((dict(weights),trials,seed))
             return {"equity_pct":37.5,"trials":trials}
-        with tempfile.TemporaryDirectory() as td, \\
-             patch.object(api,"CACHE_PATH",Path(td)), \\
-             patch.object(api,"EQUITY_TASKS",{}), \\
+        with tempfile.TemporaryDirectory() as td, \
+             patch.object(api,"CACHE_PATH",Path(td)), \
+             patch.object(api,"EQUITY_TASKS",{}), \
              patch.object(eq,"simulate_range_equity",side_effect=fake_range):
             job=api.start_box_equity({"boxes":boxes,"opponents":opponents,
                                      "trials":100,"cycles":2})
@@ -310,8 +310,8 @@ class PlanTests(unittest.TestCase):
                 progress(1,1)
                 return {"equity":{h:51.0 for h in core.HANDS}}
             return compute
-        with tempfile.TemporaryDirectory() as td, \\
-             patch.object(api,"CACHE_PATH",Path(td)), \\
+        with tempfile.TemporaryDirectory() as td, \
+             patch.object(api,"CACHE_PATH",Path(td)), \
              patch.object(api,"EQUITY_TASKS",{}):
             try:
                 jobs=[api._schedule(str(i)*64,work(str(i)),1) for i in range(3)]
