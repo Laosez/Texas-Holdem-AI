@@ -231,13 +231,18 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(target&&$('heroMatrix').contains(target))paintOneBox(target.dataset.hand,target)",page)
         self.assertIn('snapshotUndo();',page)
         self.assertIn('markBoxDirty();',page)
-        self.assertIn("expandedBoxes=new Set([0])",page)
+        self.assertIn('id="groupEditor" class="groupDrawer groupEditor"',page)
+        self.assertIn('<div id="groupDrawer" class="groupDrawer">',page)
+        self.assertNotIn("expandedBoxes",page)
+        self.assertNotIn('id="expandAllBoxes"',page)
+        self.assertNotIn('id="collapseAllBoxes"',page)
+        self.assertNotIn("const exp=el('button','boxExpand'",page)
         self.assertNotIn('Матрица equity стратегий · каждая с каждой',page)
 
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         for label in ('id="heroMatrix"','id="villainMatrix"','id="handBox"',
-                      'id="applyHand"','id="applyBoxes"','id="boxPalette"',
+                      'id="actionInputs"','id="selectionInfo"','id="boxPalette"',
                       'id="perOpponentHands"','id="groupEditor"'):
             self.assertIn(label,page)
         self.assertIn('function drawBoxPalette()',page)
@@ -246,6 +251,58 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(stripe)button.append(stripe)",page)
         self.assertIn(".handBoxTag{position:absolute;",page)
 
+
+    def test_numeric_metric_labels_use_visible_min_max_scale(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("function visibleMetricScale(metric,docs)",page)
+        self.assertIn("function metricTextColor(metric,value,scale)",page)
+        self.assertIn("Math.min(...values),max:Math.max(...values)",page)
+        self.assertIn("const scale=visibleMetricScale($('cellMetric').value,twice?[hero,villain]:[hero])",page)
+        self.assertIn("if(color)center.style.color=color;",page)
+        self.assertIn("Math.abs(value)<0.000001)return '#d7e1ee'",page)
+        self.assertIn("const hue=value<0?3:159;",page)
+        self.assertIn(".matrixPane .hand{background:#303b49!important;background-image:none!important",page)
+
+    def test_live_action_sliders_and_multiselection_contract(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        for label in ('id="handSelectionMode"','id="selectionInfo"','id="selectionCount"',
+                      'id="selectedHandChips"','id="clearHandSelection"',
+                      'id="actionStatus"','id="resetHand"'):
+            self.assertIn(label,page)
+        self.assertNotIn('id="applyHand"',page)
+        self.assertNotIn('id="applyBoxes"',page)
+        self.assertNotIn("function doApply(",page)
+        self.assertIn("function editorActions(scenario)",page)
+        self.assertIn("if(scenario==='rfi')return ['fold','open','limp'];",page)
+        self.assertIn("if(scenario==='vs_open')return ['fold','threebet','call'];",page)
+        self.assertIn("function rebalanceEditorSplit(current,changed,requested,keys)",page)
+        self.assertIn("input.type='range';input.min='0';input.max='100';input.step='25';",page)
+        self.assertIn("input.oninput=()=>applySliderInput(key,input);",page)
+        self.assertIn("function editorTargets(){return bulkSelected.size?",page)
+        self.assertIn("const targets=editorTargets();",page)
+        self.assertIn("for(const h of targets)hero.hands[h]={...actions};",page)
+        self.assertIn("if(!sliderGesture){",page)
+        self.assertIn("snapshotUndo();sliderGesture=true;",page)
+        self.assertIn("button.onclick=e=>{",page)
+        self.assertIn("if(!bulkSelected.size)bulkSelected.add(selected);",page)
+        self.assertIn("drawMatrices();paintEditor();return;",page)
+        self.assertIn("function updateSelectionDisplay()",page)
+        self.assertIn("function renderSliderNumbers(values)",page)
+        self.assertIn("$('clearHandSelection').onclick=",page)
+
+    def test_single_outer_group_disclosure_and_trash_deletion(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('<details id="groupEditor"',page)
+        self.assertIn('<div id="groupDrawer" class="groupDrawer">',page)
+        self.assertNotIn('id="expandAllBoxes"',page)
+        self.assertNotIn('id="collapseAllBoxes"',page)
+        self.assertNotIn("const exp=el('button','boxExpand'",page)
+        self.assertIn("const list=el('div','boxHandList');",page)
+        self.assertIn("if(members.length)for(const h of members)list.append(boxChip(h));",page)
+        self.assertIn("const id=hero.id,displayName=hero.name;",page)
+        self.assertIn("if(result.deleted!==id)throw Error(",page)
+        self.assertIn("hero=null;dirty=false;undos=[];bulkSelected.clear();",page)
+        self.assertIn("await loadHero();",page)
 
 
 if __name__=="__main__":
