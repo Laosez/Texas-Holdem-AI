@@ -161,12 +161,12 @@ class PlanHttpTests(unittest.TestCase):
         for identifier in ("boxes","handBox","moveBox","undo"):
             self.assertIn('id="'+identifier+'"',page)
         self.assertIn("function boxChip(h)",page)
-        self.assertIn("function reorderBox(from,to)",page)
+        self.assertNotIn("function reorderBox(from,to)",page)
         self.assertIn("function boxDropped(e,target)",page)
         self.assertIn("function markBoxDirty()",page)
         self.assertIn("'application/x-skachkov-hand'",page)
-        self.assertIn("'application/x-skachkov-box'",page)
-        self.assertIn("if(HANDS.includes(h))moveHandToBox(h,target)",page)
+        self.assertNotIn("'application/x-skachkov-box'",page)
+        self.assertIn("if(HANDS.includes(h))moveHandsToBox([h],target)",page)
         self.assertIn("moveHandToBox(h,0)",page)
         self.assertIn("for(const b of [...boxOrder(),0])",page)
         self.assertIn("hero.box_order=order",page)
@@ -308,6 +308,30 @@ class PlanHttpTests(unittest.TestCase):
         self.assertAlmostEqual(sum(chart["hands"]["AA"].values()),100,places=2)
         self.assertEqual(core.preset("builtin:pc_gto_80bb",position="BB",
                           scenario="rfi",players=9,stack_bb=80)["hands"],{})
+
+    def test_fixed_four_box_columns_and_multi_hand_right_panel_transfer(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn(".unifiedGroupList .boxList{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));",page)
+        self.assertIn("return Array.from({length:17},(_,i)=>i+1);",page)
+        self.assertNotIn("function reorderBox(from,to)",page)
+        self.assertNotIn("const handle=el('button','boxHandle'",page)
+        self.assertNotIn("application/x-skachkov-box",page)
+        self.assertIn("e.dataTransfer.setData('application/x-skachkov-hands',JSON.stringify(hands))",page)
+        self.assertIn("if(Array.isArray(hands)){moveHandsToBox(hands,target);return}",page)
+        self.assertIn("$('moveBox').onclick=()=>moveHandsToBox(editorTargets(),Number($('handBox').value));",page)
+        self.assertIn("const changed=[...new Set(hands)].filter(",page)
+        self.assertIn("changed.forEach(h=>hero.boxes[h]=target)",page)
+        self.assertIn("snapshotUndo();",page)
+        self.assertIn("remove.onclick=()=>moveHandToBox(h,0)",page)
+        self.assertIn("if(e.shiftKey||e.ctrlKey||e.metaKey)",page)
+
+    def test_group_ids_no_longer_have_white_range_ring(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        style=page.split(".matrixPane .handBoxTag.inRange{",1)[1].split("}",1)[0]
+        self.assertIn("outline:none",style)
+        self.assertIn("border:0",style)
+        self.assertNotIn("#edf1f4",style)
+        self.assertIn("box-shadow:inset 0 0 0 1px #5c7792",page)
 
     def test_colored_a17_badges_and_range_outlines(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
