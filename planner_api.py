@@ -110,7 +110,7 @@ def _cached_task(identity):
     target=CACHE_PATH/(identity+".json")
     if target.is_file():
         result=json.loads(target.read_text(encoding="utf-8"))
-        if isinstance(result,dict) and ("equity" not in result or len(result["equity"])==169):
+        if isinstance(result,dict) and isinstance(result.get("equity"),dict) and len(result["equity"]) in (17,169):
             return {"id":identity,"status":"completed","done":1,"total":1,"result":result,"cached":True}
     return None
 
