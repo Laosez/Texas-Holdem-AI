@@ -180,15 +180,21 @@ def existing_saved_token(token):
 def strategy_catalog():
     options = sorted(SPLIT_PARTS)
     saved = saved_preflop_options()
-    # Legacy "gto" remains loadable for old exports, direct CLI and saved
-    # tournament manifests, but is no longer offered for NEW sessions.
+    # Legacy "gto" is intentionally retired for NEW preflop selections;
+    # its Monte Carlo postflop is useful as a historical control arm.
+    # Old manifests continue to load both street tokens unchanged.
     preflop = sorted(PREFLOP_CHOICES - {"gto"}) + [item["token"] for item in saved]
-    postflop = sorted(POSTFLOP_CHOICES - {"gto"})
+    postflop = sorted(POSTFLOP_CHOICES)
     return {"strategies": sorted(set(options) | set(preflop)),
             "preflop_strategies": preflop,
             "saved_preflop": saved,
             "postflop_strategies": postflop,
             "postflop_profiles": {
+                "gto": {
+                    "label": "GTO Old · Monte Carlo · контроль",
+                    "model": "legacy_heuristic",
+                    "features": ["100 Monte Carlo equity trials per decision", "C-bet", "draw", "semi-bluff", "check-raise", "river bluff"],
+                },
                 "gto_postflop_v1": {
                     "label": "GTO Postflop V1 (GTO-inspired, не solver)",
                     "model": "heuristic",
