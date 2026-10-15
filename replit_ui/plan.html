@@ -216,7 +216,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),expandedBoxes=new Set(Array.from({length:18},(_,i)=>i)),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null,perOpponentData=[],comparisonEpoch=0,pairwiseEquity={},boxEquityResult=null,boxEquityEpoch=0,boxesComputing=false;
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),expandedBoxes=new Set([0]),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),boxEquityResult=null,boxEquityEpoch=0,boxesComputing=false;
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -259,7 +259,7 @@ async function loadHero(){
    $('heroScenario').value=stored.scenario;
   }
   const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
-  hero=doc;dirty=false;undos=[];invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
+  hero=doc;dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
  }catch(e){msg(e.message,true)}finally{loadingSource=false}
 }
 function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
@@ -283,7 +283,7 @@ function renderOpponents(){
 }
 function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
 function opponentsSelected(){return opponents.slice(0,Number($('oppCount').value)).map(o=>({...o}))}
-function invalidateEquity(){boxEquityEpoch++;boxEquityResult=null;calcEpoch++;comparisonEpoch++;perOpponentData=[];pairwiseEquity={};equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices();refreshComparison()}
+function invalidateEquity(){boxEquityEpoch++;boxEquityResult=null;calcEpoch++;comparisonEpoch++;perOpponentData=[];equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices();refreshComparison()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -323,6 +323,85 @@ function boxChip(h){
   remove.onclick=()=>moveHandToBox(h,0);chip.append(remove);
  }
  return chip;
+}
+
+function groupPaletteColor(b){
+ if(b===0)return '#8494a6';
+ return 'hsl('+Math.round(b*137.508%360)+' 65% 63%)';
+}
+function drawBoxPalette(){
+ const root=$('boxPalette');
+ if(!root||!hero)return;
+ root.replaceChildren();
+ for(const b of [...boxOrder(),0]){
+  const hands=HANDS.filter(h=>hero.boxes[h]===b);
+  const total=hands.reduce((sum,h)=>sum+COMBOS(h),0);
+  const eq=boxEquityResult?.equity?.[String(b)];
+  const button=el('button','paletteBox'+(brushTarget===b?' active':'')+(b===0?' unassigned':''));
+  button.type='button';
+  button.style.setProperty('--group-color',groupPaletteColor(b));
+  button.title=(b===0?'Без коробки':'Коробка A'+String(b).padStart(2,'0'))+
+    ' · '+hands.length+' рук · '+total+' комбинаций'+
+    (Number.isFinite(eq)?' · Eq '+Number(eq).toFixed(1)+'%':'');
+  button.append(el('strong','',b===0?'Без A17':'A'+String(b).padStart(2,'0')));
+  button.append(el('small','',hands.length+' рук'+(Number.isFinite(eq)?' · '+Number(eq).toFixed(0)+'%':'')));
+  button.setAttribute('aria-pressed',String(brushTarget===b));
+  button.onclick=()=>{brushTarget=b;selectedBoxes=b?new Set([b]):new Set();drawBoxes();drawMatrices()};
+  button.ondragover=e=>{e.preventDefault();e.dataTransfer.dropEffect='move'};
+  button.ondrop=e=>boxDropped(e,b);
+  root.append(button);
+ }
+ updateBrushControls();
+}
+function updateBrushControls(){
+ const paint=brushMode==='paint';
+ $('brushInspect').classList.toggle('active',!paint);
+ $('brushPaint').classList.toggle('active',paint);
+ const values=[{value:'0',label:'Без коробки'},...boxOrder().map(b=>({value:String(b),label:'A'+String(b).padStart(2,'0')}))];
+ refill($('brushTarget'),values,String(brushTarget));
+ $('brushStatus').textContent=paint?'Режим: кисть':'Режим: выбор';
+ $('brushSelectedCount').textContent=bulkSelected.size+' выбрано';
+ $('brushApply').disabled=!bulkSelected.size||!hero;
+ $('brushHint').textContent=paint?
+  'Проведи мышью или пальцем по рукам матрицы — они перейдут в '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'«Без коробки»')+'. Одно движение = один шаг отмены. Частоты Raise/Fold не изменятся.':
+  'Нажми на руку для её редактирования; Shift+клик выделяет несколько. Выбери коробку сверху или выдели целую группу, затем нажми «Перенести выбранные».';
+}
+function moveHandsToBox(hands,target){
+ if(!hero||!Number.isInteger(target)||target<0||target>17)return false;
+ const changed=[...new Set(hands)].filter(h=>HANDS.includes(h)&&hero.boxes[h]!==target);
+ if(!changed.length){msg('Руки уже принадлежат выбранной коробке.');return false}
+ snapshotUndo();
+ changed.forEach(h=>hero.boxes[h]=target);
+ selected=changed[0];bulkSelected.clear();
+ markBoxDirty();
+ msg(changed.length+' рук перенесено в '+(target?'A'+String(target).padStart(2,'0'):'«Без коробки»')+'. Действия и equity исходных рук не изменены.');
+ return true;
+}
+function paintOneBox(hand,element){
+ if(!hero||!HANDS.includes(hand)||hero.boxes[hand]===brushTarget)return;
+ if(!brushPainted.size)snapshotUndo();
+ hero.boxes[hand]=brushTarget;
+ brushPainted.add(hand);
+ element?.classList.add('brushVisited');
+ const tag=element?.querySelector('.handBoxTag');
+ if(tag)tag.textContent=brushTarget?'A'+String(brushTarget).padStart(2,'0'):'—';
+}
+function beginBoxStroke(hand,button,event){
+ if(brushMode!=='paint'||event.button!==0)return;
+ event.preventDefault();
+ brushPainting=true;brushPainted.clear();
+ paintOneBox(hand,button);
+ selected=hand;
+}
+function finishBoxStroke(){
+ if(!brushPainting)return;
+ brushPainting=false;
+ if(brushPainted.size){
+  const count=brushPainted.size;
+  brushPainted.clear();
+  markBoxDirty();
+  msg('Кисть A17: '+count+' рук перенесено в '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'«Без коробки»')+'. Отмена — одна операция.');
+ }else drawMatrices();
 }
 function drawBoxes(){
  if(!hero)return;
@@ -365,6 +444,7 @@ function drawBoxes(){
   card.ondrop=e=>{card.classList.remove('dragover');boxDropped(e,b)};
   root.append(card);
  }
+ drawBoxPalette();
 }
 function reorderBox(from,to){
  if(!hero||from===to)return;
@@ -556,6 +636,7 @@ function matrix(root,doc){
   if(hasEq&&equity>=min)button.classList.add('equityHit');
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
+  if(doc===hero&&bulkSelected.has(h))button.classList.add('multiSelected');
   if(Number.isInteger(b)&&b>=1&&b<=17){
    const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
    tag.setAttribute('aria-hidden','true');
@@ -612,8 +693,25 @@ function matrix(root,doc){
   button.onmouseleave=hideHandHover;
   button.onfocus=e=>showHandHover(h,doc,e);
   button.onblur=hideHandHover;
-  button.onclick=()=>{selected=h;drawMatrices();paintEditor()};
-  button.draggable=true;button.ondragstart=e=>e.dataTransfer.setData('text/plain',h);
+  button.onclick=e=>{
+   if(doc!==hero){selected=h;drawMatrices();paintEditor();return}
+   if(e.shiftKey){
+    if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h);
+    updateBrushControls();drawMatrices();return;
+   }
+   if(brushMode==='paint'){
+    if(e.detail===0)moveHandsToBox([h],brushTarget);
+    return;
+   }
+   selected=h;drawMatrices();paintEditor();
+  };
+  if(doc===hero){
+   button.onpointerdown=e=>{if(brushMode==='paint'&&!e.shiftKey)beginBoxStroke(h,button,e)};
+   button.onpointerenter=e=>{
+    if(brushPainting&&(e.buttons&1)&&brushMode==='paint')paintOneBox(h,button);
+   };
+  }
+  button.draggable=brushMode!=='paint';button.ondragstart=e=>e.dataTransfer.setData('text/plain',h);
   root.append(button);
  }
 }
@@ -662,7 +760,7 @@ function doApply(toBoxes=false){
 }
 async function refreshComparison(){
  if(!hero||!meta)return;
- const revision=++comparisonEpoch,people=currentPeople();pairwiseEquity={};
+ const revision=++comparisonEpoch,people=currentPeople();
  perOpponentData=people.map((o,i)=>({o,label:(profileOptions().find(p=>p.value===o.profile)?.label||o.profile),compare:null,handEq:null,rangeEq:null,error:null}));
  renderPerOpponent();
  await Promise.all(people.map(async(o,i)=>{
@@ -681,79 +779,6 @@ function assignedParticipation(doc,hand){
  const total=Object.values(actions).reduce((sum,n)=>sum+Number(n),0);
  if(!Number.isFinite(total)||total<99.99||total>100.01)return null;
  return Object.entries(actions).reduce((sum,[action,value])=>sum+(action==='fold'?0:Number(value)),0);
-}
-function renderComparisonGrid(parent,item){
- const view=el('div','comparisonViewport'),grid=el('div','comparisonGrid');
- grid.setAttribute('role','group');grid.setAttribute('aria-label','Матрица сравнения 169 рук');
- for(const h of HANDS){
-  const mine=assignedParticipation(hero,h),theirs=assignedParticipation(item.doc,h);
-  const category=mine===null||theirs===null?'unknown':mine===0&&theirs===0?'bothFold':Math.abs(mine-theirs)<0.01?'equal':mine>theirs?'heroMore':'oppMore';
-  const actionsDifferent=mine!==null&&theirs!==null&&Object.keys(ACTIONS).some(action=>Number(hero.hands[h]?.[action]||0)!==Number(item.doc.hands[h]?.[action]||0));
-  const cell=el('button','comparisonCell '+category+(actionsDifferent?' actionDiff':'')+(selected===h?' selected':''),h);
-  cell.type='button';
-  const fmt=n=>n===null?'?':n.toFixed(0)+'%';
-  cell.append(el('small','',fmt(mine)+' / '+fmt(theirs)));
-  cell.title=h+' · Мы: '+fmt(mine)+' · Соперник: '+fmt(theirs)+' · частота участия в раздаче'+(actionsDifferent?' · частоты действий различаются':'');
-  cell.setAttribute('aria-label',cell.title);
-  cell.onclick=()=>{selected=h;drawMatrices();paintEditor()};
-  grid.append(cell);
- }
- view.append(grid);parent.append(view);
-}
-function renderPairwise(){
- const root=$('pairwiseMatrix');if(!root)return;
- root.replaceChildren();
- const profiles=[{label:'Наша',doc:hero},...perOpponentData.map((item,i)=>({label:'Оп '+(i+1),doc:item.doc}))];
- const thead=el('thead'),heading=el('tr');heading.append(el('th','','Стратегия'));
- profiles.forEach(p=>heading.append(el('th','',p.label)));thead.append(heading);root.append(thead);
- const body=el('tbody');
- profiles.forEach((row,i)=>{
-  const tr=el('tr');tr.append(el('th','',row.label));
-  profiles.forEach((col,j)=>{
-   let val=i===j?null:pairwiseEquity[i+':'+j];
-   const className=i===j?'diagonal':val==null?'unknown':val>50?'positive':val<50?'negative':'';
-   const td=el('td',className,i===j?'—':val==null?'…':pct(val));
-   td.title=i===j?'Одна и та же стратегия':row.label+' против '+col.label+' · HU showdown';
-   tr.append(td);
-  });body.append(tr);
- });root.append(body);
-}
-function maskedStrategy(item){
- const doc=copy(item.doc);
- if(item.o.selector!=='active'){
-  doc.hands=Object.fromEntries(Object.entries(doc.hands||{}).map(([h,dist])=>[h,dist[item.o.selector]>0?{[item.o.selector]:dist[item.o.selector]}:{}]));
- }
- return doc;
-}
-async function calculatePairwise(){
- const epoch=calcEpoch,revision=comparisonEpoch;
- if(perOpponentData.some(x=>!x.doc)){msg('Не удалось загрузить все диапазоны для попарной матрицы.',true);return}
- const all=[hero,...perOpponentData.map(maskedStrategy)];
- for(let i=0;i<all.length;i++){
-  for(let j=i+1;j<all.length;j++){
-   if(epoch!==calcEpoch||revision!==comparisonEpoch)return;
-   try{
-    let result;
-    if(i===0 && perOpponentData[j-1].rangeEq && perOpponentData[j-1].o.selector==='active'){
-      result=perOpponentData[j-1].rangeEq;
-    }else{
-      const target=perOpponentData[j-1].o;
-      // An opponent's selected action selector must apply in both directions.
-      const counterpart=i===0?target:perOpponentData[j-1].o;
-      const settings={...counterpart};
-      // Save the chosen opponent range as a temporary validated plan for the row;
-      // the server still resolves the opponent by its original configured profile.
-      result=await post('/api/plan/range-equity',{hero:all[i],opponents:[settings],trials:1200});
-    }
-    if(epoch!==calcEpoch||revision!==comparisonEpoch)return;
-    if(Number.isFinite(result?.equity_pct)){
-      pairwiseEquity[i+':'+j]=result.equity_pct;
-      pairwiseEquity[j+':'+i]=100-result.equity_pct;
-    }
-   }catch(e){if(epoch!==calcEpoch)return;msg('Попарный расчёт: '+e.message,true)}
-   renderPairwise();
-  }
- }
 }
 function renderPerOpponent(){
  const root=$('perOpponentComparison'),hands=$('perOpponentHands');
@@ -774,25 +799,7 @@ function renderPerOpponent(){
   ].forEach(([label,value])=>metrics.append(el('small','',label+' · '+value)));
   card.append(metrics);
   if(incomplete)card.append(el('small','','Неопределённые назначения: '+undefinedHands+' из 169 классов. Общий Overlap и ширина диапазона скрыты, чтобы не выдавать отсутствие данных за Fold; рассчитанное Equity относится только к назначенной части.'));
-  if(item.doc){
-   // The primary screen is the all-vs-all strategy equity table above.
-   // Preserve 13x13 class differences as an optional drill-down only.
-   const details=el('details');
-   const summary=el('summary','','Показать различия по 169 рукам');
-   summary.style.cursor='pointer';summary.style.color='#a9c9e9';
-   details.append(summary);
-   details.ontoggle=()=>{
-    if(!details.open||details.dataset.ready)return;
-    const legend=el('div','comparisonLegend');
-    [['equal','#1d5b52','Равны'],['heroMore','#275985','Мы чаще'],['oppMore','#784355','Соперник чаще'],['bothFold','#223348','Оба Fold'],['unknown','#354357','Нет данных']].forEach(([k,color,label])=>{
-     const marker=el('span');const swatch=el('i');swatch.style.background=color;marker.append(swatch,document.createTextNode(label));legend.append(marker);
-    });
-    details.append(legend);
-    renderComparisonGrid(details,item);
-    details.dataset.ready='1';
-   };
-   card.append(details);
-  }else card.append(el('small','',item.error?'Ошибка: '+item.error:'Загрузка диапазона…'));
+  if(!item.doc)card.append(el('small','',item.error?'Ошибка: '+item.error:'Загрузка диапазона…'));
   root.append(card);
   const line=el('div','stat');line.style.marginBottom='6px';
   line.append(el('span','',`#${i+1} ${item.label} · HU`));
@@ -801,7 +808,7 @@ function renderPerOpponent(){
   line.append(el('small','',actions?Object.entries(actions).map(([a,v])=>(ACTIONS[a]||a)+' '+v+'%').join(' · '):'Частоты действий не назначены'));
   hands.append(line);
  });
- $('comparisonCount').textContent=String(perOpponentData.length);renderPairwise();
+ $('comparisonCount').textContent=String(perOpponentData.length);
 }
 async function calculatePerOpponent(){
  const epoch=calcEpoch,items=perOpponentData.slice();
@@ -918,7 +925,7 @@ async function savePlan(forceNew=false){
   c.name=$('strategyName').value.trim();c.stack_bb=Number($('stack').value);
   const parent=forceNew||hero.readonly?null:(hero.ref||null);
   const saved=await post('/api/plan/strategies',{plan:c,parent});
-  hero=saved;dirty=false;undos=[];meta=await api('/api/plan/catalog');
+  hero=saved;dirty=false;undos=[];bulkSelected.clear();meta=await api('/api/plan/catalog');
   refill($('heroProfile'),profileOptions(),saved.ref);
   setHeroFields(saved);paintEditor();renderOpponents();renderAll();
   msg('Сохранена '+saved.name+' · версия '+saved.version);
@@ -953,6 +960,14 @@ $('cellMetric').onchange=()=>{hideHandHover();drawMatrices()};
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices();drawBoxes()};
+$('brushInspect').onclick=()=>{finishBoxStroke();brushMode='inspect';drawMatrices();updateBrushControls()};
+$('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControls()};
+$('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBoxPalette();drawMatrices()};
+$('brushSelectGroup').onclick=()=>{if(!hero)return;bulkSelected=new Set(HANDS.filter(h=>hero.boxes[h]===brushTarget));drawMatrices();updateBrushControls()};
+$('brushApply').onclick=()=>moveHandsToBox([...bulkSelected],brushTarget);
+$('brushClear').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls()};
+document.addEventListener('pointerup',finishBoxStroke);
+document.addEventListener('pointercancel',finishBoxStroke);
 $('expandAllBoxes').onclick=()=>{expandedBoxes=new Set(Array.from({length:18},(_,i)=>i));drawBoxes()};
 $('collapseAllBoxes').onclick=()=>{expandedBoxes.clear();drawBoxes()};
 $('computeBoxes').onclick=calculateBoxesEquity;
@@ -987,7 +1002,6 @@ $('computeAll').onclick=async()=>{
   await calculateRangeEquity();
   const boxesPromise=calculateBoxesEquity();
   await calculatePerOpponent();
-  await calculatePairwise();
   await boxesPromise;
   drawEquityStats();drawMatrices();drawBoxes();
  }finally{computingAll=false;$('computeAll').disabled=false}
