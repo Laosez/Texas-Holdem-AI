@@ -285,22 +285,26 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 /* Layout: section 01 takes one third, section 02 two thirds; matrices/editor below. */
 main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:start}
 .plannerMain>.plannerStrategyPanel{grid-column:1;min-width:0}
-.plannerMain>.plannerEquityPanel{grid-column:2;min-width:0}
+.plannerMain>.plannerOpponentsPanel{grid-column:2;min-width:0}
 .plannerMain>.plannerWorkspace{grid-column:1/-1;min-width:0}
 /* Opponent controls need their own width in the narrow strategy column. */
-.plannerStrategyPanel>.two{grid-template-columns:minmax(0,1fr)}
-.plannerStrategyPanel .profile{min-width:0}
-.plannerStrategyPanel .oppTable{overflow-x:auto;max-width:100%}
+.plannerStrategyPanel .profile,.plannerOpponentsPanel .profile{min-width:0}
+.plannerOpponentsPanel .oppTable{overflow-x:auto;max-width:100%}
+.plannerOpponentsPanel .equityInsideOpponents{margin-top:13px;border-top:1px solid #37536c;padding-top:13px}
+.plannerOpponentsPanel .equityInsideOpponents .heading h3{font-size:14px;margin:0}
+.plannerOpponentsPanel .filterTop{grid-template-columns:minmax(135px,1fr) minmax(135px,1fr) minmax(260px,1.4fr);gap:10px}
+.plannerOpponentsPanel .filterTop button{min-height:38px}
+@media(max-width:800px){.plannerOpponentsPanel .filterTop{grid-template-columns:repeat(2,minmax(0,1fr))}.plannerOpponentsPanel .filterTop button{grid-column:1/-1}}
 @media(max-width:1050px){
  main.plannerMain{grid-template-columns:minmax(0,1fr)}
- .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerEquityPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}
+ .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}
 }
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
 <main class="plannerMain">
-<section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">01 / </span>Стратегии и соперники</h2><span class="badge">Независимые позиции и ситуации</span></div>
-<div class="two"><div class="profile"><h3>Моя стратегия</h3><div class="fields">
+<section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">01 / </span>Моя стратегия</h2><span class="badge">Позиции и действия</span></div>
+<div class="profile"><h3>Моя стратегия</h3><div class="fields">
 <div class="field wide"><label for="heroProfile">Стратегия / пресет</label><select id="heroProfile"></select></div>
 <div class="field"><label for="heroPosition">Моя позиция</label><select id="heroPosition"></select></div>
 <div class="field"><label for="heroScenario">Ситуация</label><select id="heroScenario"></select></div>
@@ -308,19 +312,20 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <input id="stack" class="hidden" type="hidden" value="20">
 <div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
 </div><p id="activeContext" class="note">Контекст расчёта: 9-max · 20 BB (из сохранённой стратегии).</p><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
-<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Соперники</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
+</section>
+<section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">До 8 диапазонов · Multiway</span></div>
+<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
 <div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div id="entryDistribution" class="entryRow">Сначала рассчитай Monte Carlo.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
-<p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div></div>
+<p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div>
+<div class="equityInsideOpponents">
+<div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
+<select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
+<div class="filterTop"><div class="field"><label for="trials">Симуляций / цикл</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div><div class="field"><label for="cycles">Независимые циклы</label><select id="cycles"><option value="1">1 цикл</option><option value="2">2 цикла</option><option value="3">3 цикла</option><option value="4">4 цикла</option></select></div><button class="btn primary" id="computeAll" type="button">Рассчитать Equity против моих соперников</button></div>
+<div class="progress" style="margin-top:9px"><div id="equityFill"></div></div>
+<p id="equityStatus" class="note">Equity считается только против добавленных соперников. Нажми кнопку расчёта.</p>
+</div>
 <div class="statusLine" role="status" id="feedback"></div>
-</section>
-<section class="panel plannerEquityPanel"><div class="heading"><h2><span class="index">02 / </span>Расчёт Equity</h2><span class="badge">169 рук · Multiway Monte Carlo</span></div>
-<div class="filterTop"><div class="field"><label for="equityModel">Источник equity</label><select id="equityModel"><option value="selected">Выбранные соперники · Multiway</option><option value="any_two">Any Two · N соперников</option><option value="gto_heuristic">GTO Bot · эвристические диапазоны</option></select></div>
-<div class="field"><label for="trials">Симуляций / цикл</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div>
-<div class="field"><label for="cycles">Независимые циклы</label><select id="cycles"><option value="1">1 цикл</option><option value="2">2 цикла</option><option value="3">3 цикла</option><option value="4">4 цикла</option></select></div>
-<button class="btn primary" id="computeAll">Рассчитать Monte Carlo</button></div>
-
-<div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 </section>
 <div class="plannerWorkspace">
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><span class="small">Постоянная диагональ: Hero / соперник</span></div>
@@ -360,9 +365,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div class="matrixMetric"><span>Выбрано в A17</span><strong id="studioGroupHands">—</strong><small id="studioGroupCombos">комбинаций</small></div>
 <div class="matrixMetric"><span>Классы без группы</span><strong id="studioUnassigned">—</strong><small>размещаются в пуле</small></div>
 </div>
-<details id="groupEditor" class="groupDrawer groupEditor"><summary>Редактор A17 · кисть и 17 коробок</summary>
+<details id="groupEditor" class="groupDrawer groupEditor" open><summary>Редактор A17 · кисть и 17 коробок</summary>
 <div class="a17Workbench unifiedGroupEditor">
-<div class="heading"><strong>Коробки A17 · единый редактор</strong><span id="brushStatus" class="badge">Режим: выбор</span></div>
+<div class="heading"><strong>Коробки A17 · единый редактор · 4 в ряд</strong><span id="brushStatus" class="badge">Режим: выбор</span></div>
 <div class="brushbar">
 <button class="brushTool active" id="brushInspect" type="button">◉ Выбор рук</button>
 <button class="brushTool" id="brushPaint" type="button">✎ Кисть</button>
@@ -376,7 +381,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div id="brushHint" class="brushHint">Нажми A01–A17: белая рамка появится у всех рук коробки. Повторное нажатие убирает рамку. Для переноса выдели руки Shift+кликом и выбери коробку назначения либо используй кисть.</div>
 <div id="groupDrawer" class="groupDrawer unifiedGroupList">
 <div id="boxes" class="boxList"></div>
-<p class="boxInstructions">Коробки стоят в фиксированном порядке (4 в ряд). Щёлкни по номеру коробки — белым выделятся все её руки в матрице, щёлкни повторно — рамки исчезнут. Для переноса: Shift+клик по рукам → «В коробку» → «Перенести выбранные», или кисть. EV в BB — среднее EV условного выставления, взвешенное по комбинациям; перемещение не меняет частоты действий.</p>
+<p class="boxInstructions">Коробки стоят в фиксированном порядке (4 в ряд). Щёлкни по коробкам для мультивыбора (повторно — снять). Измени Fold / Raise / Call в редакторе действий — частоты назначатся всем выбранным коробкам. Для переноса: Shift+клик по рукам → «В коробку» → «Перенести выбранные», или кисть. EV в BB — среднее EV условного выставления, взвешенное по комбинациям; перемещение не меняет частоты действий.</p>
 </div>
 </div></details>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="heroMatrix" class="matrixGrid"></div></div></div></div>
