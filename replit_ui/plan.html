@@ -290,7 +290,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 </div>
 </div></details>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="heroMatrix" class="matrixGrid"></div></div></div></div>
-<details id="villainPane" class="matrixPane comparisonDisclosure" open><summary><span>02 · Соперник</span><strong id="villainMatrixLabel">Стратегия соперника</strong><button id="computeVillainReverse" class="btn sm" type="button">Рассчитать vs меня</button><span class="foldIndicator" aria-hidden="true"></span></summary><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div><p id="villainReverseStatus" class="note">Equity/EV соперника vs моя стратегия: нажми «Рассчитать vs меня» или общий Monte Carlo.</p></details></div>
+<details id="villainPane" class="matrixPane comparisonDisclosure" open><summary><span>02 · Соперник</span><strong id="villainMatrixLabel">Стратегия соперника</strong><span class="foldIndicator" aria-hidden="true"></span></summary><div class="buttons" style="margin:6px 0"><button id="computeVillainReverse" class="btn sm" type="button">Рассчитать Equity / EV соперника vs меня</button></div><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div><p id="villainReverseStatus" class="note">Equity/EV соперника vs моя стратегия: нажми «Рассчитать vs меня» или общий Monte Carlo.</p></details></div>
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
 <p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Фон фиксированный: слева сверху — рука, справа сверху — A17, по центру — выбранный показатель. Золотая рамка — лучшая полностью исключённая рука для замены; красная — худшая играемая рука, уступающая ей. Подсветка доступна для Equity/EV и не меняет стратегию. Снизу — доли Fold / Raise / Limp / Call.</p>
 </section>
@@ -686,6 +686,78 @@ function handInRange(doc,hand){
  const participation=knownActivePercent(doc,hand);
  return participation!==null&&participation>0;
 }
+function villainSelectedShare(hand){
+ const choice=currentPeople()[Number($('viewOpponent').value||0)];
+ if(!choice||!villain)return null;
+ if(choice.selector&&choice.selector!=='active'){
+  const actions=villain.hands?.[hand];
+  return actions?Math.max(0,Math.min(100,Number(actions[choice.selector])||0)):null;
+ }
+ return knownActivePercent(villain,hand);
+}
+function intersectionStats(){
+ if(!hero||!villain)return null;
+ let shared=0,inter=0,uni=0,a=0,b=0;
+ for(const hand of HANDS){
+  const first=(knownActivePercent(hero,hand)||0)/100;
+  const second=(villainSelectedShare(hand)||0)/100;
+  const mass=COMBOS(hand);
+  if(first>0&&second>0)shared++;
+  inter+=mass*Math.min(first,second);
+  uni+=mass*Math.max(first,second);
+  a+=mass*first;b+=mass*second;
+ }
+ return {classes:shared,comboIntersection:inter,comboUnion:uni,
+         aCombos:a,bCombos:b,jaccard:uni?100*inter/uni:0};
+}
+function renderIntersectionStats(){
+ const stats=intersectionStats();
+ $('rangeIntersect').setAttribute('aria-pressed',String(intersectionOnly));
+ $('rangeIntersect').classList.toggle('primary',intersectionOnly);
+ $('rangeIntersectionStats').textContent=!stats?'Соперник не загружен.':
+  'Общие руки: '+stats.classes+'/169 · пересечение '+stats.comboIntersection.toFixed(1)+
+  ' комбо-экв. · Jaccard '+stats.jaccard.toFixed(1)+'% · мои '+
+  stats.aCombos.toFixed(1)+' / соперника '+stats.bCombos.toFixed(1)+' комбо-экв.'+
+  (intersectionOnly?' · подсвечены только общие руки':' · нажми «Пересечение диапазонов» для подсветки');
+}
+function rangeEvBreakdown(doc,equity,stack,dead,opponents){
+ if(!doc||!equity)return null;
+ let activeMass=0,evMass=0,loss=0,missed=0,known=0;
+ for(const hand of HANDS){
+  const actions=doc.hands?.[hand];
+  if(!actions||!Object.keys(actions).length)continue;
+  const eq=equity[hand];if(!Number.isFinite(eq))return null;
+  const ev=modelAllInEv(eq,stack,dead,opponents);
+  if(!Number.isFinite(ev))return null;
+  const combos=COMBOS(hand);
+  const play=Math.min(1,Math.max(0,Object.entries(actions).reduce(
+    (sum,[action,frequency])=>sum+(action==='fold'?0:Number(frequency)||0),0)/100));
+  const fold=Math.min(1,Math.max(0,(Number(actions.fold)||0)/100));
+  activeMass+=combos*play;evMass+=combos*play*ev;
+  loss+=combos*play*Math.max(0,-ev);
+  missed+=combos*fold*Math.max(0,ev);
+  known+=combos;
+ }
+ return {played:activeMass?evMass/activeMass:null,dealt:evMass/1326,
+         loss:loss/1326,missed:missed/1326,known,activeMass};
+}
+function renderRangeEV(){
+ const enabled=$('cellMetric').value==='evAllIn';
+ $('rangeEvSummary').classList.toggle('hidden',!enabled);
+ $('rangeEvNote').classList.toggle('hidden',!enabled);
+ if(!enabled)return;
+ const summary=rangeEvBreakdown(hero,equityResults.actual?.equity,
+   Number($('stack').value),Number($('allInDead').value),currentPeople().length);
+ const fmt=v=>Number.isFinite(v)?(v>0?'+':'')+v.toFixed(3)+' BB':'—';
+ $('rangeEvPlayed').textContent=fmt(summary?.played);
+ $('rangeEvDealt').textContent=fmt(summary?.dealt);
+ $('rangeEvNegative').textContent=fmt(summary?.loss);
+ $('rangeEvMissed').textContent=fmt(summary?.missed);
+ $('rangeEvNote').textContent='Диагностика условного all-in (не фактический EV стратегии). Показано '+
+  (summary?summary.known+'/1326 известных комбинаций. ':'— — сначала рассчитай Monte Carlo. ')+
+  'Частоты входа учтены. Неизвестные руки не считаются Fold; оценка условная, без ICM, фолд-эквити и постфлопа. '+
+  'Взвешенная сумма per-hand Monte Carlo приближённая: card-removal между диапазонами отдельно не переоценивается.';
+}
 
 function handMetricsRows(hand,doc){
  const rows=[],pair=(name,val)=>rows.push([name,val===undefined||val===null?'—':String(val)]);
@@ -768,9 +840,15 @@ function handActionStripe(actions){
  return bar;
 }
 // Each matrix cell has one quantitative value and one immutable background.
+function selectedReverseResult(){
+ const item=perOpponentData[Number($('viewOpponent').value||0)];
+ return item&&item.reverseKey===heroRangeSignature()?item.reverseEq:null;
+}
 function cellMetricValue(doc,h,metric){
  const acts=doc?.hands?.[h],action=major(acts),b=doc?.boxes?.[h],ours=doc===hero;
- const filtered=ours?equityResults.filter?.equity?.[h]:null;
+ const selectedVillain=!ours&&doc===villain;
+ const filtered=ours?equityResults.filter?.equity?.[h]:
+  selectedVillain?selectedReverseResult()?.equity?.[h]:null;
  const valueOrNull=v=>Number.isFinite(v)?v:null;
  let value=null,display='—';
  if(metric==='none')return {value:null,display:''};
@@ -789,11 +867,13 @@ function cellMetricValue(doc,h,metric){
   value=ours&&mine!==null&&other!==null?mine-other:null;
   display=value===null?'—':(value>0?'+':'')+value.toFixed(0)+' п.п.';
  }else if(metric==='evCall'){
-  value=ours&&Number.isFinite(filtered)?modelCallEv(filtered,Number($('evPot').value),Number($('evCost').value)):null;
+  value=Number.isFinite(filtered)?modelCallEv(filtered,Number($('evPot').value),Number($('evCost').value)):null;
   display=value===null?'—':(value>0?'+':'')+value.toFixed(2);
  }else if(metric==='evAllIn'){
-  const actual=ours?equityResults.actual?.equity?.[h]:null;
-  value=Number.isFinite(actual)?modelAllInEv(actual,Number($('stack').value),Number($('allInDead').value),currentPeople().length):null;
+  const actual=ours?equityResults.actual?.equity?.[h]:
+   selectedVillain?selectedReverseResult()?.equity?.[h]:null;
+  const opponents=ours?currentPeople().length:1; // Reverse view is HU vs hero only.
+  value=Number.isFinite(actual)?modelAllInEv(actual,Number($('stack').value),Number($('allInDead').value),opponents):null;
   display=value===null?'—':(value>0?'+':'')+value.toFixed(1);
  }else if(metric==='action'){display=action==='none'?'—':ACTIONS[action]||action}
  return {value,display};
@@ -849,10 +929,10 @@ function metricTextColor(metric,value,scale){
  const t=Math.max(0,Math.min(1,(value-scale.min)/(scale.max-scale.min)));
  return 'hsl('+Math.round(8+151*t)+' 83% '+Math.round(77-12*t)+'%)';
 }
-function matrix(root,doc,scale){
+function matrix(root,doc,scale,metricChoice){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
- const metric=$('cellMetric').value,candidates=doc===hero?candidateSwaps(metric):{gold:new Set(),red:new Set()};
+ const metric=metricChoice||$('cellMetric').value,candidates=doc===hero?candidateSwaps(metric):{gold:new Set(),red:new Set()};
  for(const h of HANDS){
   const actions=doc.hands?.[h],b=doc.boxes?.[h];
   const button=el('button','hand '+major(actions));
@@ -860,6 +940,10 @@ function matrix(root,doc,scale){
   const boxhit=doc===hero&&selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
+  if(intersectionOnly){
+   const both=(knownActivePercent(hero,h)||0)>0&&(villainSelectedShare(h)||0)>0;
+   button.classList.add(both?'intersectionMatched':'intersectionMuted');
+  }
   if(doc===hero&&bulkSelected.has(h))button.classList.add('multiSelected');
   if(candidates.gold.has(h))button.classList.add('candidateGold');
   if(candidates.red.has(h))button.classList.add('candidateRed');
@@ -914,14 +998,15 @@ function matrix(root,doc,scale){
 function drawMatrices(){
  if(!hero)return;
  setMetricLegend();
+ renderRangeEV();renderIntersectionStats();renderVillainReverseStatus();
  const showOpponent=$('villainPane').open;
  $('heroMatrixLabel').textContent=hero.name+' · '+positionCaption(hero.position)+' · '+SCENARIOS[hero.scenario];
  $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?positionCaption(villain.position):'—');
- // Collapsed matrix is excluded from the visible min/max color scale.
- const scale=visibleMetricScale($('cellMetric').value,showOpponent?[hero,villain]:[hero]);
- matrix($('heroMatrix'),hero,scale);
+ const mainMetric=$('cellMetric').value,villainMetric=$('villainMetric').value;
+ const scale=visibleMetricScale(mainMetric,[hero]);
+ matrix($('heroMatrix'),hero,scale,mainMetric);
  $('heroMatrix').classList.toggle('brushActive',brushMode==='paint');
- if(showOpponent)matrix($('villainMatrix'),villain,scale);
+ if(showOpponent)matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric);
  else $('villainMatrix').replaceChildren();
 }
 
