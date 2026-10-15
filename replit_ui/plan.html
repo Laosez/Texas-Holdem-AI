@@ -863,7 +863,6 @@ function pct(x){return x===null||x===undefined?'—':Number(x).toFixed(1)+'%'}
 function drawEquityStats(){
  const filter=equityResults.filter?.equity,actual=equityResults.actual?.equity,any=equityResults.any?.equity;
  $('handFilter').textContent=pct(filter?.[selected]);$('handActual').textContent=pct(actual?.[selected]);$('handAny').textContent=pct(any?.[selected]);
- $('compEquity').textContent=pct(rangeEquityResult?.equity_pct);
  const eq=equityResults.filter;
  $('equityStatus').textContent=eq?'Расчёт готов · '+eq.simulations_per_hand+' симуляций/руку · Monte Carlo (погрешность выборки)':'Расчёт не выполнен. Настройки соперников могут быть произвольными.';
  if(eq)$('equityFill').style.width='100%';drawBoxes();
@@ -985,7 +984,7 @@ $('matrixMode').onchange=drawMatrices;
 $('cellMetric').onchange=()=>{hideHandHover();drawMatrices()};
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
-$('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices();drawBoxes()};
+$('equityModel').onchange=invalidateEquity;
 $('brushInspect').onclick=()=>{finishBoxStroke();brushMode='inspect';drawMatrices();updateBrushControls()};
 $('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControls()};
 $('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBoxPalette();drawMatrices()};
@@ -1001,7 +1000,6 @@ document.addEventListener('pointerup',finishBoxStroke);
 document.addEventListener('pointercancel',finishBoxStroke);
 $('expandAllBoxes').onclick=()=>{expandedBoxes=new Set(Array.from({length:18},(_,i)=>i));drawBoxes()};
 $('collapseAllBoxes').onclick=()=>{expandedBoxes.clear();drawBoxes()};
-$('computeBoxes').onclick=calculateBoxesEquity;
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
 $('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
@@ -1030,7 +1028,6 @@ $('computeAll').onclick=async()=>{
   // Keep the filter's selected model distinct from actual selected-opponent equity.
   if(model==='selected')equityResults.actual=matrix;
   else await startCalculation('actual','selected',people);
-  await calculateRangeEquity();
   await calculatePerOpponent();
   drawEquityStats();drawMatrices();drawBoxes();
  }finally{computingAll=false;$('computeAll').disabled=false}
