@@ -238,6 +238,11 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 </section>
 <div class="plannerWorkspace">
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select></div></div>
+<div class="buttons matrixClipboardBar" style="margin:0 0 9px;gap:8px;align-items:center">
+<button class="btn sm" id="copyMatrix" type="button" disabled>Копировать настройки</button>
+<button class="btn sm" id="pasteMatrix" type="button" disabled>Вставить настройки</button>
+<span id="matrixClipboardStatus" class="small" role="status">Сначала выбери матрицу, затем скопируй её настройки.</span>
+</div>
 <div class="metricControls hidden" id="evControls">
 <div class="field"><label for="evPot">Банк перед коллом, BB</label><input id="evPot" type="number" min="0" step="0.5" value="10"></div>
 <div class="field"><label for="evCost">Цена колла, BB</label><input id="evCost" type="number" min="0.1" step="0.5" value="5"></div>
@@ -298,6 +303,8 @@ const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против отк
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 const names={};
+let copiedMatrix=null; // In-page clipboard: action frequencies only, never A17 boxes.
+
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
 function option(label,value){const o=el('option','',label);o.value=value;return o}
@@ -906,6 +913,55 @@ function drawMatrices(){
  else $('villainMatrix').replaceChildren();
 }
 
+function updateMatrixClipboard(){
+ const copyButton=$('copyMatrix'),pasteButton=$('pasteMatrix'),status=$('matrixClipboardStatus');
+ if(!copyButton||!pasteButton||!status)return;
+ copyButton.disabled=!hero;
+ const compatible=!!hero&&!!copiedMatrix&&copiedMatrix.scenario===hero.scenario;
+ pasteButton.disabled=!compatible;
+ if(!copiedMatrix){
+  status.textContent='Скопируй действия из одной позиции, перейди в другую и вставь.';
+  return;
+ }
+ const origin=copiedMatrix.position+' · '+SCENARIOS[copiedMatrix.scenario];
+ status.textContent=(compatible?'Скопировано: ':'Другой тип действий — вставка недоступна: ')+
+   copiedMatrix.name+' · '+origin+' · '+copiedMatrix.count+' рук назначено';
+}
+function copyMatrixSettings(){
+ if(!hero){msg('Сначала загрузи стратегию.',true);return false}
+ const hands={};
+ for(const h of HANDS){
+  if(Object.prototype.hasOwnProperty.call(hero.hands,h))hands[h]=copy(hero.hands[h]);
+ }
+ copiedMatrix={
+  hands,scenario:hero.scenario,position:hero.position,players:hero.players,
+  name:hero.name,count:Object.keys(hands).length
+ };
+ updateMatrixClipboard();
+ msg('Настройки '+copiedMatrix.count+' рук из '+hero.position+' скопированы. Перейди в другую позицию и нажми «Вставить настройки».');
+ return true;
+}
+function pasteMatrixSettings(){
+ if(!hero||!copiedMatrix){msg('Сначала скопируй настройки матрицы.',true);return false}
+ if(hero.scenario!==copiedMatrix.scenario){
+  msg('Вставка недоступна: разные сценарии ('+SCENARIOS[copiedMatrix.scenario]+' и '+SCENARIOS[hero.scenario]+').',true);
+  return false;
+ }
+ const from=copiedMatrix.name+' · '+copiedMatrix.position;
+ if(!confirm('Заменить все настройки 169 рук в '+hero.name+' · '+hero.position+
+   ' значениями из '+from+'? Пустые руки также будут перенесены. Коробки A17 не изменятся.')){
+  return false;
+ }
+ snapshotUndo();
+ hero.hands=copy(copiedMatrix.hands);
+ preserveCurrentSlot();
+ noteDirty();
+ paintEditor();
+ updateMatrixClipboard();
+ msg('Настройки '+copiedMatrix.count+' рук вставлены в '+hero.position+
+     '. Коробки A17 сохранены. Можно отменить операцию кнопкой «↶ Отменить».');
+ return true;
+}
 function editorActions(scenario){
  if(scenario==='rfi')return ['fold','open','limp'];
  if(scenario==='vs_open')return ['fold','threebet','call'];
@@ -1143,7 +1199,7 @@ async function savePlan(forceNew=false){
   msg('Сохранена '+saved.name+' · версия '+saved.version);
  }catch(e){msg('Не удалось сохранить: '+e.message,true)}
 }
-function renderAll(){drawBoxes();drawMatrices();refreshComparison();drawEquityStats();$('delete').disabled=!hero||hero.readonly;$('dirty').textContent=dirty?'● Несохранённые изменения':'Изменения сохранены / оригинальный пресет защищён';$('dirty').style.color=dirty?'#f5c38f':''}
+function renderAll(){drawBoxes();drawMatrices();refreshComparison();drawEquityStats();updateMatrixClipboard();$('delete').disabled=!hero||hero.readonly;$('dirty').textContent=dirty?'● Несохранённые изменения':'Изменения сохранены / оригинальный пресет защищён';$('dirty').style.color=dirty?'#f5c38f':''}
 async function connect(){
  try{
   const data=await api('/api/plan/catalog');meta=data;
@@ -1161,6 +1217,8 @@ async function connect(){
  }catch(e){$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
 }
 $('connect').onclick=connect;
+$('copyMatrix').onclick=copyMatrixSettings;
+$('pasteMatrix').onclick=pasteMatrixSettings;
 $('heroProfile').onchange=()=>loadHero();
 $('heroPosition').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
