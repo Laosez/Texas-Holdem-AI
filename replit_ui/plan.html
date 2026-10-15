@@ -68,7 +68,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 
 .metricLegend span{font-size:11px}
 
-.matrixOptions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.matrixOptions select{width:auto}.matrixLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.matrixLayout.double{grid-template-columns:repeat(2,minmax(0,1fr))}.matrixLayout.double .matrixGrid{min-width:0;gap:2px}.matrixLayout.double .hand{font-size:10px;max-height:43px}.matrixLayout.double .hand small{font-size:8px}
+.matrixOptions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.matrixOptions select{width:auto}.matrixLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.matrixLayout.double{grid-template-columns:minmax(0,1fr)}
 .stat{background:#10243b;border:1px solid #36516e;padding:13px;border-radius:8px;min-width:0}.stat span{display:block;color:#a4bbd3;font-size:10px}.stat strong{font-size:21px;font-variant-numeric:tabular-nums}.stat small{display:block;color:#9ab0ca;font-size:10px}
 .editorHead{display:flex;justify-content:space-between;gap:20px;align-items:center}.bigHand{font-size:40px;font-weight:850;letter-spacing:-2px}.actionGrid{display:grid;grid-template-columns:repeat(4,minmax(80px,1fr));gap:9px}.actionGrid input{text-align:right}.actionGrid label{font-size:11px}.handStatus{padding:10px 12px;border:1px solid #3a5771;border-radius:8px;background:#0e2334}.progress{height:8px;background:#0a1825;border:1px solid #304a65;border-radius:99px;overflow:hidden}.progress>div{height:100%;width:0;background:#5f9fdb;transition:width .3s}
 footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!important}.statusLine{font-size:12px;color:#b1d3eb;min-height:17px}.emptyLabel{font-size:11px;color:#bcaab6}.right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -81,9 +81,9 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .matrixPane .handBoxTag{position:absolute;top:2px;right:3px;font-size:8px;line-height:1.1;color:#bbcede;font-weight:750}
 .matrixPane .handMetric{font-size:13px;font-weight:850;line-height:1.1;color:#f3f8ff;font-variant-numeric:tabular-nums;text-align:center;letter-spacing:-.15px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .matrixPane .handMetric.compact{font-size:10px}
-.matrixLayout.double .handRank{font-size:8px;top:1px;left:2px}
-.matrixLayout.double .handMetric{font-size:11px}
-.matrixLayout.double .handMetric.compact{font-size:8px}
+
+
+
 .matrixPane .hand.candidateGold{border-color:#f3c45c!important}
 .matrixPane .hand.candidateRed{border-color:#ee6d75!important}
 .matrixPane .hand.candidateGold:hover,.matrixPane .hand.candidateRed:hover{filter:brightness(1.2)}
@@ -163,6 +163,19 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .editorSection .bigHand.multi{font-size:25px;letter-spacing:-.4px}
 .groupDrawerTitle{font-size:12px;font-weight:750;color:#d4e7fa}
 .groupDrawer .boxHandList{display:flex}
+
+/* Two full-width 13x13 matrices, opponent collapsible below hero. */
+.matrixLayout{display:flex;flex-direction:column;gap:10px}
+.matrixLayout>.matrixPane{width:100%;min-width:0;box-sizing:border-box}
+.comparisonDisclosure{padding:10px}
+.comparisonDisclosure>summary{list-style:none;display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 2px 9px;color:#b4cce6}
+.comparisonDisclosure>summary::-webkit-details-marker{display:none}
+.comparisonDisclosure>summary span:first-child{font-size:10px;letter-spacing:.5px;color:#91afcc;font-weight:800}
+.comparisonDisclosure>summary strong{font-size:12px;color:#e9f2fc;font-weight:750;flex:1}
+.comparisonDisclosure>summary .foldIndicator::after{content:"▴";font-size:16px;color:#9cbbe0}
+.comparisonDisclosure:not([open])>summary .foldIndicator::after{content:"▾"}
+.comparisonDisclosure:not([open])>summary{padding-bottom:3px}
+.comparisonDisclosure:focus-within{border-color:#698bad}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -190,7 +203,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 </section>
 <div class="plannerWorkspace">
-<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select></div></div>
+<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select></div></div>
 <div class="metricControls hidden" id="evControls">
 <div class="field"><label for="evPot">Банк перед коллом, BB</label><input id="evPot" type="number" min="0" step="0.5" value="10"></div>
 <div class="field"><label for="evCost">Цена колла, BB</label><input id="evCost" type="number" min="0.1" step="0.5" value="5"></div>
@@ -218,7 +231,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>A17 · редактор 17 коробок</strong><div class="buttons"><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div></div><div id="boxes" class="boxList"></div><p class="boxInstructions">Все коробки открыты. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. За значок ⠿ можно менять расположение коробок. <strong>Eq</strong> — средневзвешенное equity рук коробки по 4/6/12 комбинациям. Пересчёт мгновенный при переносе; новые Monte Carlo не запускаются. Номер A01–A17 выделяет диапазон на матрице. Удаление из коробки не удаляет руку из стратегии.</p>
 </div></div></details>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="heroMatrix" class="matrixGrid"></div></div></div></div>
-<div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div></div></div>
+<details id="villainPane" class="matrixPane comparisonDisclosure" open><summary><span>02 · Соперник</span><strong id="villainMatrixLabel">Стратегия соперника</strong><span class="foldIndicator" aria-hidden="true"></span></summary><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div></details></div>
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
 <p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Фон фиксированный: слева сверху — рука, справа сверху — A17, по центру — выбранный показатель. Золотая рамка — лучшая полностью исключённая рука для замены; красная — худшая играемая рука, уступающая ей. Подсветка доступна для Equity/EV и не меняет стратегию. Снизу — доли Fold / Raise / Limp / Call.</p>
 </section>
@@ -762,13 +775,15 @@ function matrix(root,doc,scale){
 function drawMatrices(){
  if(!hero)return;
  setMetricLegend();
- const twice=$('matrixMode').value==='2';
- $('matrixLayout').classList.toggle('double',twice);
- $('villainPane').classList.toggle('hidden',!twice);
+ const showOpponent=$('villainPane').open;
  $('heroMatrixLabel').textContent=hero.name+' · '+hero.position+' · '+SCENARIOS[hero.scenario];
  $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?.position||'—');
- const scale=visibleMetricScale($('cellMetric').value,twice?[hero,villain]:[hero]);
- matrix($('heroMatrix'),hero,scale);$('heroMatrix').classList.toggle('brushActive',brushMode==='paint');if(twice)matrix($('villainMatrix'),villain,scale);
+ // Collapsed matrix is excluded from the visible min/max color scale.
+ const scale=visibleMetricScale($('cellMetric').value,showOpponent?[hero,villain]:[hero]);
+ matrix($('heroMatrix'),hero,scale);
+ $('heroMatrix').classList.toggle('brushActive',brushMode==='paint');
+ if(showOpponent)matrix($('villainMatrix'),villain,scale);
+ else $('villainMatrix').replaceChildren();
 }
 
 function editorActions(scenario){
@@ -1029,7 +1044,7 @@ $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDir
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
 $('oppCount').onchange=updateOppCount;
 $('viewOpponent').onchange=loadVillain;
-$('matrixMode').onchange=drawMatrices;
+$('villainPane').ontoggle=()=>{if(hero)drawMatrices()};
 $('cellMetric').onchange=()=>{hideHandHover();drawMatrices()};
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
