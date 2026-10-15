@@ -82,7 +82,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(incomplete)card.append(", page)
         self.assertIn("cell.onclick=()=>{selected=h;drawMatrices();paintEditor()}", page)
 
-    def test_a17_moved_to_matrix_and_played_hand_encoding(self):
+    def test_a17_in_matrix_with_corner_labels_and_action_bars(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         section02 = page[page.index('02 / </span>Equity-фильтр'):page.index('03 / </span>Матрицы стартовых рук')]
         section03 = page[page.index('03 / </span>Матрицы стартовых рук'):page.index('04 / </span>Сравнение стратегий')]
@@ -92,25 +92,28 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn('id="heroMatrix"', section03)
         self.assertEqual(page.count('id="boxes"'), 1)
         self.assertIn("function knownActivePercent(doc,hand)", page)
-        self.assertIn("button.classList.add('played')", page)
-        self.assertNotIn("button.append(tag)", page)
-        self.assertNotIn("handBoxTag", page)
+        self.assertIn("button.append(tag)", page)
+        self.assertIn("const tag=el('span','handBoxTag'", page)
+        self.assertIn("tag.setAttribute('aria-hidden','true')", page)
         self.assertIn("pair('Коробка A17'", page)
-        self.assertIn(".hand.played{border:2px solid #70b7ff", page)
-        # Played-range styling remains later than action backgrounds; it is only a border.
-        self.assertGreater(page.index(".hand.played{"), page.index(".hand.push{background:"))
+        self.assertIn(".handBoxTag{position:absolute;top:2px;right:3px;", page)
+        self.assertNotIn(".hand.played{", page)
+        self.assertNotIn("button.classList.add('played')", page)
         self.assertIn(".hand.boxhit::before", page)
         self.assertIn(".hand.equityHit::after", page)
         self.assertNotIn(".hand.boxhit{outline:2px solid #a7d8ff", page)
 
-    def test_metric_gradient_is_independent_of_played_outline(self):
+    def test_metric_gradient_and_action_stripe_are_independent(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn(".hand.played{border:2px solid #70b7ff}", page)
+        self.assertNotIn(".hand.played{", page)
+        self.assertNotIn(".boxHandChip.played{", page)
+        self.assertNotIn("minPlayFrequency", page)
+        self.assertIn("if(stripe)button.append(stripe)", page)
         self.assertIn(".hand.metricShade{background-image:linear-gradient(", page)
         self.assertNotIn("--play-alpha", page)
         self.assertIn("function metricGradient(metric,value,box,action)", page)
         self.assertIn("const colors=metric==='none'?null:metricGradient(metric,value,b,action)", page)
-        self.assertIn("if(participation!==null&&participation>0&&participation>=minPlayed)button.classList.add('played')", page)
+        self.assertIn("const participation=knownActivePercent(doc,h);", page)
         for name in ("equity","participation","dominant","box","combos","delta","evCall","action"):
             self.assertIn('value="'+name+'"', page)
 
@@ -172,13 +175,13 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("Eq</strong> — реальное showdown equity диапазона всей коробки",page)
         self.assertNotIn("Доля комбинаций с equity выше порога';head.append(summary)",page)
 
-    def test_gto_range_threshold_neutral_mode_and_hover(self):
+    def test_gto_neutral_mode_and_detailed_hover(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('value="none">Нет · серый фон',page)
         self.assertIn(".hand.metricNeutral{background:#37404b",page)
-        self.assertIn('id="minPlayFrequency"',page)
-        self.assertIn('id="playMinLabel"',page)
-        self.assertIn('value="20" step="1"',page)
+        self.assertNotIn('id="minPlayFrequency"',page)
+        self.assertNotIn('id="playMinLabel"',page)
+        self.assertIn("Нижняя полоска каждой руки показывает доли Fold / Raise / Limp / Call",page)
         self.assertIn('id="handHoverCard"',page)
         self.assertIn("function handMetricsRows(hand,doc)",page)
         self.assertIn("function showHandHover(hand,doc,event)",page)
@@ -187,7 +190,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("pair('Equity · выбранные соперники'",page)
         self.assertIn("pair('Equity коробки · multiway'",page)
         self.assertIn("pair('EV выставления'",page)
-        self.assertNotIn("handBoxTag",page)
+        self.assertIn("handBoxTag",page)
 
     def test_hand_action_frequency_stripes_accurately_defined(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
