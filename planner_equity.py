@@ -226,20 +226,29 @@ def config_hash(opponents,model,trials):
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def calculate_matrix(opponents,model="selected",trials=200,progress=None):
-    """Compute a complete 169-hand preflop all-in filter with real progress."""
+def calculate_matrix(opponents,model="selected",trials=200,progress=None,cycles=1):
+    """Independent reproducible MC cycles, aggregated across 169 classes."""
     if type(trials) is not int or not 50 <= trials <= 2000:
         raise ValueError("Симуляций на руку: 50–2000")
+    if type(cycles) is not int or not 1 <= cycles <= 4:
+        raise ValueError("Циклов Monte Carlo должно быть 1–4")
     sources,provenance=build_ranges(opponents,model)
     digest=config_hash(provenance,model,trials)
-    values={}
-    for index,hand in enumerate(planner.HANDS):
-        seed=int(hashlib.sha256(f"{digest}:{hand}".encode()).hexdigest()[:15],16)
-        values[hand]=simulate_hand(hand,sources,trials=trials,seed=seed)
-        if progress and (index%5==0 or index==168):
-            progress(index+1,169)
+    values={};total=len(planner.HANDS)*cycles;done=0
+    for hand in planner.HANDS:
+        estimates=[]
+        for cycle in range(cycles):
+            # First cycle is backward compatible with the former single-pass MC.
+            seed_key=f"{digest}:{hand}" if cycle==0 else f"{digest}:{hand}:cycle:{cycle}"
+            seed=int(hashlib.sha256(seed_key.encode()).hexdigest()[:15],16)
+            estimates.append(simulate_hand(hand,sources,trials=trials,seed=seed))
+            done+=1
+            if progress and (done%5==0 or done==total):
+                progress(done,total)
+        values[hand]=round(sum(estimates)/cycles,2)
     return {"method":"SKACHKOV_MULTIWAY_MC_V1","model":model,"opponents":provenance,
-            "simulations_per_hand":trials,"confidence_note":"Monte Carlo; worst-case ~±7 percentage points at 200 trials (95%, binomial upper bound). Range conditioning/rare overlaps can reduce acceptance.",
+            "simulations_per_hand":trials*cycles,"trials_per_cycle":trials,
+            "cycles":cycles,"confidence_note":"Независимые циклы Monte Carlo; погрешность уменьшается при росте общего числа симуляций. Диапазоны с блокерами могут давать редкие совместимые исходы.",
             "equity":values,"config_hash":digest}
 
 
