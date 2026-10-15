@@ -402,7 +402,10 @@ class PlanHttpTests(unittest.TestCase):
     def test_active_hands_have_blue_fill_in_equity_and_ev_matrix(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn(".matrixGrid .hand.playedRange:not(.rangeIntersection){",page)
-        self.assertIn("background:#285e8c",page)
+        self.assertIn("background:#216fba;border-color:#5ba3df;color:#ffffff;",page)
+        self.assertNotIn(".matrixPane .hand{background:#303b49!important",page)
+        self.assertIn(".matrixPane .hand{background:#303b49;background-image:none;",page)
+        self.assertNotIn("background:#303b49!important",page)
         self.assertIn(".matrixGrid .hand:not(.playedRange):not(.rangeIntersection){",page)
         self.assertIn("background:#303b49;color:#dce8f4",page)
         self.assertIn("if(!showIntersection){",page)
