@@ -107,7 +107,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .a17Palette button.active{background:#27486c;border-color:#80b0e8;border-left-color:var(--group-color,#fff);color:white}
 .a17Palette button strong{display:block;font-size:11px}.a17Palette button small{display:block;font-size:9px;line-height:1.1;color:#94b1ce}
 .a17Palette .unassigned{border-style:dashed;grid-column:span 2}
-.a17Palette button:hover{filter:brightness(1.22)}
+.a17Palette button:hover{filter:brightness(1.22)}.a17Palette button[draggable=true]{cursor:grab}.a17Palette button[draggable=true]:active{cursor:grabbing}
 .hand.multiSelected{box-shadow:inset 0 0 0 2px #ddc8fb;outline:1px solid #d1baf9;outline-offset:-1px}
 .hand.brushVisited{box-shadow:inset 0 0 0 2px #7ee1bf}
 .matrixGrid.brushActive .hand{touch-action:none}
@@ -338,6 +338,8 @@ function drawBoxPalette(){
   button.append(el('strong','',b===0?'Без A17':'A'+String(b).padStart(2,'0')));
   button.append(el('small','',hands.length+' рук'+(Number.isFinite(eq)?' · '+Number(eq).toFixed(0)+'%':'')));
   button.setAttribute('aria-pressed',String(brushTarget===b));
+  button.draggable=b!==0;
+  if(b!==0)button.ondragstart=e=>{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-box',String(b))};
   button.onclick=()=>{brushTarget=b;selectedBoxes=b?new Set([b]):new Set();drawBoxes();drawMatrices()};
   button.ondragover=e=>{e.preventDefault();e.dataTransfer.dropEffect='move'};
   button.ondrop=e=>boxDropped(e,b);
@@ -367,7 +369,7 @@ function updateBrushControls(){
  $('brushApply').disabled=!bulkSelected.size||!hero;
  $('brushHint').textContent=paint?
   'Проведи мышью или пальцем по рукам матрицы — они перейдут в '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'«Без коробки»')+'. Одно движение = один шаг отмены. Частоты Raise/Fold не изменятся.':
-  'Нажми на руку для её редактирования; Shift+клик выделяет несколько. Выбери коробку сверху или выдели целую группу, затем нажми «Перенести выбранные».';
+  'Обычный клик — редактор руки; Shift+клик — выделение нескольких рук. Для переноса группы: исходная A17 → «Выделить группу» → целевая A17 → «Перенести выбранные». Коробки можно переставлять перетаскиванием.';
 }
 function moveHandsToBox(hands,target){
  if(!hero||!Number.isInteger(target)||target<0||target>17)return false;
