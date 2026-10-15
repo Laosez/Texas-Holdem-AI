@@ -11,6 +11,7 @@ from collections import Counter
 from itertools import combinations
 import hashlib
 import json
+import math
 import random
 
 import planner_core as planner
@@ -102,6 +103,21 @@ class WeightedRange:
         return self.combos[min(i,len(self.combos)-1)]
 
 
+def safe_inline_weights(weights):
+    """Validated live hero range for reverse HU. No user-supplied file refs."""
+    if not isinstance(weights, dict) or not 1 <= len(weights) <= 169:
+        raise ValueError("Live-диапазон: ожидается 1–169 рук")
+    if any(h not in planner.COMBOS for h in weights):
+        raise ValueError("Live-диапазон содержит неизвестные руки")
+    if any(type(w) not in (int, float) or not math.isfinite(w)
+           or w < 0 or w > 1 for w in weights.values()):
+        raise ValueError("Live-диапазон: частоты должны быть 0–1")
+    result = {h: float(w) for h, w in weights.items() if w > 0}
+    if not result:
+        raise ValueError("Live-диапазон не содержит активных рук")
+    return result
+
+
 def build_ranges(opponents, model="selected"):
     if not isinstance(opponents,list) or not 1 <= len(opponents) <= 5:
         raise ValueError("Нужны от одного до пяти соперников")
@@ -120,6 +136,15 @@ def build_ranges(opponents, model="selected"):
         pos=str(opp.get("position","3"))
         scenario="rfi" if model!="selected" else str(opp.get("scenario","rfi"))
         n=int(opp.get("players",9))
+        if profile=="inline:hero":
+            if model!="selected":
+                raise ValueError("Live-диапазон разрешён только для selected")
+            weights=safe_inline_weights(opp.get("weights"))
+            ranges.append(WeightedRange(weights))
+            provenance.append({"profile":profile,"position":pos,
+                               "scenario":scenario,"selector":"active",
+                               "weights":weights})
+            continue
         doc=planner.preset(profile,pos,scenario,n)
         selector = str(opp.get("selector","active")) if model=="selected" else "active"
         if profile in ("builtin:gto_heuristic","builtin:any_two"):
