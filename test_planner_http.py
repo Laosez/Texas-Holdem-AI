@@ -416,7 +416,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_box_click_white_frame_and_group_all_in_ev(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("const wasSelected=selectedBoxes.has(b)",page)
-        self.assertIn("selectedBoxes=wasSelected?new Set():new Set([b]);",page)
+        self.assertIn("if(wasSelected)selectedBoxes.delete(b);else selectedBoxes.add(b);",page)
         self.assertIn(".matrixGrid .hand.boxhit{outline:2px solid #f0f7ff",page)
         self.assertIn("const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero?.boxes?.[h])",page)
         self.assertIn("choose.setAttribute('aria-pressed',String(selectedBoxes.has(b)))",page)
