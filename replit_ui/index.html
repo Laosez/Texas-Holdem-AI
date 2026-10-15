@@ -140,6 +140,7 @@ const $=id=>document.getElementById(id);
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb'];
 let postflopValues=['','gto_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1','gto','random'];
+const legacyPostflopValues=['smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler'];
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',lag_postflop_v1:'LAG Postflop V1',tag_postflop_v1:'TAG Postflop V1',chaser_postflop_v1:'Draw Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[['a17_preflop','gto_postflop_v1'],['pc_gto_80bb','gto_postflop_v1'],['a17_preflop','lag_postflop_v1'],['pc_gto_80bb','lag_postflop_v1'],['pc_gto_80bb','tag_postflop_v1'],['pc_gto_80bb','chaser_postflop_v1'],['pc_gto_80bb','trapper_postflop_v1'],['pc_gto_80bb','random']];
@@ -157,7 +158,11 @@ function botOptions(value,fn,street){
   const o=el('option','',street==='post'&&v==='gto'?'GTO Old · Postflop (Monte Carlo)':(names[v]||v));o.value=v;s.append(o)
 }
  const normalized=street==='post'&&isRandom(value)?'random':value;
- s.value=options.includes(normalized)?normalized:'';
+ // An archived profile is listed only when reopening an old experiment.
+ if(street==='post'&&legacyPostflopValues.includes(normalized)&&!options.includes(normalized)){
+  const opt=el('option','','Архив · '+(names[normalized]||normalized));opt.value=normalized;s.append(opt);
+ }
+ s.value=options.includes(normalized)||street==='post'&&legacyPostflopValues.includes(normalized)?normalized:'';
  s.onchange=()=>fn(s.value);
  if(!s.value)s.classList.add('invalid');
  return s;
@@ -165,7 +170,7 @@ function botOptions(value,fn,street){
 function valid(){
  const invalid=bots.flatMap((b,i)=>{
   const pre=preflopValues.includes(b.pre)&&b.pre!=='';
-  const post=postflopValues.includes(b.post)&&b.post!==''||isRandom(b.post);
+  const post=(postflopValues.includes(b.post)&&b.post!=='')||legacyPostflopValues.includes(b.post)||isRandom(b.post);
   return pre&&post?[]:['P'+(i+1)];
  });
  $('botError').textContent=invalid.length?'Выбери допустимые Preflop и Postflop для '+invalid.join(', '):'';
