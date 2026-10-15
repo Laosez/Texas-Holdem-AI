@@ -54,6 +54,34 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(chosen["players"][0],"P1=split:pc_gto_80bb:gto")
         self.assertIsNotNone(bots.create_bot(chosen["players"][0].split("=",1)[1]))
 
+    def test_pc_80bb_bot_uses_real_quarter_mixes_and_correct_rfi_sizing(self):
+        from types import SimpleNamespace
+        from core.bot_api import Action
+        from bots.gto_fixed_bot import FixedGTOPreflopBot
+        from bots.pc_gto_80bb_bot import PCGTO80bbBot
+        from bots.pc_gto_80bb_ranges import rfi_actions
+        import bots.pc_gto_80bb_bot as policy
+        bot=PCGTO80bbBot()
+        players={str(i):500 for i in range(9)}
+        state=SimpleNamespace(stacks=players,history=[],me="0")
+        legal=[{"type":"fold"},{"type":"call"},{"type":"raise","min":4,"max":500}]
+        with patch.object(policy.random,"randrange",return_value=0):
+            aa=bot._preflop([("A","s"),("A","h")],"9",3,2,legal,state)
+            self.assertEqual((aa.type,aa.amount),("raise",5))  # 2.3bb at 1/2 blinds
+            sb=bot._preflop([("A","s"),("K","s")],"SB",3,1,legal,state)
+            self.assertEqual((sb.type,sb.amount),("raise",7))  # SB 3.5bb
+        with patch.object(policy.random,"randrange",return_value=99):
+            sb=bot._preflop([("A","s"),("K","s")],"SB",3,1,legal,state)
+            self.assertEqual(sb.type,"call")
+            weak=bot._preflop([("7","s"),("2","h")],"9",3,2,legal,state)
+            self.assertEqual(weak.type,"fold")
+        state.history=[{"street":"preflop","type":"raise","pid":"1"}]
+        with patch.object(FixedGTOPreflopBot,"_preflop",return_value=Action("fold")) as base:
+            action=bot._preflop([("A","s"),("A","h")],"9",10,6,legal,state)
+            self.assertEqual(action.type,"fold")
+            base.assert_called_once()
+        self.assertEqual(rfi_actions("AKs","SB",9),{"fold":0,"open":75,"limp":25})
+
     def test_complete_a17_bot_and_duplicate_profiles(self):
         rows = [{"pre": "gto", "post": "gto"},
                 {"pre": "gto", "post": "gto"},
