@@ -256,6 +256,14 @@ class PlanTests(unittest.TestCase):
             sources[0],{"entry_mode":"never"},eq.HAND_COMBOS["AKs"][0]),0.0)
         self.assertAlmostEqual(eq._player_entry_probability(
             sources[0],{"entry_mode":"always"},eq.HAND_COMBOS["AKs"][0]),1.0)
+        # BB RFI has no opening range. An explicitly inactive seat
+        # cannot make an otherwise valid multiway calculation fail.
+        inactive={"profile":"builtin:pc_gto_80bb","position":"BB",
+                  "scenario":"rfi","players":9,"entry_mode":"never"}
+        skipped,prov=eq.build_ranges([inactive])
+        self.assertEqual(prov[0]["entry_mode"],"never")
+        self.assertAlmostEqual(eq._player_entry_probability(
+            skipped[0],prov[0],eq.HAND_COMBOS["AKs"][0]),0.0)
 
     def test_entry_probability_complete_matrix_and_no_showdown(self):
         opts=[
