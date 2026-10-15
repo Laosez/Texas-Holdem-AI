@@ -1063,7 +1063,11 @@ $('undo').onclick=()=>{
  const prev=undos.pop();if(!prev)return;
  const actionsChanged=JSON.stringify(hero.hands)!==JSON.stringify(prev.hands);
  hero.hands=prev.hands;hero.boxes=prev.boxes;hero.box_order=prev.box_order||boxOrder();
- if(actionsChanged){invalidateEquity();noteDirty()}else markBoxDirty();
+ if(actionsChanged){
+  // Action editing does not alter a hand's showdown equity against the same villains.
+  dirty=true;drawBoxes();drawMatrices();paintEditor();
+  $('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';
+ }else markBoxDirty();
  $('undo').disabled=!undos.length;
 };
 $('save').onclick=()=>savePlan(false);$('saveCopy').onclick=()=>savePlan(true);
