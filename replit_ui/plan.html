@@ -140,7 +140,24 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .groupDrawer .boxInstructions{margin:10px 0 2px}
 .groupDrawer .heading{margin-top:13px!important}
 .matrixPane .actionStripe{height:4px;bottom:2px;left:2px;right:2px}
-.matrixPane .handBoxTag{top:1px;right:2px;font-size:8px}
+/* Use the same A17 palette as the box editor; muted fills keep labels legible.
+   A neutral white ring marks actual participation in the current range. */
+.matrixPane .handBoxTag{
+ display:inline-flex;align-items:center;justify-content:center;min-width:17px;
+ padding:1px 2px;border:1px solid color-mix(in srgb,var(--group-color,#8494a6) 54%,#142438);
+ border-radius:3px;background:color-mix(in srgb,var(--group-color,#8494a6) 29%,#142438);
+ color:#f0f6ff;opacity:1;text-shadow:0 1px 2px #071625;
+}
+.matrixPane .handBoxTag.inRange{
+ border-color:#f1f5fa;
+ box-shadow:0 0 0 1px rgba(241,245,250,.55);
+ background:color-mix(in srgb,var(--group-color,#8494a6) 40%,#142438);
+}
+.unifiedGroupList .boxCard.inRange{
+ outline:1px solid rgba(241,245,250,.78);
+ outline-offset:-2px;
+}
+@media(max-width:690px){.matrixPane .handBoxTag{min-width:0;padding:0 1px;font-size:7px;letter-spacing:-.3px}.matrixPane .handRank{font-size:9px}}
 @media(max-width:1230px){.plannerWorkspace{grid-template-columns:minmax(0,1fr) 310px}.editorSection .actionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1000px){.plannerWorkspace{grid-template-columns:1fr}.plannerWorkspace>.editorSection{position:static}.editorSection .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:690px){.editorSection .two{display:flex}.a17Palette{grid-template-columns:repeat(5,minmax(0,1fr))}.a17Workbench{padding:9px}.matrixGrid{min-width:0}.matrixViewport .matrixAxisLayout{min-width:535px}}
@@ -433,7 +450,12 @@ function paintOneBox(hand,element){
  brushPainted.add(hand);
  element?.classList.add('brushVisited');
  const tag=element?.querySelector('.handBoxTag');
- if(tag)tag.textContent=brushTarget?'A'+String(brushTarget).padStart(2,'0'):'—';
+ if(!brushTarget){tag?.remove();return}
+ const badge=tag||el('span','handBoxTag');
+ badge.textContent='A'+String(brushTarget).padStart(2,'0');
+ badge.style.setProperty('--group-color',groupPaletteColor(brushTarget));
+ badge.classList.toggle('inRange',handInRange(hero,hand));
+ if(!tag)element?.append(badge);
 }
 function beginBoxStroke(hand,button,event){
  if(brushMode!=='paint'||event.button!==0)return;
@@ -459,7 +481,7 @@ function drawBoxes(){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
   const groupEq=groupWeightedEquity(b);
-  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':''));
+  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':'')+(b>0&&members.some(h=>handInRange(hero,h))?' inRange':''));
   card.style.setProperty('--group-color',groupPaletteColor(b));
   const head=el('div','boxCardHead');
   {
@@ -541,13 +563,18 @@ function setMetricLegend(){
   delta:'Разница участия с соперником, п.п.',
   action:'Основное действие; частоты в нижней полоске.'
  };
- $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
+ $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветная метка — коробка A17; белая рамка — рука в диапазоне (>0%). Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
  if(!acts||!Object.keys(acts).length)return null;
  const share=Object.entries(acts).reduce((s,[action,freq])=>s+(action==='fold'?0:(Number(freq)||0)),0);
  return Math.min(100,Math.max(0,share));
+}
+// Absent actions and a 100% Fold are both outside the played range.
+function handInRange(doc,hand){
+ const participation=knownActivePercent(doc,hand);
+ return participation!==null&&participation>0;
 }
 
 function handMetricsRows(hand,doc){
@@ -727,7 +754,12 @@ function matrix(root,doc,scale){
   if(candidates.gold.has(h))button.classList.add('candidateGold');
   if(candidates.red.has(h))button.classList.add('candidateRed');
   button.append(el('span','handRank',h));
-  if(Number.isInteger(b)&&b>0)button.append(el('span','handBoxTag','A'+String(b).padStart(2,'0')));
+  if(Number.isInteger(b)&&b>0){
+   const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
+   tag.style.setProperty('--group-color',groupPaletteColor(b));
+   if(handInRange(doc,h))tag.classList.add('inRange');
+   button.append(tag);
+  }
   const info=cellMetricValue(doc,h,metric);
   if(info.display!==''){
    const center=el('span','handMetric'+(info.display.length>6?' compact':''),info.display);

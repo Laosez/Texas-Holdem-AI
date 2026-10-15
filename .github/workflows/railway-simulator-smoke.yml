@@ -10,6 +10,7 @@ on:
     branches:
       - feat/railway-simulator-20261014
       - release/poker-system-v1-20261014
+      - release/poker-system-v2-1-plan-20261015
   workflow_dispatch:
 
 jobs:
