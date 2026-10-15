@@ -122,6 +122,45 @@ class ScreenOneTests(unittest.TestCase):
             finally:
                 app.RUNS.pop(id_, None)
 
+    def test_explicit_trash_panel_has_individual_restore_and_purge_consent(self):
+        page=app.UI.read_text(encoding="utf-8")
+        for part in ('id="trashPanel" hidden','id="trashItems"',
+                     'id="trashConfirm" type="checkbox"','id="purgeTrash"',
+                     'id="trashReload"','async function reloadTrash()',
+                     "$('trashConfirm').onchange=","if(!result.ok)throw Error(",
+                     "const data=await get('/api/trash',{method:'DELETE'});",
+                     "const result=await get('/api/runs/'+id,{method:'DELETE'});"):
+            self.assertIn(part,page)
+        self.assertNotIn("ID сессии для восстановления из корзины",page)
+        self.assertNotIn("confirmation!=='УДАЛИТЬ'",page)
+        self.assertIn("if(result.id!==id)throw Error(",page)
+
+    def test_trash_restore_and_purge_file_lifecycle(self):
+        with tempfile.TemporaryDirectory() as td, patch.object(app,"OUT",Path(td)):
+            run_id="test_trash_450"
+            folder=Path(td)/run_id
+            folder.mkdir()
+            snapshot={"id":run_id,"status":"completed",
+                      "created":app.now(),"updated":app.now(),"config":{},
+                      "log":[],"returncode":0}
+            (folder/"job.json").write_text(json.dumps(snapshot),encoding="utf-8")
+            with app.MUTEX:
+                old=dict(app.RUNS);app.RUNS.clear();app.RUNS[run_id]=snapshot
+            try:
+                app.delete_session(run_id)
+                self.assertTrue((Path(td)/".trash"/run_id/"job.json").is_file())
+                self.assertNotIn(run_id,app.RUNS)
+                restored=app.restore_deleted(run_id)
+                self.assertEqual(restored["id"],run_id)
+                self.assertTrue((Path(td)/run_id/"job.json").is_file())
+                app.delete_session(run_id)
+                self.assertEqual(app.purge_trash(),1)
+                self.assertFalse((Path(td)/".trash"/run_id).exists())
+                self.assertEqual(app.purge_trash(),0)
+            finally:
+                with app.MUTEX:
+                    app.RUNS.clear();app.RUNS.update(old)
+
 
 if __name__ == "__main__":
     unittest.main()
