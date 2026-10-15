@@ -340,7 +340,7 @@ function boxChip(h){
  chip.draggable=true;
  chip.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-hand',h);e.dataTransfer.setData('text/plain',h)};
  const show=el('button','boxHandSelect',h);show.type='button';show.title='Редактировать '+h;
- show.onclick=()=>{selected=h;drawMatrices();paintEditor()};chip.append(show);
+ show.onclick=e=>{if(e.shiftKey){if(!bulkSelected.size)bulkSelected.add(selected);if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h)}else{selected=h;bulkSelected.clear()}drawMatrices();paintEditor();updateBrushControls()};chip.append(show);
  if(hero.boxes[h]!==0){
   const remove=el('button','boxHandRemove','×');remove.type='button';
   remove.title='Убрать '+h+' из коробки';remove.setAttribute('aria-label',remove.title);
@@ -735,16 +735,17 @@ function matrix(root,doc,scale){
   button.onfocus=e=>showHandHover(h,doc,e);
   button.onblur=hideHandHover;
   button.onclick=e=>{
-   if(doc!==hero){selected=h;drawMatrices();paintEditor();return}
+   if(doc!==hero){selected=h;bulkSelected.clear();drawMatrices();paintEditor();return}
    if(e.shiftKey){
+    if(!bulkSelected.size)bulkSelected.add(selected);
     if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h);
-    updateBrushControls();drawMatrices();return;
+    updateBrushControls();drawMatrices();paintEditor();return;
    }
    if(brushMode==='paint'){
     if(e.detail===0)moveHandsToBox([h],brushTarget);
     return;
    }
-   selected=h;drawMatrices();paintEditor();
+   selected=h;bulkSelected.clear();drawMatrices();paintEditor();updateBrushControls();
   };
   if(doc===hero){
    button.onpointerdown=e=>{if(brushMode==='paint'&&!e.shiftKey)beginBoxStroke(h,button,e)};
@@ -1034,9 +1035,10 @@ $('equityModel').onchange=invalidateEquity;
 $('brushInspect').onclick=()=>{finishBoxStroke();brushMode='inspect';drawMatrices();updateBrushControls()};
 $('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControls()};
 $('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBoxPalette();drawMatrices()};
-$('brushSelectGroup').onclick=()=>{if(!hero)return;bulkSelected=new Set(HANDS.filter(h=>hero.boxes[h]===brushTarget));drawMatrices();updateBrushControls()};
+$('brushSelectGroup').onclick=()=>{if(!hero)return;bulkSelected=new Set(HANDS.filter(h=>hero.boxes[h]===brushTarget));drawMatrices();updateBrushControls();paintEditor()};
 $('brushApply').onclick=()=>moveHandsToBox([...bulkSelected],brushTarget);
-$('brushClear').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls()};
+$('brushClear').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls();paintEditor()};
+$('clearHandSelection').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls();paintEditor()};
 document.addEventListener('pointermove',e=>{
  if(!brushPainting||!hero)return;
  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('.hand[data-hand]');
@@ -1046,8 +1048,17 @@ document.addEventListener('pointerup',finishBoxStroke);
 document.addEventListener('pointercancel',finishBoxStroke);
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
-$('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
-$('resetHand').onclick=()=>{if(!hero)return;snapshotUndo();delete hero.hands[selected];invalidateEquity();noteDirty();paintEditor()};
+$('resetHand').onclick=()=>{
+ if(!hero)return;
+ const targets=editorTargets().filter(h=>Object.prototype.hasOwnProperty.call(hero.hands,h));
+ if(!targets.length){msg('Для этих рук нет назначений.');return}
+ if(targets.length>1&&!confirm('Снять назначения у '+targets.length+' рук?'))return;
+ snapshotUndo();
+ for(const h of targets)delete hero.hands[h];
+ dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';
+ drawBoxes();drawMatrices();paintEditor();
+ msg('Назначения сняты: '+targets.length+' рук. Это не Fold; для Fold = 100% используй ползунок.');
+};
 $('undo').onclick=()=>{
  const prev=undos.pop();if(!prev)return;
  const actionsChanged=JSON.stringify(hero.hands)!==JSON.stringify(prev.hands);
@@ -1057,8 +1068,24 @@ $('undo').onclick=()=>{
 };
 $('save').onclick=()=>savePlan(false);$('saveCopy').onclick=()=>savePlan(true);
 $('delete').onclick=async()=>{
- if(!hero||hero.readonly||!confirm('Переместить все версии '+hero.name+' в корзину?'))return;
- try{await api('/api/plan/strategies/'+hero.id,{method:'DELETE'});meta=await api('/api/plan/catalog');refill($('heroProfile'),profileOptions(),'builtin:a17_v5');await loadHero();msg('Стратегия перенесена в корзину.')}catch(e){msg(e.message,true)}
+ if(!hero||hero.readonly)return;
+ const id=hero.id,displayName=hero.name;
+ if(!id||!/^[a-f0-9]{12}$/.test(id)){msg('Не найден ID сохранённой стратегии. Выбери версию из каталога.',true);return}
+ if(!confirm('Переместить в корзину все версии «'+displayName+'»? Оригинальные пресеты не затрагиваются.'))return;
+ const button=$('delete');button.disabled=true;
+ try{
+  const result=await api('/api/plan/strategies/'+id,{method:'DELETE'});
+  if(result.deleted!==id)throw Error('Сервер не подтвердил перенос в корзину');
+  meta=await api('/api/plan/catalog');
+  // The deleted document must not block loadHero() via preserveEdits().
+  hero=null;dirty=false;undos=[];bulkSelected.clear();selectedBoxes.clear();sliderGesture=false;
+  refill($('heroProfile'),profileOptions(),'builtin:a17_v5');
+  $('heroProfile').value='builtin:a17_v5';
+  await loadHero();
+  msg('«'+displayName+'» — все версии перемещены в корзину. Каталог обновлён.');
+ }catch(e){
+  msg('Не удалось удалить стратегию: '+e.message,true);
+ }finally{button.disabled=!hero||hero.readonly}
 };
 let computingAll=false;
 $('computeAll').onclick=async()=>{
