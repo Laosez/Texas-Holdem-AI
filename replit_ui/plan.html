@@ -240,7 +240,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set();
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -767,19 +767,131 @@ function drawMatrices(){
  const scale=visibleMetricScale($('cellMetric').value,twice?[hero,villain]:[hero]);
  matrix($('heroMatrix'),hero,scale);$('heroMatrix').classList.toggle('brushActive',brushMode==='paint');if(twice)matrix($('villainMatrix'),villain,scale);
 }
-function actionDraft(){const val={};for(const field of $('actionInputs').querySelectorAll('input[data-action]')){if(field.value.trim()&&Number(field.value)>0)val[field.dataset.action]=Number(field.value)}return val}
-function paintEditor(){
- if(!hero)return;
- $('selectedHand').textContent=selected;
- $('handCombos').textContent=COMBOS(selected)+' комбинаций · '+(selected.endsWith('s')?'suited':selected.endsWith('o')?'offsuit':'пара');
- refill($('handBox'),[{value:'0',label:'Без коробки'},...Array.from({length:17},(_,i)=>({value:String(i+1),label:'A'+String(i+1).padStart(2,'0')}))],String(hero.boxes[selected]));
- const inputRoot=$('actionInputs');inputRoot.replaceChildren();
- for(const action of meta.scenarios[hero.scenario]){
-  const wrap=el('div','field');const label=el('label','',ACTIONS[action]);const field=el('input');
-  field.type='number';field.min='0';field.max='100';field.step='5';field.dataset.action=action;field.value=hero.hands[selected]?.[action]??0;
-  wrap.append(label,field);inputRoot.append(wrap);
+
+function editorActions(scenario){
+ if(scenario==='rfi')return ['fold','open','limp'];
+ if(scenario==='vs_open')return ['fold','threebet','call'];
+ if(scenario==='vs_threebet')return ['fold','fourbet','call'];
+ if(scenario==='vs_shove')return ['fold','call'];
+ return ['fold','push']; // push_fold
+}
+function editorTargets(){return bulkSelected.size?[...bulkSelected].filter(h=>HANDS.includes(h)):[selected]}
+function nearestQuarter(value){
+ return Math.min(100,Math.max(0,25*Math.round((Number(value)||0)/25)));
+}
+function editorSplit(actions,keys){
+ // Existing policies may also contain push or frequencies not divisible by 25.
+ // This three-slider editor intentionally replaces such actions upon editing.
+ const primary=keys[1],passive=keys[2];
+ const aggressive=nearestQuarter(actions?.[primary]||0);
+ const passiveValue=passive?nearestQuarter(actions?.[passive]||0):0;
+ const retainedPassive=Math.min(passiveValue,100-aggressive);
+ return {fold:100-aggressive-retainedPassive,[primary]:aggressive,
+         ...(passive?{[passive]:retainedPassive}:{})};
+}
+function rebalanceEditorSplit(current,changed,requested,keys){
+ const fold=keys[0],primary=keys[1],passive=keys[2];
+ const next={...current};
+ next[changed]=nearestQuarter(requested);
+ if(changed===fold){
+  let remaining=100-next[fold];
+  if(passive){
+   next[passive]=Math.min(nearestQuarter(current[passive]),remaining);
+   remaining-=next[passive];
+  }
+  next[primary]=remaining;
+ }else{
+  let remaining=100-next[changed];
+  const another=changed===primary?passive:primary;
+  if(another){
+   next[another]=Math.min(nearestQuarter(current[another]),remaining);
+   remaining-=next[another];
+  }
+  next[fold]=remaining;
  }
- $('actionStatus').textContent=hero.hands[selected]?'Назначено: '+Object.entries(hero.hands[selected]).map(([a,v])=>ACTIONS[a]+' '+v+'%').join(' · '):'Рука не определена (не Fold)';
+ return next;
+}
+function updateSelectionDisplay(){
+ const targets=editorTargets(),multi=bulkSelected.size>0;
+ $('selectionInfo').classList.toggle('hidden',!multi);
+ $('handSelectionMode').textContent=multi?'МУЛЬТИВЫБОР РУК':'СТАРТОВАЯ РУКА';
+ $('selectedHand').textContent=multi?targets.length+' рук':selected;
+ $('selectedHand').classList.toggle('multi',multi);
+ $('handCombos').textContent=multi?
+  targets.reduce((sum,h)=>sum+COMBOS(h),0)+' комбинаций · общая стратегия для выделения':
+  COMBOS(selected)+' комбинаций · '+(selected.endsWith('s')?'suited':selected.endsWith('o')?'offsuit':'пара');
+ $('selectionCount').textContent='Выбрано: '+targets.length;
+ const chips=$('selectedHandChips');chips.replaceChildren();
+ if(multi)for(const h of HANDS.filter(x=>bulkSelected.has(x))){
+  const chip=el('span','selectedHandChip');
+  chip.append(el('span','',h));
+  const remove=el('button','','×');remove.type='button';remove.title='Убрать '+h+' из выделения';
+  remove.setAttribute('aria-label',remove.title);
+  remove.onclick=()=>{bulkSelected.delete(h);drawMatrices();paintEditor();updateBrushControls()};
+  chip.append(remove);chips.append(chip);
+ }
+}
+function renderSliderNumbers(values){
+ for(const input of $('actionInputs').querySelectorAll('input[data-action]')){
+  const n=values[input.dataset.action]||0;
+  input.value=String(n);
+  const output=input.parentNode.querySelector('strong[data-value]');
+  if(output)output.textContent=n+'%';
+ }
+}
+function applySliderInput(changed,input){
+ if(!hero||!meta)return;
+ const keys=editorActions(hero.scenario);
+ const fields=[...$('actionInputs').querySelectorAll('input[data-action]')];
+ const current=Object.fromEntries(fields.map(field=>[field.dataset.action,Number(field.value)]));
+ const next=rebalanceEditorSplit(current,changed,Number(input.value),keys);
+ const targets=editorTargets();
+ if(!targets.length)return;
+ const actions=Object.fromEntries(keys.filter(k=>next[k]>0).map(k=>[k,next[k]]));
+ if(!sliderGesture){
+  snapshotUndo();sliderGesture=true;
+ }
+ for(const h of targets)hero.hands[h]={...actions};
+ dirty=true;
+ $('dirty').textContent='● Есть несохранённые изменения';
+ $('dirty').style.color='#f5c38f';
+ renderSliderNumbers(next);
+ $('actionStatus').textContent=targets.length+' рук · '+keys.map(k=>(ACTIONS[k]||k)+' '+next[k]+'%').join(' · ')+
+  ' · изменения применены';
+ // Hero's predefined action weights do not change already sampled per-hand
+ // showdown equity against the currently selected opponent strategies.
+ drawMatrices();drawBoxes();
+ $('handDetail').textContent='Моя: '+handTooltip(selected,hero);
+}
+function paintEditor(){
+ if(!hero||!meta)return;
+ sliderGesture=false;
+ updateSelectionDisplay();
+ refill($('handBox'),[{value:'0',label:'Без коробки'},...Array.from({length:17},(_,i)=>({value:String(i+1),label:'A'+String(i+1).padStart(2,'0')}))],String(hero.boxes[selected]));
+ const targets=editorTargets(),keys=editorActions(hero.scenario);
+ const first=hero.hands[targets[0]]||{};
+ const values=editorSplit(first,keys);
+ const mixed=targets.some(h=>keys.some(k=>nearestQuarter(hero.hands[h]?.[k])!==nearestQuarter(first[k])));
+ const unsupported=targets.some(h=>Object.keys(hero.hands[h]||{}).some(k=>!keys.includes(k)));
+ const root=$('actionInputs');root.replaceChildren();
+ for(const key of keys){
+  const wrapper=el('div','actionSliderField');wrapper.dataset.action=key;
+  const head=el('div','sliderHead');
+  const label=el('label','',ACTIONS[key]||key);label.htmlFor='frequency_'+key;
+  const output=el('strong','',values[key]+'%');output.dataset.value=key;
+  head.append(label,output);
+  const input=el('input');input.id='frequency_'+key;
+  input.type='range';input.min='0';input.max='100';input.step='25';
+  input.dataset.action=key;input.value=values[key];
+  input.oninput=()=>applySliderInput(key,input);
+  input.onchange=()=>{sliderGesture=false;paintEditor()};
+  const ticks=el('div','actionSliderTicks');
+  for(const percent of [0,25,50,75,100])ticks.append(el('span','',percent+'%'));
+  wrapper.append(head,input,ticks);root.append(wrapper);
+ }
+ $('actionStatus').textContent=(mixed?'Разные частоты у выбранных рук · изменение перезапишет весь набор. ':'')+
+  (unsupported?'Дополнительные действия текущей стратегии будут заменены после первого изменения. ':'')+
+  'Автоприменение · шаг 25% · сумма 100%'+(targets.length>1?' · '+targets.length+' рук':'');
  drawEquityStats();
 }
 function snapshotUndo(){undos.push({hands:copy(hero.hands),boxes:copy(hero.boxes),box_order:[...boxOrder()]});if(undos.length>25)undos.shift();$('undo').disabled=false}
@@ -789,16 +901,6 @@ function moveHandToBox(h,b){
  if(hero.boxes[h]===b)return;
  snapshotUndo();hero.boxes[h]=b;selected=h;markBoxDirty();
  msg(h+(b===0?' перенесена в «Без коробки»':' перенесена в A'+String(b).padStart(2,'0'))+' · префлоп-действия не изменены.');
-}
-function doApply(toBoxes=false){
- try{
-  const draft=actionDraft(),sum=Object.values(draft).reduce((s,n)=>s+n,0);
-  if(Object.values(draft).some(v=>!Number.isFinite(v)||v<0||v>100)||sum>100.001)throw Error('Сумма частот должна быть ≤100%, каждое значение 0–100');
-  if(sum===0)throw Error('Все частоты равны нулю — используйте «Снять назначение»');
-  let targets=[selected];
-  if(toBoxes){if(!selectedBoxes.size)throw Error('Сначала выдели коробки A17');targets=HANDS.filter(h=>selectedBoxes.has(hero.boxes[h]));if(!confirm('Назначить действия '+targets.length+' классам рук?'))return}
-  snapshotUndo();targets.forEach(h=>hero.hands[h]=copy(draft));editable();invalidateEquity();noteDirty();paintEditor();msg('Назначения обновлены для '+targets.length+' классов рук.');
- }catch(e){msg(e.message,true)}
 }
 async function refreshComparison(){
  if(!hero||!meta)return;
