@@ -17,6 +17,20 @@ class InputTests(unittest.TestCase):
         self.assertEqual((c["chips"], c["sb"], c["bb"]), (500, 1, 2))
         self.assertEqual((c["blind_increase_every"], c["seat_mode"], c["parallel"]), (50, "rotate", 1))
 
+    def test_railway_process_count_respects_memory_budget(self):
+        with patch.dict(app.os.environ, {"RAILWAY_PROJECT_ID":"test"},clear=False):
+            with patch.dict(app.os.environ, {"POKER_MAX_WORKERS":""},clear=False):
+                for gib, expected in ((None,1),(1.0,1),(2.25,2),(3.35,3),(4.5,4)):
+                    with self.subTest(gib=gib):
+                        with patch.object(app,"_container_memory_limit_gb",return_value=gib):
+                            self.assertEqual(app.max_safe_workers(),expected)
+            with patch.dict(app.os.environ,{"POKER_MAX_WORKERS":"2"},clear=False):
+                self.assertEqual(app.max_safe_workers(),2)
+            with patch.dict(app.os.environ, {"POKER_MAX_WORKERS":""},clear=False), \
+                 patch.object(app,"_container_memory_limit_gb",return_value=1.0):
+                with self.assertRaisesRegex(ValueError,"не более 1 процессов"):
+                    app.validate_config({"parallel":2})
+
     def test_a17_tag_and_all_control_bots_known(self):
         self.assertTrue(all(app.valid_bot(x) for x in app.DEFAULT_PLAYERS))
         self.assertTrue(app.valid_bot("a17_tag"))
