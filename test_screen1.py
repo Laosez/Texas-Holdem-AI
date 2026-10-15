@@ -25,6 +25,78 @@ def archive_with(files):
 
 
 class ScreenOneTests(unittest.TestCase):
+    def test_user_saved_plans_share_catalog_and_are_real_preflop_bots(self):
+        import os
+        from types import SimpleNamespace
+        from unittest.mock import patch as mock_patch
+        import planner_core as core
+        from bots import create_bot
+        from bots.saved_plan_bot import token_for, saved_document, SavedPlanPreflopBot
+
+        with tempfile.TemporaryDirectory() as tmp, mock_patch.object(
+                core,"STORE",Path(tmp)/"strategy_plans"):
+            base=core.preset("builtin:a17_v5","9","rfi",9)
+            base["name"]="Моя A17 · тест"
+            base["hands"]["AA"]={"fold":100}
+            first=core.save_plan(base)
+            btn=core.preset(first["ref"],"3","rfi",9)
+            btn["hands"]["AA"]={"open":100}
+            second=core.save_plan(btn,parent=first["ref"])
+            token=token_for(second["ref"])
+            self.assertNotIn(":",token)
+            catalog=app.strategy_catalog()
+            row=next(x for x in catalog["saved_preflop"] if x["token"]==token)
+            self.assertEqual(row["ref"],second["ref"])
+            self.assertEqual(row["name"],"Моя A17 · тест")
+            self.assertIn(token,catalog["preflop_strategies"])
+            self.assertIn(token,catalog["strategies"])
+            self.assertTrue(app.existing_saved_token(token))
+            config=app.validate_config({"bots":[
+                {"pre":token,"post":"tag_punisher"},
+                {"pre":"gto","post":"gto"}]})
+            self.assertEqual(config["players"][0],f"P1=split:{token}:tag_punisher")
+            with self.assertRaisesRegex(ValueError,"префлоп"):
+                app.validate_config({"bots":[{"pre":"plan_fake_v1","post":"gto"},
+                                          {"pre":"gto","post":"gto"}]})
+            with self.assertRaisesRegex(ValueError,"постфлоп"):
+                app.validate_config({"bots":[{"pre":"gto","post":token},
+                                          {"pre":"gto","post":"gto"}]})
+            view=SimpleNamespace(
+                me="P1",street="preflop",position="9",
+                hole_cards=[("A","s"),("A","h")],board=[],pot=3,
+                to_call=2,legal_actions=[{"type":"fold"},{"type":"call"},
+                        {"type":"raise","min":4,"max":200}],
+                stacks={f"P{i}":200 for i in range(1,10)},history=[])
+            bot=create_bot(f"split:{token}:tag_punisher")
+            self.assertIsInstance(bot.preflop_bot,SavedPlanPreflopBot)
+            self.assertEqual(bot.act(view).type,"fold")
+            view.position="3"
+            self.assertEqual(bot.act(view).type,"raise")
+            # Missing individual range or context is delegated, not folded.
+            view.position="8"
+            bot.preflop_bot.base_bot.act=lambda _:__import__("core.bot_api",fromlist=["Action"]).Action("call")
+            self.assertEqual(bot.act(view).type,"call")
+            # Each run keeps an immutable copy even if its source disappears.
+            folder=Path(tmp)/"run_snapshot"
+            folder.mkdir()
+            app.pin_saved_plans(config,folder)
+            copy=(folder/"plan_snapshots"/f"{token}.json").read_bytes()
+            with mock_patch.dict(os.environ,{"POKER_PLAN_SNAPSHOT_DIR":str(folder/"plan_snapshots")}):
+                self.assertEqual(saved_document(token)["name"],"Моя A17 · тест")
+                (core.STORE/second["id"]/f"v{second['version']:05}.json").unlink()
+                self.assertEqual(saved_document(token)["ref"],second["ref"])
+                self.assertEqual((folder/"plan_snapshots"/f"{token}.json").read_bytes(),copy)
+                self.assertEqual(create_bot(token).act(view).type in ("fold","call","raise","check"),True)
+
+    def test_saved_street_strategy_catalog_frontend_sync(self):
+        page=app.UI.read_text(encoding="utf-8")
+        self.assertIn('id="syncStrategies"',page)
+        self.assertIn("catalog.saved_preflop||[]",page)
+        self.assertIn("names[saved.token]=saved.name+",page)
+        self.assertIn("preflopValues=['',...defaults.filter",page)
+        self.assertIn("$('syncStrategies').onclick=",page)
+        self.assertIn('href="/plan"',page)
+
     def test_pc_gto_80bb_preset_registered(self):
         import bots
         from bots.pc_gto_80bb_ranges import HANDS, RAISE, rfi_actions, weighted_rfi, chart_position
