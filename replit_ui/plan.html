@@ -168,7 +168,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
  color:#fff;
 }
 .matrixGrid .hand.rangeIntersection.intersectionBoth{
- background:#7ec6ee;border-color:#9bddfc;
+ background:#3b4652;border-color:#9bddfc;
 }
 .matrixGrid .hand.rangeIntersection .intersectionTriangle,
 .intersectionKey .rangeSwatch .intersectionTriangle{
@@ -181,12 +181,8 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 }
 .matrixGrid .hand.rangeIntersection .intersectionTriangle.lower,
 .intersectionKey .rangeSwatch .intersectionTriangle.lower{
- background:#337fc9;
- clip-path:polygon(0 0,0 100%,100% 100%);
-}
-.matrixGrid .hand.rangeIntersection .intersectionTriangle.absent,
-.intersectionKey .rangeSwatch .intersectionTriangle.absent{
  background:#d9656c;
+ clip-path:polygon(0 0,0 100%,100% 100%);
 }
 .matrixGrid .hand.rangeIntersection .handRank{
  position:relative;z-index:3;color:#fff;
@@ -199,7 +195,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
  position:relative;display:inline-block;width:18px;height:18px;
  border-radius:3px;border:1px solid #728497;background:#3b4652;overflow:hidden;
 }
-.intersectionKey .rangeSwatch.both{background:#7ec6ee}
+.intersectionKey .rangeSwatch.both{background:#3b4652}
 
 .matrixPane .handBoxTag.inRange{
  outline:none;border:0;box-shadow:none;background:var(--group-color,#8494a6);
@@ -290,9 +286,9 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Моя матрица</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="intersection">Пересечение диапазонов · диагональ</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select><label for="villainMetric" style="margin:0">Соперник</label><select id="villainMetric"><option value="equity">Equity vs меня</option><option value="evAllIn">EV выставления vs меня</option><option value="evCall">EV колла vs меня</option><option value="participation">Диапазон %</option><option value="action">Действия</option></select><button class="btn sm" id="rangeIntersect" type="button" aria-pressed="false">Пересечение диапазонов</button></div></div>
 <div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 5px">Выбери соперника для сравнения диапазонов.</div>
 <div id="intersectionKey" class="intersectionKey hidden" aria-label="Цветовая легенда пересечения">
-<span><span class="rangeSwatch both"></span>Оба диапазона</span>
-<span><span class="rangeSwatch"><span class="intersectionTriangle upper"></span><span class="intersectionTriangle lower absent"></span></span>Только Hero · синий верх, красный низ</span>
-<span><span class="rangeSwatch"><span class="intersectionTriangle upper absent"></span><span class="intersectionTriangle lower"></span></span>Только оппонент · красный верх, синий низ</span>
+<span><span class="rangeSwatch both"><span class="intersectionTriangle upper"></span><span class="intersectionTriangle lower"></span></span>Оба · синий + красный</span>
+<span><span class="rangeSwatch"><span class="intersectionTriangle upper"></span></span>Только Hero · синий верх</span>
+<span><span class="rangeSwatch"><span class="intersectionTriangle lower"></span></span>Только оппонент · красный низ</span>
 <span><span class="rangeSwatch"></span>Нет ни у кого</span>
 </div>
 <div class="buttons matrixClipboardBar" style="margin:0 0 9px;gap:8px;align-items:center">
@@ -785,7 +781,7 @@ function setMetricLegend(){
   box:'Коробка A17 — категория, а не сила.',
   combos:'Комбинации: 4 suited / 6 pair / 12 offsuit.',
   delta:'Разница участия с соперником, п.п.',
-  intersection:'Пересечение: сплошная голубая клетка — рука есть у обоих. Частичное пересечение: синий треугольник — диапазон содержит руку, красный — не содержит; верх Hero, низ выбранный соперник. Серая клетка — ни у кого. Учитываются любые положительные частоты участия.',
+  intersection:'Пересечение: если рука есть у обоих — вся клетка закрашена по диагонали синим (верх Hero) и красным (низ оппонент). Если рука есть только у одного — закрашена лишь его половина, другая серая. Если нет ни у кого — серая. Любая положительная частота участия означает наличие руки.',
   action:'Основное действие; частоты в нижней полоске.'
  };
  $('metricLegendText').textContent=(descriptions[metric]||'')+
@@ -850,7 +846,7 @@ function renderIntersectionStats(){
   ' · пересечение '+stats.comboIntersection.toFixed(1)+
   ' комбо-экв. · Jaccard '+stats.jaccard.toFixed(1)+'% · мои '+
   stats.aCombos.toFixed(1)+' / соперника '+stats.bCombos.toFixed(1)+' комбо-экв.'+
-  (intersectionOnly?' · верх Hero / низ оппонент; синий присутствует / красный отсутствует':' · включи «Пересечение диапазонов» для цветной матрицы');
+  (intersectionOnly?' · синий верх: Hero / красный низ: оппонент; пустая половина = нет руки':' · включи «Пересечение диапазонов» для цветной матрицы');
 }
 function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples){
  if(!doc||!equity)return null;
@@ -1092,14 +1088,10 @@ function matrix(root,doc,scale,metricChoice){
     ({both:'Both',hero:'HeroOnly',opponent:'OpponentOnly',none:'Neither'})[membership.state]);
    button.title='Hero '+membership.heroShare.toFixed(1)+'% · Оппонент '+
     membership.opponentShare.toFixed(1)+'% · '+handTooltip(h,doc);
-   if(membership.state==='hero'){
+   if(membership.state==='both'||membership.state==='hero')
     button.append(el('span','intersectionTriangle upper'));
-    button.append(el('span','intersectionTriangle lower absent'));
-   }
-   if(membership.state==='opponent'){
-    button.append(el('span','intersectionTriangle upper absent'));
+   if(membership.state==='both'||membership.state==='opponent')
     button.append(el('span','intersectionTriangle lower'));
-   }
   }
   if(doc===hero&&bulkSelected.has(h))button.classList.add('multiSelected');
   if(candidates.gold.has(h))button.classList.add('candidateGold');
