@@ -224,6 +224,21 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("['open','threebet','fourbet','push']",page)
         self.assertIn("segment.style.width=(100*value/total).toFixed(3)+'%'",page)
 
+    def test_planner_first_two_blocks_have_one_third_two_thirds_layout(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('<main class="plannerMain">',page)
+        self.assertIn('class="panel plannerStrategyPanel"',page)
+        self.assertIn('class="panel plannerEquityPanel"',page)
+        self.assertIn("main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:start}",page)
+        self.assertIn(".plannerMain>.plannerWorkspace{grid-column:1/-1;min-width:0}",page)
+        self.assertIn(".plannerStrategyPanel>.two{grid-template-columns:minmax(0,1fr)}",page)
+        self.assertIn("@media(max-width:1050px)",page)
+        self.assertIn(".plannerMain>.plannerStrategyPanel,.plannerMain>.plannerEquityPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}",page)
+        first=page.index('01 / </span>Стратегии и соперники')
+        second=page.index('02 / </span>Расчёт Equity')
+        third=page.index('03 / </span>Матрицы стартовых рук')
+        self.assertTrue(first<second<third)
+
     def test_strategy_studio_dense_layout_and_group_brush_editor(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('class="plannerWorkspace"',page)

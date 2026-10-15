@@ -359,14 +359,16 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("['pc_gto_80bb','smart']",page)
         self.assertNotIn("['gto','smart']",page)
 
-    def test_three_square_workspaces_wide_results_and_visible_preflop_coverage(self):
+    def test_two_upper_workspaces_full_width_journal_and_results(self):
         page=app.UI.read_text(encoding="utf-8")
         self.assertIn('class="simulatorLayout"',page)
         self.assertIn('class="column topColumn parametersColumn"',page)
         self.assertIn('class="column topColumn strategiesColumn"',page)
         self.assertIn('class="column topColumn journalColumn"',page)
         self.assertIn('class="panel resultsPanel"',page)
-        self.assertIn('main.simulatorLayout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))',page)
+        self.assertIn('main.simulatorLayout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))',page)
+        self.assertIn('.simulatorLayout .journalColumn{grid-column:1/-1;height:auto;overflow:visible',page)
+        self.assertIn('.simulatorLayout .journalColumn pre{height:290px',page)
         self.assertIn('.simulatorLayout .resultsPanel{grid-column:1/-1',page)
         self.assertIn('.simulatorLayout .resultsPanel .statsTable{min-width:1600px}',page)
         self.assertIn('id="preflopAudit"',page)

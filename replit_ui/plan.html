@@ -281,11 +281,25 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .oppTable .oppHead,.oppTable .oppRow{grid-template-columns:27px minmax(156px,1fr) 85px 112px 94px 174px 27px;min-width:785px;gap:7px}
 .oppTable{overflow-x:auto;scrollbar-color:#365675 #10243a}
 .matrixGrid .hand.rangeIntersection .handMetric{position:relative;z-index:4}
+
+/* Layout: section 01 takes one third, section 02 two thirds; matrices/editor below. */
+main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:start}
+.plannerMain>.plannerStrategyPanel{grid-column:1;min-width:0}
+.plannerMain>.plannerEquityPanel{grid-column:2;min-width:0}
+.plannerMain>.plannerWorkspace{grid-column:1/-1;min-width:0}
+/* Opponent controls need their own width in the narrow strategy column. */
+.plannerStrategyPanel>.two{grid-template-columns:minmax(0,1fr)}
+.plannerStrategyPanel .profile{min-width:0}
+.plannerStrategyPanel .oppTable{overflow-x:auto;max-width:100%}
+@media(max-width:1050px){
+ main.plannerMain{grid-template-columns:minmax(0,1fr)}
+ .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerEquityPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}
+}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
-<main>
-<section class="panel"><div class="heading"><h2><span class="index">01 / </span>Стратегии и соперники</h2><span class="badge">Независимые позиции и ситуации</span></div>
+<main class="plannerMain">
+<section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">01 / </span>Стратегии и соперники</h2><span class="badge">Независимые позиции и ситуации</span></div>
 <div class="two"><div class="profile"><h3>Моя стратегия</h3><div class="fields">
 <div class="field wide"><label for="heroProfile">Стратегия / пресет</label><select id="heroProfile"></select></div>
 <div class="field"><label for="heroPosition">Моя позиция</label><select id="heroPosition"></select></div>
@@ -300,7 +314,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div></div>
 <div class="statusLine" role="status" id="feedback"></div>
 </section>
-<section class="panel"><div class="heading"><h2><span class="index">02 / </span>Расчёт Equity</h2><span class="badge">169 рук · Multiway Monte Carlo</span></div>
+<section class="panel plannerEquityPanel"><div class="heading"><h2><span class="index">02 / </span>Расчёт Equity</h2><span class="badge">169 рук · Multiway Monte Carlo</span></div>
 <div class="filterTop"><div class="field"><label for="equityModel">Источник equity</label><select id="equityModel"><option value="selected">Выбранные соперники · Multiway</option><option value="any_two">Any Two · N соперников</option><option value="gto_heuristic">GTO Bot · эвристические диапазоны</option></select></div>
 <div class="field"><label for="trials">Симуляций / цикл</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div>
 <div class="field"><label for="cycles">Независимые циклы</label><select id="cycles"><option value="1">1 цикл</option><option value="2">2 цикла</option><option value="3">3 цикла</option><option value="4">4 цикла</option></select></div>
