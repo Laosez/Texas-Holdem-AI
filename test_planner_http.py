@@ -114,7 +114,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("const tag=el('span','handBoxTag'",page)
         self.assertIn(".matrixPane .handRank{position:absolute;top:2px;left:3px",page)
         self.assertIn(".matrixPane .handBoxTag{position:absolute;top:2px;right:3px",page)
-        self.assertIn("const stripe=handActionStripe(actions)",page)
+        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
         self.assertIn(".hand.boxhit::before",page)
         self.assertNotIn(".hand.equityHit::after",page)
 
@@ -210,7 +210,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_hand_action_frequency_stripes_accurately_defined(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("function handActionStripe(actions)",page)
-        self.assertIn("const stripe=handActionStripe(actions);",page)
+        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
         self.assertIn("if(stripe)button.append(stripe)",page)
         for css in (".actionStripe{",".actionStripe .fold{background:#8995a2}",
                     ".actionStripe .raise{background:#e36b6e}",
@@ -352,8 +352,35 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("await runOpponentReverse();",page)
         self.assertIn("const mainMetric=$('cellMetric').value,villainMetric=$('villainMetric').value;",page)
         self.assertIn("matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric)",page)
-        self.assertIn("button.classList.add(both?'intersectionMatched':'intersectionMuted')",page)
-        self.assertIn("Режим пересечения показывает только руки",page)
+        self.assertIn("button.classList.add('rangeIntersection','intersection'+",page)
+        self.assertIn("button.append(el('span','intersectionTriangle upper'))",page)
+        self.assertIn("button.append(el('span','intersectionTriangle lower'))",page)
+        self.assertIn("верхний треугольник",page)
+        self.assertIn("нижний треугольник",page)
+
+    def test_diagonal_169_hand_overlap_mode_and_legend(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('<option value="intersection">Пересечение диапазонов · диагональ</option>',page)
+        self.assertIn('id="intersectionKey"',page)
+        self.assertIn("clip-path:polygon(0 0,100% 0,100% 100%)",page)
+        self.assertIn("clip-path:polygon(0 0,0 100%,100% 100%)",page)
+        self.assertIn(".hand.rangeIntersection.intersectionBoth",page)
+        self.assertIn("function intersectionMembership(hand)",page)
+        self.assertIn("state:heroHas?(opponentHas?'both':'hero'):",page)
+        self.assertIn("let shared=0,heroOnly=0,opponentOnly=0,neither=0",page)
+        self.assertIn("if(first>0&&second>0)shared++",page)
+        self.assertIn("else if(first>0)heroOnly++",page)
+        self.assertIn("else if(second>0)opponentOnly++",page)
+        self.assertIn("else neither++",page)
+        self.assertIn("if(showIntersection&&!villain)",page)
+        self.assertIn("const info=showIntersection?{value:null,display:''}:cellMetricValue",page)
+        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
+        self.assertIn("intersectionOnly=$('cellMetric').value==='intersection';",page)
+        self.assertIn("selector.value='intersection'",page)
+        self.assertIn("selector.value=lastNonIntersectionMetric",page)
+        self.assertIn("const share=villainSelectedShare(hand);",page)
+        self.assertNotIn("intersectionMatched",page)
+        self.assertNotIn("intersectionMuted",page)
 
     def test_matrix_action_copy_paste_between_positions_preserves_boxes(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
