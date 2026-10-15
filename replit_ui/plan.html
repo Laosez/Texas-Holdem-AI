@@ -125,6 +125,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .a17Palette button:hover{filter:brightness(1.22)}
 .hand.multiSelected{box-shadow:inset 0 0 0 2px #ddc8fb;outline:1px solid #d1baf9;outline-offset:-1px}
 .hand.brushVisited{box-shadow:inset 0 0 0 2px #7ee1bf}
+.matrixGrid.brushActive .hand{touch-action:none}
 .brushHint{font-size:11px;color:#9fb5cd;line-height:1.45;min-height:16px}
 .groupDrawer{border-top:1px solid #2d4660;padding-top:12px;margin-top:12px}
 .groupDrawer>summary{cursor:pointer;list-style:none;color:#c6daf0;font-weight:750;font-size:12px;display:flex;justify-content:space-between;align-items:center}
@@ -628,7 +629,7 @@ function matrix(root,doc){
  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
  for(const h of HANDS){
   const actions=doc.hands[h],action=major(actions),b=doc.boxes[h],button=el('button','hand '+action,h);
-  button.type='button';button.title=handTooltip(h,doc);
+  button.type='button';button.title=handTooltip(h,doc);button.dataset.hand=h;
   const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   const participation=knownActivePercent(doc,h);
   // Action-frequency segments, not a blue frame, describe how the hand is played.
@@ -723,7 +724,7 @@ function drawMatrices(){
  $('villainPane').classList.toggle('hidden',!twice);
  $('heroMatrixLabel').textContent=hero.name+' · '+hero.position+' · '+SCENARIOS[hero.scenario];
  $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?.position||'—');
- matrix($('heroMatrix'),hero);if(twice)matrix($('villainMatrix'),villain);
+ matrix($('heroMatrix'),hero);$('heroMatrix').classList.toggle('brushActive',brushMode==='paint');if(twice)matrix($('villainMatrix'),villain);
 }
 function actionDraft(){const val={};for(const field of $('actionInputs').querySelectorAll('input[data-action]')){if(field.value.trim()&&Number(field.value)>0)val[field.dataset.action]=Number(field.value)}return val}
 function paintEditor(){
@@ -966,6 +967,11 @@ $('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBo
 $('brushSelectGroup').onclick=()=>{if(!hero)return;bulkSelected=new Set(HANDS.filter(h=>hero.boxes[h]===brushTarget));drawMatrices();updateBrushControls()};
 $('brushApply').onclick=()=>moveHandsToBox([...bulkSelected],brushTarget);
 $('brushClear').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls()};
+document.addEventListener('pointermove',e=>{
+ if(!brushPainting||!hero)return;
+ const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('.hand[data-hand]');
+ if(target&&$('heroMatrix').contains(target))paintOneBox(target.dataset.hand,target);
+});
 document.addEventListener('pointerup',finishBoxStroke);
 document.addEventListener('pointercancel',finishBoxStroke);
 $('expandAllBoxes').onclick=()=>{expandedBoxes=new Set(Array.from({length:18},(_,i)=>i));drawBoxes()};
