@@ -56,7 +56,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button></div>
-<div class="warning">Каждая строка — отдельный игрок. Обе стратегии должны быть выбраны. A17 TAG = A17 Preflop + TAG Punisher. <strong>PC GTO 80bb</strong> — 169 рук RFI из чартов 80 BB, частоты округлены до 25%; ответы на рейзы временно выполняет GTO Fixed. Для сравнения выбирай одинаковый Postflop у двух участников.</div>
+<div class="warning">Preflop: A17 / GTO (Old) / GTO (PC). <strong>GTO (PC)</strong> использует чарты PC 80 BB для RFI на всех позициях, включая <strong>BTN (позиция 3; ~53,9% Raise)</strong>. При ответах на чужой рейз пока используется GTO Fixed. В Postflop выбирай только постфлоп-алгоритм. Random имеет один пункт; номера назначаются автоматически.</div>
 <div id="botError" class="bad" role="alert"></div>
 <div class="buttons"><button class="btn primary" id="start">▶ Запустить</button><button class="btn danger" id="stop" disabled>■ Остановить</button><button class="btn" id="resume" disabled>↻ Продолжить</button></div>
 <div id="feedback" role="status" class="statusLine muted"></div>
@@ -83,9 +83,14 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-let values=['','gto','gto_fixed','pc_gto_80bb','a17_preflop','a17_preflop_legacy','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random','random_2','random_3'];
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17 V5',gto:'GTO',gto_fixed:'GTO Fixed',pc_gto_80bb:'PC GTO 80bb',a17_preflop:'A17 Preflop',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random',random_2:'Random 2',random_3:'Random 3'};
-const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random_2'],['gto','pressure_filler']];
+// Preserve full registry for historical profile recognition, but only offer
+// street-appropriate strategies in the new tournament editor.
+let values=['','a17_preflop','gto','pc_gto_80bb'];
+let preflopValues=['','a17_preflop','gto','pc_gto_80bb'];
+let postflopValues=['','gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
+const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random'],['pc_gto_80bb','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false;
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
@@ -93,14 +98,32 @@ const pct=n=>n===null||n===undefined||n===''?'—':Number(n).toFixed(1)+'%';
 const token=()=>($('key').value||'').trim();
 function feedback(message,bad){$('feedback').textContent=message;$('feedback').style.color=bad?'#ffabb7':'#a7d4f0'}
 function el(t,cls,txt){const x=document.createElement(t);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x}
-function botOptions(value,fn){const s=el('select');for(const v of values){const o=el('option','',names[v]||v);o.value=v;s.append(o)}s.value=value||'';s.onchange=()=>fn(s.value);if(!value)s.classList.add('invalid');return s}
-function valid(){const missing=bots.flatMap((b,i)=>(!b.pre||!b.post)?['P'+(i+1)]:[]);$('botError').textContent=missing.length?'Заполни Preflop и Postflop: '+missing.join(', '):'';$('start').disabled=missing.length>0||working||!token();return missing.length===0}
+const isRandom=value=>value==='random'||/^random_(?:[2-9]|10)$/.test(value);
+function botOptions(value,fn,street){
+ const s=el('select'),options=street==='pre'?preflopValues:postflopValues;
+ for(const v of options){const o=el('option','',names[v]||v);o.value=v;s.append(o)}
+ const normalized=street==='post'&&isRandom(value)?'random':value;
+ s.value=options.includes(normalized)?normalized:'';
+ s.onchange=()=>fn(s.value);
+ if(!s.value)s.classList.add('invalid');
+ return s;
+}
+function valid(){
+ const invalid=bots.flatMap((b,i)=>{
+  const pre=preflopValues.includes(b.pre)&&b.pre!=='';
+  const post=postflopValues.includes(b.post)&&b.post!==''||isRandom(b.post);
+  return pre&&post?[]:['P'+(i+1)];
+ });
+ $('botError').textContent=invalid.length?'Выбери допустимые Preflop и Postflop для '+invalid.join(', '):'';
+ $('start').disabled=invalid.length>0||working||!token();
+ return invalid.length===0;
+}
 function drawBots(){
  const root=$('bots');root.replaceChildren();
  bots.forEach((b,i)=>{
   const row=el('div','botRow');row.append(el('div','id','P'+(i+1)));
-  row.append(botOptions(b.pre,v=>{bots[i].pre=v;drawBots()},));
-  row.append(botOptions(b.post,v=>{bots[i].post=v;drawBots()},));
+  row.append(botOptions(b.pre,v=>{bots[i].pre=v;drawBots()},'pre'));
+  row.append(botOptions(b.post,v=>{bots[i].post=v;drawBots()},'post'));
   const x=el('button','remove','×');x.title='Удалить игрока';x.disabled=bots.length<=2;
   x.onclick=()=>{bots.splice(i,1);drawBots()};row.append(x);root.append(row);
  });$('addBot').disabled=bots.length>=9;valid();
@@ -167,7 +190,8 @@ async function loadCatalog(){
   const catalog=await get('/api/catalog');
   if(catalog.strategies?.length){
    values=['',...catalog.strategies];
-   names.a17_preflop='A17 V5 ('+(catalog.a17_version||'')+')';
+   preflopValues=['',...(catalog.preflop_strategies||['a17_preflop','gto','pc_gto_80bb']).filter(v=>values.includes(v)).sort((a,b)=>['a17_preflop','gto','pc_gto_80bb'].indexOf(a)-['a17_preflop','gto','pc_gto_80bb'].indexOf(b))];
+   postflopValues=['',...(catalog.postflop_strategies||['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v))];
    drawBots();
   }
   const parallel=$('parallel');
@@ -215,7 +239,7 @@ $('restore').onclick=()=>{
  bots=extracted.map(b=>({pre:b.pre||'',post:b.post||''}));
  for(const id of [...numeric,'seat_mode'])if(c[id]!==undefined)$(id).value=c[id];
  drawBots();scrollTo({top:0,behavior:'smooth'});
- feedback('Параметры скопированы. Старый a17_tag преобразован в A17 Legacy; новая серия не запущена.');
+ feedback(valid()?'Параметры скопированы. Новая серия ещё не запущена.':'Настройки восстановлены, но часть исторических стратегий скрыта новым каталогом — замени пустые поля перед запуском.',!valid());
 };
 $('download').onclick=async()=>{if(!selected)return;try{feedback('Готовлю ZIP...');const response=await api('/api/runs/'+selected.id+'/download');const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SKACHKOV_'+selected.id+'.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),9000);feedback('ZIP сессии скачан.')}catch(e){feedback(e.message,true)}};
 $('upload').onclick=()=>$('file').click();
