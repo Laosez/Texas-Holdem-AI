@@ -50,6 +50,45 @@ class ReliabilityTests(unittest.TestCase):
                 runner.assert_called_once()
                 self.assertTrue((root / "000001.json.gz").is_file())
 
+    def test_audited_checkpoint_version_survives_export_memory_fix(self):
+        from types import SimpleNamespace
+        old_sha=exporter.LEGACY_EXPORTER_SHA256
+        self.assertEqual(old_sha,
+                         "c95b365dd2af4051db541b27781b94e9ccbd113477ca6c3740fcbd6c9b5d40b2")
+        args=SimpleNamespace(tournaments=450,seed=42,chips=500,sb=1,bb=2,
+                             blind_increase_every=50,max_hands=10000,seat_mode="rotate")
+        old_key=exporter.checkpoint_config_key(args,["gto","smart"],old_sha)
+        current_key=exporter.checkpoint_config_key(args,["gto","smart"])
+        self.assertNotEqual(old_key,current_key)
+        self.assertNotEqual(old_key,exporter.checkpoint_config_key(args,["gto","smart"],"0"*64))
+        self.assertNotEqual(app.strategy_fingerprint(),app.strategy_fingerprint(old_sha))
+        self.assertEqual(len(app.strategy_fingerprint(old_sha)),64)
+
+    def test_resume_accepts_only_audited_legacy_exporter(self):
+        legacy=app.strategy_fingerprint(exporter.LEGACY_EXPORTER_SHA256)
+        with tempfile.TemporaryDirectory() as td, patch.object(app,"OUT",Path(td)), \\
+             patch.dict(app.RUNS,{},clear=True):
+            run_id="20261015_450_export"
+            folder=Path(td)/run_id;folder.mkdir()
+            base={"id":run_id,"status":"failed","created":app.now(),"updated":app.now(),
+                  "config":{"players":["gto","smart"],"tournaments":450},
+                  "returncode":-9,"report":None,"progress":{"done":450,"total":450},
+                  "strategy_fingerprint":legacy,"log":[],"error":"OOM"}
+            app.RUNS[run_id]=base
+            class FakeThread:
+                def __init__(self,*args,**kwargs):
+                    pass
+                def start(self):
+                    pass
+            with patch.object(app.threading,"Thread",FakeThread):
+                resumed=app.resume_run(run_id)
+            self.assertEqual(resumed["status"],"running")
+            self.assertIsNone(resumed.get("error"))
+            base["status"]="failed"
+            base["strategy_fingerprint"]="0"*64
+            with self.assertRaisesRegex(RuntimeError,"Версия старой сессии"):
+                app.resume_run(run_id)
+
     def test_soft_delete_restores_files_and_result(self):
         with tempfile.TemporaryDirectory() as td, patch.object(app, "OUT", Path(td)):
             run_id = "20261014_audit"
