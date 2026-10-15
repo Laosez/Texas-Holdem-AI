@@ -152,6 +152,9 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
  pointer-events:none;
 }
 .matrixLayout.double .matrixPane .handBoxTag{top:0;right:0;font-size:8px}
+.matrixGrid .hand.intersectionMuted{opacity:.22}
+.matrixGrid .hand.intersectionMatched{box-shadow:inset 0 0 0 1px #a7bfcc}
+.matrixGrid .hand.intersectionMuted.selected{opacity:.75}
 .matrixPane .handBoxTag.inRange{
  outline:none;border:0;box-shadow:none;background:var(--group-color,#8494a6);
 }
@@ -237,7 +240,8 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 </section>
 <div class="plannerWorkspace">
-<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select></div></div>
+<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Моя матрица</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select><label for="villainMetric" style="margin:0">Соперник</label><select id="villainMetric"><option value="equity">Equity vs меня</option><option value="evAllIn">EV выставления vs меня</option><option value="evCall">EV колла vs меня</option><option value="participation">Диапазон %</option><option value="action">Действия</option></select><button class="btn sm" id="rangeIntersect" type="button" aria-pressed="false">Пересечение диапазонов</button></div></div>
+<div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 10px">Выбери соперника для сравнения диапазонов.</div>
 <div class="buttons matrixClipboardBar" style="margin:0 0 9px;gap:8px;align-items:center">
 <button class="btn sm" id="copyMatrix" type="button" disabled>Копировать настройки</button>
 <button class="btn sm" id="pasteMatrix" type="button" disabled>Вставить настройки</button>
@@ -252,6 +256,13 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="field"><label for="allInDead">Дополнительные мёртвые деньги, BB</label><input id="allInDead" type="number" min="0" step="0.5" value="0"></div>
 <span class="small" id="allInStatus" style="max-width:740px">Равные вклады всех участников; без побочных банков. Эффективный стек берётся из блока 01.</span>
 </div>
+<div class="matrixMetrics hidden" id="rangeEvSummary" style="margin:6px 0 12px">
+<div class="matrixMetric"><span>EV / сыгранную руку</span><strong id="rangeEvPlayed">—</strong><small>BB · с учётом частот и 4/6/12 комбо</small></div>
+<div class="matrixMetric"><span>EV / случайную раздачу</span><strong id="rangeEvDealt">—</strong><small>BB · знаменатель 1326 комбо, Fold=0</small></div>
+<div class="matrixMetric"><span>Убыток от −EV включений</span><strong id="rangeEvNegative">—</strong><small>BB / раздачу · условное выставление</small></div>
+<div class="matrixMetric"><span>Упущенный +EV при Fold</span><strong id="rangeEvMissed">—</strong><small>BB / раздачу · теоретический потенциал</small></div>
+</div>
+<p id="rangeEvNote" class="note hidden">Диагностика условного all-in против выбранных соперников, не EV полной стратегии. Неизвестные руки не считаются Fold; равные эффективные стеки, без ICM, фолд-эквити и постфлопа. Оценка приближённая: усреднение per-hand Monte Carlo по комбинациям и частотам, без полной переоценки блокеров на уровне диапазона.</p>
 <div class="metricLegend"><span id="metricLegendText">Единый фон. Золотая рамка — лучшие исключённые руки; красная — худшие включённые при сравнении по выбранному показателю.</span></div>
 <div class="matrixMetrics">
 <div class="matrixMetric"><span>Назначено классов</span><strong id="studioDefined">—</strong><small>из 169</small></div>
@@ -279,7 +290,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 </div>
 </div></details>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="heroMatrix" class="matrixGrid"></div></div></div></div>
-<details id="villainPane" class="matrixPane comparisonDisclosure" open><summary><span>02 · Соперник</span><strong id="villainMatrixLabel">Стратегия соперника</strong><span class="foldIndicator" aria-hidden="true"></span></summary><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div></details></div>
+<details id="villainPane" class="matrixPane comparisonDisclosure" open><summary><span>02 · Соперник</span><strong id="villainMatrixLabel">Стратегия соперника</strong><button id="computeVillainReverse" class="btn sm" type="button">Рассчитать vs меня</button><span class="foldIndicator" aria-hidden="true"></span></summary><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div><p id="villainReverseStatus" class="note">Equity/EV соперника vs моя стратегия: нажми «Рассчитать vs меня» или общий Monte Carlo.</p></details></div>
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
 <p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Фон фиксированный: слева сверху — рука, справа сверху — A17, по центру — выбранный показатель. Золотая рамка — лучшая полностью исключённая рука для замены; красная — худшая играемая рука, уступающая ей. Подсветка доступна для Equity/EV и не меняет стратегию. Снизу — доли Fold / Raise / Limp / Call.</p>
 </section>
@@ -304,6 +315,7 @@ const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet'
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 const names={};
 let copiedMatrix=null; // In-page clipboard: action frequencies only, never A17 boxes.
+let intersectionOnly=false,calculatingReverse=false;
 
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
