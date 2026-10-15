@@ -35,6 +35,7 @@ OUT = Path(os.environ.get("POKER_DATA_DIR", str(ROOT / "output" / "replit_runs")
 PORT = int(os.environ.get("PORT", "3000"))
 TOKEN = os.environ.get("POKER_RUNNER_KEY", "").strip()
 MAX_BODY = 32_768
+MAX_PLAN_BODY = 2 * 1024 * 1024  # Multi-position strategy JSON, authenticated route only
 MAX_ZIP_BODY = 512 * 1024 * 1024
 MAX_ZIP_UNPACKED = 512 * 1024 * 1024
 MAX_ARCHIVE_FILES = 50_000
@@ -1043,7 +1044,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             size = int(self.headers.get("Content-Length", "0"))
-            limit = MAX_ZIP_BODY if path in ("/api/runs/import", "/api/backup/restore") else MAX_BODY
+            limit = (MAX_ZIP_BODY if path in ("/api/runs/import", "/api/backup/restore")
+                     else MAX_PLAN_BODY if path == "/api/plan/strategies" else MAX_BODY)
             if size <= 0 or size > limit:
                 self.reply(413, {"error": "Слишком большой запрос"})
                 return

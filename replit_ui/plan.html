@@ -286,7 +286,7 @@ async function api(path,opts={}){
 }
 const post=(path,data)=>api(path,{method:'POST',body:JSON.stringify(data)});
 function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
-function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p.ref})),...meta.saved.map(p=>({value:p.ref,label:p.name+' · v'+p.version+' · '+p.position+' '+SCENARIOS[p.scenario]}))]}
+function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p.ref})),...meta.saved.map(p=>({value:p.ref,label:p.name+' · v'+p.version+' · '+(p.contexts_count||1)+' диапазон(ов)'}))]}
 function findSaved(profile){return meta.saved.find(x=>x.ref===profile)}
 function copy(x){return JSON.parse(JSON.stringify(x))}
 function preserveEdits(){return !dirty||confirm('Есть несохранённые изменения. Переключить контекст и отбросить их?')}
@@ -302,21 +302,78 @@ function setHeroFields(doc){
  $('stack').value=doc.stack_bb;
  $('strategyName').value=doc.name;
 }
-async function loadHero(){
- if(loadingSource||!preserveEdits())return;
+// One editable strategy spans all positions, scenarios and table sizes.
+function slotKey(players,position,scenario){return String(players)+'|'+position+'|'+scenario}
+function preserveCurrentSlot(){
+ if(!hero)return;
+ hero.contexts=hero.contexts||{};
+ hero.contexts[slotKey(hero.players,hero.position,hero.scenario)]={
+  hands:copy(hero.hands),stack_bb:Number(hero.stack_bb)
+ };
+}
+function heroContextMessage(doc){
+ if(doc.position==='BB'&&doc.scenario==='vs_open'&&doc.range_origin==='gto_fixed_bb_vs_open')
+  return 'BB против открытия: используется GTO Fixed, не оцифрованный PC GTO BB Defense.';
+ if(doc.position==='BB'&&doc.scenario==='rfi')
+  return 'На BB нет RFI: для просмотра защиты выбери «Против открытия».';
+ return 'Диапазон: '+doc.name+' · '+doc.position+' · '+SCENARIOS[doc.scenario];
+}
+async function loadHero({contextChange=false}={}){
+ if(loadingSource)return;
+ const profile=$('heroProfile').value;
+ const same=hero&&(hero.ref||hero.id||'builtin:a17_v5')===profile;
+ if(!contextChange||!same){
+  if(!preserveEdits()){if(hero)setHeroFields(hero);return}
+  loadingSource=true;
+  try{
+   const stored=findSaved(profile);
+   if(stored){
+    $('players').value=String(stored.players);
+    renderPositions($('heroPosition'),stored.position);
+    $('heroScenario').value=stored.scenario;
+   }
+   const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,
+                             Number($('players').value),Number($('stack').value));
+   hero=doc;hero.contexts=hero.contexts||{};
+   dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';
+   invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg(heroContextMessage(doc));
+  }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
+  finally{loadingSource=false}
+  return;
+ }
+ // Context change: never discard the draft or replace the saved strategy ID.
+ const position=$('heroPosition').value,scenario=$('heroScenario').value;
+ const players=Number($('players').value),stack=Number($('stack').value);
+ const key=slotKey(players,position,scenario);
+ preserveCurrentSlot();
+ let slot=hero.contexts[key],origin=null;
  loadingSource=true;
  try{
-  const profile=$('heroProfile').value,stored=findSaved(profile);
-  if(stored){
-   $('players').value=String(stored.players);
-   renderPositions($('heroPosition'),stored.position);
-   $('heroScenario').value=stored.scenario;
-  }
-  const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
-  hero=doc;dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
- }catch(e){msg(e.message,true)}finally{loadingSource=false}
+  if(!slot){
+   // Unedited positions start from this profile's original strategy.
+   // The original source / boxes / identity are shared across slots.
+   const base=hero.base_profile||'builtin:a17_v5';
+   const baseline=await getSource(base,position,scenario,players,stack);
+   slot={hands:copy(baseline.hands),stack_bb:stack};
+   hero.contexts[key]=slot;
+   origin=baseline.range_origin||null;
+   dirty=true;
+  }else if(position==='BB'&&scenario==='vs_open'
+            &&['builtin:a17_v5','builtin:a17_legacy','builtin:pc_gto_80bb'].includes(hero.base_profile))
+   origin='gto_fixed_bb_vs_open';
+  hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
+        hands:copy(slot.hands),range_origin:origin};
+  undos=[];bulkSelected.clear();selectedBoxes.clear();brushMode='inspect';
+  invalidateEquity();setHeroFields(hero);paintEditor();renderAll();
+  msg(heroContextMessage(hero)+(dirty?' · Есть изменения в других позициях.':''));
+ }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
+ finally{loadingSource=false}
 }
-function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
+function renderPositions(control,selectedValue){
+ // Keep BTN/SB/BB when changing table size if the seat remains available.
+ const prior=selectedValue===undefined?control.value:selectedValue;
+ refill(control,positionOptions(Number($('players').value)),prior);
+}
 function renderOpponents(){
  const count=Number($('oppCount').value);
  const target=$('opponents');target.replaceChildren();
@@ -326,9 +383,9 @@ function renderOpponents(){
    opponents[i].profile=p.value;const saved=findSaved(p.value);if(saved){Object.assign(opponents[i],{position:saved.position,scenario:saved.scenario,players:saved.players})}
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const pos=el('select');refill(pos,positionOptions(opp.players),opp.position);pos.disabled=!!findSaved(opp.profile);pos.onchange=()=>{opponents[i].position=pos.value;invalidateEquity();loadVillain()};row.append(pos);
+  const pos=el('select');refill(pos,positionOptions(opp.players),opp.position);pos.disabled=false;pos.onchange=()=>{opponents[i].position=pos.value;invalidateEquity();loadVillain()};row.append(pos);
   const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
-  scenario.disabled=!!findSaved(opp.profile);scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
+  scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
   target.append(row);
@@ -1007,8 +1064,10 @@ function currentPeople(){return opponentsSelected()}
 async function savePlan(forceNew=false){
  try{
   if(!hero)throw Error('Сначала выбери стратегию');
+  hero.name=$('strategyName').value.trim();
+  hero.stack_bb=Number($('stack').value);
+  preserveCurrentSlot();
   const c=copy(hero);
-  c.name=$('strategyName').value.trim();c.stack_bb=Number($('stack').value);
   const parent=forceNew||hero.readonly?null:(hero.ref||null);
   const saved=await post('/api/plan/strategies',{plan:c,parent});
   hero=saved;dirty=false;undos=[];bulkSelected.clear();meta=await api('/api/plan/catalog');
@@ -1035,8 +1094,10 @@ async function connect(){
  }catch(e){$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
 }
 $('connect').onclick=connect;
-$('heroProfile').onchange=loadHero;
-$('heroPosition').onchange=loadHero;$('heroScenario').onchange=loadHero;$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero()};
+$('heroProfile').onchange=()=>loadHero();
+$('heroPosition').onchange=()=>loadHero({contextChange:true});
+$('heroScenario').onchange=()=>loadHero({contextChange:true});
+$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
 $('oppCount').onchange=updateOppCount;

@@ -246,6 +246,22 @@ class PlanHttpTests(unittest.TestCase):
         self.assertNotIn("const exp=el('button','boxExpand'",page)
         self.assertNotIn('Матрица equity стратегий · каждая с каждой',page)
 
+    def test_saved_a17_positions_share_one_editor_and_preserve_drafts(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("function slotKey(players,position,scenario)",page)
+        self.assertIn("function preserveCurrentSlot()",page)
+        self.assertIn("hero.contexts[key]=slot;",page)
+        self.assertIn("hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,",page)
+        self.assertIn("preserveCurrentSlot();",page)
+        self.assertIn("const c=copy(hero);",page)
+        self.assertIn("if(!preserveEdits()){if(hero)setHeroFields(hero);return}",page)
+        self.assertIn("const prior=selectedValue===undefined?control.value:selectedValue;",page)
+        self.assertIn("$('heroPosition').onchange=()=>loadHero({contextChange:true});",page)
+        self.assertIn("$('heroScenario').onchange=()=>loadHero({contextChange:true});",page)
+        self.assertIn("loadHero({contextChange:true})};",page)
+        self.assertIn("BB против открытия: используется GTO Fixed",page)
+        self.assertIn("На BB нет RFI",page)
+
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         for label in ('id="heroMatrix"','id="villainMatrix"','id="handBox"',
