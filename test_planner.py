@@ -228,7 +228,7 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(legacy["opponents"][0]["entry_mode"],"always")
 
     def test_eight_opponents_zero_and_guaranteed_entry_modes(self):
-        eight=[{"profile":"builtin:any_two","position":str(9-i),"scenario":"rfi",
+        eight=[{"profile":"builtin:any_two","position":([*map(str,range(9,2,-1)),"SB"])[i],"scenario":"rfi",
                 "players":9,"selector":"active","entry_mode":"never"} for i in range(8)]
         cleaned=api._validate_request({"opponents":eight,"trials":50,"cycles":1})
         self.assertEqual(len(cleaned["opponents"]),8)
