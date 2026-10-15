@@ -67,18 +67,30 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="field"><label for="blind_increase_every">Рост блайндов · рук</label><input type="number" min="0" id="blind_increase_every" value="50"></div>
 <div class="field"><label for="max_hands">Лимит рук / турнир</label><input type="number" min="100" id="max_hands" value="10000"></div>
 <div class="field wide"><label for="seat_mode">Рассадка</label><select id="seat_mode"><option value="rotate">Rotate · ротация</option><option value="fixed">Fixed · фиксированная</option></select></div>
+<div class="field wide"><label for="preflop_protocol">Префлоп · правила эксперимента</label>
+<select id="preflop_protocol"><option value="standard_v1" selected>Единый протокол V1 · сравнение RFI</option><option value="legacy">Исходные стратегии · без стандартизации</option></select>
+<p class="note">В режиме V1 диапазоны открытия остаются индивидуальными. Для каждого игрока одинаковы все ответы после чужого входа в банк и размеры рейзов. Это экспериментальная модель, не GTO.</p></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
 <section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
 </div>
 <div class="column topColumn strategiesColumn">
+<details class="coverageAudit" id="standardRules"><summary>Единый префлоп V1 · посмотреть стандартизированные диапазоны</summary>
+<table class="coverageTable"><thead><tr><th>Ситуация</th><th>Общие руки</th><th>Действие</th></tr></thead><tbody>
+<tr><td>RFI · свой диапазон</td><td>A17 / PC / сохранённая стратегия</td><td>Исходная частота; открытие 2,5 BB (SB 3 BB)</td></tr>
+<tr><td>Изоляция лимпа / ответ на Open</td><td>QQ+, AK: 100% Raise; JJ–TT, AQ, AJs, KQs: 50/50 Raise/Call</td><td>Остальные средние пары, подходящие suited и AJo/KQo — Call; иначе Fold</td></tr>
+<tr><td>Ответ на 3-bet</td><td>AA–KK: 4-bet; QQ/AKs: 50/50; JJ–99, AKo, AQs, AJs, KQs: Call</td><td>Остальные Fold</td></tr>
+<tr><td>Ответ на 4-bet</td><td>AA–KK: 5-bet all-in; QQ, AKs, AKo: Call</td><td>Остальные Fold</td></tr>
+<tr><td>5-bet / all-in</td><td>QQ+, AKs, AKo</td><td>Call; остальные Fold</td></tr>
+</tbody></table>
+<p class="note">Sizing: Open 2,5 BB / SB 3 BB; 3-bet ×3 от предыдущего рейза; 4-bet ×2,3; 5-bet all-in. Если стек или легальные ставки не позволяют задать точный размер, движок ограничивает его разрешёнными пределами. Это контрольный экспериментальный протокол, а не решение GTO.</p></details>
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
-<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
+<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
-<div class="warning"><strong>GTO (PC) 80 BB</strong>: точные исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
-<details class="coverageAudit" id="preflopAudit" open><summary>Покрытие префлоп-диапазонов · что реально исполняет бот</summary>
+<div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
+<details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
 <tr><td>BB vs Open</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
@@ -94,7 +106,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="column topColumn journalColumn">
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre></section>
 </div>
-<section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><span id="runStatus" class="badge">—</span></div>
+<section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
 <div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="trashPanel" id="trashPanel" hidden>
@@ -121,7 +133,7 @@ let postflopValues=['','smart','tag_punisher','wide_defender','baseline_sane','n
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[['pc_gto_80bb','smart'],['pc_gto_80bb','tag_punisher'],['pc_gto_80bb','wide_defender'],['pc_gto_80bb','maniac_mixed'],['pc_gto_80bb','baseline_sane'],['a17_preflop','tag_punisher'],['pc_gto_80bb','random'],['pc_gto_80bb','random'],['pc_gto_80bb','pressure_filler']];
-let bots=[],sessions=[],selected=null,working=false;
+let bots=[],sessions=[],selected=null,working=false,savedForComparison=[];
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const pct=n=>n===null||n===undefined||n===''?'—':Number(n).toFixed(1)+'%';
@@ -162,11 +174,11 @@ function drawBots(){
 }
 function reset(){
  bots=preset.map(x=>({pre:x[0],post:x[1]}));
- Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate'}).forEach(([k,v])=>$(k).value=v);drawBots();
+ Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);drawBots();
 }
 function config(){
  if(!valid())throw Error('Стратегия одного из игроков не заполнена');
- const c={bots:bots.map(x=>({...x})),seat_mode:$('seat_mode').value};
+ const c={bots:bots.map(x=>({...x})),seat_mode:$('seat_mode').value,preflop_protocol:$('preflop_protocol').value};
  for(const id of numeric){const inp=$(id),v=Number(inp.value);if(!inp.value.trim()||!Number.isSafeInteger(v)||v<Number(inp.min||0)||(inp.max&&v>Number(inp.max)))throw Error('Некорректное поле: '+id);c[id]=v}
  if(c.bb<c.sb)throw Error('Big Blind должен быть не меньше Small Blind');return c;
 }
@@ -184,6 +196,7 @@ function present(s){
  const active=['running','starting'].includes(s.status);
  $('runStatus').textContent=({running:'Выполняется',starting:'Запускается',completed:'Завершена',imported:'Загружена',failed:'Ошибка',cancelled:'Остановлена',interrupted:'Прервана'})[s.status]||s.status;
  $('runStatus').className='badge'+(['completed','imported'].includes(s.status)?' ok':['failed','interrupted'].includes(s.status)?' fail':'');
+ $('sessionProtocol').textContent='Префлоп: '+(s.config?.preflop_protocol==='standard_v1'?'Единый V1':'Исходный');
  working=sessions.some(j=>['running','starting'].includes(j.status))||active;valid();
  $('stop').disabled=!active;$('resume').disabled=!['failed','cancelled','interrupted'].includes(s.status)||working;$('download').disabled=active;$('remove').disabled=active;$('restore').disabled=!(s.config?.bots?.length||s.config?.players?.length);
  const report=s.report||{},prog=s.progress||{},total=prog.total||report.tournaments_requested||s.config?.tournaments||0;
@@ -205,7 +218,7 @@ function present(s){
 }
 function empty(){
  selected=null;['completed','hands','hps','started'].forEach(id=>$(id).textContent='—');
- $('fill').style.width='0';$('progress').textContent='Нет данных';$('eta').textContent='';$('runStatus').textContent='—';
+ $('fill').style.width='0';$('progress').textContent='Нет данных';$('eta').textContent='';$('runStatus').textContent='—';$('sessionProtocol').textContent='Префлоп: —';
  $('leader').replaceChildren();$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;$('resume').disabled=true;working=false;valid();
 }
 async function refresh(){
@@ -225,7 +238,8 @@ async function loadCatalog(){
    const defaults=['a17_preflop','pc_gto_80bb'];
    const offered=catalog.preflop_strategies||defaults;
    preflopValues=['',...defaults.filter(v=>offered.includes(v)),...offered.filter(v=>!defaults.includes(v)&&v!=='gto')];
-   for(const saved of catalog.saved_preflop||[]){
+   savedForComparison=catalog.saved_preflop||[];
+   for(const saved of savedForComparison){
     names[saved.token]=saved.name+' · v'+saved.version+' · моя стратегия';
    }
    $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
@@ -250,6 +264,18 @@ $('resetBots').onclick=()=>{bots=preset.map(x=>({pre:x[0],post:x[1]}));drawBots(
 $('addBot').onclick=()=>{if(bots.length<9){bots.push({pre:'',post:''});drawBots()}};
 $('key').oninput=valid;$('connect').onclick=connect;
 $('syncStrategies').onclick=async()=>{await loadCatalog();feedback('Каталог стратегий обновлён из редактора.')};
+$('compareRfi').onclick=()=>{
+ const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
+  /(оптимиз|optimi[sz])/i.test(x.name));
+ const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
+ const hero=optimized?.token||'a17_preflop';
+ bots=Array.from({length:9},(_,i)=>({pre:i%2===0?hero:'pc_gto_80bb',post:'tag_punisher'}));
+ $('preflop_protocol').value='standard_v1';
+ $('seat_mode').value='rotate';
+ drawBots();
+ feedback('Контроль подготовлен: '+(optimized?optimized.name+' v'+optimized.version:'A17 V5')+
+  ' против PC GTO; общий Postflop TAG Punisher, один протокол ответов, ротация мест. Проверь параметры и нажми «Запустить».');
+};
 $('forget').onclick=()=>{sessionStorage.removeItem('skachkov_key');$('key').value='';$('connection').textContent='Отключено';$('connection').className='badge';valid()};
 $('start').onclick=async()=>{try{const c=config();working=true;valid();const s=await get('/api/runs',{method:'POST',body:JSON.stringify(c)});selected=s;await refresh();feedback('Сессия запущена.')}catch(e){working=false;valid();feedback(e.message,true)}};
 $('resume').onclick=async()=>{
@@ -278,6 +304,7 @@ $('restore').onclick=()=>{
  if(extracted.length<2||extracted.length>9){feedback('Состав ботов невозможно восстановить',true);return}
  bots=extracted.map(b=>({pre:b.pre||'',post:b.post||''}));
  for(const id of [...numeric,'seat_mode'])if(c[id]!==undefined)$(id).value=c[id];
+ $('preflop_protocol').value=c.preflop_protocol||'legacy';
  drawBots();scrollTo({top:0,behavior:'smooth'});
  feedback(valid()?'Параметры скопированы. Новая серия ещё не запущена.':'Настройки восстановлены, но часть исторических стратегий скрыта новым каталогом — замени пустые поля перед запуском.',!valid());
 };

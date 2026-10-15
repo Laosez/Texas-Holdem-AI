@@ -17,6 +17,7 @@ from bots.shared_pc_bb_defense import SharedPCBBDefense, first_bb_vs_single_open
 # Stateful TournamentHybridBot and other advanced strategies need a
 # cross-street-memory audit before they are added here.
 import json
+import os
 from pathlib import Path
 
 _CATALOG = Path(__file__).resolve().parents[1] / "strategy_catalog" / "available_bases.json"
@@ -45,10 +46,20 @@ class StreetSplitBot(BotAdapter):
         self.preflop_name = preflop_name
         self.postflop_name = postflop_name
         self.bb_defense = SharedPCBBDefense()
+        # A per-tournament subprocess flag; no global mutation of bot ranges.
+        self.preflop_protocol = os.environ.get("POKER_PREFLOP_PROTOCOL", "legacy")
 
     def act(self, view: PlayerView) -> Action:
         street = view.street
         if street == "preflop":
+            if self.preflop_protocol == "standard_v1":
+                from bots.standard_preflop import response_action,normalize_rfi_raise
+                shared=response_action(view)
+                if shared is not None:
+                    return shared
+                # Preserve each strategy's RFI membership/frequencies,
+                # normalize the sizes of its chosen open-raises only.
+                return normalize_rfi_raise(view, self.preflop_bot.act(view))
             if first_bb_vs_single_open(view):
                 return self.bb_defense.act(view)
             return self.preflop_bot.act(view)
