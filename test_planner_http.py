@@ -62,6 +62,12 @@ class PlanHttpTests(unittest.TestCase):
                     code,body=request("/api/plan/strategies/"+saved["id"],method="DELETE")
                     self.assertEqual(code,200)
                     self.assertEqual(json.loads(body)["deleted"],saved["id"])
+                    self.assertFalse((core.STORE/saved["id"]).exists())
+                    trash=list((core.STORE/".trash").glob(saved["id"]+"_*"))
+                    self.assertEqual(len(trash),1)
+                    self.assertTrue((trash[0]/"v00001.json").is_file())
+                    _,fresh=request("/api/plan/catalog")
+                    self.assertFalse(any(item["id"]==saved["id"] for item in json.loads(fresh)["saved"]))
                 finally:
                     server.shutdown()
                     server.server_close()
