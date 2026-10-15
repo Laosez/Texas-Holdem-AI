@@ -28,7 +28,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .matrixAxisLayout{display:grid;grid-template-columns:16px minmax(0,1fr);gap:3px;min-width:545px}
 .matrixAxisLeft{display:grid;grid-template-rows:repeat(13,minmax(0,1fr));gap:2px}
 .matrixAxisLeft span{display:flex;align-items:center;justify-content:center;color:#7695b3;font-size:10px;font-weight:800}
-.matrixViewport .matrixGrid,.matrixViewport .matrixRanks{min-width:0}
+.matrixViewport .matrixGrid{min-width:0}.matrixViewport .matrixRanks{min-width:0;margin-left:19px;width:calc(100% - 19px)}
 .matrixViewport .matrixAxisLayout{min-width:530px}.matrixPane h3{margin:0 0 8px;font-size:13px}
 .hand{position:relative;min-width:0;aspect-ratio:1.06;max-height:61px;border:1px solid #3d5062;background:#243c54;color:#eff7ff;border-radius:4px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2px 1px 6px;cursor:pointer;gap:1px;font:inherit;font-weight:800;font-size:12px;transition:filter .12s,border-color .12s,transform .12s}.hand:hover{z-index:6;border-color:#8ca9ce;filter:brightness(1.12);transform:translateY(-1px)}.hand small{font-size:9px;color:#d0e5f8;opacity:.8;font-weight:600}.hand:focus-visible{outline:2px solid #a4d1ff}.hand.selected{outline:2px solid #fff;outline-offset:-2px}.hand.dim{opacity:.23}
 .hand.equityHit::after{content:"";position:absolute;inset:2px;border:1px dashed #efbf55;border-radius:3px;pointer-events:none;z-index:2}
@@ -41,27 +41,6 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .comparisonTitle{font-size:14px;font-weight:800;color:#edf5ff}
 .comparisonMetrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0}
 .comparisonMetrics small{background:#0c1c2e;border-radius:5px;padding:6px;color:#b1cce7;font-size:11px}
-.comparisonLegend{display:flex;flex-wrap:wrap;gap:9px;margin:8px 0;font-size:10px;color:#b5c9de}
-.comparisonLegend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-2px;margin-right:4px}
-.comparisonViewport{overflow-x:auto;max-width:100%}
-.comparisonGrid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));min-width:440px;gap:2px}
-.comparisonCell{aspect-ratio:1.18;min-width:0;border:1px solid #38566e;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;color:#f0f7ff;cursor:pointer;font:800 10px/1.2 Inter,system-ui,sans-serif}
-.comparisonCell small{display:block;font-size:8px;line-height:1.2;color:#d1deea}
-.comparisonCell.equal{background:#1d5b52}.comparisonCell.heroMore{background:#275985}.comparisonCell.oppMore{background:#784355}
-.comparisonCell.bothFold{background:#223348;color:#a9b8c8}
-.comparisonCell.unknown{background:repeating-linear-gradient(135deg,#233347,#233347 5px,#1a283a 5px,#1a283a 10px);color:#a3b5c6}
-.comparisonCell.actionDiff{box-shadow:inset 0 0 0 2px #e0b76b}
-.comparisonCell.selected{outline:2px solid white;outline-offset:-2px}
-.comparisonCell:hover{filter:brightness(1.22)}
-.pairwiseMatrix{width:100%;border-collapse:separate;border-spacing:3px;min-width:460px;text-align:center}
-.pairwiseMatrix th{font-size:11px;white-space:nowrap;color:#adcae3;padding:9px}
-.pairwiseMatrix td{padding:11px 7px;border:1px solid #34516a;border-radius:5px;background:#1a324a;font-weight:850;font-variant-numeric:tabular-nums}
-.pairwiseMatrix td.diagonal{background:#17263a;color:#7889a0}
-.pairwiseMatrix td.positive{background:#1b554c;color:#c7f2df}
-.pairwiseMatrix td.negative{background:#603842;color:#f6d5dc}
-.pairwiseMatrix td.unknown{background:#233348;color:#8da6bc}
-
-
 .hand.none{background:#203144}.hand.fold{background:#334159}.hand.open{background:#245e9a}.hand.limp{background:#7755a3}.hand.call{background:#1d8178}.hand.threebet{background:#99652e}.hand.fourbet{background:#94516f}.hand.push{background:#a24d73}
 .handBoxTag{position:absolute;top:2px;right:3px;z-index:5;line-height:1.1;font-size:8px;letter-spacing:-.1px;font-weight:800;color:#dce6f3;opacity:.83;pointer-events:none;text-shadow:0 1px 2px #101923}
 .matrixLayout.double .handBoxTag{top:1px;right:2px;font-size:7px}
@@ -107,6 +86,12 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .editorSection .stat{padding:8px 5px}
 .editorSection .stat strong{font-size:16px}
 .editorSection .buttons .btn{flex:1}
+.matrixMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:5px 0 12px}
+.matrixMetric{background:linear-gradient(155deg,#172b43,#0c1b2c);border:1px solid #2f4760;border-radius:9px;padding:10px;min-width:0}
+.matrixMetric span{font-size:10px;color:#93b2ce;display:block;min-height:15px}
+.matrixMetric strong{font-size:20px;color:#f1f7ff;font-weight:790;font-variant-numeric:tabular-nums;line-height:1.4}
+.matrixMetric small{font-size:10px;color:#94abc2;display:block}
+@media(max-width:680px){.matrixMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .a17Workbench{border:1px solid #36516b;background:linear-gradient(155deg,#102137,#0c1b2d);border-radius:10px;padding:12px;margin:8px 0 13px}
 .a17Workbench .heading{margin:0 0 9px}
 .a17Workbench strong{font-size:12px;letter-spacing:.2px}
@@ -179,6 +164,12 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <span class="small" id="allInStatus" style="max-width:740px">Равные вклады всех участников; без побочных банков. Эффективный стек берётся из блока 01.</span>
 </div>
 <div class="metricLegend"><div class="swatch" id="metricLegendSwatch"></div><span id="metricLegendText">Градиент зависит от показателя в ячейке.</span></div>
+<div class="matrixMetrics">
+<div class="matrixMetric"><span>Назначено классов</span><strong id="studioDefined">—</strong><small>из 169</small></div>
+<div class="matrixMetric"><span>VPIP · минимум</span><strong id="studioVpip">—</strong><small>взвешено по 1326 комбинациям</small></div>
+<div class="matrixMetric"><span>Выбрано в A17</span><strong id="studioGroupHands">—</strong><small id="studioGroupCombos">комбинаций</small></div>
+<div class="matrixMetric"><span>Классы без группы</span><strong id="studioUnassigned">—</strong><small>размещаются в пуле</small></div>
+</div>
 <div class="a17Workbench"><div class="heading"><strong>A17 / Кисть групп</strong><span id="brushStatus" class="badge">Режим: выбор</span></div>
 <div class="brushbar"><button class="brushTool active" id="brushInspect" type="button">◉ Выбирать</button><button class="brushTool" id="brushPaint" type="button">✎ Кисть A17</button>
 <label for="brushTarget" style="margin:0">Коробка</label><select id="brushTarget" aria-label="Куда перемещать руки"></select>
@@ -352,7 +343,18 @@ function drawBoxPalette(){
   button.ondrop=e=>boxDropped(e,b);
   root.append(button);
  }
- updateBrushControls();
+ updateBrushControls();drawStudioStats();
+}
+function drawStudioStats(){
+ if(!hero)return;
+ const known=HANDS.filter(h=>hero.hands[h]&&Object.keys(hero.hands[h]).length).length;
+ const vpip=HANDS.reduce((sum,h)=>sum+COMBOS(h)*(knownActivePercent(hero,h)||0),0)/1326;
+ const members=HANDS.filter(h=>hero.boxes[h]===brushTarget);
+ $('studioDefined').textContent=known+' / 169';
+ $('studioVpip').textContent=(known===169?'':'≥')+vpip.toFixed(1)+'%';
+ $('studioGroupHands').textContent=String(members.length);
+ $('studioGroupCombos').textContent=members.reduce((sum,h)=>sum+COMBOS(h),0)+' комбинаций · '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'Без A17');
+ $('studioUnassigned').textContent=String(HANDS.filter(h=>hero.boxes[h]===0).length);
 }
 function updateBrushControls(){
  const paint=brushMode==='paint';
