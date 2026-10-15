@@ -49,6 +49,55 @@ class ScreenOneTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 app.validate_config({"bots": rows})
 
+    def test_preflop_picker_only_accepts_preflop_strategies(self):
+        self.assertEqual(app.PREFLOP_CHOICES, {"a17_preflop", "gto"})
+        for pre in ("smart", "tag_punisher", "random", "pressure_filler", "gto_fixed"):
+            with self.subTest(pre=pre), self.assertRaisesRegex(ValueError, "префлоп"):
+                app.validate_config({"bots": [
+                    {"pre": pre, "post": "tag_punisher"},
+                    {"pre": "gto", "post": "gto"},
+                ]})
+
+    def test_postflop_picker_only_accepts_postflop_strategies(self):
+        for post in ("a17_preflop", "gto_fixed", "pc_gto_80bb"):
+            with self.subTest(post=post), self.assertRaisesRegex(ValueError, "постфлоп"):
+                app.validate_config({"bots": [
+                    {"pre": "gto", "post": post},
+                    {"pre": "a17_preflop", "post": "tag_punisher"},
+                ]})
+
+    def test_single_random_option_auto_assigns_distinct_opponents(self):
+        config = app.validate_config({"bots": [
+            {"pre": "gto", "post": "random"},
+            {"pre": "a17_preflop", "post": "tag_punisher"},
+            {"pre": "gto", "post": "random"},
+            {"pre": "gto", "post": "random_9"},  # restored historical session
+        ]})
+        self.assertEqual([b["post"] for b in config["bots"]],
+                         ["random", "tag_punisher", "random_2", "random_3"])
+        self.assertEqual(config["players"][2], "P3=split:gto:random_2")
+        self.assertEqual(config["players"][3], "P4=split:gto:random_3")
+        import bots
+        for profile in config["players"]:
+            self.assertIsNotNone(bots.create_bot(profile.split("=", 1)[1]))
+
+    def test_pc_gto_not_silently_replaced_by_different_bot(self):
+        with self.assertRaisesRegex(ValueError, "PC GTO 80bb"):
+            app.validate_config({"bots": [
+                {"pre": "pc_gto_80bb", "post": "tag_punisher"},
+                {"pre": "gto", "post": "gto"},
+            ]})
+
+    def test_html_has_street_specific_menus_and_one_random_option(self):
+        html = (Path(__file__).resolve().parent / "replit_ui" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("const preflopValues=['','a17_preflop','gto','pc_gto_80bb']", html)
+        self.assertIn("const postflopValues=", html)
+        self.assertIn("row.append(botOptions(b.pre", html)
+        self.assertIn("'pre'));", html)
+        self.assertIn("'post'));", html)
+        self.assertIn("if(v==='pc_gto_80bb'){o.disabled=true", html)
+        self.assertNotIn("const values=['','gto'", html)
+
     def test_source_label_preserves_strategy_identity(self):
         import bots
         for label in ("P1=split:gto:gto", "P2=split:gto:gto"):
