@@ -330,6 +330,14 @@ function boxChip(h){
  return chip;
 }
 
+function groupWeightedEquity(b){
+ if(!hero||!Number.isInteger(b)||b<1||b>17)return null;
+ const eq=equityResults.actual?.equity||($('equityModel').value==='selected'?equityResults.filter?.equity:null);
+ if(!eq)return null;
+ let mass=0,total=0;
+ for(const h of HANDS){if(hero.boxes[h]!==b)continue;if(!Number.isFinite(eq[h]))return null;const w=COMBOS(h);mass+=w;total+=w*eq[h]}
+ return mass?total/mass:null;
+}
 function groupPaletteColor(b){
  if(b===0)return '#8494a6';
  return 'hsl('+Math.round(b*137.508%360)+' 65% 63%)';
@@ -341,7 +349,7 @@ function drawBoxPalette(){
  for(const b of [...boxOrder(),0]){
   const hands=HANDS.filter(h=>hero.boxes[h]===b);
   const total=hands.reduce((sum,h)=>sum+COMBOS(h),0);
-  const eq=boxEquityResult?.equity?.[String(b)];
+  const eq=groupWeightedEquity(b);
   const button=el('button','paletteBox'+(brushTarget===b?' active':'')+(b===0?' unassigned':''));
   button.type='button';
   button.style.setProperty('--group-color',groupPaletteColor(b));
@@ -428,7 +436,7 @@ function drawBoxes(){
  for(const b of [...boxOrder(),0]){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
-  const groupEq=members.length&&Number.isFinite(eq?.[String(b)])?Number(eq[String(b)]):null;
+  const groupEq=groupWeightedEquity(b);
   const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===0?' boxPool':''));
   const head=el('div','boxCardHead');
   if(b===0){
@@ -440,7 +448,7 @@ function drawBoxes(){
    head.append(choose);
   }
   const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · Eq '+(groupEq===null?'—':groupEq.toFixed(1)+'%')));
-  summary.title='Прямое multiway showdown equity всех комбинаций коробки против одновременно выбранных диапазонов соперников (без порога).';head.append(summary);
+  summary.title='Взвешенное equity по 4/6/12 комбинациям из рассчитанных 169 рук; обновляется при переносе без новых MC.';head.append(summary);
   if(b!==0){
    const handle=el('button','boxHandle','⠿');handle.type='button';handle.draggable=true;
    handle.title='Переставить коробку';handle.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-box',String(b))};
@@ -575,8 +583,8 @@ function handMetricsRows(hand,doc){
   pair('Equity · текущий фильтр',f(filterEq));
   pair('Equity · выбранные соперники',f(multiEq));
   if(Number.isFinite(anyEq))pair('Equity · Any Two',f(anyEq));
-  const groupEq=boxEquityResult?.equity?.[String(box)];
-  pair('Equity коробки · multiway',f(groupEq));
+  const groupEq=groupWeightedEquity(box);
+  pair('Equity A17 · взвешенное',f(groupEq));
   const pot=Number($('evPot').value),call=Number($('evCost').value);
   const chip=Number.isFinite(filterEq)?modelCallEv(filterEq,pot,call):null;
   pair('EV колла all-in',Number.isFinite(chip)?'≈'+chip.toFixed(1)+' BB':'—');
@@ -1023,9 +1031,7 @@ $('computeAll').onclick=async()=>{
   if(model==='selected')equityResults.actual=matrix;
   else await startCalculation('actual','selected',people);
   await calculateRangeEquity();
-  const boxesPromise=calculateBoxesEquity();
   await calculatePerOpponent();
-  await boxesPromise;
   drawEquityStats();drawMatrices();drawBoxes();
  }finally{computingAll=false;$('computeAll').disabled=false}
 };
