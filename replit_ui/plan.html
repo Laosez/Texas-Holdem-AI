@@ -807,11 +807,10 @@ function drawBoxes(){
    choose.onclick=e=>{
     // A second ordinary click on the same box must remove its white outlines.
     const wasSelected=selectedBoxes.has(b);
-    if(e.ctrlKey||e.metaKey){
-     if(wasSelected)selectedBoxes.delete(b);else selectedBoxes.add(b);
-    }else selectedBoxes=wasSelected?new Set():new Set([b]);
+    if(wasSelected)selectedBoxes.delete(b);else selectedBoxes.add(b);
+    bulkSelected.clear();
     brushTarget=b;
-    drawBoxes();drawMatrices();
+    drawBoxes();drawMatrices();paintEditor();
    };
    head.append(choose);
   }
@@ -1205,7 +1204,7 @@ function matrix(root,doc,scale,metricChoice){
     if(e.detail===0)moveHandsToBox([h],brushTarget);
     return;
    }
-   selected=h;bulkSelected.clear();drawMatrices();paintEditor();updateBrushControls();
+   selected=h;bulkSelected.clear();selectedBoxes.clear();drawBoxes();drawMatrices();paintEditor();updateBrushControls();
   };
   if(doc===hero){
    button.onpointerdown=e=>{if(brushMode==='paint'&&!e.shiftKey)beginBoxStroke(h,button,e)};
@@ -1289,7 +1288,11 @@ function editorActions(scenario){
  if(scenario==='vs_shove')return ['fold','call'];
  return ['fold','push']; // push_fold
 }
-function editorTargets(){return bulkSelected.size?[...bulkSelected].filter(h=>HANDS.includes(h)):[selected]}
+function editorTargets(){
+ if(bulkSelected.size)return [...bulkSelected].filter(h=>HANDS.includes(h));
+ if(selectedBoxes.size&&hero)return HANDS.filter(h=>selectedBoxes.has(hero.boxes?.[h]));
+ return [selected];
+}
 function nearestQuarter(value){
  return Math.min(100,Math.max(0,25*Math.round((Number(value)||0)/25)));
 }
@@ -1326,9 +1329,9 @@ function rebalanceEditorSplit(current,changed,requested,keys){
  return next;
 }
 function updateSelectionDisplay(){
- const targets=editorTargets(),multi=bulkSelected.size>0;
+ const targets=editorTargets(),multi=targets.length>1;
  $('selectionInfo').classList.toggle('hidden',!multi);
- $('handSelectionMode').textContent=multi?'МУЛЬТИВЫБОР РУК':'СТАРТОВАЯ РУКА';
+ $('handSelectionMode').textContent=selectedBoxes.size?'ВЫБРАННЫЕ КОРОБКИ':multi?'МУЛЬТИВЫБОР РУК':'СТАРТОВАЯ РУКА';
  $('selectedHand').textContent=multi?targets.length+' рук':selected;
  $('selectedHand').classList.toggle('multi',multi);
  $('handCombos').textContent=multi?
@@ -1336,12 +1339,12 @@ function updateSelectionDisplay(){
   COMBOS(selected)+' комбинаций · '+(selected.endsWith('s')?'suited':selected.endsWith('o')?'offsuit':'пара');
  $('selectionCount').textContent='Выбрано: '+targets.length;
  const chips=$('selectedHandChips');chips.replaceChildren();
- if(multi)for(const h of HANDS.filter(x=>bulkSelected.has(x))){
+ if(multi)for(const h of HANDS.filter(x=>targets.includes(x))){
   const chip=el('span','selectedHandChip');
   chip.append(el('span','',h));
   const remove=el('button','','×');remove.type='button';remove.title='Убрать '+h+' из выделения';
   remove.setAttribute('aria-label',remove.title);
-  remove.onclick=()=>{bulkSelected.delete(h);drawMatrices();paintEditor();updateBrushControls()};
+  remove.onclick=()=>{bulkSelected=new Set(targets.filter(x=>x!==h));selectedBoxes.clear();drawBoxes();drawMatrices();paintEditor();updateBrushControls()};
   chip.append(remove);chips.append(chip);
  }
 }
@@ -1403,7 +1406,7 @@ function paintEditor(){
   for(const percent of [0,25,50,75,100])ticks.append(el('span','',percent+'%'));
   wrapper.append(head,input,ticks);root.append(wrapper);
  }
- $('actionStatus').textContent=(mixed?'Разные частоты у выбранных рук · изменение перезапишет весь набор. ':'')+
+ $('actionStatus').textContent=(selectedBoxes.size?'Выбрано коробок: '+selectedBoxes.size+' · частоты назначаются всем их рукам. ':'')+(mixed?'Разные частоты у выбранных рук · изменение перезапишет весь набор. ':'')+
   (unsupported?'Дополнительные действия текущей стратегии будут заменены после первого изменения. ':'')+
   'Автоприменение · шаг 25% · сумма 100%'+(targets.length>1?' · '+targets.length+' рук':'');
  drawEquityStats();
@@ -1622,7 +1625,7 @@ document.addEventListener('pointermove',e=>{
 });
 document.addEventListener('pointerup',finishBoxStroke);
 document.addEventListener('pointercancel',finishBoxStroke);
-$('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
+$('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices();paintEditor()};
 $('moveBox').onclick=()=>moveHandsToBox(editorTargets(),Number($('handBox').value));
 $('resetHand').onclick=()=>{
  if(!hero)return;
