@@ -46,6 +46,12 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 .trashFooter{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:9px;border-top:1px solid #354e69}
 .trashConfirm{display:flex;align-items:center;gap:8px;font-size:11px;color:#e0c1c5;cursor:pointer;max-width:540px}
 .trashConfirm input{width:15px;height:15px;flex-shrink:0;accent-color:#cd6573}
+.coverageAudit{margin:12px 0;background:#10263a;border:1px solid #344f69;border-radius:9px;padding:11px}
+.coverageAudit summary{cursor:pointer;font-size:11px;font-weight:800;color:#d4e6fa}
+.coverageAudit .coverageTable{min-width:0;table-layout:fixed;margin:10px 0 2px;width:100%;font-size:10px}
+.coverageAudit .coverageTable th,.coverageAudit .coverageTable td{text-align:left;position:static;white-space:normal;line-height:1.38;padding:7px 5px;background:#142a41;border-bottom:1px solid #304861;vertical-align:top;min-width:0}
+.coverageAudit .coverageTable thead th{background:#23405b;color:#d4e8fa}
+.coverageAudit .coverageTable td:first-child{font-weight:750;color:#b9d4ee;width:29%}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><span id="connection" class="badge">Нет соединения</span></header>
 <div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -71,7 +77,16 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
-<div class="warning">Preflop: A17 / GTO (Old) / GTO (PC). <strong>GTO (PC)</strong> использует чарты PC 80 BB для RFI на всех позициях, включая <strong>BTN (позиция 3; ~53,9% Raise)</strong>. При ответах на чужой рейз пока используется GTO Fixed. В Postflop выбирай только постфлоп-алгоритм. Random имеет один пункт; номера назначаются автоматически.</div>
+<div class="warning"><strong>GTO (PC) 80 BB</strong>: точные исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
+<details class="coverageAudit" id="preflopAudit" open><summary>Покрытие префлоп-диапазонов · что реально исполняет бот</summary>
+<table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
+<tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
+<tr><td>BB vs Open</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
+<tr><td>Call / 3-bet vs Open</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
+<tr><td>Call / 4-bet vs 3-bet</td><td>GTO Fixed · эвристика</td><td>A01–A07 и A09: 50/50 Call/4-bet; остальные Fold</td></tr>
+<tr><td>Защита vs 4-bet</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
+</tbody></table>
+<p class="note">Это фактическое поведение турнирного движка, а не таблицы solver-GTO. Отдельные PokerCoaching vs Open / vs 3-bet / vs 4-bet пока не оцифрованы. Проценты 3-bet/4-bet в отчёте не подтверждают наличие solver-чарта.</p></details>
 <div id="botError" class="bad" role="alert"></div>
 <div class="buttons"><button class="btn primary" id="start">▶ Запустить</button><button class="btn danger" id="stop" disabled>■ Остановить</button><button class="btn" id="resume" disabled>↻ Продолжить</button></div>
 <div id="feedback" role="status" class="statusLine muted"></div>
@@ -100,12 +115,12 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 const $=id=>document.getElementById(id);
 // Preserve full registry for historical profile recognition, but only offer
 // street-appropriate strategies in the new tournament editor.
-let values=['','a17_preflop','gto','pc_gto_80bb'];
-let preflopValues=['','a17_preflop','gto','pc_gto_80bb'];
-let postflopValues=['','gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
+let values=['','a17_preflop','pc_gto_80bb'];
+let preflopValues=['','a17_preflop','pc_gto_80bb'];
+let postflopValues=['','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
-const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random'],['gto','pressure_filler']];
+const preset=[['pc_gto_80bb','smart'],['pc_gto_80bb','tag_punisher'],['pc_gto_80bb','wide_defender'],['pc_gto_80bb','maniac_mixed'],['pc_gto_80bb','baseline_sane'],['a17_preflop','tag_punisher'],['pc_gto_80bb','random'],['pc_gto_80bb','random'],['pc_gto_80bb','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false;
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
@@ -207,15 +222,15 @@ async function loadCatalog(){
   const catalog=await get('/api/catalog');
   if(catalog.strategies?.length){
    values=['',...catalog.strategies];
-   const defaults=['a17_preflop','gto','pc_gto_80bb'];
+   const defaults=['a17_preflop','pc_gto_80bb'];
    const offered=catalog.preflop_strategies||defaults;
-   preflopValues=['',...defaults.filter(v=>offered.includes(v)),...offered.filter(v=>!defaults.includes(v))];
+   preflopValues=['',...defaults.filter(v=>offered.includes(v)),...offered.filter(v=>!defaults.includes(v)&&v!=='gto')];
    for(const saved of catalog.saved_preflop||[]){
     names[saved.token]=saved.name+' · v'+saved.version+' · моя стратегия';
    }
    $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
     ' пользовательских стратегий синхронизировано с редактором. Сохранённая версия используется как Preflop; Postflop выбирается отдельно. Неотредактированные позиции — исходный алгоритм.';
-   postflopValues=['',...(catalog.postflop_strategies||['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v))];
+   postflopValues=['',...(catalog.postflop_strategies||['smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v)&&v!=='gto')];
    drawBots();
   }
   const parallel=$('parallel');
