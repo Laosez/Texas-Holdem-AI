@@ -88,6 +88,19 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("hands.replaceChildren();",page)
 
 
+    def test_pc_btn_is_explicit_and_non_rfi_not_falsely_filled(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("'3':'BTN · позиция 3'",page)
+        self.assertIn("function positionCaption(pos)",page)
+        self.assertIn("positionCaption(hero.position)",page)
+        self.assertIn("doc.base_profile||doc.id",page)
+        btn=core.preset("builtin:pc_gto_80bb",position="3",
+                        scenario="rfi",players=9,stack_bb=80)
+        self.assertEqual(len(btn["hands"]),169)
+        self.assertEqual(btn["hands"]["K2s"]["open"],100)
+        self.assertEqual(core.preset("builtin:pc_gto_80bb",position="3",
+                        scenario="vs_open",players=9,stack_bb=80)["hands"],{})
+
     def test_a17_in_matrix_with_corner_labels_and_action_bars(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         section03 = page[page.index('03 / </span>Матрицы стартовых рук'):page.index('04 / </span>Редактор выбранной руки')]
@@ -98,7 +111,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn('id="brushTarget"',section03)
         self.assertEqual(page.count('id="boxes"'),1)
         self.assertIn("button.append(el('span','handRank',h))",page)
-        self.assertIn("button.append(el('span','handBoxTag'",page)
+        self.assertIn("const tag=el('span','handBoxTag'",page)
         self.assertIn(".matrixPane .handRank{position:absolute;top:2px;left:3px",page)
         self.assertIn(".matrixPane .handBoxTag{position:absolute;top:2px;right:3px",page)
         self.assertIn("const stripe=handActionStripe(actions)",page)
@@ -276,6 +289,27 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(stripe)button.append(stripe)",page)
         self.assertIn(".handBoxTag{position:absolute;",page)
 
+
+    def test_colored_a17_badges_and_range_outlines(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        # The box badge's color uses the existing A17 group palette.
+        self.assertIn(".matrixPane .handBoxTag.inRange{",page)
+        self.assertIn("background:color-mix(in srgb,var(--group-color",page)
+        self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
+        self.assertIn("tag.classList.add('inRange')",page)
+        self.assertIn(".unifiedGroupList .boxCard.inRange{",page)
+        self.assertIn("members.some(h=>handInRange(hero,h))",page)
+        # Active means a positive participation, not an unknown or Fold 100%.
+        self.assertIn("function handInRange(doc,hand)",page)
+        self.assertIn("return participation!==null&&participation>0;",page)
+        # Brush strokes refresh both the badge color and its range ring.
+        self.assertIn("badge.style.setProperty('--group-color',groupPaletteColor(brushTarget))",page)
+        self.assertIn("badge.classList.toggle('inRange',handInRange(hero,hand))",page)
+        self.assertIn("if(!brushTarget){tag?.remove();return}",page)
+        # Keep gold/red candidate highlighting and the unchanged matrix background.
+        self.assertIn(".hand.candidateGold{border:2px solid #f3c45c}",page)
+        self.assertIn(".hand.candidateRed{border:2px solid #ee6d75}",page)
+        self.assertIn(".matrixPane .hand{background:#303b49!important",page)
 
     def test_numeric_metric_labels_use_visible_min_max_scale(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
