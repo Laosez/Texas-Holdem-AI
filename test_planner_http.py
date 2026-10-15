@@ -114,7 +114,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("const tag=el('span','handBoxTag'",page)
         self.assertIn(".matrixPane .handRank{position:absolute;top:2px;left:3px",page)
         self.assertIn(".matrixPane .handBoxTag{position:absolute;top:2px;right:3px",page)
-        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
+        self.assertIn("const stripe=handActionStripe(actions);",page)
         self.assertIn(".hand.boxhit::before",page)
         self.assertNotIn(".hand.equityHit::after",page)
 
@@ -128,7 +128,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertNotIn("const colors=metricGradient(",page)
         self.assertNotIn('id="equityMin"',page)
         self.assertIn("if(stripe)button.append(stripe)",page)
-        for name in ("equity","participation","dominant","box","combos","delta","evCall","evAllIn","action"):
+        for name in ("equity","evAllIn","none"):
             self.assertIn('value="'+name+'"',page)
 
 
@@ -183,8 +183,8 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(!Number.isFinite(eq[h]))return null;",page)
         self.assertIn("const w=COMBOS(h);mass+=w;total+=w*eq[h]",page)
         self.assertIn("return mass?total/mass:null;",page)
-        self.assertIn("const groupEq=groupWeightedEquity(b);",page)
-        self.assertIn("const groupEq=groupWeightedEquity(box);",page)
+        self.assertIn("const groupEV=groupWeightedAllInEV(b);",page)
+        self.assertIn("function groupWeightedAllInEV(b)",page)
         self.assertNotIn('id="computeBoxes"',page)
         self.assertNotIn("async function calculateBoxesEquity()",page)
         self.assertNotIn("await calculateBoxesEquity()",page)
@@ -193,7 +193,7 @@ class PlanHttpTests(unittest.TestCase):
 
     def test_gto_neutral_mode_and_detailed_hover(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('value="none">Нет · серый фон',page)
+        self.assertIn('value="none">Без числа',page)
         self.assertIn(".hand.metricNeutral{background:#303b49",page)
         self.assertNotIn('id="minPlayFrequency"',page)
         self.assertNotIn('id="playMinLabel"',page)
@@ -210,7 +210,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_hand_action_frequency_stripes_accurately_defined(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("function handActionStripe(actions)",page)
-        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
+        self.assertIn("const stripe=handActionStripe(actions);",page)
         self.assertIn("if(stripe)button.append(stripe)",page)
         for css in (".actionStripe{",".actionStripe .fold{background:#8995a2}",
                     ".actionStripe .raise{background:#e36b6e}",
@@ -333,7 +333,7 @@ class PlanHttpTests(unittest.TestCase):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         for identifier in ("rangeEvSummary","rangeEvPlayed","rangeEvDealt",
                            "rangeEvNegative","rangeEvMissed","rangeEvNote",
-                           "rangeIntersect","rangeIntersectionStats",
+                           "intersectionKey","rangeIntersectionStats",
                            "villainMetric","villainReverseStatus","computeVillainReverse"):
             self.assertIn('id="'+identifier+'"',page)
         self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples)",page)
@@ -358,63 +358,63 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("Только Hero · синий верх",page)
         self.assertIn("Только оппонент · красный низ",page)
 
-    def test_diagonal_169_hand_overlap_mode_and_legend(self):
+    def test_diagonal_background_is_permanent_and_local_matrix_metrics(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('<option value="intersection">Пересечение диапазонов · диагональ</option>',page)
         self.assertIn('id="intersectionKey"',page)
+        self.assertNotIn('id="rangeIntersect"',page)
+        self.assertIn("const showIntersection=true;",page)
+        self.assertIn("intersectionOnly=true;",page)
+        self.assertIn("const info=cellMetricValue(doc,h,metric);",page)
+        self.assertIn("if(Number.isInteger(b)&&b>0){",page)
         self.assertIn("clip-path:polygon(0 0,100% 0,100% 100%)",page)
         self.assertIn("clip-path:polygon(0 0,0 100%,100% 100%)",page)
-        self.assertIn(".hand.rangeIntersection.intersectionBoth",page)
-        self.assertIn("function intersectionMembership(hand)",page)
+        self.assertIn("if(membership.state==='both'||membership.state==='hero')",page)
+        self.assertIn("if(membership.state==='both'||membership.state==='opponent')",page)
+        self.assertIn("background:#427ba8",page)
+        self.assertIn("background:#b76775",page)
+        self.assertIn('class="matrixOptions matrixOwnControls"',page)
+        self.assertIn('class="villainMatrixControls"',page)
+        self.assertIn('id="viewOpponent"',page)
+        self.assertIn('id="villainMetric"',page)
+        self.assertIn("function intersectionStats()",page)
         self.assertIn("state:heroHas?(opponentHas?'both':'hero'):",page)
-        self.assertIn("let shared=0,heroOnly=0,opponentOnly=0,neither=0",page)
-        self.assertIn("if(first>0&&second>0)shared++",page)
-        self.assertIn("else if(first>0)heroOnly++",page)
-        self.assertIn("else if(second>0)opponentOnly++",page)
-        self.assertIn("else neither++",page)
-        self.assertIn("if(showIntersection&&!villain)",page)
-        self.assertIn("const info=showIntersection?{value:null,display:''}:cellMetricValue",page)
-        self.assertIn("const stripe=showIntersection?null:handActionStripe(actions);",page)
-        self.assertIn("intersectionOnly=$('cellMetric').value==='intersection';",page)
-        self.assertIn("selector.value='intersection'",page)
-        self.assertIn("selector.value=lastNonIntersectionMetric",page)
-        self.assertIn("const share=villainSelectedShare(hand);",page)
-        self.assertNotIn("intersectionMatched",page)
-        self.assertNotIn("intersectionMuted",page)
 
-    def test_eight_opponents_three_entry_preset_controls_and_full_diagonal_square(self):
+    def test_opponent_add_remove_controls_and_max_eight(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('<option value="8">8 соперников</option>',page)
-        self.assertIn("opponents=Array.from({length:8}",page)
+        self.assertIn('id="addOpponent"',page)
+        self.assertIn('id="oppCount" class="hidden"',page)
+        self.assertIn('id="opponentCountLabel"',page)
+        self.assertIn("opponents=Array.from({length:3}",page)
+        self.assertIn("function addOpponent(){",page)
+        self.assertIn("if(opponents.length>=8)return",page)
+        self.assertIn("function removeOpponent(index){",page)
+        self.assertIn("if(opponents.length<=1",page)
+        self.assertIn("opponents.splice(index,1)",page)
+        self.assertIn("const nextIndex=selectedIndex===index?",page)
+        self.assertIn("remove.onclick=()=>removeOpponent(i)",page)
+        self.assertIn("$('addOpponent').onclick=addOpponent",page)
         self.assertIn("{value:'range',label:'Ширина диапазона'}",page)
         self.assertIn("{value:'always',label:'100% · входит в банк'}",page)
         self.assertIn("{value:'never',label:'0% · не участвует'}",page)
         self.assertNotIn("chance.type='number'",page)
-        self.assertNotIn("Вручную %",page)
-        self.assertIn("if(membership.state==='both'||membership.state==='hero')",page)
-        self.assertIn("if(membership.state==='both'||membership.state==='opponent')",page)
-        self.assertNotIn("intersectionTriangle lower absent",page)
-        self.assertNotIn("intersectionTriangle upper absent",page)
-        self.assertIn('<span class="intersectionTriangle upper"></span><span class="intersectionTriangle lower"></span></span>Оба',page)
-        self.assertIn("Если рука есть только у одного",page)
-        self.assertIn(".matrixGrid .hand.rangeIntersection.intersectionBoth",page)
 
-    def test_active_hands_have_blue_fill_in_equity_and_ev_matrix(self):
+    def test_box_click_white_frame_and_group_all_in_ev(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn(".matrixGrid .hand.playedRange:not(.rangeIntersection){",page)
-        self.assertIn("background:#216fba;border-color:#5ba3df;color:#ffffff;",page)
-        self.assertNotIn(".matrixPane .hand{background:#303b49!important",page)
-        self.assertIn(".matrixPane .hand{background:#303b49;background-image:none;",page)
-        self.assertNotIn("background:#303b49!important",page)
-        self.assertIn(".matrixGrid .hand:not(.playedRange):not(.rangeIntersection){",page)
-        self.assertIn("background:#303b49;color:#dce8f4",page)
-        self.assertIn("if(!showIntersection){",page)
-        self.assertIn("const inRange=doc===villain?(villainSelectedShare(h)||0)>0:handInRange(doc,h)",page)
-        self.assertIn("if(inRange)button.classList.add('playedRange')",page)
-        self.assertIn("Синий фон — рука участвует в выбранном диапазоне",page)
-        self.assertIn("if(showIntersection){",page)
-        self.assertIn("if(membership.state==='both'||membership.state==='hero')",page)
-        self.assertIn("if(membership.state==='both'||membership.state==='opponent')",page)
+        self.assertIn("const wasSelected=selectedBoxes.has(b)",page)
+        self.assertIn("selectedBoxes=wasSelected?new Set():new Set([b]);",page)
+        self.assertIn(".matrixGrid .hand.boxhit{outline:2px solid #f0f7ff",page)
+        self.assertIn("const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero?.boxes?.[h])",page)
+        self.assertIn("choose.setAttribute('aria-pressed',String(selectedBoxes.has(b)))",page)
+        self.assertIn("function groupWeightedAllInEV(b)",page)
+        self.assertIn("const ev=modelConditionalAllInEv(eq[h],pots?.[h],stack,dead,n)",page)
+        self.assertIn("const groupEV=groupWeightedAllInEV(b)",page)
+        self.assertIn("· EV '+(groupEV===null?",page)
+        self.assertIn('id="cleanupStrategies"',page)
+        self.assertIn("function preserveA17Strategy(name)",page)
+        self.assertIn("if(!confirm('В корзину уйдут ВСЕ ВЕРСИИ '",page)
+        self.assertIn('id="activeContext"',page)
+        self.assertIn('id="players" class="hidden"',page)
+        self.assertIn('id="stack" class="hidden"',page)
 
     def test_matrix_action_copy_paste_between_positions_preserves_boxes(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
@@ -556,7 +556,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn('class="a17Workbench unifiedGroupEditor"',page)
         self.assertIn('id="groupDrawer" class="groupDrawer unifiedGroupList"',page)
         self.assertIn("updateBrushControls();drawStudioStats();",page)
-        self.assertIn("choose.title='Выбрать рабочую коробку для кисти и переноса'",page)
+        self.assertIn("choose.title='Выделить / снять белую рамку всех рук коробки'",page)
         self.assertIn('brushTarget=b;',page)
         self.assertIn("card.style.setProperty('--group-color',groupPaletteColor(b))",page)
         self.assertIn("for(const b of [...boxOrder(),0])",page)
