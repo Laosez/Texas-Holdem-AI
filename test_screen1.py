@@ -25,6 +25,108 @@ def archive_with(files):
 
 
 class ScreenOneTests(unittest.TestCase):
+    def test_standardized_preflop_v1_all_169_hands_have_valid_response_actions(self):
+        from bots.standard_preflop import response_frequencies,PROTOCOL
+        from bots.pc_gto_80bb_ranges import HANDS
+        self.assertEqual(PROTOCOL,"standard_v1")
+        self.assertEqual(len(HANDS),169)
+        for stage in ("vs_limp","vs_open","vs_threebet","vs_fourbet","vs_fivebet","vs_shove"):
+            for hand in HANDS:
+                action=response_frequencies(stage,hand)
+                self.assertEqual(sum(action.values()),100,(stage,hand))
+                self.assertLessEqual(len(action),2,(stage,hand))
+        self.assertEqual(response_frequencies("vs_open","65s"),{"call":100})
+        self.assertEqual(response_frequencies("vs_open","72o"),{"fold":100})
+        self.assertEqual(response_frequencies("vs_open","AKs"),{"raise":100})
+        self.assertEqual(response_frequencies("vs_open","JJ"),{"raise":50,"call":50})
+        self.assertEqual(response_frequencies("vs_threebet","QQ"),{"raise":50,"call":50})
+        self.assertEqual(response_frequencies("vs_threebet","AJo"),{"fold":100})
+        self.assertEqual(response_frequencies("vs_fourbet","AA"),{"raise":100})
+        self.assertEqual(response_frequencies("vs_fourbet","AKo"),{"call":100})
+        self.assertEqual(response_frequencies("vs_fivebet","QQ"),{"call":100})
+
+    def test_standardized_preflop_response_and_sizes_identical_for_pc_a17_and_saved_split(self):
+        import os
+        from types import SimpleNamespace
+        from core.bot_api import Action
+        from bots import create_bot
+        from bots.standard_preflop import preflop_stage
+        from unittest.mock import patch as mock_patch
+
+        legal=[{"type":"fold"},{"type":"call"},{"type":"check"},
+               {"type":"raise","min":8,"max":500}]
+        def view(hand,raised=(),pos="9",to_call=6,street="preflop",minimum=8,maximum=500):
+            if hand=="AA":
+                hole=[("A","s"),("A","h")]
+            elif hand.endswith("s"):
+                hole=[(hand[0],"s"),(hand[1],"s")]
+            else:
+                hole=[(hand[0],"s"),(hand[1],"d")]
+            history=[{"street":"preflop","pid":f"P{i+1}","type":"raise","amount":amt}
+                     for i,amt in enumerate(raised)]
+            return SimpleNamespace(street=street,me="P9",hole_cards=hole,
+                position=pos,to_call=to_call,pot=30,board=[],
+                legal_actions=[{"type":"fold"},{"type":"call"},{"type":"check"},
+                               {"type":"raise","min":minimum,"max":maximum}],
+                stacks={f"P{i}":500 for i in range(1,10)},history=history)
+        with mock_patch.dict(os.environ,{"POKER_PREFLOP_PROTOCOL":"standard_v1"}):
+            pc=create_bot("split:pc_gto_80bb:smart")
+            a17=create_bot("split:a17_preflop:tag_punisher")
+        for bot in (pc,a17):
+            self.assertEqual(bot.preflop_protocol,"standard_v1")
+            with mock_patch("bots.standard_preflop.random.random",return_value=0.0):
+                self.assertEqual(bot.act(view("AA",(5,))).type,"raise")
+                self.assertEqual(bot.act(view("AA",(5,))).amount,15)
+                self.assertEqual(bot.act(view("AA",(5,15))).amount,34)
+                self.assertEqual(bot.act(view("AA",(5,15,34))).amount,500)
+                self.assertEqual(bot.act(view("65s",(5,))).type,"call")
+                self.assertEqual(bot.act(view("72o",(5,))).type,"fold")
+                self.assertEqual(bot.act(view("QQ",(5,15))).amount,34)
+                self.assertEqual(bot.act(view("QQ",(5,15,34))).type,"call")
+                self.assertEqual(bot.act(view("AKo",(5,15,34))).type,"call")
+                self.assertEqual(bot.act(view("AA",(5,),pos="BB")).type,"raise")
+            with mock_patch("bots.standard_preflop.random.random",return_value=.99):
+                self.assertEqual(bot.act(view("QQ",(5,15))).type,"call")
+                self.assertEqual(bot.act(view("JJ",(5,))).type,"call")
+        # RFI belongs to the original strategy: just normalize its open size.
+        a17.preflop_bot.act=lambda state:Action("raise",100)
+        self.assertEqual(a17.act(view("98s",(),to_call=2,minimum=4)).amount,5)
+        self.assertEqual(a17.act(view("98s",(),to_call=1,minimum=4,pos="SB")).amount,6)
+        a17.preflop_bot.act=lambda state:Action("fold")
+        self.assertEqual(a17.act(view("98s",(),to_call=2,minimum=4)).type,"fold")
+        # Dedicated postflop policy never goes through the shared protocol.
+        a17.postflop_bot.act=lambda state:Action("check")
+        self.assertEqual(a17.act(view("AA",street="flop")).type,"check")
+        # Baseline mode is preserved for the old archive/CLI bots.
+        with mock_patch.dict(os.environ,{"POKER_PREFLOP_PROTOCOL":"legacy"}):
+            legacy=create_bot("split:a17_preflop:tag_punisher")
+        legacy.preflop_bot.act=lambda state:Action("fold")
+        self.assertEqual(legacy.act(view("AA",(5,15))).type,"fold")
+        self.assertEqual(preflop_stage(view("AA",(),to_call=2)),None)
+        self.assertEqual(preflop_stage(view("AA",(5,))),"vs_open")
+        self.assertEqual(preflop_stage(view("AA",(5,15))),"vs_threebet")
+        self.assertEqual(preflop_stage(view("AA",(5,15,34))),"vs_fourbet")
+
+    def test_standardized_protocol_is_validated_persisted_and_user_selectable(self):
+        from types import SimpleNamespace
+        regular=[{"pre":"a17_preflop","post":"tag_punisher"},
+                 {"pre":"pc_gto_80bb","post":"smart"}]
+        v=app.validate_config({"bots":regular,"preflop_protocol":"standard_v1"})
+        self.assertEqual(v["preflop_protocol"],"standard_v1")
+        self.assertEqual(app.validate_config({"bots":regular})["preflop_protocol"],"legacy")
+        with self.assertRaisesRegex(ValueError,"preflop_protocol"):
+            app.validate_config({"bots":regular,"preflop_protocol":"invalid"})
+        self.assertIn("standard_v1",app.strategy_catalog()["preflop_protocols"])
+        page=app.UI.read_text(encoding="utf-8")
+        self.assertIn('id="preflop_protocol"',page)
+        self.assertIn('value="standard_v1" selected',page)
+        self.assertIn("'preflop_protocol':'standard_v1'",page.replace('"',"").replace("standard_v1'","standard_v1'") if False else page)
+        self.assertIn("preflop_protocol:$('preflop_protocol').value",page)
+        self.assertIn("$('preflop_protocol').value=c.preflop_protocol||'legacy'",page)
+        self.assertIn("Единый протокол V1",page)
+        runner=(app.ROOT/"replit_simulator.py").read_text(encoding="utf-8")
+        self.assertIn('POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy")',runner)
+
     def test_user_saved_plans_share_catalog_and_are_real_preflop_bots(self):
         import os
         from types import SimpleNamespace
