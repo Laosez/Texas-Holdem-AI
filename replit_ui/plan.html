@@ -774,11 +774,11 @@ function updateBrushControls(){
  const values=[{value:'0',label:'Без коробки'},...boxOrder().map(b=>({value:String(b),label:'A'+String(b).padStart(2,'0')}))];
  refill($('brushTarget'),values,String(brushTarget));
  $('brushStatus').textContent=paint?'Режим: кисть':'Режим: выбор';
- $('brushSelectedCount').textContent=bulkSelected.size+' выбрано';
+ $('brushSelectedCount').textContent=selectedBoxes.size?(selectedBoxes.size+' коробок · '+editorTargets().length+' рук'):bulkSelected.size+' рук выбрано';
  $('brushApply').disabled=!bulkSelected.size||!hero;
  $('brushHint').textContent=paint?
   'Проведи мышью или пальцем по рукам матрицы — они перейдут в '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'«Без коробки»')+'. Одно движение = один шаг отмены. Частоты Raise/Fold не изменятся.':
-  'Нажми номер коробки для белой рамки её рук (повторное нажатие снимет рамку). Для переноса: Shift+клик по рукам → выбери коробку в поле «В коробку» → «Перенести выбранные».';
+  'Нажимай номера коробок для мультивыбора (повторный клик снимет выбор). Частоты Fold / Raise / Call справа применятся ко всем рукам выбранных коробок. Для переноса используй Shift+клик по рукам и кисть.';
 }
 function moveHandsToBox(hands,target){
  if(!hero||!Number.isInteger(target)||target<0||target>17)return false;
@@ -1361,7 +1361,7 @@ function rebalanceEditorSplit(current,changed,requested,keys){
  return next;
 }
 function updateSelectionDisplay(){
- const targets=editorTargets(),multi=targets.length>1;
+ const targets=editorTargets(),multi=targets.length>1||selectedBoxes.size>0;
  $('selectionInfo').classList.toggle('hidden',!multi);
  $('handSelectionMode').textContent=selectedBoxes.size?'ВЫБРАННЫЕ КОРОБКИ':multi?'МУЛЬТИВЫБОР РУК':'СТАРТОВАЯ РУКА';
  $('selectedHand').textContent=multi?targets.length+' рук':selected;
@@ -1371,7 +1371,15 @@ function updateSelectionDisplay(){
   COMBOS(selected)+' комбинаций · '+(selected.endsWith('s')?'suited':selected.endsWith('o')?'offsuit':'пара');
  $('selectionCount').textContent='Выбрано: '+targets.length;
  const chips=$('selectedHandChips');chips.replaceChildren();
- if(multi)for(const h of HANDS.filter(x=>targets.includes(x))){
+ if(selectedBoxes.size){
+  for(const b of [...selectedBoxes].sort((a,z)=>a-z)){
+   const chip=el('span','selectedHandChip');
+   chip.append(el('span','',b?'A'+String(b).padStart(2,'0'):'Без коробки'));
+   const remove=el('button','','×');remove.type='button';remove.title='Снять коробку';
+   remove.onclick=()=>{selectedBoxes.delete(b);drawBoxes();drawMatrices();paintEditor()};
+   chip.append(remove);chips.append(chip);
+  }
+ }else if(multi)for(const h of HANDS.filter(x=>targets.includes(x))){
   const chip=el('span','selectedHandChip');
   chip.append(el('span','',h));
   const remove=el('button','','×');remove.type='button';remove.title='Убрать '+h+' из выделения';
@@ -1600,6 +1608,7 @@ async function savePlan(forceNew=false){
   const saved=await post('/api/plan/strategies',{plan:c,parent});
   hero=saved;dirty=false;undos=[];bulkSelected.clear();meta=await api('/api/plan/catalog');
   refill($('heroProfile'),profileOptions(),saved.ref);
+  localStorage.setItem('skachkov_last_plan_profile',saved.ref);
   setHeroFields(saved);paintEditor();renderOpponents();renderAll();
   msg('Сохранена '+saved.name+' · версия '+saved.version);
  }catch(e){msg('Не удалось сохранить: '+e.message,true)}
@@ -1608,7 +1617,9 @@ function renderAll(){drawBoxes();drawMatrices();refreshComparison();drawEquitySt
 async function connect(){
  try{
   const data=await api('/api/plan/catalog');meta=data;
-  refill($('heroProfile'),profileOptions(),'builtin:a17_v5');
+  const lastPlan=localStorage.getItem('skachkov_last_plan_profile');
+  const selectable=profileOptions();
+  refill($('heroProfile'),selectable,selectable.some(x=>x.value===lastPlan)?lastPlan:'builtin:a17_v5');
   refill($('players'),Array.from({length:8},(_,i)=>({value:String(i+2),label:(i+2)+'-max'})),'9');
   refill($('heroScenario'),Object.entries(SCENARIOS).map(([value,label])=>({value,label})),'rfi');
   renderPositions($('heroPosition'),'3');
@@ -1626,7 +1637,7 @@ async function connect(){
 $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
 $('pasteMatrix').onclick=pasteMatrixSettings;
-$('heroProfile').onchange=()=>loadHero();
+$('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);loadHero()};
 $('heroPosition').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
@@ -1648,8 +1659,8 @@ $('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControl
 $('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBoxes();drawMatrices()};
 $('brushSelectGroup').onclick=()=>{if(!hero)return;bulkSelected=new Set(HANDS.filter(h=>hero.boxes[h]===brushTarget));drawMatrices();updateBrushControls();paintEditor()};
 $('brushApply').onclick=()=>moveHandsToBox([...bulkSelected],brushTarget);
-$('brushClear').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls();paintEditor()};
-$('clearHandSelection').onclick=()=>{bulkSelected.clear();drawMatrices();updateBrushControls();paintEditor()};
+$('brushClear').onclick=()=>{bulkSelected.clear();selectedBoxes.clear();drawBoxes();drawMatrices();updateBrushControls();paintEditor()};
+$('clearHandSelection').onclick=()=>{bulkSelected.clear();selectedBoxes.clear();drawBoxes();drawMatrices();updateBrushControls();paintEditor()};
 document.addEventListener('pointermove',e=>{
  if(!brushPainting||!hero)return;
  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('.hand[data-hand]');
