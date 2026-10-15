@@ -536,27 +536,24 @@ function setMetricLegend(){
  $('evControls').classList.toggle('hidden',!ev);
  $('allInControls').classList.toggle('hidden',!allIn);
  if(allIn){
-  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
-  const valid=Number.isFinite(stack)&&stack>0&&Number.isFinite(dead)&&dead>=0&&n>0;
-  const pot=valid?(n+1)*stack+dead:NaN;
-  $('allInStatus').textContent=valid?
-   `${n+1} участника · каждый выставляет ${stack} BB · дополнительные мёртвые деньги ${dead} BB · итоговый банк ${pot.toFixed(1)} BB · безубыточность ${(100*stack/pot).toFixed(1)}% equity. Берём Multiway Equity выбранных соперников, без побочных банков / fold equity / ICM. EV приблизителен: погрешность Monte Carlo растёт вместе с размером банка.`:
-   'Укажите положительный эффективный стек в блоке 01 и неотрицательные мёртвые деньги. Данные некорректны.';
+  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length,pot=(n+1)*stack+dead;
+  $('allInStatus').textContent=n>0&&stack>0&&dead>=0?
+   (n+1)+' участника · банк '+pot.toFixed(1)+' BB · необходимое equity '+(100*stack/pot).toFixed(1)+'% · без ICM':
+   'Введите корректный стек и мёртвые деньги.';
  }
- const settings={
-  none:['Нейтральный серый фон: цвет не зависит от расчётов, выделение игрового диапазона определяется отдельно.','linear-gradient(90deg,#37404b,#37404b)'],
-  equity:['Equity: 0% → 100%, красный → зелёный. Без Monte Carlo нет значения.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
-  participation:['Частота участия: 0% → 100%; нижняя полоска показывает частоты действий.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
-  dominant:['Частота основного действия: 0% → 100%.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
-  box:['Коробки A01–A17: 17 разных цветов, без шкалы силы.','linear-gradient(90deg,#97446f,#476f9d,#43976c,#b48b46)'],
-  combos:['Комбинации: 4 → 6 → 12.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
-  delta:['Δ участия: красный — меньше, нейтральный — равно, зелёный — больше.','linear-gradient(90deg,#873544,#414e64,#277d6b)'],
-  evCall:['chipEV колла в BB (относительно Fold = 0): красный — убыток, зелёный — прибыль. Только для нашей матрицы.','linear-gradient(90deg,#873544,#414e64,#277d6b)'],
-  evAllIn:['All-in chipEV в BB: все соперники выставились на равные стеки; красный — EV < 0, зелёный — EV > 0. Рассчитывается по фактическому Multiway Equity выбранных соперников.','linear-gradient(90deg,#873544,#414e64,#277d6b)'],
-  action:['Основное назначенное действие: разные цвета, не шкала силы.','linear-gradient(90deg,#375b9c,#39866f,#a26a4f,#9a426e)']
+ const descriptions={
+  none:'Нейтральный режим без числа.',
+  equity:'Equity, % против выбранной модели.',
+  evCall:'ChipEV колла относительно Fold=0, BB.',
+  evAllIn:'All-in chipEV при выставлении всех выбранных соперников, BB.',
+  participation:'Частота участия, % (не сила руки).',
+  dominant:'Частота основного действия, %.',
+  box:'Коробка A17 — категория, а не сила.',
+  combos:'Комбинации: 4 suited / 6 pair / 12 offsuit.',
+  delta:'Разница участия с соперником, п.п.',
+  action:'Основное действие; частоты в нижней полоске.'
  };
- $('metricLegendText').textContent=settings[metric]?.[0]||'';
- $('metricLegendSwatch').style.background=settings[metric]?.[1]||'';
+ $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
