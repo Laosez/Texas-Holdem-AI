@@ -36,6 +36,59 @@ def _view(hand, position="9", n=9, history=(), to_call=2, legal=None):
     )
 
 
+class SharedBBDefenseTests(unittest.TestCase):
+    def test_one_shared_pc_current_fallback_for_all_tournament_preflops(self):
+        from bots.shared_pc_bb_defense import (
+            first_bb_vs_single_open, BB_DEFENSE_SOURCE)
+        self.assertIn("fallback:gto_fixed", BB_DEFENSE_SOURCE)
+        view=_view("99",position="BB",history=[{
+            "street":"preflop","pid":"P1","type":"raise"
+        }],to_call=4)
+        self.assertTrue(first_bb_vs_single_open(view))
+        names=("gto","a17_preflop","a17_preflop_legacy","pc_gto_80bb")
+        with patch("bots.gto_fixed_bot.random.random",return_value=0.80):
+            baseline=create_bot("split:pc_gto_80bb:tag_punisher").act(view)
+            for name in names:
+                with self.subTest(name=name):
+                    bot=create_bot(f"split:{name}:tag_punisher")
+                    self.assertEqual(bot.bb_defense.source,BB_DEFENSE_SOURCE)
+                    action=bot.act(view)
+                    self.assertEqual((action.type,action.amount),
+                                     (baseline.type,baseline.amount))
+        self.assertIn(baseline.type,("fold","call","raise"))
+
+    def test_bb_intercepts_only_first_standard_raise(self):
+        from bots.shared_pc_bb_defense import first_bb_vs_single_open
+        raise_entry={"street":"preflop","pid":"P1","type":"raise"}
+        for entries,to_call,expect in (
+            ([raise_entry],4,True),
+            ([],0,False),
+            ([{"street":"preflop","pid":"P1","type":"call"}],0,False),
+            ([raise_entry,{"street":"preflop","pid":"P2","type":"call"}],4,False),
+            ([raise_entry,{"street":"preflop","pid":"P2","type":"raise"}],6,False),
+            ([{"street":"preflop","pid":"P1","type":"all_in"}],8,False),
+            ([{"street":"preflop","pid":"P9","type":"raise"}],8,False),
+        ):
+            with self.subTest(entries=entries):
+                self.assertEqual(first_bb_vs_single_open(
+                    _view("99",position="BB",history=entries,to_call=to_call)
+                ),expect)
+        self.assertFalse(first_bb_vs_single_open(
+            _view("99",position="SB",history=[raise_entry],to_call=4)
+        ))
+
+    def test_a17_custom_vs_threebet_kept_outside_shared_bb_rfi_module(self):
+        # Exactly two opponent raises trigger the existing A17 model,
+        # not an invented PokerCoaching 3-bet or 4-bet BB response chart.
+        view=_view("AA",position="BB",history=[
+            {"street":"preflop","pid":"P1","type":"raise"},
+            {"street":"preflop","pid":"P2","type":"raise"},
+        ],to_call=8)
+        with patch("bots.a17_preflop_bot.random.random",return_value=0.2):
+            self.assertEqual(create_bot("split:a17_preflop:tag_punisher")
+                             .act(view).type,"raise")
+
+
 class A17PositionRangesTests(unittest.TestCase):
     def test_source_169_hands_1326_combos_and_exact_boundaries(self):
         self.assertEqual(len(A17_HAND_TO_BOX), 169)

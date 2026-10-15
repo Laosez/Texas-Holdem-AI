@@ -153,12 +153,10 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 }
 .matrixLayout.double .matrixPane .handBoxTag{top:0;right:0;font-size:8px}
 .matrixPane .handBoxTag.inRange{
- outline:1px solid #edf1f4;outline-offset:-2px;
- box-shadow:none;background:var(--group-color,#8494a6);
+ outline:none;border:0;box-shadow:none;background:var(--group-color,#8494a6);
 }
 .unifiedGroupList .boxCard.inRange{
- outline:1px solid rgba(241,245,250,.78);
- outline-offset:-2px;
+ outline:none;box-shadow:inset 0 0 0 1px #5c7792;
 }
 @media(max-width:690px){.matrixPane .handBoxTag{width:20px;min-width:20px;height:14px;padding:0 1px;font-size:7px;letter-spacing:-.35px}.matrixPane .handRank{font-size:9px}}
 @media(max-width:1230px){.plannerWorkspace{grid-template-columns:minmax(0,1fr) 310px}.editorSection .actionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -201,6 +199,14 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .unifiedGroupEditor{margin:11px 0 0}
 .unifiedGroupList{border-top:1px solid #304b66;margin-top:12px;padding-top:12px}
 .unifiedGroupList .boxCard{border-left:3px solid var(--group-color,#8494a6)}
+/* Fixed A01–A17 layout: four group cards per row. Hands may move
+   between boxes; boxes themselves may not be re-ordered. */
+.unifiedGroupList .boxList{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.unifiedGroupList .boxCard{min-width:0;padding:7px}
+.unifiedGroupList .boxCardMeta{font-size:9px}
+.unifiedGroupList .boxHandChip.isSelected{border-color:#a4d1ff;background:#385a75}
+@media(max-width:740px){.unifiedGroupList .boxList{grid-template-columns:repeat(4,minmax(126px,1fr));overflow-x:auto}}
+
 .unifiedGroupList .boxCard.brushTarget{border-color:#96c5fa;background:linear-gradient(155deg,#1b3856,#122a43);box-shadow:inset 0 0 0 1px #6ba6e6}
 .unifiedGroupList .boxCard.brushTarget .boxSelect{color:#fff}
 .unifiedGroupList .boxSelect[aria-pressed="true"]{text-decoration:underline;text-underline-offset:3px}
@@ -264,7 +270,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div id="brushHint" class="brushHint">Нажмите на коробку ниже — она станет рабочей для кисти и массового переноса. Shift+клик по рукам выделяет несколько, перетаскивание переносит руки между коробками.</div>
 <div id="groupDrawer" class="groupDrawer unifiedGroupList">
 <div id="boxes" class="boxList"></div>
-<p class="boxInstructions">Одна панель для выбора коробки, кисти, ручного переноса и сортировки. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. Значок ⠿ переставляет коробки. <strong>Eq</strong> — средневзвешенное Equity рук по 4/6/12 комбинациям, мгновенно без дополнительного Monte Carlo. Перенос между коробками не меняет частоты действий.</p>
+<p class="boxInstructions">Коробки A01–A17 стоят в фиксированном порядке. Переноси руки между коробками или в «Без коробки» перетаскиванием, через массовое выделение или кнопкой ×. Shift/Ctrl+клик по рукам выделяет несколько. <strong>Eq</strong> — средневзвешенное Equity рук по 4/6/12 комбинациям, мгновенно без дополнительного Monte Carlo. Перенос между коробками не меняет частоты действий.</p>
 </div>
 </div></details>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="heroMatrix" class="matrixGrid"></div></div></div></div>
@@ -448,8 +454,7 @@ async function loadVillain(){
 function major(actions){if(!actions)return 'none';const entries=Object.entries(actions).filter(x=>x[1]>0);if(!entries.length)return 'none';entries.sort((a,b)=>b[1]-a[1]);return entries[0][0]}
 function handTooltip(hand,doc){return hand+' · '+(doc?.boxes?.[hand]?'A'+String(doc.boxes[hand]).padStart(2,'0'):'')+' · '+(doc?.hands?.[hand]?Object.entries(doc.hands[hand]).map(([k,v])=>ACTIONS[k]+': '+v+'%').join(', '):'Не назначено')}
 function boxOrder(){
- const order=hero?.box_order;
- return Array.isArray(order)&&order.length===17&&new Set(order).size===17&&order.every(x=>Number.isInteger(x)&&x>=1&&x<=17) ? order : Array.from({length:17},(_,i)=>i+1);
+ return Array.from({length:17},(_,i)=>i+1);
 }
 function markBoxDirty(){
  
@@ -458,17 +463,34 @@ function markBoxDirty(){
 }
 function boxDropped(e,target){
  e.preventDefault();e.stopPropagation();
- const from=Number(e.dataTransfer.getData('application/x-skachkov-box'));
- if(Number.isInteger(from)&&from>=1&&from<=17){if(target>=1)reorderBox(from,target);return}
+ const many=e.dataTransfer.getData('application/x-skachkov-hands');
+ if(many){
+  try{
+   const hands=JSON.parse(many);
+   if(Array.isArray(hands)){moveHandsToBox(hands,target);return}
+  }catch(_){}
+ }
  const h=e.dataTransfer.getData('application/x-skachkov-hand')||e.dataTransfer.getData('text/plain');
- if(HANDS.includes(h))moveHandToBox(h,target);
+ if(HANDS.includes(h))moveHandsToBox([h],target);
 }
 function boxChip(h){
- const chip=el('div','boxHandChip');
+ const chip=el('div','boxHandChip'+(bulkSelected.has(h)?' isSelected':''));
  chip.draggable=true;
- chip.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-hand',h);e.dataTransfer.setData('text/plain',h)};
- const show=el('button','boxHandSelect',h);show.type='button';show.title='Редактировать '+h;
- show.onclick=e=>{if(e.shiftKey){if(!bulkSelected.size){bulkSelected.add(selected);if(h!==selected)bulkSelected.add(h)}else if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h)}else{selected=h;bulkSelected.clear()}drawMatrices();paintEditor();updateBrushControls()};chip.append(show);
+ chip.ondragstart=e=>{
+  e.stopPropagation();e.dataTransfer.effectAllowed='move';
+  const hands=bulkSelected.has(h)?[...bulkSelected]:[h];
+  e.dataTransfer.setData('application/x-skachkov-hands',JSON.stringify(hands));
+  e.dataTransfer.setData('application/x-skachkov-hand',h);
+  e.dataTransfer.setData('text/plain',h);
+ };
+ const show=el('button','boxHandSelect',h);show.type='button';
+ show.title='Редактировать '+h+' · Shift/Ctrl+клик — выбрать для массового переноса';
+ show.onclick=e=>{
+  if(e.shiftKey||e.ctrlKey||e.metaKey){
+   if(bulkSelected.has(h))bulkSelected.delete(h);else bulkSelected.add(h);
+  }else{selected=h;bulkSelected.clear()}
+  drawBoxes();drawMatrices();paintEditor();updateBrushControls();
+ };chip.append(show);
  if(hero.boxes[h]!==0){
   const remove=el('button','boxHandRemove','×');remove.type='button';
   remove.title='Убрать '+h+' из коробки';remove.setAttribute('aria-label',remove.title);
@@ -511,7 +533,7 @@ function updateBrushControls(){
  $('brushApply').disabled=!bulkSelected.size||!hero;
  $('brushHint').textContent=paint?
   'Проведи мышью или пальцем по рукам матрицы — они перейдут в '+(brushTarget?'A'+String(brushTarget).padStart(2,'0'):'«Без коробки»')+'. Одно движение = один шаг отмены. Частоты Raise/Fold не изменятся.':
-  'Выбери исходную коробку → «Выделить руки коробки» → нажми целевую коробку → «Перенести выбранные». Ctrl+клик по коробкам подсвечивает несколько. Кисть переносит руки в рабочую коробку при проведении по матрице.';
+  'Выбери руки кнопкой «Выделить руки коробки» или Shift/Ctrl+кликами по рукам → выбери целевую коробку → «Перенести выбранные». В правой панели кнопка переноса также действует на все выделенные руки.';
 }
 function moveHandsToBox(hands,target){
  if(!hero||!Number.isInteger(target)||target<0||target>17)return false;
@@ -580,11 +602,6 @@ function drawBoxes(){
   }
   const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · Eq '+(groupEq===null?'—':groupEq.toFixed(1)+'%')));
   summary.title='Взвешенное equity по 4/6/12 комбинациям из рассчитанных 169 рук; обновляется при переносе без новых MC.';head.append(summary);
-  if(b!==0){
-   const handle=el('button','boxHandle','⠿');handle.type='button';handle.draggable=true;
-   handle.title='Переставить коробку';handle.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-box',String(b))};
-   head.append(handle);
-  }
   card.append(head);
   const list=el('div','boxHandList');
   if(members.length)for(const h of members)list.append(boxChip(h));
@@ -596,13 +613,6 @@ function drawBoxes(){
   root.append(card);
  }
  updateBrushControls();drawStudioStats();
-}
-function reorderBox(from,to){
- if(!hero||from===to)return;
- const order=[...boxOrder()],i=order.indexOf(from),j=order.indexOf(to);
- if(i<0||j<0)return;
- snapshotUndo();order.splice(i,1);order.splice(j,0,from);hero.box_order=order;markBoxDirty();
- msg('Коробка A'+String(from).padStart(2,'0')+' перемещена; её номер и руки не менялись.');
 }
 function modelCallEv(equityPct,potBB,callBB){
  if(!Number.isFinite(equityPct)||equityPct<0||equityPct>100||
@@ -1123,6 +1133,7 @@ async function savePlan(forceNew=false){
   hero.name=$('strategyName').value.trim();
   hero.stack_bb=Number($('stack').value);
   preserveCurrentSlot();
+  hero.box_order=boxOrder(); // canonical static A01–A17 ordering
   const c=copy(hero);
   const parent=forceNew||hero.readonly?null:(hero.ref||null);
   const saved=await post('/api/plan/strategies',{plan:c,parent});
@@ -1178,7 +1189,7 @@ document.addEventListener('pointermove',e=>{
 document.addEventListener('pointerup',finishBoxStroke);
 document.addEventListener('pointercancel',finishBoxStroke);
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
-$('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
+$('moveBox').onclick=()=>moveHandsToBox(editorTargets(),Number($('handBox').value));
 $('resetHand').onclick=()=>{
  if(!hero)return;
  const targets=editorTargets().filter(h=>Object.prototype.hasOwnProperty.call(hero.hands,h));

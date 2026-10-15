@@ -10,6 +10,7 @@ ranges necessarily alter which boards and opponents reach the postflop phase.
 from __future__ import annotations
 
 from core.bot_api import Action, BotAdapter, PlayerView
+from bots.shared_pc_bb_defense import SharedPCBBDefense, first_bb_vs_single_open
 
 
 # Curated experiment bases with known self-contained preflop/postflop code.
@@ -43,10 +44,13 @@ class StreetSplitBot(BotAdapter):
         self.postflop_bot = postflop_bot
         self.preflop_name = preflop_name
         self.postflop_name = postflop_name
+        self.bb_defense = SharedPCBBDefense()
 
     def act(self, view: PlayerView) -> Action:
         street = view.street
         if street == "preflop":
+            if first_bb_vs_single_open(view):
+                return self.bb_defense.act(view)
             return self.preflop_bot.act(view)
         if street in ("flop", "turn", "river"):
             return self.postflop_bot.act(view)
