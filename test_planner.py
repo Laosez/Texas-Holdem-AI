@@ -165,6 +165,83 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             api._validate_request(request)
 
+    def test_opponent_entry_probability_automatic_uses_1326_and_hero_blockers(self):
+        only_aces=eq.WeightedRange({"AA": 1.0})
+        self.assertAlmostEqual(only_aces.dealt_frequency(),6/1326)
+        hero_aces=eq.HAND_COMBOS["AA"][0]
+        hero_kings=eq.HAND_COMBOS["KK"][0]
+        self.assertAlmostEqual(only_aces.probability_versus_hero(hero_aces),1/1225)
+        self.assertAlmostEqual(only_aces.probability_versus_hero(hero_kings),6/1225)
+        half=eq.WeightedRange({"AA":0.5})
+        self.assertAlmostEqual(half.dealt_frequency(),3/1326)
+        self.assertAlmostEqual(half.probability_versus_hero(hero_aces),0.5/1225)
+        full=eq.WeightedRange({h:1 for h in core.HANDS})
+        self.assertAlmostEqual(full.dealt_frequency(),1.0)
+        self.assertAlmostEqual(full.probability_versus_hero(hero_aces),1.0)
+
+    def test_multi_opponent_marginal_entry_mixture_includes_zero_and_conditional_equity(self):
+        ranges=[eq.WeightedRange({"AA":1.0}),eq.WeightedRange({"KK":1.0})]
+        specs=[{"entry_mode":"manual","entry_pct":20},
+               {"entry_mode":"manual","entry_pct":50}]
+        masses,choices=eq.entry_distributions("72o",ranges,specs)
+        self.assertEqual(len(choices),12)
+        for found,expected in zip(masses,[0.4,0.5,0.1]):
+            self.assertAlmostEqual(found,expected)
+        value,pot,counts=eq.simulate_hand_variable("72o",ranges,specs,trials=50,seed=42)
+        self.assertTrue(0<=value<=100)
+        self.assertTrue(0<=pot<=3)
+        self.assertAlmostEqual(sum(counts),1.0)
+        none=[{"entry_mode":"manual","entry_pct":0},
+              {"entry_mode":"manual","entry_pct":0}]
+        value,pot,counts=eq.simulate_hand_variable("72o",ranges,none,trials=50,seed=42)
+        self.assertIsNone(value);self.assertIsNone(pot)
+        self.assertEqual([round(x,8) for x in counts],[1.0,0.0,0.0])
+        one=[{"entry_mode":"manual","entry_pct":100},
+             {"entry_mode":"manual","entry_pct":0}]
+        value,pot,counts=eq.simulate_hand_variable("72o",ranges,one,trials=50,seed=42)
+        self.assertIsNotNone(value)
+        self.assertEqual([round(x,8) for x in counts],[0.0,1.0,0.0])
+
+    def test_api_entry_chance_validation_and_cache_identity(self):
+        opp={"profile":"builtin:any_two","position":"9","scenario":"rfi",
+             "players":9,"selector":"active","entry_mode":"manual","entry_pct":25.0}
+        req={"model":"selected","trials":50,"opponents":[opp]}
+        cleaned=api._validate_request(req)
+        self.assertEqual(cleaned["opponents"][0]["entry_pct"],25.0)
+        a=api._query_identity(cleaned)
+        opp["entry_pct"]=45.0
+        b=api._query_identity(api._validate_request(req))
+        self.assertNotEqual(a,b)
+        opp["entry_mode"]="range"
+        c=api._query_identity(api._validate_request(req))
+        self.assertNotEqual(b,c)
+        for bad in (-1,101,float("nan"),float("inf"),True,"25"):
+            opp["entry_pct"]=bad
+            with self.subTest(bad=bad),self.assertRaises(ValueError):
+                api._validate_request(req)
+        opp["entry_pct"]=25
+        opp["entry_mode"]="invalid"
+        with self.assertRaises(ValueError):
+            api._validate_request(req)
+        opp.pop("entry_mode")
+        legacy=api._validate_request(req)
+        self.assertEqual(legacy["opponents"][0]["entry_mode"],"always")
+
+    def test_entry_probability_complete_matrix_and_no_showdown(self):
+        opts=[
+          {"profile":"builtin:any_two","position":"9","scenario":"rfi",
+           "players":9,"entry_mode":"manual","entry_pct":0},
+        ]
+        out=eq.calculate_matrix(opts,trials=50,cycles=1)
+        self.assertEqual(len(out["equity"]),169)
+        self.assertTrue(all(x is None for x in out["equity"].values()))
+        self.assertEqual(out["entry_counts_pct"],[100,0.0])
+        self.assertTrue(all(x is None for x in out["pot_multiple"].values()))
+        opts[0]["entry_pct"]=100
+        out=eq.calculate_matrix(opts,trials=50,cycles=1)
+        self.assertTrue(all(x is not None for x in out["equity"].values()))
+        self.assertEqual(out["entry_counts_pct"],[0.0,100.0])
+
     def test_blank_not_fold_and_boxes_independent(self):
         doc=core.preset("builtin:a17_v5","3","vs_open")
         self.assertFalse(doc["hands"])
