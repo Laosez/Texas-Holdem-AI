@@ -232,12 +232,23 @@ def now() -> str:
 
 
 def snapshot(job: dict) -> dict:
+    error = job.get("error")
+    # Historical failed runs did not persist a human-readable error.
+    # Recover the diagnosis from the original process exit code, if known.
+    if not error and job.get("status") == "failed":
+        code = job.get("returncode")
+        if code in (-9, 137):
+            error = "Экспортёр остановлен SIGKILL, вероятна нехватка RAM. Контрольные точки можно восстановить."
+        elif code not in (0, None):
+            error = f"Экспортёр завершился с кодом {code}; проверь журнал раздач."
+        elif code == 0 and job.get("report") is None:
+            error = "Симуляция закончилась, но итоговый отчёт не сформирован."
     return {
         "id": job["id"], "status": job["status"], "created": job["created"],
         "updated": job["updated"], "config": job["config"],
         "log": list(job["log"]), "returncode": job["returncode"],
         "report": job.get("report"),
-        "error": job.get("error"),
+        "error": error,
         "progress": job.get("progress"),
         "stats": job.get("stats"),
         "performance": job.get("performance"),
