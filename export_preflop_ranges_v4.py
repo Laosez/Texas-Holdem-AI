@@ -14,6 +14,8 @@ import argparse
 import gzip
 import hashlib
 import csv
+import gc
+import itertools
 import json
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -696,15 +698,10 @@ def main():
     if total_hands != report['total_hands']:
         raise RuntimeError('Preflop hand count differs from tournament telemetry')
     bot_report, bot_tables = summarize_bot_timings(decision_records, names)
-    agg=defaultdict(lambda:defaultdict(int))
-    for (bot,pos,hand,n), counts in all_counts.items():
-        for scope in ('all', f'n{n}'):
-            for h in (hand,'*'):
-                for position in (pos,'ALL'):
-                    row=agg[(scope,bot,position,h)]
-                    for f,v in counts.items():
-                        row[f]+=v
-
+    # Keep only one output scope in RAM. The previous implementation built
+    # 9 scopes at once, multiplying ~169 x positions x bots x dimensions
+    # in a dictionary right after 100% of tournaments had finished.
+    # With 450+ tournaments on 1 GiB Railway this could exhaust memory.
     output=Path(a.out)
     metric_columns=[]
     for m,base in METRICS.items():
@@ -714,27 +711,46 @@ def main():
             metric_columns.append(base)
         metric_columns.append(f'{m}_pct')
     headers=['bot','position','hand','combos','hands_observed']+metric_columns
-    def formatted(scope,bot,pos,hand):
-        c=agg[(scope,bot,pos,hand)]
-        row=[bot,pos,hand,combos(hand) if hand!='*' else '',c.get('hands_observed',0)]
-        vals=[]
-        for col in metric_columns:
-            if col.endswith('_pct'):
-                metric=col[:-4]
-                den=c.get(METRICS[metric],0)
-                vals.append(round(100*c.get(metric+'_n',0)/den,2) if den else '')
-            else:
-                vals.append(c.get(col,0))
-        return row+vals
-
     scopes = ['all'] + [f'n{n}' for n in range(2, len(names) + 1)]
+    all_totals = {}
     for scope in scopes:
+        print(f'[export] Writing {scope} summary and hand tables',flush=True)
+        agg=defaultdict(lambda:defaultdict(int))
+        for (bot,pos,hand,n), counts in all_counts.items():
+            if scope!='all' and scope!=f'n{n}':
+                continue
+            for h in (hand,'*'):
+                for position in (pos,'ALL'):
+                    row=agg[(bot,position,h)]
+                    for f,v in counts.items():
+                        row[f]+=v
+        def formatted(bot,pos,hand):
+            c=agg.get((bot,pos,hand),{})
+            row=[bot,pos,hand,combos(hand) if hand!='*' else '',c.get('hands_observed',0)]
+            vals=[]
+            for col in metric_columns:
+                if col.endswith('_pct'):
+                    metric=col[:-4]
+                    den=c.get(METRICS[metric],0)
+                    vals.append(round(100*c.get(metric+'_n',0)/den,2) if den else '')
+                else:
+                    vals.append(c.get(col,0))
+            return row+vals
+        positions = POSITIONS if scope=='all' else tuple(position_labels(int(scope[1:])))
+        # Stream rows to disk; never create a list of tens of thousands of rows.
         csv_write(output/f'by_hand_position_169_{scope}.csv',
-                  [headers]+[formatted(scope,bot,pos,h) for bot in names for pos in (POSITIONS if scope == 'all' else tuple(position_labels(int(scope[1:])))) for h in class_grid()])
+                  itertools.chain([headers],(formatted(bot,pos,h)
+                       for bot in names for pos in positions for h in class_grid())))
         csv_write(output/f'by_hand_169_{scope}.csv',
-                  [headers]+[formatted(scope,bot,'ALL',h) for bot in names for h in class_grid()])
+                  itertools.chain([headers],(formatted(bot,'ALL',h)
+                       for bot in names for h in class_grid())))
         csv_write(output/f'summary_{scope}.csv',
-                  [headers]+[formatted(scope,bot,'ALL','*') for bot in names])
+                  itertools.chain([headers],(formatted(bot,'ALL','*') for bot in names)))
+        if scope=='all':
+            all_totals={name:dict(agg.get((name,'ALL','*'),{})) for name in names}
+        del agg
+        gc.collect()
+    print('[export] Hand tables completed, preparing postflop summaries',flush=True)
     post_agg = defaultdict(lambda: defaultdict(float))
     for item in postflop_records:
         for key,value in item.items():
@@ -808,7 +824,7 @@ def main():
     print(f'\nTotal simulated hands: {total_hands}')
     print('BOT                    HANDS   VPIP%    PFR%    RFI%  3BET%  4BET%')
     for name in names:
-        c=agg[('all',name,'ALL','*')]
+        c=all_totals.get(name,{})
         def pc(m):
             base=c.get(METRICS[m],0)
             return f'{100*c.get(m+"_n",0)/base:6.1f}' if base else '     —'
