@@ -673,7 +673,7 @@ function setMetricLegend(){
   delta:'Разница участия с соперником, п.п.',
   action:'Основное действие; частоты в нижней полоске.'
  };
- $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветной уголок — точный цвет коробки A17; тонкая белая рамка на уголке — рука в диапазоне (>0%). Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
+ $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветной уголок — коробка A17, без белой рамки. Режим пересечения показывает только руки двух активных диапазонов. Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -788,7 +788,12 @@ function handMetricsRows(hand,doc){
    const hu=item.handEq?.equity?.[hand];
    if(Number.isFinite(hu))pair('Equity vs Оп '+(i+1)+' · HU',f(hu));
   });
- }else pair('Equity / EV соперника','Не рассчитаны для этой стратегии');
+ }else{
+  const reverse=selectedReverseResult()?.equity?.[hand];
+  pair('Equity соперника vs меня · HU',f(reverse));
+  const ev=Number.isFinite(reverse)?modelAllInEv(reverse,Number($('stack').value),Number($('allInDead').value),1):null;
+  pair('EV выставления соперника vs меня',Number.isFinite(ev)?(ev>=0?'+':'')+ev.toFixed(2)+' BB':'—');
+ }
  return rows;
 }
 function positionHandHover(event){
@@ -1208,6 +1213,56 @@ async function refreshComparison(){
   if(revision===comparisonEpoch)renderPerOpponent();
  }));
 }
+function heroRangeWeights(){
+ const weights={};
+ for(const h of HANDS){
+  const p=knownActivePercent(hero,h);
+  if(Number.isFinite(p)&&p>0)weights[h]=p/100;
+ }
+ return weights;
+}
+function heroRangeSignature(){
+ return hero?JSON.stringify(heroRangeWeights()):'';
+}
+function renderVillainReverseStatus(){
+ const item=perOpponentData[Number($('viewOpponent').value||0)];
+ const fresh=selectedReverseResult();
+ $('computeVillainReverse').disabled=calculatingReverse||!hero||!villain;
+ $('villainReverseStatus').textContent=calculatingReverse?'Рассчитывается Equity соперника vs моя текущая стратегия…':
+  fresh?'HU Monte Carlo: соперник против моей текущей стратегии · '+fresh.simulations_per_hand+' симуляций/руку. EV при условном выставлении, без постфлопа.':
+  item?.reverseError?'Расчёт соперника: '+item.reverseError:
+  'Equity/EV соперника vs мои активные руки пока не рассчитаны. Нажми «Рассчитать vs меня» или общий Monte Carlo.';
+}
+async function runOpponentReverse(){
+ if(!hero||!villain||calculatingReverse)return false;
+ const index=Number($('viewOpponent').value||0),item=perOpponentData[index];
+ if(!item){msg('Диапазон соперника ещё загружается.',true);return false}
+ const weights=heroRangeWeights(),signature=heroRangeSignature();
+ if(!Object.keys(weights).length){msg('Для расчёта нужен непустой игровой диапазон моей стратегии.',true);return false}
+ if(item.reverseEq&&item.reverseKey===signature){drawMatrices();return true}
+ const epoch=calcEpoch,revision=comparisonEpoch,source=item;
+ calculatingReverse=true;drawMatrices();
+ try{
+  let job=await post('/api/plan/equity',{
+   model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),
+   opponents:[{profile:'inline:hero',position:hero.position,scenario:hero.scenario,
+               players:hero.players,selector:'active',weights}]
+  });
+  while(job.status==='queued'||job.status==='running'){
+   await new Promise(resolve=>setTimeout(resolve,1100));
+   if(calcEpoch!==epoch||comparisonEpoch!==revision||heroRangeSignature()!==signature)return false;
+   job=await api('/api/plan/equity/'+job.id);
+  }
+  if(job.status!=='completed')throw Error(job.error||'HU Monte Carlo не завершён');
+  if(calcEpoch!==epoch||comparisonEpoch!==revision||heroRangeSignature()!==signature)return false;
+  source.reverseEq=job.result;source.reverseKey=signature;source.reverseError=null;
+  drawMatrices();msg('Equity соперника vs моя стратегия рассчитано (HU).');
+  return true;
+ }catch(e){
+  if(calcEpoch===epoch&&comparisonEpoch===revision){source.reverseError=e.message;msg('HU Equity соперника: '+e.message,true)}
+  return false;
+ }finally{calculatingReverse=false;drawMatrices()}
+}
 function renderPerOpponent(){
  const hands=$('perOpponentHands');if(!hands)return;
  hands.replaceChildren();
@@ -1323,9 +1378,12 @@ $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextC
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
 $('oppCount').onchange=updateOppCount;
-$('viewOpponent').onchange=loadVillain;
+$('viewOpponent').onchange=()=>{loadVillain();drawMatrices()};
 $('villainPane').ontoggle=()=>{if(hero)drawMatrices()};
 $('cellMetric').onchange=()=>{hideHandHover();drawMatrices()};
+$('villainMetric').onchange=()=>{hideHandHover();drawMatrices()};
+$('rangeIntersect').onclick=()=>{intersectionOnly=!intersectionOnly;drawMatrices()};
+$('computeVillainReverse').onclick=runOpponentReverse;
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
@@ -1401,6 +1459,7 @@ $('computeAll').onclick=async()=>{
   if(model==='selected')equityResults.actual=matrix;
   else await startCalculation('actual','selected',people);
   await calculatePerOpponent();
+  await runOpponentReverse();
   drawEquityStats();drawMatrices();drawBoxes();
  }finally{computingAll=false;$('computeAll').disabled=false}
 };
