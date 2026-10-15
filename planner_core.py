@@ -105,6 +105,43 @@ def normalize_actions(actions, scenario):
     return result
 
 
+def context_key(players, position, scenario):
+    """Versioned profile slot: table size, precise seat and action situation."""
+    validate_context(players, str(position), str(scenario))
+    return f"{players}|{position}|{scenario}"
+
+
+def _normalized_contexts(raw, active_key, active_hands, active_stack):
+    """Validate every slot; the top-level hand editor is authoritative for
+    the active slot. Legacy single-position documents are promoted lazily.
+    """
+    stored = raw.get("contexts") or {}
+    if not isinstance(stored, dict) or len(stored) > 256:
+        raise ValueError("Допускается до 256 позиционных диапазонов")
+    clean = {}
+    for key, slot in stored.items():
+        parts = key.split("|") if isinstance(key, str) else ()
+        if len(parts) != 3 or not parts[0].isdecimal():
+            raise ValueError("Неверный ключ позиционного диапазона")
+        players, position, scenario = int(parts[0]), parts[1], parts[2]
+        if context_key(players, position, scenario) != key:
+            raise ValueError("Неверный позиционный контекст")
+        if not isinstance(slot, dict):
+            raise ValueError("Диапазон позиции должен быть объектом")
+        stack = slot.get("stack_bb", active_stack)
+        validate_context(players, position, scenario, stack)
+        hands = slot.get("hands", {})
+        if not isinstance(hands, dict) or any(h not in COMBOS for h in hands):
+            raise ValueError("Неверные руки позиционного диапазона")
+        clean[key] = {
+            "hands": {h: normalize_actions(actions, scenario)
+                      for h, actions in hands.items()},
+            "stack_bb": stack,
+        }
+    clean[active_key] = {"hands": active_hands, "stack_bb": active_stack}
+    return clean
+
+
 def validate_plan(raw):
     if not isinstance(raw, dict):
         raise ValueError("Неверный формат стратегии")
@@ -124,9 +161,14 @@ def validate_plan(raw):
     if not isinstance(hands, dict) or any(h not in COMBOS for h in hands):
         raise ValueError("Неизвестная стартовая рука")
     clean = {h: normalize_actions(v, scenario) for h, v in hands.items()}
-    return {"format": "SKACHKOV_PLAN_V1", "name": name, "players": n,
+    contexts = _normalized_contexts(raw, context_key(n, position, scenario), clean, stack)
+    base_profile = raw.get("base_profile")
+    if base_profile not in BUILTINS:
+        base_profile = raw.get("id") if raw.get("id") in BUILTINS else "builtin:a17_v5"
+    return {"format": "SKACHKOV_PLAN_V2", "name": name, "players": n,
             "position": position, "scenario": scenario, "stack_bb": stack,
-            "boxes": boxes, "box_order": box_order, "hands": clean}
+            "boxes": boxes, "box_order": box_order, "hands": clean,
+            "contexts": contexts, "base_profile": base_profile}
 
 
 def _gto_ranges(position, n):
@@ -193,9 +235,24 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
     validate_context(players, position, scenario, stack_bb)
     if profile.startswith("saved:"):
         doc = get_saved(profile)
-        if (doc["position"], doc["scenario"], doc["players"]) != (position, scenario, players):
-            raise ValueError("Сохранённая стратегия привязана к своему контексту")
-        return doc
+        key = context_key(players, position, scenario)
+        slot = doc["contexts"].get(key)
+        if slot is None:
+            # A new position starts from the same builtin source, but its
+            # baseline is not stored until the user saves this profile.
+            baseline = preset(doc.get("base_profile", "builtin:a17_v5"),
+                              position, scenario, players, stack_bb)
+            slot = {"hands": baseline["hands"], "stack_bb": stack_bb}
+            origin = baseline.get("range_origin")
+        else:
+            origin = ("gto_fixed_bb_vs_open" if position == "BB" and scenario == "vs_open"
+                      and doc.get("base_profile") in ("builtin:a17_v5",
+                                                     "builtin:a17_legacy",
+                                                     "builtin:pc_gto_80bb") else None)
+        return {**doc, "players": players, "position": position,
+                "scenario": scenario, "stack_bb": slot["stack_bb"],
+                "hands": slot["hands"], "range_origin": origin,
+                "context_saved": key in doc["contexts"]}
     if profile not in BUILTINS:
         raise ValueError("Пресет стратегии не найден")
     from bots.a17_ranges import A17_MAX_OPEN_BOX_BY_POSITION, A17_RFI_EXTRA_BOXES_BY_POSITION
@@ -235,6 +292,7 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
             "name": BUILTINS[profile], "players": players, "position": position,
             "scenario": scenario, "stack_bb": stack_bb, "boxes": boxes,
             "box_order": list(range(1, 18)), "hands": hands,
+            "base_profile": profile,
             "range_origin": ("gto_fixed_bb_vs_open"
                              if position == "BB" and scenario == "vs_open"
                              and profile in ("builtin:a17_v5", "builtin:a17_legacy",
@@ -256,6 +314,14 @@ def get_saved(ref):
     if not path.is_file():
         raise KeyError(ref)
     data = json.loads(path.read_text(encoding="utf-8"))
+    if "contexts" not in data:
+        # Old V1 immutable revisions remain readable and can be upgraded
+        # on their next save. Never rewrite an existing version in place.
+        key = context_key(data["players"], data["position"], data["scenario"])
+        data["contexts"] = {key: {
+            "hands": data["hands"], "stack_bb": data["stack_bb"]}}
+    if data.get("base_profile") not in BUILTINS:
+        data["base_profile"] = "builtin:a17_v5"
     return {**data, "readonly": False}
 
 
@@ -273,6 +339,7 @@ def list_saved():
         records.append({"id": doc["id"], "version": doc["version"], "ref": doc["ref"],
                         "name": doc["name"], "position": doc["position"],
                         "scenario": doc["scenario"], "players": doc["players"],
+                        "contexts_count": len(doc.get("contexts", {})) or 1,
                         "updated": doc.get("updated")})
     return sorted(records, key=lambda r:r["updated"] or "", reverse=True)
 
@@ -282,9 +349,8 @@ def save_plan(raw, parent=None):
     if parent is not None:
         previous = get_saved(parent)
         id_ = previous["id"]
-        if (previous["players"], previous["position"], previous["scenario"]) != (
-                clean["players"], clean["position"], clean["scenario"]):
-            raise ValueError("Для другого контекста сохрани стратегию как новую")
+        # A version stores a whole strategy, not a single seat: a change
+        # in players/position/scenario is a new slot within the same ID.
         version = previous["version"] + 1
         if _file(id_, version).exists():
             raise RuntimeError("Стратегия обновлена в другом окне: обнови список")
