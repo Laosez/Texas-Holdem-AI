@@ -277,6 +277,10 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .panel{border-color:#30485f}
 .matrixGrid .hand.rangeIntersection{background:#354453;border-color:#506579}
 .matrixGrid .hand.rangeIntersection:hover{filter:brightness(1.12)}
+/* Responsive opponent rows retain their complete seven-column grid. */
+.oppTable .oppHead,.oppTable .oppRow{grid-template-columns:27px minmax(156px,1fr) 85px 112px 94px 174px 27px;min-width:785px;gap:7px}
+.oppTable{overflow-x:auto;scrollbar-color:#365675 #10243a}
+.matrixGrid .hand.rangeIntersection .handMetric{position:relative;z-index:4}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -289,7 +293,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <select id="players" class="hidden" aria-label="Формат стола для модели" tabindex="-1"></select>
 <input id="stack" class="hidden" type="hidden" value="20">
 <div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
-</div><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
+</div><p id="activeContext" class="note">Контекст расчёта: 9-max · 20 BB (из сохранённой стратегии).</p><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Соперники</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
 <div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div id="entryDistribution" class="entryRow">Сначала рассчитай Monte Carlo.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
@@ -326,7 +330,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 </div>
 <div class="metricControls hidden" id="allInControls">
 <div class="field"><label for="allInDead">Дополнительные мёртвые деньги, BB</label><input id="allInDead" type="number" min="0" step="0.5" value="0"></div>
-<span class="small" id="allInStatus" style="max-width:740px">Условное выставление при фиксированном стеке 20 BB, равные вклады, без ICM и побочных банков.</span>
+<span class="small" id="allInStatus" style="max-width:740px">Условное выставление при эффективном стеке из сохранённой стратегии, без ICM и побочных банков.</span>
 </div>
 <div class="matrixMetrics hidden" id="rangeEvSummary" style="margin:6px 0 12px">
 <div class="matrixMetric"><span>EV / сыгранную руку</span><strong id="rangeEvPlayed">—</strong><small>BB · с учётом частот и 4/6/12 комбо</small></div>
@@ -434,6 +438,7 @@ function setHeroFields(doc){
  $('heroScenario').value=doc.scenario;
  $('stack').value=doc.stack_bb;
  $('strategyName').value=doc.name;
+ $('activeContext').textContent='Контекст стратегии: '+doc.players+'-max · '+doc.stack_bb+' BB. Параметры сохранены внутри выбранной стратегии.';
  showBbRfiHint(doc);
 }
 // One editable strategy spans all positions, scenarios and table sizes.
