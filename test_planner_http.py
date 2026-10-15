@@ -336,7 +336,7 @@ class PlanHttpTests(unittest.TestCase):
                            "rangeIntersect","rangeIntersectionStats",
                            "villainMetric","villainReverseStatus","computeVillainReverse"):
             self.assertIn('id="'+identifier+'"',page)
-        self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents)",page)
+        self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples)",page)
         self.assertIn("const combos=COMBOS(hand);",page)
         self.assertIn("activeMass+=combos*play;evMass+=combos*play*ev;",page)
         self.assertIn("loss+=combos*play*Math.max(0,-ev);",page)
