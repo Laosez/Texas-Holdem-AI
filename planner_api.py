@@ -30,7 +30,7 @@ def catalog():
             "saved": core.list_saved(), "hands": list(core.HANDS),
             "boxes": core.boxes_v5(), "actions": list(core.ACTIONS),
             "scenarios": {s: list(actions) for s, actions in core.SCENARIOS.items()},
-            "max_opponents": 5, "method": "Monte Carlo all-in, split-pot equity"}
+            "max_opponents": 8, "method": "Monte Carlo all-in, split-pot equity"}
 
 
 def _path(p):
@@ -79,8 +79,8 @@ def _validate_request(raw):
     if not isinstance(raw,dict):
         raise ValueError("Неверный формат фильтра")
     opponents=raw.get("opponents")
-    if not isinstance(opponents,list) or not 1<=len(opponents)<=5:
-        raise ValueError("Выбери 1–5 соперников")
+    if not isinstance(opponents,list) or not 1<=len(opponents)<=8:
+        raise ValueError("Выбери 1–8 соперников")
     model=raw.get("model","selected")
     if model not in ("selected","any_two","gto_heuristic"):
         raise ValueError("Неизвестная модель equity")
@@ -108,7 +108,7 @@ def _validate_request(raw):
             raise ValueError("Неизвестный фильтр действий")
         entry_mode=entry.get("entry_mode","always")
         entry_pct=entry.get("entry_pct",100.0)
-        if entry_mode not in ("always","range","manual"):
+        if entry_mode not in ("always","range","manual","never"):
             raise ValueError("Режим вероятности входа неизвестен")
         if type(entry_pct) not in (int,float) or not 0<=entry_pct<=100:
             raise ValueError("Вероятность входа: 0–100%")
