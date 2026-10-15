@@ -238,6 +238,96 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             api.start_equity(req,busy=True)
 
+    def test_independent_mc_cycles_aggregate_and_progress(self):
+        opponents=[{"profile":"builtin:any_two","position":"3","scenario":"rfi",
+                    "players":9,"selector":"active"}]
+        samples=[]
+        def fake(hand, ranges, trials, seed):
+            samples.append((hand,trials,seed))
+            return 40.0 if len(samples)%2 else 60.0
+        progress=[]
+        with patch.object(eq,"simulate_hand",side_effect=fake):
+            result=eq.calculate_matrix(opponents,trials=100,cycles=2,
+                                       progress=lambda done,total:progress.append((done,total)))
+        self.assertEqual(result["simulations_per_hand"],200)
+        self.assertEqual(result["cycles"],2)
+        self.assertEqual(result["trials_per_cycle"],100)
+        self.assertEqual(len(samples),338)
+        self.assertEqual(result["equity"]["AA"],50.0)
+        self.assertEqual(progress[-1],(338,338))
+        self.assertNotEqual(samples[0][2],samples[1][2])
+        with self.assertRaisesRegex(ValueError,"Циклов"):
+            eq.calculate_matrix(opponents,trials=100,cycles=5)
+
+    def test_box_equity_is_joint_showdown_not_threshold_coverage(self):
+        import time
+        opponents=[{"profile":"builtin:any_two","position":"3","scenario":"rfi",
+                    "players":9,"selector":"active"}]
+        boxes=core.boxes_v5()
+        box17=[h for h in core.HANDS if boxes[h]==17]
+        for h in box17:boxes[h]=0
+        seen=[]
+        def fake_range(weights,sources,trials,seed):
+            seen.append((dict(weights),trials,seed))
+            return {"equity_pct":37.5,"trials":trials}
+        with tempfile.TemporaryDirectory() as td, \\
+             patch.object(api,"CACHE_PATH",Path(td)), \\
+             patch.object(api,"EQUITY_TASKS",{}), \\
+             patch.object(eq,"simulate_range_equity",side_effect=fake_range):
+            job=api.start_box_equity({"boxes":boxes,"opponents":opponents,
+                                     "trials":100,"cycles":2})
+            for _ in range(150):
+                job=api.get_task(job["id"])
+                if job["status"]=="completed":break
+                time.sleep(0.01)
+            self.assertEqual(job["status"],"completed",job.get("error"))
+            result=job["result"]
+            self.assertIsNone(result["equity"]["17"])
+            self.assertEqual(result["equity"]["1"],37.5)
+            self.assertEqual(result["trials_per_box"],400)
+            self.assertEqual(len(seen),32)
+            self.assertEqual(set(seen[0][0]),{h for h in core.HANDS if boxes[h]==1})
+            self.assertTrue(all(v==1.0 for v in seen[0][0].values()))
+            self.assertTrue(all(trials==200 for _,trials,_ in seen))
+            again=api.start_box_equity({"boxes":boxes,"opponents":opponents,
+                                        "trials":100,"cycles":2})
+            self.assertEqual(again["status"],"completed")
+            self.assertTrue(again["cached"])
+            self.assertEqual(len(seen),32)
+
+    def test_two_parallel_mc_jobs_and_third_queued(self):
+        import threading,time
+        gate=threading.Event()
+        started=threading.Event()
+        active=[]
+        state_lock=threading.Lock()
+        def work(key):
+            def compute(progress):
+                with state_lock:
+                    active.append(key)
+                    if len(active)>=2:started.set()
+                if not gate.wait(5):raise RuntimeError("test timeout")
+                progress(1,1)
+                return {"equity":{h:51.0 for h in core.HANDS}}
+            return compute
+        with tempfile.TemporaryDirectory() as td, \\
+             patch.object(api,"CACHE_PATH",Path(td)), \\
+             patch.object(api,"EQUITY_TASKS",{}):
+            try:
+                jobs=[api._schedule(str(i)*64,work(str(i)),1) for i in range(3)]
+                self.assertTrue(started.wait(3),"two workers did not start")
+                self.assertEqual(api.get_task(jobs[2]["id"])["status"],"queued")
+                self.assertEqual(len(active),2)
+                same=api._schedule("0"*64,work("repeat"),1)
+                self.assertEqual(same["id"],jobs[0]["id"])
+            finally:
+                gate.set()
+            for _ in range(150):
+                statuses=[api.get_task(job["id"])["status"] for job in jobs]
+                if statuses==["completed"]*3:break
+                time.sleep(0.01)
+            self.assertEqual(statuses,["completed"]*3)
+
 
 if __name__ == "__main__":
     unittest.main()
