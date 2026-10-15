@@ -27,6 +27,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 import planner_api
+import planner_core
 
 ROOT = Path(__file__).resolve().parent
 UI = ROOT / "replit_ui" / "index.html"
@@ -154,10 +155,34 @@ def max_safe_workers():
     return 1
 
 
+def saved_preflop_options():
+    """The same immutable versions shown by the strategy editor."""
+    from bots.saved_plan_bot import token_for
+    return [{"token": token_for(item["ref"]), "ref": item["ref"],
+             "name": item["name"], "version": item["version"],
+             "contexts_count": item["contexts_count"]}
+            for item in planner_core.list_saved()]
+
+
+def existing_saved_token(token):
+    """Reject user-supplied profile paths: tokens are canonical, known refs."""
+    from bots.saved_plan_bot import PLAN_TOKEN, ref_for
+    if not isinstance(token, str) or not PLAN_TOKEN.fullmatch(token):
+        return False
+    try:
+        planner_core.get_saved(ref_for(token))
+        return True
+    except (KeyError, ValueError, OSError):
+        return False
+
+
 def strategy_catalog():
     options = sorted(SPLIT_PARTS)
-    return {"strategies": options,
-            "preflop_strategies": sorted(PREFLOP_CHOICES),
+    saved = saved_preflop_options()
+    preflop = sorted(PREFLOP_CHOICES) + [item["token"] for item in saved]
+    return {"strategies": sorted(set(options) | set(preflop)),
+            "preflop_strategies": preflop,
+            "saved_preflop": saved,
             "postflop_strategies": sorted(POSTFLOP_CHOICES),
             "a17_version": "A17_V5",
             "code_fingerprint": strategy_fingerprint(), "workers_max": max_safe_workers(),
@@ -167,12 +192,12 @@ def strategy_catalog():
 
 
 def valid_bot(bot: str) -> bool:
-    if bot in BASE_BOTS:
+    if bot in BASE_BOTS or existing_saved_token(bot):
         return True
     parts = bot.split(":")
-    return len(parts) == 3 and parts[0] == "split" and all(
-        p in SPLIT_PARTS for p in parts[1:]
-    )
+    return (len(parts) == 3 and parts[0] == "split"
+            and (parts[1] in SPLIT_PARTS or existing_saved_token(parts[1]))
+            and parts[2] in SPLIT_PARTS)
 
 
 def bounded_int(value, label: str, minimum: int, maximum: int) -> int:
@@ -207,7 +232,7 @@ def validate_config(data: dict) -> dict:
                 raise ValueError(f"P{i}: некорректная стратегия")
             if not pre or not post:
                 raise ValueError(f"P{i}: Preflop и Postflop обязательны; пустое поле запрещает запуск")
-            if pre not in PREFLOP_CHOICES:
+            if pre not in PREFLOP_CHOICES and not existing_saved_token(pre):
                 raise ValueError(f"P{i}: {pre} не является доступной префлоп-стратегией")
             if not available_postflop(post):
                 raise ValueError(f"P{i}: {post} не является доступной постфлоп-стратегией")
@@ -442,7 +467,8 @@ def worker(job: dict) -> None:
     ]
     log_path = output / "simulation.log"
     try:
-        env = dict(os.environ, THAI_ENGINE_IMPL="legacy", PYTHONUNBUFFERED="1")
+        env = dict(os.environ, THAI_ENGINE_IMPL="legacy", PYTHONUNBUFFERED="1",
+                   POKER_PLAN_SNAPSHOT_DIR=str(output / "plan_snapshots"))
         with log_path.open("a", encoding="utf-8") as log:
             log.write("\n[runner] Start or resume at " + now() + "\n")
             proc = subprocess.Popen(
@@ -515,6 +541,22 @@ def worker(job: dict) -> None:
             persist(job)
 
 
+def pin_saved_plans(config: dict, folder: Path) -> None:
+    """Copy exact plan revisions into session data before launching workers."""
+    from bots.saved_plan_bot import PLAN_TOKEN, ref_for
+    tokens = sorted({row["pre"] for row in config.get("bots", [])
+                     if PLAN_TOKEN.fullmatch(row.get("pre", ""))})
+    if not tokens:
+        return
+    target = folder / "plan_snapshots"
+    target.mkdir(parents=True, exist_ok=True)
+    for token in tokens:
+        doc = planner_core.get_saved(ref_for(token))
+        snapshot_path = target / (token + ".json")
+        with snapshot_path.open("x", encoding="utf-8") as handle:
+            json.dump(doc, handle, ensure_ascii=False, separators=(",", ":"))
+
+
 def start_run(config: dict) -> dict:
     with MUTEX:
         if any(j["status"] in {"running", "starting"} for j in RUNS.values()):
@@ -531,9 +573,14 @@ def start_run(config: dict) -> dict:
             "stats": {}, "performance": None, "strategy_fingerprint": strategy_fingerprint(),
             "log": deque(maxlen=MAX_LOG_LINES),
         }
+        folder = OUT / run_id
+        folder.mkdir(parents=True, exist_ok=False)
+        try:
+            pin_saved_plans(config, folder)
+        except Exception:
+            shutil.rmtree(folder, ignore_errors=True)
+            raise
         RUNS[run_id] = job
-        OUT.mkdir(parents=True, exist_ok=True)
-        (OUT / run_id).mkdir(parents=True, exist_ok=True)
         persist(job)
         job["status"] = "running"
         persist(job)
