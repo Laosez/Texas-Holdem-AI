@@ -83,8 +83,8 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-let values=['','gto','gto_fixed','a17_preflop','a17_preflop_legacy','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random','random_2','random_3'];
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17 V5',gto:'GTO',gto_fixed:'GTO Fixed',a17_preflop:'A17 Preflop',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random',random_2:'Random 2',random_3:'Random 3'};
+let values=['','gto','gto_fixed','pc_gto_80bb','a17_preflop','a17_preflop_legacy','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random','random_2','random_3'];
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17 V5',gto:'GTO',gto_fixed:'GTO Fixed',pc_gto_80bb:'PC GTO 80bb',a17_preflop:'A17 Preflop',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random',random_2:'Random 2',random_3:'Random 3'};
 const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random_2'],['gto','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false;
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
