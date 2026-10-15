@@ -309,6 +309,23 @@ class PlanHttpTests(unittest.TestCase):
         self.assertEqual(core.preset("builtin:pc_gto_80bb",position="BB",
                           scenario="rfi",players=9,stack_bb=80)["hands"],{})
 
+    def test_matrix_action_copy_paste_between_positions_preserves_boxes(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('id="copyMatrix"',page)
+        self.assertIn('id="pasteMatrix"',page)
+        self.assertIn('id="matrixClipboardStatus"',page)
+        self.assertIn("function copyMatrixSettings()",page)
+        self.assertIn("function pasteMatrixSettings()",page)
+        self.assertIn("copiedMatrix.scenario===hero.scenario",page)
+        self.assertIn("if(hero.scenario!==copiedMatrix.scenario)",page)
+        self.assertIn("if(!confirm('Заменить все настройки 169 рук",page)
+        self.assertIn("snapshotUndo();\\n hero.hands=copy(copiedMatrix.hands);",page)
+        self.assertIn("preserveCurrentSlot();\\n noteDirty();",page)
+        self.assertIn("updateMatrixClipboard();$('delete').disabled",page)
+        self.assertIn("$('copyMatrix').onclick=copyMatrixSettings;",page)
+        self.assertIn("$('pasteMatrix').onclick=pasteMatrixSettings;",page)
+        self.assertNotIn("hero.boxes=copy(copiedMatrix",page)
+
     def test_fixed_four_box_columns_and_multi_hand_right_panel_transfer(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn(".unifiedGroupList .boxList{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));",page)
