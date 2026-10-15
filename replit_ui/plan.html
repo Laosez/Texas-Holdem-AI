@@ -140,24 +140,27 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .groupDrawer .boxInstructions{margin:10px 0 2px}
 .groupDrawer .heading{margin-top:13px!important}
 .matrixPane .actionStripe{height:4px;bottom:2px;left:2px;right:2px}
-/* Use the same A17 palette as the box editor; muted fills keep labels legible.
-   A neutral white ring marks actual participation in the current range. */
+/* A17 identity is a small, flat corner at the EXACT palette hue; no
+   color-mixing, opacity, glow or tinted hand-cell background. */
 .matrixPane .handBoxTag{
- display:inline-flex;align-items:center;justify-content:center;min-width:17px;
- padding:1px 2px;border:1px solid color-mix(in srgb,var(--group-color,#8494a6) 54%,#142438);
- border-radius:3px;background:color-mix(in srgb,var(--group-color,#8494a6) 29%,#142438);
- color:#f0f6ff;opacity:1;text-shadow:0 1px 2px #071625;
+ position:absolute;top:0;right:0;z-index:5;display:flex;align-items:center;justify-content:center;
+ width:21px;min-width:21px;height:14px;padding:0 1px;
+ border:0;border-radius:0 3px 0 5px;
+ background:var(--group-color,#8494a6);color:#081424;
+ font-size:8px;line-height:14px;font-weight:850;letter-spacing:-.35px;
+ opacity:1;text-shadow:none;box-shadow:none;white-space:nowrap;
+ pointer-events:none;
 }
+.matrixLayout.double .matrixPane .handBoxTag{top:0;right:0;font-size:8px}
 .matrixPane .handBoxTag.inRange{
- border-color:#f1f5fa;
- box-shadow:0 0 0 1px rgba(241,245,250,.55);
- background:color-mix(in srgb,var(--group-color,#8494a6) 40%,#142438);
+ outline:1px solid #edf1f4;outline-offset:-2px;
+ box-shadow:none;background:var(--group-color,#8494a6);
 }
 .unifiedGroupList .boxCard.inRange{
  outline:1px solid rgba(241,245,250,.78);
  outline-offset:-2px;
 }
-@media(max-width:690px){.matrixPane .handBoxTag{min-width:0;padding:0 1px;font-size:7px;letter-spacing:-.3px}.matrixPane .handRank{font-size:9px}}
+@media(max-width:690px){.matrixPane .handBoxTag{width:20px;min-width:20px;height:14px;padding:0 1px;font-size:7px;letter-spacing:-.35px}.matrixPane .handRank{font-size:9px}}
 @media(max-width:1230px){.plannerWorkspace{grid-template-columns:minmax(0,1fr) 310px}.editorSection .actionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1000px){.plannerWorkspace{grid-template-columns:1fr}.plannerWorkspace>.editorSection{position:static}.editorSection .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:690px){.editorSection .two{display:flex}.a17Palette{grid-template-columns:repeat(5,minmax(0,1fr))}.a17Workbench{padding:9px}.matrixGrid{min-width:0}.matrixViewport .matrixAxisLayout{min-width:535px}}
@@ -213,7 +216,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="field"><label for="players">Формат стола</label><select id="players"></select></div>
 <div class="field"><label for="stack">Эфф. стек (BB)</label><input id="stack" type="number" min="1" max="1000" value="20"></div>
 <div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
-</div><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
+</div><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Соперники</h3><div style="width:150px"><select id="oppCount" aria-label="Количество соперников"><option value="1">1 соперник</option><option value="2">2 соперника</option><option value="3">3 соперника</option><option value="4">4 соперника</option><option value="5">5 соперников</option></select></div></div>
 <div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span></div><div id="opponents"></div>
 <p class="note">Каждый диапазон задаётся самостоятельно. Можно сравнивать даже одинаковые позиции; это исследовательская модель, не реальная рассадка.</p></div></div>
@@ -312,6 +315,20 @@ function noteDirty(){dirty=true;$('dirty').textContent='● Есть несох�
 async function getSource(profile,position,scenario,players,stack_bb){
  return api('/api/plan/source?'+new URLSearchParams({profile,position,scenario,players,stack_bb}));
 }
+function showBbRfiHint(doc){
+ const bb=doc?.position==='BB';
+ $('bbRfiInfo').classList.toggle('hidden',!bb);
+ if(bb)$('bbRfiInfo').textContent=doc.scenario==='vs_open'
+  ?'На BB нет собственного RFI. Здесь показана защита против RFI соперника: пока одна общая эвристика GTO Fixed независимо от позиции открывшего. PC GTO BB-чарты ещё не загружены.'
+  :'На BB нет собственного RFI. Для защиты против рейза выбери ситуацию «Против открытия».';
+}
+function useBbDefenseWhenRfi(){
+ if($('heroPosition').value==='BB'&&$('heroScenario').value==='rfi'){
+  $('heroScenario').value='vs_open';
+  return true;
+ }
+ return false;
+}
 function setHeroFields(doc){
  $('heroProfile').value=doc.ref||doc.id||'builtin:a17_v5';
  $('players').value=String(doc.players);
@@ -319,6 +336,7 @@ function setHeroFields(doc){
  $('heroScenario').value=doc.scenario;
  $('stack').value=doc.stack_bb;
  $('strategyName').value=doc.name;
+ showBbRfiHint(doc);
 }
 // One editable strategy spans all positions, scenarios and table sizes.
 function slotKey(players,position,scenario){return String(players)+'|'+position+'|'+scenario}
@@ -339,6 +357,9 @@ function heroContextMessage(doc){
 }
 async function loadHero({contextChange=false}={}){
  if(loadingSource)return;
+ // There is no BB RFI. Redirect to BB vs opponent RFI instead of an
+ // empty matrix. Preserve the saved strategy identity and all other slots.
+ useBbDefenseWhenRfi();
  const profile=$('heroProfile').value;
  const same=hero&&(hero.ref||hero.id||'builtin:a17_v5')===profile;
  if(!contextChange||!same){
@@ -351,6 +372,7 @@ async function loadHero({contextChange=false}={}){
     renderPositions($('heroPosition'),stored.position);
     $('heroScenario').value=stored.scenario;
    }
+   useBbDefenseWhenRfi();
    const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,
                              Number($('players').value),Number($('stack').value));
    hero=doc;hero.contexts=hero.contexts||{};
@@ -622,7 +644,7 @@ function setMetricLegend(){
   delta:'Разница участия с соперником, п.п.',
   action:'Основное действие; частоты в нижней полоске.'
  };
- $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветная метка — коробка A17; белая рамка — рука в диапазоне (>0%). Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
+ $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветной уголок — точный цвет коробки A17; тонкая белая рамка на уголке — рука в диапазоне (>0%). Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -1129,8 +1151,8 @@ async function connect(){
 }
 $('connect').onclick=connect;
 $('heroProfile').onchange=()=>loadHero();
-$('heroPosition').onchange=()=>loadHero({contextChange:true});
-$('heroScenario').onchange=()=>loadHero({contextChange:true});
+$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
+$('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};

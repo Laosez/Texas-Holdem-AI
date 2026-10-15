@@ -269,8 +269,8 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("const c=copy(hero);",page)
         self.assertIn("if(!preserveEdits()){if(hero)setHeroFields(hero);return}",page)
         self.assertIn("const prior=selectedValue===undefined?control.value:selectedValue;",page)
-        self.assertIn("$('heroPosition').onchange=()=>loadHero({contextChange:true});",page)
-        self.assertIn("$('heroScenario').onchange=()=>loadHero({contextChange:true});",page)
+        self.assertIn("$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};",page)
+        self.assertIn("$('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};",page)
         self.assertIn("loadHero({contextChange:true})};",page)
         self.assertIn("BB против открытия: используется GTO Fixed",page)
         self.assertIn("На BB нет RFI",page)
@@ -290,11 +290,33 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn(".handBoxTag{position:absolute;",page)
 
 
+    def test_bb_rfi_automatically_uses_vs_open_not_empty_matrix(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('id="bbRfiInfo"',page)
+        self.assertIn("function useBbDefenseWhenRfi()",page)
+        self.assertIn("if($('heroPosition').value==='BB'&&$('heroScenario').value==='rfi')",page)
+        self.assertIn("$('heroScenario').value='vs_open';",page)
+        self.assertIn("useBbDefenseWhenRfi();\n const profile=",page)
+        self.assertIn("useBbDefenseWhenRfi();\n   const doc=",page)
+        self.assertIn("showBbRfiHint(doc);",page)
+        self.assertIn("одна общая эвристика GTO Fixed",page)
+        self.assertIn("PC GTO BB-чарты ещё не загружены",page)
+        chart=core.preset("builtin:pc_gto_80bb",position="BB",scenario="vs_open",
+                           players=9,stack_bb=80)
+        self.assertEqual(chart["range_origin"],"gto_fixed_bb_vs_open")
+        self.assertEqual(len(chart["hands"]),169)
+        self.assertAlmostEqual(sum(chart["hands"]["AA"].values()),100,places=2)
+        self.assertEqual(core.preset("builtin:pc_gto_80bb",position="BB",
+                          scenario="rfi",players=9,stack_bb=80)["hands"],{})
+
     def test_colored_a17_badges_and_range_outlines(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         # The box badge's color uses the existing A17 group palette.
         self.assertIn(".matrixPane .handBoxTag.inRange{",page)
-        self.assertIn("background:color-mix(in srgb,var(--group-color",page)
+        self.assertIn("box-shadow:none;background:var(--group-color,#8494a6);",page)
+        self.assertIn("position:absolute;top:0;right:0;z-index:5;",page)
+        self.assertIn("text-shadow:none;box-shadow:none;",page)
+        self.assertNotIn("color-mix(",page)
         self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
         self.assertIn("tag.classList.add('inRange')",page)
         self.assertIn(".unifiedGroupList .boxCard.inRange{",page)
