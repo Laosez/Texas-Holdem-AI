@@ -70,7 +70,8 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb"})
 POSTFLOP_CHOICES = frozenset({
-    "gto", "smart", "tag_punisher", "wide_defender", "baseline_sane",
+    "gto", "smart", "gto_postflop_v1", "lag_postflop_v1",
+    "tag_punisher", "wide_defender", "baseline_sane",
     "nit", "loose_passive", "maniac", "maniac_mixed", "pressure_filler",
     "random",
 })
@@ -187,6 +188,18 @@ def strategy_catalog():
             "preflop_strategies": preflop,
             "saved_preflop": saved,
             "postflop_strategies": postflop,
+            "postflop_profiles": {
+                "gto_postflop_v1": {
+                    "label": "GTO Postflop V1 (GTO-inspired, не solver)",
+                    "model": "heuristic",
+                    "features": ["value", "C-bet", "draw", "semi-bluff", "check-raise", "river blockers", "multiway", "SPR"]
+                },
+                "lag_postflop_v1": {
+                    "label": "LAG Postflop V1 (агрессивный эксперимент)",
+                    "model": "heuristic",
+                    "features": ["value", "high C-bet", "semi-bluff", "air bluff", "check-raise", "river blockers", "multiway", "SPR"]
+                }
+            },
             "preflop_protocols": {
                 "legacy": "Исходные действия стратегии, старые эксперименты",
                 "standard_v1": "Единые диапазоны ответов и размеры повышений; собственный RFI у каждой стратегии"

@@ -11,6 +11,8 @@
     "a17_preflop",
     "a17_preflop_legacy",
     "smart",
+    "gto_postflop_v1",
+    "lag_postflop_v1",
     "tag_punisher",
     "wide_defender",
     "baseline_sane",
