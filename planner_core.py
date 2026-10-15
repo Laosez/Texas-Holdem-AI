@@ -161,6 +161,34 @@ def _gto_ranges(position, n):
     return result
 
 
+
+def _bb_fixed_gto_vs_open(players):
+    """Actual A17 and PC GTO 80bb BB fallback versus one voluntary open.
+
+    A17PreflopBot and PCGTO80bbBot both defer BB defense to
+    FixedGTOPreflopBot. Its initial BL tiers come from _gto_ranges, then
+    a real preflop opponent raise applies the exact fold tightening from
+    FixedGTOPreflopBot._preflop. Raise means 3-bet here, NOT an RFI open.
+    This is a heuristic, NOT an A17-specific defense or solver chart.
+    """
+    initial = _gto_ranges("BB", players)
+    result = {}
+    for hand, actions in initial.items():
+        fold = actions["fold"] / 100
+        call = actions["limp"] / 100
+        raise_ = actions["open"] / 100
+        fold = min(1.0, fold + 0.15 * (0.30 + fold))
+        remainder = 1.0 - fold
+        total = call + raise_
+        if total:
+            call, raise_ = remainder * call / total, remainder * raise_ / total
+        else:
+            call, raise_ = remainder, 0.0
+        result[hand] = {"fold": round(100 * fold, 4),
+                        "call": round(100 * call, 4),
+                        "threebet": round(100 * raise_, 4)}
+    return result
+
 def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
     validate_context(players, position, scenario, stack_bb)
     if profile.startswith("saved:"):
@@ -184,7 +212,10 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
     elif profile == "builtin:pc_gto_80bb":
         from bots.pc_gto_80bb_ranges import rfi_actions
         hands = ({h: rfi_actions(h, position, players) for h in HANDS}
-                 if scenario == "rfi" and position != "BB" else {})
+                 if scenario == "rfi" and position != "BB" else
+                 _bb_fixed_gto_vs_open(players) if scenario == "vs_open" and position == "BB" else {})
+    elif position == "BB" and scenario == "vs_open":
+        hands = _bb_fixed_gto_vs_open(players)
     elif scenario == "rfi" and position in A17_MAX_OPEN_BOX_BY_POSITION:
         cutoff = A17_MAX_OPEN_BOX_BY_POSITION[position]
         extra = A17_RFI_EXTRA_BOXES_BY_POSITION.get(position, ())
@@ -204,6 +235,10 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
             "name": BUILTINS[profile], "players": players, "position": position,
             "scenario": scenario, "stack_bb": stack_bb, "boxes": boxes,
             "box_order": list(range(1, 18)), "hands": hands,
+            "range_origin": ("gto_fixed_bb_vs_open"
+                             if position == "BB" and scenario == "vs_open"
+                             and profile in ("builtin:a17_v5", "builtin:a17_legacy",
+                                             "builtin:pc_gto_80bb") else None),
             "readonly": True, "source": "builtin"}
 
 

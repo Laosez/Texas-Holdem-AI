@@ -26,6 +26,40 @@ class PlanTests(unittest.TestCase):
             self.assertEqual(v5["hands"][h],{"fold":100})
             self.assertEqual(old["hands"][h],{"open":100})
 
+    def test_bb_vs_open_displays_actual_fixed_gto_defense_for_a17_and_pc(self):
+        for profile in ("builtin:a17_v5", "builtin:a17_legacy",
+                        "builtin:pc_gto_80bb"):
+            for players in (2, 6, 9):
+                with self.subTest(profile=profile, players=players):
+                    chart = core.preset(profile, "BB", "vs_open", players)
+                    self.assertEqual(chart["range_origin"], "gto_fixed_bb_vs_open")
+                    self.assertEqual(len(chart["hands"]), 169)
+                    aa = chart["hands"]["AA"]
+                    self.assertAlmostEqual(aa["fold"], 4.5)
+                    self.assertAlmostEqual(aa["call"], 9.55)
+                    self.assertAlmostEqual(aa["threebet"], 85.95)
+                    nines = chart["hands"]["99"]
+                    self.assertAlmostEqual(nines["fold"], 16)
+                    self.assertAlmostEqual(nines["call"], 46.6667, places=3)
+                    self.assertAlmostEqual(nines["threebet"], 37.3333, places=3)
+                    self.assertEqual(chart["hands"]["72o"],
+                                     {"fold": 100, "call": 0, "threebet": 0})
+                    self.assertEqual(len(core.validate_plan(chart)["hands"]), 169)
+                    self.assertTrue(all(abs(sum(row.values()) - 100) < .001
+                                        for row in chart["hands"].values()))
+                    weights = core.range_weights(chart)
+                    percent = sum(core.COMBOS[h] * weights.get(h, 0)
+                                  for h in core.HANDS) / 1326 * 100
+                    self.assertAlmostEqual(percent, 11.586, delta=.1)
+        # BB has no RFI: the blank matrix remains intentionally blank,
+        # rather than treating an automatic check as a Raise First In.
+        bb_rfi = core.preset("builtin:a17_v5", "BB", "rfi", 9)
+        self.assertEqual(bb_rfi["hands"], {})
+        self.assertIsNone(bb_rfi["range_origin"])
+        # Our explicit user-approved response to a 3-bet stays unchanged.
+        bb_3bet = core.preset("builtin:a17_v5", "BB", "vs_threebet", 9)
+        self.assertEqual(bb_3bet["hands"]["AA"], {"call": 50, "fourbet": 50})
+
     def test_blank_not_fold_and_boxes_independent(self):
         doc=core.preset("builtin:a17_v5","3","vs_open")
         self.assertFalse(doc["hands"])

@@ -302,21 +302,48 @@ function setHeroFields(doc){
  $('stack').value=doc.stack_bb;
  $('strategyName').value=doc.name;
 }
-async function loadHero(){
- if(loadingSource||!preserveEdits())return;
+async function loadHero({contextChange=false}={}){
+ // Existing saved versions are immutable and tied to their original context.
+ // A position change must create a new editable A17 context, not secretly
+ // revert the selected position to the saved strategy's old UTG position.
+ if(loadingSource)return;
+ if(!preserveEdits()){if(hero)setHeroFields(hero);return}
  loadingSource=true;
  try{
-  const profile=$('heroProfile').value,stored=findSaved(profile);
-  if(stored){
+  let profile=$('heroProfile').value;
+  const stored=findSaved(profile);
+  const position=$('heroPosition').value;
+  const scenario=$('heroScenario').value;
+  const players=Number($('players').value);
+  const switched=!!stored&&contextChange&&(
+   stored.position!==position||stored.scenario!==scenario||stored.players!==players
+  );
+  if(switched){
+   // Switching context preserves the saved source on disk. The new chart
+   // uses the A17 V5 baseline for this position; custom hand decisions from
+   // another position must never be silently copied into this one.
+   profile='builtin:a17_v5';
+   $('heroProfile').value=profile;
+  }else if(stored){
    $('players').value=String(stored.players);
    renderPositions($('heroPosition'),stored.position);
    $('heroScenario').value=stored.scenario;
   }
   const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
-  hero=doc;dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
- }catch(e){msg(e.message,true)}finally{loadingSource=false}
+  hero=doc;dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';invalidateEquity();setHeroFields(doc);paintEditor();renderAll();
+  const bbFallback=doc.range_origin==='gto_fixed_bb_vs_open';
+  const bbRfi=doc.position==='BB'&&doc.scenario==='rfi';
+  msg((switched?'Сохранённая версия привязана к прежней позиции. Открыт новый A17 V5 для редактирования; исходная версия сохранена. ':'')+
+    (bbFallback?'BB против открытия: реальная защита GTO Fixed (эвристика), не собственный чарт A17. ':
+     bbRfi?'На BB не бывает RFI: выбери «Против открытия» для просмотра защиты. ':
+     'Загружена стратегия: '+doc.name+'. '));
+ }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}finally{loadingSource=false}
 }
-function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
+function renderPositions(control,selectedValue){
+ // Keep BTN/SB/BB when changing table size if the seat remains available.
+ const prior=selectedValue===undefined?control.value:selectedValue;
+ refill(control,positionOptions(Number($('players').value)),prior);
+}
 function renderOpponents(){
  const count=Number($('oppCount').value);
  const target=$('opponents');target.replaceChildren();
@@ -1035,8 +1062,10 @@ async function connect(){
  }catch(e){$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
 }
 $('connect').onclick=connect;
-$('heroProfile').onchange=loadHero;
-$('heroPosition').onchange=loadHero;$('heroScenario').onchange=loadHero;$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero()};
+$('heroProfile').onchange=()=>loadHero();
+$('heroPosition').onchange=()=>loadHero({contextChange:true});
+$('heroScenario').onchange=()=>loadHero({contextChange:true});
+$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
 $('oppCount').onchange=updateOppCount;
