@@ -26,10 +26,6 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .hand.selected{outline:2px solid #fff;outline-offset:-2px}
 
 .hand.boxhit::before{content:"";position:absolute;left:0;top:24%;height:52%;width:3px;border-radius:4px;background:#d2a9ff;pointer-events:none;z-index:3}
-.hand .handBoxTag{position:absolute;top:2px;right:3px;font-size:8px;line-height:1.2;font-weight:800;letter-spacing:-.2px;color:#a9b9ca;opacity:.95;pointer-events:none}
-.hand.boxhit .handBoxTag{color:#e0c0ff}
-.hand.played .handBoxTag{color:#e1efff}
-.hand.boxhit.played .handBoxTag{color:#f1ceff}
 .hand.dragging{opacity:.25}
 .comparisonCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,610px),1fr));gap:12px}
 .comparisonCard{min-width:0}
@@ -61,6 +57,14 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .hand.played{border:2px solid #70b7ff}
 .hand.metricShade{background-image:linear-gradient(135deg,var(--shade-top),var(--shade-bottom))}
 .hand.metricMissing{background:#253448;color:#a9bbcf}
+.hand.metricNeutral{background:#37404b;color:#edf1f7}
+.handHoverCard{position:fixed;z-index:1000;width:min(328px,calc(100vw - 24px));max-height:min(540px,calc(100vh - 20px));overflow:auto;background:#101d30;color:#e8f3ff;border:1px solid #6991b9;border-radius:10px;padding:12px 13px;box-shadow:0 12px 36px rgba(0,0,0,.48);pointer-events:none;font-size:11px;line-height:1.45}
+.handHoverTitle{font-size:16px;font-weight:850;color:#fff;margin-bottom:7px}
+.handHoverSub{font-size:10px;color:#a8c8e9;margin-bottom:8px}
+.handHoverLine{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px solid #263c51}
+.handHoverLine span{color:#a5bdd6}.handHoverLine strong{text-align:right;font-variant-numeric:tabular-nums}
+.handHoverSection{font-weight:800;color:#c0d9f3;margin:10px 0 4px}
+.handHoverCard[hidden]{display:none}
 .hand.metricShade small{color:#f1f7ff;text-shadow:0 1px 2px #071523}
 .metricControls{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:10px 0 12px}
 .metricControls .field{width:min(195px,100%)}
@@ -99,7 +103,8 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="fields" style="margin-top:12px"><div class="field wide"><div class="right" style="justify-content:space-between"><label for="equityMin">Золотая пунктирная рамка: equity не ниже</label><strong id="minLabel">40%</strong></div><input id="equityMin" type="range" min="0" max="100" step="1" value="40"></div></div>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 </section>
-<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие · цвет</option></select></div></div>
+<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="matrixMode" style="margin:0">Режим</label><select id="matrixMode"><option value="1">Одна матрица</option><option value="2">Две матрицы</option></select><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Цифра в ячейке</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие · цвет</option></select></div></div>
+<div class="metricControls" id="rangeBorderControls"><div class="field" style="width:min(310px,100%)"><label for="minPlayFrequency">Синяя рамка: частота участия не ниже <strong id="playMinLabel">20%</strong></label><input id="minPlayFrequency" type="range" min="0" max="100" value="20" step="1"></div><span class="small" style="max-width:650px">В GTO Bot неприоритетные руки играются с частотой 15%; порог 20% не относит их к основному диапазону, сохраняя реальную частоту в подсказке.</span></div>
 <div class="metricControls hidden" id="evControls">
 <div class="field"><label for="evPot">Банк перед коллом, BB</label><input id="evPot" type="number" min="0" step="0.5" value="10"></div>
 <div class="field"><label for="evCost">Цена колла, BB</label><input id="evCost" type="number" min="0.1" step="0.5" value="5"></div>
@@ -114,7 +119,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 </div>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
-<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Градиент заливки = выбранная метрика, а НЕ частота участия по умолчанию. Золотой пунктир = equity не ниже порога. Синяя рамка = рука входит в активный диапазон стратегии (хотя бы с ненулевой частотой). Номер A01–A17 в правом верхнем углу = коробка данной стратегии. Фиолетовая метка слева = выделенная коробка нашей стратегии. Руки ниже equity-порога не затемняются.</p>
+<p class="note">Выше диагонали — suited, на диагонали — пары, ниже — offsuit. Градиент заливки = выбранная метрика, а НЕ частота участия по умолчанию. Золотой пунктир = equity не ниже порога. Синяя рамка = рука входит в активный диапазон стратегии (хотя бы с ненулевой частотой). Номер коробки доступен по наведению. Фиолетовая метка слева = выделенная коробка нашей стратегии. Руки ниже equity-порога не затемняются.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Сравнение стратегий</h2><span class="badge">Отдельно по каждому сопернику · HU + Multiway</span></div>
 <div class="profile" style="margin-bottom:14px"><h3>Матрица equity стратегий · каждая с каждой</h3>
@@ -236,7 +241,7 @@ function boxDropped(e,target){
  if(HANDS.includes(h))moveHandToBox(h,target);
 }
 function boxChip(h){
- const chip=el('div','boxHandChip'+(knownActivePercent(hero,h)>0?' played':''));
+ const chip=el('div','boxHandChip'+(knownActivePercent(hero,h)>=Math.max(1,Number($('minPlayFrequency').value))?' played':''));
  chip.draggable=true;
  chip.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-hand',h);e.dataTransfer.setData('text/plain',h)};
  const show=el('button','boxHandSelect',h);show.type='button';show.title='Редактировать '+h;
@@ -362,6 +367,7 @@ function setMetricLegend(){
    'Укажите положительный эффективный стек в блоке 01 и неотрицательные мёртвые деньги. Данные некорректны.';
  }
  const settings={
+  none:['Нейтральный серый фон: цвет не зависит от расчётов, выделение игрового диапазона определяется отдельно.','linear-gradient(90deg,#37404b,#37404b)'],
   equity:['Equity: 0% → 100%, красный → зелёный. Без Monte Carlo нет значения.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
   participation:['Частота участия: 0% → 100%. Синяя рамка только при участии больше 0%.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
   dominant:['Частота основного действия: 0% → 100%.','linear-gradient(90deg,#9f3a42,#a78c42,#329b79)'],
@@ -378,14 +384,75 @@ function setMetricLegend(){
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
  if(!acts||!Object.keys(acts).length)return null;
- const share=Object.entries(acts).reduce((s,[action,freq])=>s+(action==='fold'?0:Number(freq)||0),0);
+ const share=Object.entries(acts).reduce((s,[action,freq])=>s+(action==='fold'?0:(Number(freq)||0)),0);
  return Math.min(100,Math.max(0,share));
 }
+
+function handMetricsRows(hand,doc){
+ const rows=[],pair=(name,val)=>rows.push([name,val===undefined||val===null?'—':String(val)]);
+ const isHero=doc===hero,box=doc?.boxes?.[hand],frequency=knownActivePercent(doc,hand);
+ const filterEq=equityResults.filter?.equity?.[hand];
+ const multiEq=equityResults.actual?.equity?.[hand];
+ const anyEq=equityResults.any?.equity?.[hand];
+ const f=x=>Number.isFinite(x)?Number(x).toFixed(1)+'%':'—';
+ pair('Число комбинаций',COMBOS(hand));
+ pair('Коробка A17',Number.isInteger(box)&&box>0?'A'+String(box).padStart(2,'0'):'Без коробки');
+ pair('Участие в диапазоне',f(frequency));
+ pair('Синяя рамка от',$('minPlayFrequency').value+'%');
+ const actions=doc?.hands?.[hand];
+ if(actions&&Object.keys(actions).length){
+  for(const [action,pct] of Object.entries(actions))pair(ACTIONS[action]||action,f(Number(pct)));
+ }else pair('Стратегия','Не определена');
+ if(isHero){
+  pair('Equity · текущий фильтр',f(filterEq));
+  pair('Equity · выбранные соперники',f(multiEq));
+  if(Number.isFinite(anyEq))pair('Equity · Any Two',f(anyEq));
+  const groupEq=boxEquityResult?.equity?.[String(box)];
+  pair('Equity коробки · multiway',f(groupEq));
+  const pot=Number($('evPot').value),call=Number($('evCost').value);
+  const chip=Number.isFinite(filterEq)?modelCallEv(filterEq,pot,call):null;
+  pair('EV колла all-in',Number.isFinite(chip)?'≈'+chip.toFixed(1)+' BB':'—');
+  const allIn=Number.isFinite(multiEq)?modelAllInEv(multiEq,Number($('stack').value),Number($('allInDead').value),currentPeople().length):null;
+  pair('EV выставления',Number.isFinite(allIn)?'≈'+allIn.toFixed(1)+' BB':'—');
+  perOpponentData.forEach((item,i)=>{
+   const hu=item.handEq?.equity?.[hand];
+   if(Number.isFinite(hu))pair('Equity vs Оп '+(i+1)+' · HU',f(hu));
+  });
+ }else pair('Equity / EV соперника','Не рассчитаны для этой стратегии');
+ return rows;
+}
+function positionHandHover(event){
+ const card=$('handHoverCard');if(card.hidden)return;
+ const anchor=event?.currentTarget,rect=anchor?.getBoundingClientRect?.();
+ const x=Number.isFinite(event?.clientX)?event.clientX:(rect?.right||20);
+ const y=Number.isFinite(event?.clientY)?event.clientY:(rect?.top||20);
+ // Keep the card in the viewport, avoiding flicker over the matrix itself.
+ const width=card.offsetWidth||328,height=card.offsetHeight||350;
+ card.style.left=Math.max(8,Math.min(window.innerWidth-width-8,x+15))+'px';
+ card.style.top=Math.max(8,Math.min(window.innerHeight-height-8,y+15))+'px';
+}
+function showHandHover(hand,doc,event){
+ const card=$('handHoverCard');
+ if(!card)return;
+ card.replaceChildren();
+ card.append(el('div','handHoverTitle',hand));
+ card.append(el('div','handHoverSub',doc?.name||'Стратегия'));
+ const section=el('div','handHoverSection','Диапазон / Equity / EV');
+ card.append(section);
+ for(const [name,value] of handMetricsRows(hand,doc)){
+  const line=el('div','handHoverLine');
+  line.append(el('span','',name),el('strong','',value));card.append(line);
+ }
+ const note=el('div','handHoverSub','Equity — доля банка при выставлении. EV — модель chipEV; отсутствие расчёта обозначено «—».');
+ note.style.marginTop='9px';card.append(note);
+ card.hidden=false;positionHandHover(event);
+}
+function hideHandHover(){const card=$('handHoverCard');if(card)card.hidden=true}
 function matrix(root,doc){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
  const eq=equityResults.filter?.equity||{},min=Number($('equityMin').value),metric=$('cellMetric').value;
- const pot=Number($('evPot').value),cost=Number($('evCost').value);
+ const pot=Number($('evPot').value),cost=Number($('evCost').value),minPlayed=Number($('minPlayFrequency').value);
  const allInEquity=equityResults.actual?.equity||null;
  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
  for(const h of HANDS){
@@ -394,15 +461,16 @@ function matrix(root,doc){
   const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   const participation=knownActivePercent(doc,h);
   // A blue outline marks a played hand only. It is never used for equity or boxes.
-  if(participation!==null&&participation>0)button.classList.add('played');
+  if(participation!==null&&participation>0&&participation>=minPlayed)button.classList.add('played');
   const hasEq=Number.isFinite(eq[h]),equity=hasEq?eq[h]:null;
   if(hasEq&&equity>=min)button.classList.add('equityHit');
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
-  const tag=el('span','handBoxTag',Number.isInteger(b)&&b>0?'A'+String(b).padStart(2,'0'):'—');
-  button.append(tag);
+
   let displayed='—',value=null;
-  if(metric==='equity'){
+  if(metric==='none'){
+   displayed='';
+  }else if(metric==='equity'){
    value=equity;displayed=equity===null?'—':equity.toFixed(1)+'%';
   }else if(metric==='participation'){
    value=participation;displayed=value===null?'—':value.toFixed(0)+'%';
@@ -429,8 +497,9 @@ function matrix(root,doc){
   }else if(metric==='action'){
    displayed=action==='none'?'—':ACTIONS[action]||action;
   }
-  const colors=metricGradient(metric,value,b,action);
-  if(colors){
+  const colors=metric==='none'?null:metricGradient(metric,value,b,action);
+  if(metric==='none')button.classList.add('metricNeutral');
+  else if(colors){
    button.classList.add('metricShade');
    button.style.setProperty('--shade-top',colors[0]);
    button.style.setProperty('--shade-bottom',colors[1]);
@@ -438,11 +507,14 @@ function matrix(root,doc){
    // No data is not equivalent to zero, Fold, or a weak hand.
    button.classList.add('metricMissing');
   }
-  button.append(el('small','',displayed));
-  button.title += ' · '+$('cellMetric').selectedOptions[0].textContent+': '+displayed+
-   (participation===null?' · Действие не определено':' · Участие: '+participation.toFixed(1)+'%')+
-   (boxhit?' · Коробка выбрана':'');
-  button.setAttribute('aria-label',button.title);
+  if(displayed)button.append(el('small','',displayed));
+  button.setAttribute('aria-label',handTooltip(h,doc)+', подробные показатели доступны при наведении или фокусе');
+  button.setAttribute('aria-describedby','handHoverCard');
+  button.onmouseenter=e=>showHandHover(h,doc,e);
+  button.onmousemove=e=>positionHandHover(e);
+  button.onmouseleave=hideHandHover;
+  button.onfocus=e=>showHandHover(h,doc,e);
+  button.onblur=hideHandHover;
   button.onclick=()=>{selected=h;drawMatrices();paintEditor()};
   button.draggable=true;button.ondragstart=e=>e.dataTransfer.setData('text/plain',h);
   root.append(button);
@@ -780,7 +852,8 @@ $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDi
 $('oppCount').onchange=updateOppCount;
 $('viewOpponent').onchange=loadVillain;
 $('matrixMode').onchange=drawMatrices;
-$('cellMetric').onchange=drawMatrices;
+$('cellMetric').onchange=()=>{hideHandHover();drawMatrices()};
+$('minPlayFrequency').oninput=()=>{$('playMinLabel').textContent=$('minPlayFrequency').value+'%';drawMatrices();drawBoxes()};
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices();drawBoxes()};
@@ -825,4 +898,4 @@ $('computeAll').onclick=async()=>{
 };
 $('key').value=sessionStorage.getItem('skachkov_key')||'';
 if(token())connect();
-</script></body></html>
+</script><div id="handHoverCard" class="handHoverCard" role="tooltip" hidden></div></body></html>
