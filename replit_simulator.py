@@ -187,6 +187,10 @@ def strategy_catalog():
             "preflop_strategies": preflop,
             "saved_preflop": saved,
             "postflop_strategies": postflop,
+            "preflop_protocols": {
+                "legacy": "Исходные действия стратегии, старые эксперименты",
+                "standard_v1": "Единые диапазоны ответов и размеры повышений; собственный RFI у каждой стратегии"
+            },
             "preflop_coverage": {
                 "pc_gto_80bb": {
                     "rfi": "PokerCoaching 80bb RFI 169-hand chart, 25% rounding (9-max chart indexed by position)",
@@ -283,6 +287,9 @@ def validate_config(data: dict) -> dict:
     seat_mode = data.get("seat_mode", "rotate")
     if seat_mode not in ("rotate", "fixed"):
         raise ValueError("seat_mode: rotate или fixed")
+    preflop_protocol = data.get("preflop_protocol", "legacy")
+    if preflop_protocol not in ("legacy", "standard_v1"):
+        raise ValueError("preflop_protocol: legacy или standard_v1")
     config = {
         "players": bots, "bots": rows,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
@@ -295,6 +302,7 @@ def validate_config(data: dict) -> dict:
         ),
         "max_hands": bounded_int(data.get("max_hands", 10000), "Лимит рук", 100, 100_000),
         "seat_mode": seat_mode,
+        "preflop_protocol": preflop_protocol,
     }
     if config["parallel"] > max_safe_workers():
         raise ValueError(f"Разрешено не более {max_safe_workers()} процессов. Увеличивать POKER_MAX_WORKERS следует только после выделения дополнительной RAM.")
@@ -488,9 +496,11 @@ def worker(job: dict) -> None:
     log_path = output / "simulation.log"
     try:
         env = dict(os.environ, THAI_ENGINE_IMPL="legacy", PYTHONUNBUFFERED="1",
-                   POKER_PLAN_SNAPSHOT_DIR=str(output / "plan_snapshots"))
+                   POKER_PLAN_SNAPSHOT_DIR=str(output / "plan_snapshots"),
+                   POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy"))
         with log_path.open("a", encoding="utf-8") as log:
-            log.write("\n[runner] Start or resume at " + now() + "\n")
+            log.write("\n[runner] Start or resume at " + now() +
+                      " | preflop_protocol="+config.get("preflop_protocol","legacy")+"\n")
             proc = subprocess.Popen(
                 cmd, cwd=ROOT, env=env, stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, text=True, bufsize=1,
