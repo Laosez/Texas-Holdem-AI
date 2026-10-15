@@ -68,80 +68,72 @@ class PlanHttpTests(unittest.TestCase):
                     thread.join(timeout=5)
 
     def test_equity_outline_and_lightweight_opponent_summary(self):
-        # Gold equity indicator survives redesign; costly pairwise comparison
-        # matrices have been replaced with lightweight opponent summary cards.
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn(".hand.equityHit::after", page)
-        self.assertIn("border:1px dashed #efbf55", page)
-        self.assertIn("if(hasEq&&equity>=min)button.classList.add('equityHit')", page)
-        self.assertNotIn("if(hasEq&&eq[h]<min)button.classList.add('dim')", page)
-        self.assertNotIn('id="pairwiseMatrix"', page)
-        self.assertNotIn("function calculatePairwise(", page)
-        self.assertNotIn("function renderComparisonGrid(", page)
-        self.assertIn("function assignedParticipation(", page)
-        self.assertIn("function renderPerOpponent(", page)
-        self.assertIn("const incomplete=undefinedHands!==null&&undefinedHands>0;", page)
-        self.assertIn("if(incomplete)card.append(", page)
-        self.assertIn("if(!item.doc)card.append(", page)
+        self.assertIn("function candidateSwaps(metric)",page)
+        self.assertIn("candidateGold",page)
+        self.assertIn("candidateRed",page)
+        self.assertIn("if(excluded[i].value<=selectedHands[i].value+1e-7)break",page)
+        self.assertIn("if(participation===null)continue",page)
+        self.assertNotIn('id="equityMin"',page)
+        self.assertNotIn('id="perOpponentComparison"',page)
+        self.assertNotIn('Сводка диапазонов',page)
+        self.assertNotIn("function renderComparisonGrid(",page)
+        self.assertIn("function renderPerOpponent()",page)
+        self.assertIn("hands.replaceChildren();",page)
+
 
     def test_a17_in_matrix_with_corner_labels_and_action_bars(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        section02 = page[page.index('02 / </span>Equity-фильтр'):page.index('03 / </span>Матрицы стартовых рук')]
         section03 = page[page.index('03 / </span>Матрицы стартовых рук'):page.index('04 / </span>Редактор выбранной руки')]
-        self.assertNotIn('id="boxes"', section02)
-        self.assertIn('id="boxes"', section03)
-        self.assertIn('id="clearBoxes"', section03)
-        self.assertIn('id="heroMatrix"', section03)
-        self.assertEqual(page.count('id="boxes"'), 1)
-        self.assertIn("function knownActivePercent(doc,hand)", page)
-        self.assertIn("button.append(tag)", page)
-        self.assertIn("const tag=el('span','handBoxTag'", page)
-        self.assertIn("tag.setAttribute('aria-hidden','true')", page)
-        self.assertIn("pair('Коробка A17'", page)
-        self.assertIn(".handBoxTag{position:absolute;top:2px;right:3px;", page)
-        self.assertNotIn(".hand.played{", page)
-        self.assertNotIn("button.classList.add('played')", page)
-        self.assertIn(".hand.boxhit::before", page)
-        self.assertIn(".hand.equityHit::after", page)
-        self.assertNotIn(".hand.boxhit{outline:2px solid #a7d8ff", page)
+        self.assertIn('id="boxes"',section03)
+        self.assertIn('id="groupEditor"',section03)
+        self.assertIn('id="groupDrawer"',section03)
+        self.assertIn('id="heroMatrix"',section03)
+        self.assertIn('id="brushTarget"',section03)
+        self.assertEqual(page.count('id="boxes"'),1)
+        self.assertIn("button.append(el('span','handRank',h))",page)
+        self.assertIn("button.append(el('span','handBoxTag'",page)
+        self.assertIn(".matrixPane .handRank{position:absolute;top:2px;left:3px",page)
+        self.assertIn(".matrixPane .handBoxTag{position:absolute;top:2px;right:3px",page)
+        self.assertIn("const stripe=handActionStripe(actions)",page)
+        self.assertIn(".hand.boxhit::before",page)
+        self.assertNotIn(".hand.equityHit::after",page)
+
 
     def test_metric_gradient_and_action_stripe_are_independent(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertNotIn(".hand.played{", page)
-        self.assertNotIn(".boxHandChip.played{", page)
-        self.assertNotIn("minPlayFrequency", page)
-        self.assertIn("if(stripe)button.append(stripe)", page)
-        self.assertIn(".hand.metricShade{background-image:linear-gradient(", page)
-        self.assertNotIn("--play-alpha", page)
-        self.assertIn("function metricGradient(metric,value,box,action)", page)
-        self.assertIn("const colors=metric==='none'?null:metricGradient(metric,value,b,action)", page)
-        self.assertIn("const participation=knownActivePercent(doc,h);", page)
-        for name in ("equity","participation","dominant","box","combos","delta","evCall","action"):
-            self.assertIn('value="'+name+'"', page)
+        self.assertIn(".hand.none,.hand.fold,.hand.open,.hand.limp,.hand.call,.hand.threebet,.hand.fourbet,.hand.push{background:#303b49}",page)
+        self.assertIn(".matrixPane .hand{background:#303b49!important;background-image:none!important",page)
+        self.assertIn("const center=el('span','handMetric'",page)
+        self.assertNotIn("function metricGradient(",page)
+        self.assertNotIn("const colors=metricGradient(",page)
+        self.assertNotIn('id="equityMin"',page)
+        self.assertIn("if(stripe)button.append(stripe)",page)
+        for name in ("equity","participation","dominant","box","combos","delta","evCall","evAllIn","action"):
+            self.assertIn('value="'+name+'"',page)
+
 
     def test_all_in_call_ev_never_claims_to_be_full_action_ev(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn("function modelCallEv(equityPct,potBB,callBB)", page)
-        self.assertIn("return (equityPct/100)*(potBB+callBB)-callBB;", page)
-        self.assertIn("value=doc===hero&&equity!==null?modelCallEv", page)
-        self.assertIn("без побочных банков и будущих ставок", page)
-        self.assertIn("EV сравнивается с Fold = 0", page)
+        self.assertIn("function modelCallEv(equityPct,potBB,callBB)",page)
+        self.assertIn("return (equityPct/100)*(potBB+callBB)-callBB;",page)
+        self.assertIn("modelCallEv(filtered,Number($('evPot').value),Number($('evCost').value))",page)
+        self.assertIn("без побочных банков и будущих ставок",page)
+        self.assertIn("EV сравнивается с Fold = 0",page)
+
 
     def test_multiway_all_in_ev_uses_actual_selected_equity(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('value="evAllIn"', page)
-        self.assertIn('id="allInDead"', page)
-        self.assertIn('id="allInStatus"', page)
+        self.assertIn('value="evAllIn"',page)
+        self.assertIn('id="allInDead"',page)
         self.assertIn('function modelAllInEv(equityPct,stackBB,deadBB,opponentCount)',page)
         self.assertIn('const finalPot=(opponentCount+1)*stackBB+deadBB;',page)
         self.assertIn('return (equityPct/100)*finalPot-stackBB;',page)
-        self.assertIn("const allInEquity=equityResults.actual?.equity||null;",page)
-        self.assertIn("value=doc===hero&&Number.isFinite(actual)?modelAllInEv(actual,stack,dead,n):null;",page)
+        self.assertIn("equityResults.actual?.equity?.[h]",page)
+        self.assertIn("modelAllInEv(actual,Number($('stack').value),Number($('allInDead').value),currentPeople().length)",page)
         self.assertIn("if(metric==='evAllIn'){",page)
-        self.assertIn("if(allIn){",page)
         self.assertIn("$('allInDead').oninput=drawMatrices;",page)
-        self.assertIn("noteDirty();drawMatrices()",page)
-        self.assertIn("без побочных банков / fold equity / ICM",page)
+
 
     def test_a17_hand_lists_drag_to_pool_reorder_undo_and_save(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
@@ -165,34 +157,37 @@ class PlanHttpTests(unittest.TestCase):
         self.assertNotIn("Последняя рука не может покинуть коробку",page)
 
     def test_group_equity_and_multi_cycle_ui(self):
-        page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('id="computeBoxes"',page)
+        page = service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="cycles"',page)
-        self.assertIn("const eq=boxEquityResult?.equity||null;",page)
-        self.assertIn("const groupEq=members.length&&Number.isFinite(eq?.[String(b)])",page)
-        self.assertIn("/api/plan/boxes-equity",page)
-        self.assertIn("while(job.status==='running'||job.status==='queued')",page)
-        self.assertIn("boxEquityEpoch++;boxEquityResult=null;",page)
+        self.assertIn("function groupWeightedEquity(b)",page)
+        self.assertIn("equityResults.actual?.equity||",page)
+        self.assertIn("if(!Number.isFinite(eq[h]))return null;",page)
+        self.assertIn("const w=COMBOS(h);mass+=w;total+=w*eq[h]",page)
+        self.assertIn("return mass?total/mass:null;",page)
+        self.assertIn("const eq=groupWeightedEquity(b);",page)
+        self.assertIn("const groupEq=groupWeightedEquity(b);",page)
+        self.assertIn("const groupEq=groupWeightedEquity(box);",page)
+        self.assertNotIn('id="computeBoxes"',page)
+        self.assertNotIn("async function calculateBoxesEquity()",page)
+        self.assertNotIn("await calculateBoxesEquity()",page)
         self.assertIn("cycles:Number($('cycles').value)",page)
-        self.assertIn("Eq</strong> — реальное showdown equity диапазона всей коробки",page)
-        self.assertNotIn("Доля комбинаций с equity выше порога';head.append(summary)",page)
+
 
     def test_gto_neutral_mode_and_detailed_hover(self):
-        page=service.PLAN_UI.read_text(encoding="utf-8")
+        page = service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('value="none">Нет · серый фон',page)
-        self.assertIn(".hand.metricNeutral{background:#37404b",page)
+        self.assertIn(".hand.metricNeutral{background:#303b49",page)
         self.assertNotIn('id="minPlayFrequency"',page)
         self.assertNotIn('id="playMinLabel"',page)
-        self.assertIn("Нижняя полоска каждой руки показывает доли Fold / Raise / Limp / Call",page)
-        self.assertIn('id="handHoverCard"',page)
         self.assertIn("function handMetricsRows(hand,doc)",page)
         self.assertIn("function showHandHover(hand,doc,event)",page)
         self.assertIn("function hideHandHover()",page)
         self.assertIn("button.onmouseenter=e=>showHandHover(h,doc,e)",page)
         self.assertIn("pair('Equity · выбранные соперники'",page)
-        self.assertIn("pair('Equity коробки · multiway'",page)
+        self.assertIn("pair('Equity A17 · взвешенное'",page)
         self.assertIn("pair('EV выставления'",page)
         self.assertIn("handBoxTag",page)
+
 
     def test_hand_action_frequency_stripes_accurately_defined(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
@@ -240,16 +235,17 @@ class PlanHttpTests(unittest.TestCase):
         self.assertNotIn('Матрица equity стратегий · каждая с каждой',page)
 
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
-        page=service.PLAN_UI.read_text(encoding="utf-8")
+        page = service.PLAN_UI.read_text(encoding="utf-8")
         for label in ('id="heroMatrix"','id="villainMatrix"','id="handBox"',
-                      'id="applyHand"','id="applyBoxes"','id="computeBoxes"',
-                      'id="perOpponentHands"','id="compEquity"'):
+                      'id="applyHand"','id="applyBoxes"','id="boxPalette"',
+                      'id="perOpponentHands"','id="groupEditor"'):
             self.assertIn(label,page)
         self.assertIn('function drawBoxPalette()',page)
-        self.assertIn('const eq=boxEquityResult?.equity||null;',page)
+        self.assertIn('function groupWeightedEquity(b)',page)
         self.assertIn('class="actionLegend"',page)
         self.assertIn("if(stripe)button.append(stripe)",page)
         self.assertIn(".handBoxTag{position:absolute;",page)
+
 
 
 if __name__=="__main__":
