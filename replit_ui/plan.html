@@ -642,71 +642,79 @@ function handActionStripe(actions){
  }
  return bar;
 }
+// Each matrix cell has one quantitative value and one immutable background.
+function cellMetricValue(doc,h,metric){
+ const acts=doc?.hands?.[h],action=major(acts),b=doc?.boxes?.[h],ours=doc===hero;
+ const filtered=ours?equityResults.filter?.equity?.[h]:null;
+ const valueOrNull=v=>Number.isFinite(v)?v:null;
+ let value=null,display='—';
+ if(metric==='none')return {value:null,display:''};
+ if(metric==='equity'){value=valueOrNull(filtered);display=value===null?'—':value.toFixed(1)+'%'}
+ else if(metric==='participation'){
+  value=knownActivePercent(doc,h);display=value===null?'—':value.toFixed(0)+'%';
+ }else if(metric==='dominant'){
+  value=acts&&Object.keys(acts).length?Math.max(...Object.values(acts)):null;
+  display=value===null?'—':value.toFixed(0)+'%';
+ }else if(metric==='box'){
+  value=Number.isInteger(b)&&b>0?b:null;display=value===null?'—':'A'+String(value).padStart(2,'0');
+ }else if(metric==='combos'){
+  value=COMBOS(h);display=String(value);
+ }else if(metric==='delta'){
+  const other=knownActivePercent(villain,h),mine=knownActivePercent(hero,h);
+  value=ours&&mine!==null&&other!==null?mine-other:null;
+  display=value===null?'—':(value>0?'+':'')+value.toFixed(0)+' п.п.';
+ }else if(metric==='evCall'){
+  value=ours&&Number.isFinite(filtered)?modelCallEv(filtered,Number($('evPot').value),Number($('evCost').value)):null;
+  display=value===null?'—':(value>0?'+':'')+value.toFixed(2);
+ }else if(metric==='evAllIn'){
+  const actual=ours?equityResults.actual?.equity?.[h]:null;
+  value=Number.isFinite(actual)?modelAllInEv(actual,Number($('stack').value),Number($('allInDead').value),currentPeople().length):null;
+  display=value===null?'—':(value>0?'+':'')+value.toFixed(1);
+ }else if(metric==='action'){display=action==='none'?'—':ACTIONS[action]||action}
+ return {value,display};
+}
+// Rank true missed opportunities against the weakest currently played hands.
+// Equal-size one-to-one swaps avoid highlighting all 169 hands for one outlier.
+function candidateSwaps(metric){
+ const gold=new Set(),red=new Set();
+ if(!hero||!['equity','evCall','evAllIn'].includes(metric))return {gold,red};
+ const selectedHands=[],excluded=[];
+ for(const h of HANDS){
+  const participation=knownActivePercent(hero,h);
+  if(participation===null)continue; // unknown is not Fold
+  const v=cellMetricValue(hero,h,metric).value;
+  if(!Number.isFinite(v))continue;
+  (participation>0?selectedHands:excluded).push({hand:h,value:v});
+ }
+ selectedHands.sort((a,b)=>a.value-b.value||a.hand.localeCompare(b.hand));
+ excluded.sort((a,b)=>b.value-a.value||a.hand.localeCompare(b.hand));
+ for(let i=0;i<Math.min(selectedHands.length,excluded.length);i++){
+  if(excluded[i].value<=selectedHands[i].value+1e-7)break;
+  gold.add(excluded[i].hand);red.add(selectedHands[i].hand);
+ }
+ return {gold,red};
+}
 function matrix(root,doc){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
- const eq=equityResults.filter?.equity||{},min=Number($('equityMin').value),metric=$('cellMetric').value;
- const pot=Number($('evPot').value),cost=Number($('evCost').value);
- const allInEquity=equityResults.actual?.equity||null;
- const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
+ const metric=$('cellMetric').value,candidates=doc===hero?candidateSwaps(metric):{gold:new Set(),red:new Set()};
  for(const h of HANDS){
-  const actions=doc.hands[h],action=major(actions),b=doc.boxes[h],button=el('button','hand '+action,h);
+  const actions=doc.hands?.[h],b=doc.boxes?.[h];
+  const button=el('button','hand '+major(actions));
   button.type='button';button.title=handTooltip(h,doc);button.dataset.hand=h;
-  const boxhit=selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
-  const participation=knownActivePercent(doc,h);
-  // Action-frequency segments, not a blue frame, describe how the hand is played.
-  const hasEq=Number.isFinite(eq[h]),equity=hasEq?eq[h]:null;
-  if(hasEq&&equity>=min)button.classList.add('equityHit');
+  const boxhit=doc===hero&&selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
   if(doc===hero&&bulkSelected.has(h))button.classList.add('multiSelected');
-  if(Number.isInteger(b)&&b>=1&&b<=17){
-   const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
-   tag.setAttribute('aria-hidden','true');
-   button.append(tag);
+  if(candidates.gold.has(h))button.classList.add('candidateGold');
+  if(candidates.red.has(h))button.classList.add('candidateRed');
+  button.append(el('span','handRank',h));
+  if(Number.isInteger(b)&&b>0)button.append(el('span','handBoxTag','A'+String(b).padStart(2,'0')));
+  const info=cellMetricValue(doc,h,metric);
+  if(info.display!==''){
+   const center=el('span','handMetric'+(info.display.length>6?' compact':''),info.display);
+   button.append(center);
   }
-
-  let displayed='—',value=null;
-  if(metric==='none'){
-   displayed='';
-  }else if(metric==='equity'){
-   value=equity;displayed=equity===null?'—':equity.toFixed(1)+'%';
-  }else if(metric==='participation'){
-   value=participation;displayed=value===null?'—':value.toFixed(0)+'%';
-  }else if(metric==='dominant'){
-   value=actions&&Object.keys(actions).length?Math.max(...Object.values(actions)):null;
-   displayed=value===null?'—':value.toFixed(0)+'%';
-  }else if(metric==='box'){
-   value=b;displayed=Number.isInteger(b)&&b>0?'A'+String(b).padStart(2,'0'):'—';
-  }else if(metric==='combos'){
-   value=COMBOS(h);displayed=String(value);
-  }else if(metric==='delta'){
-   const against=knownActivePercent(villain,h),ours=knownActivePercent(hero,h);
-   value=ours===null||against===null?null:ours-against;
-   displayed=value===null?'—':(value>0?'+':'')+value.toFixed(0)+' п.п.';
-  }else if(metric==='evCall'){
-   // Only HERO's hypothetical all-in call, never the opponent's own EV.
-   value=doc===hero&&equity!==null?modelCallEv(equity,pot,cost):null;
-   displayed=value===null?'—':(value>0?'+':'')+value.toFixed(2)+' BB';
-  }else if(metric==='evAllIn'){
-   // Ignore the display-only equity model: all-in uses SELECTED villains only.
-   const actual=allInEquity?.[h];
-   value=doc===hero&&Number.isFinite(actual)?modelAllInEv(actual,stack,dead,n):null;
-   displayed=value===null?'—':'≈'+(value>0?'+':'')+value.toFixed(1)+' BB';
-  }else if(metric==='action'){
-   displayed=action==='none'?'—':ACTIONS[action]||action;
-  }
-  const colors=metric==='none'?null:metricGradient(metric,value,b,action);
-  if(metric==='none')button.classList.add('metricNeutral');
-  else if(colors){
-   button.classList.add('metricShade');
-   button.style.setProperty('--shade-top',colors[0]);
-   button.style.setProperty('--shade-bottom',colors[1]);
-  }else{
-   // No data is not equivalent to zero, Fold, or a weak hand.
-   button.classList.add('metricMissing');
-  }
-  if(displayed)button.append(el('small','',displayed));
   const stripe=handActionStripe(actions);
   if(stripe)button.append(stripe);
   button.setAttribute('aria-label',handTooltip(h,doc)+', подробные показатели доступны при наведении или фокусе');
