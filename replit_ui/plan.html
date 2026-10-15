@@ -140,7 +140,24 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .groupDrawer .boxInstructions{margin:10px 0 2px}
 .groupDrawer .heading{margin-top:13px!important}
 .matrixPane .actionStripe{height:4px;bottom:2px;left:2px;right:2px}
-.matrixPane .handBoxTag{top:1px;right:2px;font-size:8px}
+/* Use the same A17 palette as the box editor; muted fills keep labels legible.
+   A neutral white ring marks actual participation in the current range. */
+.matrixPane .handBoxTag{
+ display:inline-flex;align-items:center;justify-content:center;min-width:17px;
+ padding:1px 2px;border:1px solid color-mix(in srgb,var(--group-color,#8494a6) 54%,#142438);
+ border-radius:3px;background:color-mix(in srgb,var(--group-color,#8494a6) 29%,#142438);
+ color:#f0f6ff;opacity:1;text-shadow:0 1px 2px #071625;
+}
+.matrixPane .handBoxTag.inRange{
+ border-color:#f1f5fa;
+ box-shadow:0 0 0 1px rgba(241,245,250,.55);
+ background:color-mix(in srgb,var(--group-color,#8494a6) 40%,#142438);
+}
+.unifiedGroupList .boxCard.inRange{
+ outline:1px solid rgba(241,245,250,.78);
+ outline-offset:-2px;
+}
+@media(max-width:690px){.matrixPane .handBoxTag{min-width:0;padding:0 1px;font-size:7px;letter-spacing:-.3px}.matrixPane .handRank{font-size:9px}}
 @media(max-width:1230px){.plannerWorkspace{grid-template-columns:minmax(0,1fr) 310px}.editorSection .actionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1000px){.plannerWorkspace{grid-template-columns:1fr}.plannerWorkspace>.editorSection{position:static}.editorSection .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:690px){.editorSection .two{display:flex}.a17Palette{grid-template-columns:repeat(5,minmax(0,1fr))}.a17Workbench{padding:9px}.matrixGrid{min-width:0}.matrixViewport .matrixAxisLayout{min-width:535px}}
@@ -285,7 +302,8 @@ async function api(path,opts={}){
  return response.json();
 }
 const post=(path,data)=>api(path,{method:'POST',body:JSON.stringify(data)});
-function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
+function positionCaption(pos){return String(pos)==='3'?'BTN (позиция 3)':String(pos)}
+function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'BTN · позиция 3'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
 function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p.ref})),...meta.saved.map(p=>({value:p.ref,label:p.name+' · v'+p.version+' · '+(p.contexts_count||1)+' диапазон(ов)'}))]}
 function findSaved(profile){return meta.saved.find(x=>x.ref===profile)}
 function copy(x){return JSON.parse(JSON.stringify(x))}
@@ -314,6 +332,7 @@ function preserveCurrentSlot(){
 function heroContextMessage(doc){
  if(doc.position==='BB'&&doc.scenario==='vs_open'&&doc.range_origin==='gto_fixed_bb_vs_open')
   return 'BB против открытия: используется GTO Fixed, не оцифрованный PC GTO BB Defense.';
+ if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&doc.scenario==='vs_open')) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
  if(doc.position==='BB'&&doc.scenario==='rfi')
   return 'На BB нет RFI: для просмотра защиты выбери «Против открытия».';
  return 'Диапазон: '+doc.name+' · '+doc.position+' · '+SCENARIOS[doc.scenario];
@@ -490,7 +509,12 @@ function paintOneBox(hand,element){
  brushPainted.add(hand);
  element?.classList.add('brushVisited');
  const tag=element?.querySelector('.handBoxTag');
- if(tag)tag.textContent=brushTarget?'A'+String(brushTarget).padStart(2,'0'):'—';
+ if(!brushTarget){tag?.remove();return}
+ const badge=tag||el('span','handBoxTag');
+ badge.textContent='A'+String(brushTarget).padStart(2,'0');
+ badge.style.setProperty('--group-color',groupPaletteColor(brushTarget));
+ badge.classList.toggle('inRange',handInRange(hero,hand));
+ if(!tag)element?.append(badge);
 }
 function beginBoxStroke(hand,button,event){
  if(brushMode!=='paint'||event.button!==0)return;
@@ -516,7 +540,7 @@ function drawBoxes(){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
   const groupEq=groupWeightedEquity(b);
-  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':''));
+  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':'')+(b>0&&members.some(h=>handInRange(hero,h))?' inRange':''));
   card.style.setProperty('--group-color',groupPaletteColor(b));
   const head=el('div','boxCardHead');
   {
@@ -598,13 +622,18 @@ function setMetricLegend(){
   delta:'Разница участия с соперником, п.п.',
   action:'Основное действие; частоты в нижней полоске.'
  };
- $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
+ $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветная метка — коробка A17; белая рамка — рука в диапазоне (>0%). Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
  if(!acts||!Object.keys(acts).length)return null;
  const share=Object.entries(acts).reduce((s,[action,freq])=>s+(action==='fold'?0:(Number(freq)||0)),0);
  return Math.min(100,Math.max(0,share));
+}
+// Absent actions and a 100% Fold are both outside the played range.
+function handInRange(doc,hand){
+ const participation=knownActivePercent(doc,hand);
+ return participation!==null&&participation>0;
 }
 
 function handMetricsRows(hand,doc){
@@ -784,7 +813,12 @@ function matrix(root,doc,scale){
   if(candidates.gold.has(h))button.classList.add('candidateGold');
   if(candidates.red.has(h))button.classList.add('candidateRed');
   button.append(el('span','handRank',h));
-  if(Number.isInteger(b)&&b>0)button.append(el('span','handBoxTag','A'+String(b).padStart(2,'0')));
+  if(Number.isInteger(b)&&b>0){
+   const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
+   tag.style.setProperty('--group-color',groupPaletteColor(b));
+   if(handInRange(doc,h))tag.classList.add('inRange');
+   button.append(tag);
+  }
   const info=cellMetricValue(doc,h,metric);
   if(info.display!==''){
    const center=el('span','handMetric'+(info.display.length>6?' compact':''),info.display);
@@ -830,8 +864,8 @@ function drawMatrices(){
  if(!hero)return;
  setMetricLegend();
  const showOpponent=$('villainPane').open;
- $('heroMatrixLabel').textContent=hero.name+' · '+hero.position+' · '+SCENARIOS[hero.scenario];
- $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?.position||'—');
+ $('heroMatrixLabel').textContent=hero.name+' · '+positionCaption(hero.position)+' · '+SCENARIOS[hero.scenario];
+ $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?positionCaption(villain.position):'—');
  // Collapsed matrix is excluded from the visible min/max color scale.
  const scale=visibleMetricScale($('cellMetric').value,showOpponent?[hero,villain]:[hero]);
  matrix($('heroMatrix'),hero,scale);
