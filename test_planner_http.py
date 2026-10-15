@@ -309,6 +309,26 @@ class PlanHttpTests(unittest.TestCase):
         self.assertEqual(core.preset("builtin:pc_gto_80bb",position="BB",
                           scenario="rfi",players=9,stack_bb=80)["hands"],{})
 
+    def test_entry_frequency_selector_and_marginal_active_counts(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        for identifier in ("entryDistribution","opponentEntrySummary","entryDistributionNote"):
+            self.assertIn('id="'+identifier+'"',page)
+        self.assertIn("function entryPreviewMass(doc,selector='active')",page)
+        self.assertIn("mass+=COMBOS(hand)*(share||0)/100",page)
+        self.assertIn("{value:'range',label:'Из диапазона'}",page)
+        self.assertIn("{value:'manual',label:'Вручную %'}",page)
+        self.assertIn("{value:'always',label:'Всегда 100%'}",page)
+        self.assertIn("opponents[i].entry_mode=mode.value",page)
+        self.assertIn("opponents[i].entry_pct=pct",page)
+        self.assertIn("entry_mode:'range',entry_pct:100",page)
+        self.assertIn("entry_counts_pct",page)
+        self.assertIn("renderEntryDistribution()",page)
+        self.assertIn("function modelConditionalAllInEv(",page)
+        self.assertIn("return stackBB*potMultiple+deadBB*equityPct/100-stackBB",page)
+        self.assertIn("equityResults.actual?.pot_multiple?.[h]",page)
+        self.assertIn("equityResults.actual?.pot_multiple",page)
+        self.assertIn("Equity матрицы условно на ≥1 активного соперника",page)
+
     def test_range_ev_overlap_and_reverse_opponent_matrix_controls(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         for identifier in ("rangeEvSummary","rangeEvPlayed","rangeEvDealt",
@@ -316,7 +336,7 @@ class PlanHttpTests(unittest.TestCase):
                            "rangeIntersect","rangeIntersectionStats",
                            "villainMetric","villainReverseStatus","computeVillainReverse"):
             self.assertIn('id="'+identifier+'"',page)
-        self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents)",page)
+        self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples)",page)
         self.assertIn("const combos=COMBOS(hand);",page)
         self.assertIn("activeMass+=combos*play;evMass+=combos*play*ev;",page)
         self.assertIn("loss+=combos*play*Math.max(0,-ev);",page)

@@ -98,6 +98,25 @@ class WeightedRange:
         self.combos = concrete
         self.cum = cum
         self.total = mass
+        self.card_mass = [0.0] * 52
+        self.combo_weights = {}
+        for pair, weight in ((c, float(class_weights[h]))
+                             for h in planner.HANDS for c in HAND_COMBOS[h]
+                             if class_weights.get(h, 0) > 0):
+            self.combo_weights[tuple(sorted(pair))] = weight
+            self.card_mass[pair[0]] += weight
+            self.card_mass[pair[1]] += weight
+
+    def dealt_frequency(self):
+        return self.total / 1326.0
+
+    def probability_versus_hero(self, hero):
+        """Range hit rate with hero's two exact blockers, out of C(50,2)."""
+        c1, c2 = hero
+        pair = (min(c1, c2), max(c1, c2))
+        possible = (self.total - self.card_mass[c1] - self.card_mass[c2]
+                    + self.combo_weights.get(pair, 0.0))
+        return min(1.0, max(0.0, possible / 1225.0))
     def sample(self,rng):
         i=bisect_left(self.cum,rng.random()*self.total)
         return self.combos[min(i,len(self.combos)-1)]
@@ -136,6 +155,12 @@ def build_ranges(opponents, model="selected"):
         pos=str(opp.get("position","3"))
         scenario="rfi" if model!="selected" else str(opp.get("scenario","rfi"))
         n=int(opp.get("players",9))
+        entry_mode = opp.get("entry_mode", "always")
+        entry_pct = opp.get("entry_pct", 100.0)
+        if entry_mode not in ("always", "range", "manual"):
+            raise ValueError("Недопустимый режим вероятности входа")
+        if type(entry_pct) not in (int, float) or not math.isfinite(entry_pct) or not 0 <= entry_pct <= 100:
+            raise ValueError("Вероятность входа должна быть от 0 до 100%")
         if profile=="inline:hero":
             if model!="selected":
                 raise ValueError("Live-диапазон разрешён только для selected")
@@ -143,7 +168,8 @@ def build_ranges(opponents, model="selected"):
             ranges.append(WeightedRange(weights))
             provenance.append({"profile":profile,"position":pos,
                                "scenario":scenario,"selector":"active",
-                               "weights":weights})
+                               "weights":weights,
+                               "entry_mode":entry_mode,"entry_pct":entry_pct})
             continue
         doc=planner.preset(profile,pos,scenario,n)
         selector = str(opp.get("selector","active")) if model=="selected" else "active"
@@ -152,7 +178,8 @@ def build_ranges(opponents, model="selected"):
         weights=planner.range_weights(doc,selector=selector)
         ranges.append(WeightedRange(weights))
         provenance.append({"profile":profile,"position":doc["position"],
-                           "scenario":doc["scenario"],"selector":selector})
+                           "scenario":doc["scenario"],"selector":selector,
+                           "entry_mode":entry_mode,"entry_pct":entry_pct})
     return ranges,provenance
 
 
@@ -195,6 +222,91 @@ def simulate_hand(hand, opponents, trials=200, seed=42):
     if accepted<trials:
         raise ValueError(f"Диапазоны несовместимы: удалось {accepted}/{trials} допустимых выставлений из {attempts} попыток. Расширь диапазоны.")
     return round(100*payoff/accepted,2)
+
+
+def _player_entry_probability(opponent, spec, hero):
+    mode = spec.get("entry_mode", "always")
+    if mode == "range":
+        return opponent.probability_versus_hero(hero)
+    if mode == "manual":
+        return float(spec["entry_pct"]) / 100.0
+    return 1.0
+
+
+def _subset_probabilities(probs):
+    """Product Bernoulli distribution over exact masks (0 means all folded)."""
+    values = [1.0]
+    for p in probs:
+        values = [v*(1.0-p) for v in values] + [v*p for v in values]
+    # The iteration above builds masks with first index as lowest bit.
+    return values
+
+
+def entry_distributions(hand, opponents, specs):
+    """Exact 0..N entry-count mix averaged over concrete hero holdings.
+
+    'range' uses the 1225 available two-card combinations after hero blockers;
+    manual entry is an external marginal assumption independent of the cards.
+    """
+    options = HAND_COMBOS[hand]
+    n = len(opponents)
+    counts = [0.0]*(n+1)
+    choices = []
+    for hole in options:
+        probs = [_player_entry_probability(o, spec, hole)
+                 for o, spec in zip(opponents, specs)]
+        masks = _subset_probabilities(probs)
+        for mask, p in enumerate(masks):
+            counts[mask.bit_count()] += p/len(options)
+        choices.append((hole, masks))
+    return [min(1.0, max(0.0, p)) for p in counts], choices
+
+
+def simulate_hand_variable(hand, opponents, specs, trials=200, seed=42):
+    """Showdown equity conditioned on >=1 opponent entering the pot.
+
+    Sample the hero's specific suit combination proportional to its chance
+    of facing >=1 entrant, then the entered subset conditional on that hole.
+    Never classify the all-fold (zero-opponent) case as 100% showdown equity.
+    """
+    counts, choices = entry_distributions(hand, opponents, specs)
+    masses = [sum(mask_probs[1:]) for _, mask_probs in choices]
+    total_mass = sum(masses)
+    if total_mass <= 1e-14:
+        return None, None, counts
+    rng = random.Random(seed)
+    earned = 0.0
+    winning_pot_multiple = 0.0
+    accepted = attempts = 0
+    attempt_budget = max(2000, trials*500)
+    while accepted < trials and attempts < attempt_budget:
+        attempts += 1
+        hole, masks = rng.choices(choices, weights=masses, k=1)[0]
+        mask = rng.choices(range(1, len(masks)), weights=masks[1:], k=1)[0]
+        active = [op for i, op in enumerate(opponents) if mask & (1 << i)]
+        used = set(hole)
+        cards = []
+        for opponent in active:
+            dealt = opponent.sample(rng)
+            if dealt[0] in used or dealt[1] in used:
+                break
+            used.update(dealt)
+            cards.append(dealt)
+        if len(cards) != len(active):
+            continue
+        board = rng.sample([c for c in ALL_CARDS if c not in used], 5)
+        hero_score = score_seven((*hole, *board))
+        scores = [score_seven((*pair, *board)) for pair in cards]
+        highest = max([hero_score, *scores])
+        share = 0.0
+        if hero_score == highest:
+            share = 1.0/(1+sum(s == highest for s in scores))
+        earned += share
+        winning_pot_multiple += share*(len(active)+1)
+        accepted += 1
+    if accepted < trials:
+        raise ValueError(f"Диапазоны и вероятности несовместимы: {accepted}/{trials} допустимых выставлений")
+    return round(100*earned/accepted, 2), round(winning_pot_multiple/accepted, 5), counts
 
 
 def simulate_range_equity(hero_weights, opponents, trials=3000, seed=42):
@@ -256,19 +368,43 @@ def calculate_matrix(opponents,model="selected",trials=200,progress=None,cycles=
         raise ValueError("Циклов Monte Carlo должно быть 1–4")
     sources,provenance=build_ranges(opponents,model)
     digest=config_hash(provenance,model,trials)
-    values={};total=len(planner.HANDS)*cycles;done=0
+    values={};pot_multiples={};entry_by_hand={}
+    entry_counts = [0.0]*(len(sources)+1)
+    total=len(planner.HANDS)*cycles;done=0
+    probabilistic = any(p.get("entry_mode", "always") != "always" for p in provenance)
     for hand in planner.HANDS:
-        estimates=[]
+        estimates=[];multiples=[]
+        probabilities = None
         for cycle in range(cycles):
             # First cycle is backward compatible with the former single-pass MC.
             seed_key=f"{digest}:{hand}" if cycle==0 else f"{digest}:{hand}:cycle:{cycle}"
             seed=int(hashlib.sha256(seed_key.encode()).hexdigest()[:15],16)
-            estimates.append(simulate_hand(hand,sources,trials=trials,seed=seed))
+            if probabilistic:
+                eq, pot, probabilities = simulate_hand_variable(
+                    hand, sources, provenance, trials=trials, seed=seed)
+                if eq is not None:
+                    estimates.append(eq);multiples.append(pot)
+            else:
+                eq = simulate_hand(hand,sources,trials=trials,seed=seed)
+                estimates.append(eq)
+                multiples.append((len(sources)+1)*eq/100.0)
             done+=1
             if progress and (done%5==0 or done==total):
                 progress(done,total)
-        values[hand]=round(sum(estimates)/cycles,2)
-    return {"method":"SKACHKOV_MULTIWAY_MC_V1","model":model,"opponents":provenance,
+        values[hand]=round(sum(estimates)/len(estimates),2) if estimates else None
+        pot_multiples[hand]=round(sum(multiples)/len(multiples),5) if multiples else None
+        if probabilistic:
+            entry_by_hand[hand]=[round(p*100,4) for p in probabilities]
+            for k,p in enumerate(probabilities):
+                entry_counts[k]+=planner.COMBOS[hand]*p/1326.0
+    if not probabilistic:
+        entry_counts=[0.0]*len(sources)+[1.0]
+    return {"method":"SKACHKOV_MULTIWAY_MC_ENTRY_V2" if probabilistic else "SKACHKOV_MULTIWAY_MC_V1",
+            "model":model,"opponents":provenance,
+            "entry_counts_pct":[round(100*p,3) for p in entry_counts],
+            "entry_by_hand_pct":entry_by_hand,
+            "pot_multiple":pot_multiples,
+            "equity_condition":"Conditional on at least one opponent entering; all-fold hands are not showdowns.",
             "simulations_per_hand":trials*cycles,"trials_per_cycle":trials,
             "cycles":cycles,"confidence_note":"Независимые циклы Monte Carlo; погрешность уменьшается при росте общего числа симуляций. Диапазоны с блокерами могут давать редкие совместимые исходы.",
             "equity":values,"config_hash":digest}
