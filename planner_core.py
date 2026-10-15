@@ -34,6 +34,7 @@ BUILTINS = {
     "builtin:a17_v5": "A17 V5",
     "builtin:a17_legacy": "A17 Legacy",
     "builtin:gto_heuristic": "GTO Bot (эвристика)",
+    "builtin:pc_gto_80bb": "PC GTO 80bb",
     "builtin:any_two": "Any Two",
 }
 REF = re.compile(r"^saved:([a-f0-9]{12})@v([1-9][0-9]{0,4})$")
@@ -180,6 +181,10 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
         hands = {h: {pseudo_action: 100} for h in HANDS}
     elif profile == "builtin:gto_heuristic":
         hands = _gto_ranges(position, players) if scenario == "rfi" else {}
+    elif profile == "builtin:pc_gto_80bb":
+        from bots.pc_gto_80bb_ranges import rfi_actions
+        hands = ({h: rfi_actions(h, position, players) for h in HANDS}
+                 if scenario == "rfi" and position != "BB" else {})
     elif scenario == "rfi" and position in A17_MAX_OPEN_BOX_BY_POSITION:
         cutoff = A17_MAX_OPEN_BOX_BY_POSITION[position]
         extra = A17_RFI_EXTRA_BOXES_BY_POSITION.get(position, ())
