@@ -124,6 +124,12 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("preflop_protocol:$('preflop_protocol').value",page)
         self.assertIn("$('preflop_protocol').value=c.preflop_protocol||'legacy'",page)
         self.assertIn("Единый протокол V1",page)
+        self.assertIn('id="compareRfi"',page)
+        self.assertIn("bots=Array.from({length:9}",page)
+        self.assertIn("post:'tag_punisher'",page)
+        self.assertIn("savedForComparison.filter",page)
+        self.assertIn("$('seat_mode').value='rotate'",page)
+        self.assertIn("Покрытие ИСХОДНЫХ алгоритмов",page)
         runner=(app.ROOT/"replit_simulator.py").read_text(encoding="utf-8")
         self.assertIn('POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy")',runner)
 
