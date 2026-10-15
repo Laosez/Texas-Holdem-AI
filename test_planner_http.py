@@ -67,25 +67,27 @@ class PlanHttpTests(unittest.TestCase):
                     server.server_close()
                     thread.join(timeout=5)
 
-    def test_equity_outline_and_opponent_matrix_regressions(self):
-        # UI contract: the equity threshold uses a gold outline rather than dimming;
-        # comparison matrices must distinguish unassigned data from explicit Fold.
+    def test_equity_outline_and_lightweight_opponent_summary(self):
+        # Gold equity indicator survives redesign; costly pairwise comparison
+        # matrices have been replaced with lightweight opponent summary cards.
         page = service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn(".hand.equityHit::after", page)
-        self.assertIn("border:2px dashed #efbf55", page)
+        self.assertIn("border:1px dashed #efbf55", page)
         self.assertIn("if(hasEq&&equity>=min)button.classList.add('equityHit')", page)
         self.assertNotIn("if(hasEq&&eq[h]<min)button.classList.add('dim')", page)
-        self.assertIn("function renderComparisonGrid(", page)
+        self.assertNotIn('id="pairwiseMatrix"', page)
+        self.assertNotIn("function calculatePairwise(", page)
+        self.assertNotIn("function renderComparisonGrid(", page)
         self.assertIn("function assignedParticipation(", page)
         self.assertIn("function renderPerOpponent(", page)
         self.assertIn("const incomplete=undefinedHands!==null&&undefinedHands>0;", page)
         self.assertIn("if(incomplete)card.append(", page)
-        self.assertIn("cell.onclick=()=>{selected=h;drawMatrices();paintEditor()}", page)
+        self.assertIn("if(!item.doc)card.append(", page)
 
     def test_a17_in_matrix_with_corner_labels_and_action_bars(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         section02 = page[page.index('02 / </span>Equity-фильтр'):page.index('03 / </span>Матрицы стартовых рук')]
-        section03 = page[page.index('03 / </span>Матрицы стартовых рук'):page.index('04 / </span>Сравнение стратегий')]
+        section03 = page[page.index('03 / </span>Матрицы стартовых рук'):page.index('04 / </span>Редактор выбранной руки')]
         self.assertNotIn('id="boxes"', section02)
         self.assertIn('id="boxes"', section03)
         self.assertIn('id="clearBoxes"', section03)
@@ -208,6 +210,46 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("['call',Number(actions.call)||0]",page)
         self.assertIn("['open','threebet','fourbet','push']",page)
         self.assertIn("segment.style.width=(100*value/total).toFixed(3)+'%'",page)
+
+    def test_strategy_studio_dense_layout_and_group_brush_editor(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn('class="plannerWorkspace"',page)
+        self.assertIn('class="panel editorSection"',page)
+        self.assertIn('id="groupDrawer"',page)
+        self.assertIn('id="boxPalette"',page)
+        self.assertIn('id="brushInspect"',page)
+        self.assertIn('id="brushPaint"',page)
+        self.assertIn('id="brushTarget"',page)
+        self.assertIn('id="brushSelectGroup"',page)
+        self.assertIn('id="brushApply"',page)
+        self.assertIn('id="brushClear"',page)
+        self.assertIn('id="brushSelectedCount"',page)
+        self.assertIn('.matrixGrid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:2px',page)
+        self.assertIn('class="matrixRanks"',page)
+        self.assertIn('class="matrixAxisLeft"',page)
+        self.assertIn('function moveHandsToBox(hands,target)',page)
+        self.assertIn('function paintOneBox(hand,element)',page)
+        self.assertIn('function beginBoxStroke(hand,button,event)',page)
+        self.assertIn('function finishBoxStroke()',page)
+        self.assertIn('if(doc===hero&&bulkSelected.has(h))button.classList.add(\'multiSelected\')',page)
+        self.assertIn('brushPainting&&(e.buttons&1)',page)
+        self.assertIn("if(target&&$('heroMatrix').contains(target))paintOneBox(target.dataset.hand,target)",page)
+        self.assertIn('snapshotUndo();',page)
+        self.assertIn('markBoxDirty();',page)
+        self.assertIn("expandedBoxes=new Set([0])",page)
+        self.assertNotIn('Матрица equity стратегий · каждая с каждой',page)
+
+    def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        for label in ('id="heroMatrix"','id="villainMatrix"','id="handBox"',
+                      'id="applyHand"','id="applyBoxes"','id="computeBoxes"',
+                      'id="perOpponentHands"','id="compEquity"'):
+            self.assertIn(label,page)
+        self.assertIn('function drawBoxPalette()',page)
+        self.assertIn('const eq=boxEquityResult?.equity||null;',page)
+        self.assertIn('class="actionLegend"',page)
+        self.assertIn("if(stripe)button.append(stripe)",page)
+        self.assertIn(".handBoxTag{position:absolute;",page)
 
 
 if __name__=="__main__":
