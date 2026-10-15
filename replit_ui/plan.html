@@ -140,7 +140,24 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .groupDrawer .boxInstructions{margin:10px 0 2px}
 .groupDrawer .heading{margin-top:13px!important}
 .matrixPane .actionStripe{height:4px;bottom:2px;left:2px;right:2px}
-.matrixPane .handBoxTag{top:1px;right:2px;font-size:8px}
+/* Use the same A17 palette as the box editor; muted fills keep labels legible.
+   A neutral white ring marks actual participation in the current range. */
+.matrixPane .handBoxTag{
+ display:inline-flex;align-items:center;justify-content:center;min-width:17px;
+ padding:1px 2px;border:1px solid color-mix(in srgb,var(--group-color,#8494a6) 54%,#142438);
+ border-radius:3px;background:color-mix(in srgb,var(--group-color,#8494a6) 29%,#142438);
+ color:#f0f6ff;opacity:1;text-shadow:0 1px 2px #071625;
+}
+.matrixPane .handBoxTag.inRange{
+ border-color:#f1f5fa;
+ box-shadow:0 0 0 1px rgba(241,245,250,.55);
+ background:color-mix(in srgb,var(--group-color,#8494a6) 40%,#142438);
+}
+.unifiedGroupList .boxCard.inRange{
+ outline:1px solid rgba(241,245,250,.78);
+ outline-offset:-2px;
+}
+@media(max-width:690px){.matrixPane .handBoxTag{min-width:0;padding:0 1px;font-size:7px;letter-spacing:-.3px}.matrixPane .handRank{font-size:9px}}
 @media(max-width:1230px){.plannerWorkspace{grid-template-columns:minmax(0,1fr) 310px}.editorSection .actionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:1000px){.plannerWorkspace{grid-template-columns:1fr}.plannerWorkspace>.editorSection{position:static}.editorSection .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:690px){.editorSection .two{display:flex}.a17Palette{grid-template-columns:repeat(5,minmax(0,1fr))}.a17Workbench{padding:9px}.matrixGrid{min-width:0}.matrixViewport .matrixAxisLayout{min-width:535px}}
@@ -285,8 +302,9 @@ async function api(path,opts={}){
  return response.json();
 }
 const post=(path,data)=>api(path,{method:'POST',body:JSON.stringify(data)});
-function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
-function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p.ref})),...meta.saved.map(p=>({value:p.ref,label:p.name+' · v'+p.version+' · '+p.position+' '+SCENARIOS[p.scenario]}))]}
+function positionCaption(pos){return String(pos)==='3'?'BTN (позиция 3)':String(pos)}
+function positionOptions(n){return Array.from({length:Math.max(0,n-2)},(_,i)=>({value:String(n-i),label:({'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'BTN · позиция 3'})[String(n-i)]||String(n-i)})).concat([{value:'SB',label:'SB'},{value:'BB',label:'BB'}])}
+function profileOptions(){return [...meta.builtins.map(p=>({label:p.name,value:p.ref})),...meta.saved.map(p=>({value:p.ref,label:p.name+' · v'+p.version+' · '+(p.contexts_count||1)+' диапазон(ов)'}))]}
 function findSaved(profile){return meta.saved.find(x=>x.ref===profile)}
 function copy(x){return JSON.parse(JSON.stringify(x))}
 function preserveEdits(){return !dirty||confirm('Есть несохранённые изменения. Переключить контекст и отбросить их?')}
@@ -302,21 +320,79 @@ function setHeroFields(doc){
  $('stack').value=doc.stack_bb;
  $('strategyName').value=doc.name;
 }
-async function loadHero(){
- if(loadingSource||!preserveEdits())return;
+// One editable strategy spans all positions, scenarios and table sizes.
+function slotKey(players,position,scenario){return String(players)+'|'+position+'|'+scenario}
+function preserveCurrentSlot(){
+ if(!hero)return;
+ hero.contexts=hero.contexts||{};
+ hero.contexts[slotKey(hero.players,hero.position,hero.scenario)]={
+  hands:copy(hero.hands),stack_bb:Number(hero.stack_bb)
+ };
+}
+function heroContextMessage(doc){
+ if(doc.position==='BB'&&doc.scenario==='vs_open'&&doc.range_origin==='gto_fixed_bb_vs_open')
+  return 'BB против открытия: используется GTO Fixed, не оцифрованный PC GTO BB Defense.';
+ if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&doc.scenario==='vs_open')) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
+ if(doc.position==='BB'&&doc.scenario==='rfi')
+  return 'На BB нет RFI: для просмотра защиты выбери «Против открытия».';
+ return 'Диапазон: '+doc.name+' · '+doc.position+' · '+SCENARIOS[doc.scenario];
+}
+async function loadHero({contextChange=false}={}){
+ if(loadingSource)return;
+ const profile=$('heroProfile').value;
+ const same=hero&&(hero.ref||hero.id||'builtin:a17_v5')===profile;
+ if(!contextChange||!same){
+  if(!preserveEdits()){if(hero)setHeroFields(hero);return}
+  loadingSource=true;
+  try{
+   const stored=findSaved(profile);
+   if(stored){
+    $('players').value=String(stored.players);
+    renderPositions($('heroPosition'),stored.position);
+    $('heroScenario').value=stored.scenario;
+   }
+   const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,
+                             Number($('players').value),Number($('stack').value));
+   hero=doc;hero.contexts=hero.contexts||{};
+   dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';
+   invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg(heroContextMessage(doc));
+  }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
+  finally{loadingSource=false}
+  return;
+ }
+ // Context change: never discard the draft or replace the saved strategy ID.
+ const position=$('heroPosition').value,scenario=$('heroScenario').value;
+ const players=Number($('players').value),stack=Number($('stack').value);
+ const key=slotKey(players,position,scenario);
+ preserveCurrentSlot();
+ let slot=hero.contexts[key],origin=null;
  loadingSource=true;
  try{
-  const profile=$('heroProfile').value,stored=findSaved(profile);
-  if(stored){
-   $('players').value=String(stored.players);
-   renderPositions($('heroPosition'),stored.position);
-   $('heroScenario').value=stored.scenario;
-  }
-  const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,Number($('players').value),Number($('stack').value));
-  hero=doc;dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg('Загружена стратегия: '+doc.name);
- }catch(e){msg(e.message,true)}finally{loadingSource=false}
+  if(!slot){
+   // Unedited positions start from this profile's original strategy.
+   // The original source / boxes / identity are shared across slots.
+   const base=hero.base_profile||'builtin:a17_v5';
+   const baseline=await getSource(base,position,scenario,players,stack);
+   slot={hands:copy(baseline.hands),stack_bb:stack};
+   hero.contexts[key]=slot;
+   origin=baseline.range_origin||null;
+   dirty=true;
+  }else if(position==='BB'&&scenario==='vs_open'
+            &&['builtin:a17_v5','builtin:a17_legacy','builtin:pc_gto_80bb'].includes(hero.base_profile))
+   origin='gto_fixed_bb_vs_open';
+  hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
+        hands:copy(slot.hands),range_origin:origin};
+  undos=[];bulkSelected.clear();selectedBoxes.clear();brushMode='inspect';
+  invalidateEquity();setHeroFields(hero);paintEditor();renderAll();
+  msg(heroContextMessage(hero)+(dirty?' · Есть изменения в других позициях.':''));
+ }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
+ finally{loadingSource=false}
 }
-function renderPositions(control,selectedValue){refill(control,positionOptions(Number($('players').value)),selectedValue)}
+function renderPositions(control,selectedValue){
+ // Keep BTN/SB/BB when changing table size if the seat remains available.
+ const prior=selectedValue===undefined?control.value:selectedValue;
+ refill(control,positionOptions(Number($('players').value)),prior);
+}
 function renderOpponents(){
  const count=Number($('oppCount').value);
  const target=$('opponents');target.replaceChildren();
@@ -326,9 +402,9 @@ function renderOpponents(){
    opponents[i].profile=p.value;const saved=findSaved(p.value);if(saved){Object.assign(opponents[i],{position:saved.position,scenario:saved.scenario,players:saved.players})}
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const pos=el('select');refill(pos,positionOptions(opp.players),opp.position);pos.disabled=!!findSaved(opp.profile);pos.onchange=()=>{opponents[i].position=pos.value;invalidateEquity();loadVillain()};row.append(pos);
+  const pos=el('select');refill(pos,positionOptions(opp.players),opp.position);pos.disabled=false;pos.onchange=()=>{opponents[i].position=pos.value;invalidateEquity();loadVillain()};row.append(pos);
   const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
-  scenario.disabled=!!findSaved(opp.profile);scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
+  scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
   target.append(row);
@@ -433,7 +509,12 @@ function paintOneBox(hand,element){
  brushPainted.add(hand);
  element?.classList.add('brushVisited');
  const tag=element?.querySelector('.handBoxTag');
- if(tag)tag.textContent=brushTarget?'A'+String(brushTarget).padStart(2,'0'):'—';
+ if(!brushTarget){tag?.remove();return}
+ const badge=tag||el('span','handBoxTag');
+ badge.textContent='A'+String(brushTarget).padStart(2,'0');
+ badge.style.setProperty('--group-color',groupPaletteColor(brushTarget));
+ badge.classList.toggle('inRange',handInRange(hero,hand));
+ if(!tag)element?.append(badge);
 }
 function beginBoxStroke(hand,button,event){
  if(brushMode!=='paint'||event.button!==0)return;
@@ -459,7 +540,7 @@ function drawBoxes(){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
   const groupEq=groupWeightedEquity(b);
-  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':''));
+  const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':'')+(b>0&&members.some(h=>handInRange(hero,h))?' inRange':''));
   card.style.setProperty('--group-color',groupPaletteColor(b));
   const head=el('div','boxCardHead');
   {
@@ -541,13 +622,18 @@ function setMetricLegend(){
   delta:'Разница участия с соперником, п.п.',
   action:'Основное действие; частоты в нижней полоске.'
  };
- $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
+ $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветная метка — коробка A17; белая рамка — рука в диапазоне (>0%). Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
  if(!acts||!Object.keys(acts).length)return null;
  const share=Object.entries(acts).reduce((s,[action,freq])=>s+(action==='fold'?0:(Number(freq)||0)),0);
  return Math.min(100,Math.max(0,share));
+}
+// Absent actions and a 100% Fold are both outside the played range.
+function handInRange(doc,hand){
+ const participation=knownActivePercent(doc,hand);
+ return participation!==null&&participation>0;
 }
 
 function handMetricsRows(hand,doc){
@@ -727,7 +813,12 @@ function matrix(root,doc,scale){
   if(candidates.gold.has(h))button.classList.add('candidateGold');
   if(candidates.red.has(h))button.classList.add('candidateRed');
   button.append(el('span','handRank',h));
-  if(Number.isInteger(b)&&b>0)button.append(el('span','handBoxTag','A'+String(b).padStart(2,'0')));
+  if(Number.isInteger(b)&&b>0){
+   const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
+   tag.style.setProperty('--group-color',groupPaletteColor(b));
+   if(handInRange(doc,h))tag.classList.add('inRange');
+   button.append(tag);
+  }
   const info=cellMetricValue(doc,h,metric);
   if(info.display!==''){
    const center=el('span','handMetric'+(info.display.length>6?' compact':''),info.display);
@@ -773,8 +864,8 @@ function drawMatrices(){
  if(!hero)return;
  setMetricLegend();
  const showOpponent=$('villainPane').open;
- $('heroMatrixLabel').textContent=hero.name+' · '+hero.position+' · '+SCENARIOS[hero.scenario];
- $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?.position||'—');
+ $('heroMatrixLabel').textContent=hero.name+' · '+positionCaption(hero.position)+' · '+SCENARIOS[hero.scenario];
+ $('villainMatrixLabel').textContent=(villain?.name||'Не выбрана')+' · '+(villain?positionCaption(villain.position):'—');
  // Collapsed matrix is excluded from the visible min/max color scale.
  const scale=visibleMetricScale($('cellMetric').value,showOpponent?[hero,villain]:[hero]);
  matrix($('heroMatrix'),hero,scale);
@@ -1007,8 +1098,10 @@ function currentPeople(){return opponentsSelected()}
 async function savePlan(forceNew=false){
  try{
   if(!hero)throw Error('Сначала выбери стратегию');
+  hero.name=$('strategyName').value.trim();
+  hero.stack_bb=Number($('stack').value);
+  preserveCurrentSlot();
   const c=copy(hero);
-  c.name=$('strategyName').value.trim();c.stack_bb=Number($('stack').value);
   const parent=forceNew||hero.readonly?null:(hero.ref||null);
   const saved=await post('/api/plan/strategies',{plan:c,parent});
   hero=saved;dirty=false;undos=[];bulkSelected.clear();meta=await api('/api/plan/catalog');
@@ -1035,8 +1128,10 @@ async function connect(){
  }catch(e){$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
 }
 $('connect').onclick=connect;
-$('heroProfile').onchange=loadHero;
-$('heroPosition').onchange=loadHero;$('heroScenario').onchange=loadHero;$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero()};
+$('heroProfile').onchange=()=>loadHero();
+$('heroPosition').onchange=()=>loadHero({contextChange:true});
+$('heroScenario').onchange=()=>loadHero({contextChange:true});
+$('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
 $('oppCount').onchange=updateOppCount;

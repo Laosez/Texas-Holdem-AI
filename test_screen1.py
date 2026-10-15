@@ -82,6 +82,72 @@ class ScreenOneTests(unittest.TestCase):
             base.assert_called_once()
         self.assertEqual(rfi_actions("AKs","SB",9),{"fold":0,"open":75,"limp":25})
 
+    def test_btn_chart_is_not_utg_and_is_available_to_tournaments(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import bots
+        import planner_core
+        import bots.pc_gto_80bb_bot as source
+        from bots.pc_gto_80bb_ranges import rfi_actions, chart_position, weighted_rfi
+        self.assertEqual({chart_position("3", n) for n in range(3, 10)}, {"BTN"})
+        self.assertEqual(chart_position("4", 9), "CO")
+        btn = planner_core.preset("builtin:pc_gto_80bb", "3", "rfi", 9, 80)
+        self.assertEqual(len(btn["hands"]), 169)
+        self.assertEqual(btn["hands"]["K2s"]["open"], 100)
+        self.assertEqual(rfi_actions("K2s", "9", 9)["open"], 0)
+        self.assertAlmostEqual(weighted_rfi("BTN")["raise"], 53.89, delta=0.5)
+        state = SimpleNamespace(stacks={str(i): 500 for i in range(9)},
+                                history=[], me="0")
+        legal = [{"type": "fold"}, {"type": "call"},
+                 {"type": "raise", "min": 4, "max": 500}]
+        bot = bots.create_bot("split:pc_gto_80bb:tag_punisher")
+        with patch.object(source.random, "randrange", return_value=99):
+            btn_move = bot.preflop_bot.bot._preflop(
+                [("K", "s"), ("2", "s")], "3", 3, 2, legal, state
+            )
+            utg_move = bot.preflop_bot.bot._preflop(
+                [("K", "s"), ("2", "s")], "9", 3, 2, legal, state
+            )
+        self.assertEqual(btn_move.type, "raise")
+        self.assertEqual(utg_move.type, "fold")
+
+    def test_screen1_only_offers_three_preflop_charts_and_one_random(self):
+        catalog = app.strategy_catalog()
+        self.assertEqual(set(catalog["preflop_strategies"]),
+                         {"a17_preflop", "gto", "pc_gto_80bb"})
+        self.assertIn("tag_punisher", catalog["postflop_strategies"])
+        self.assertEqual(catalog["postflop_strategies"].count("random"), 1)
+        for pre in ("tag_punisher", "smart", "random", "gto_fixed"):
+            with self.subTest(pre=pre), self.assertRaisesRegex(ValueError, "префлоп"):
+                app.validate_config({"bots": [
+                    {"pre": pre, "post": "gto"},
+                    {"pre": "gto", "post": "tag_punisher"}]})
+        for post in ("pc_gto_80bb", "a17_preflop"):
+            with self.subTest(post=post), self.assertRaisesRegex(ValueError, "постфлоп"):
+                app.validate_config({"bots": [
+                    {"pre": "gto", "post": post},
+                    {"pre": "a17_preflop", "post": "gto"}]})
+        result = app.validate_config({"bots": [
+            {"pre": "pc_gto_80bb", "post": "tag_punisher"},
+            {"pre": "gto", "post": "random"},
+            {"pre": "a17_preflop", "post": "random"},
+            {"pre": "gto", "post": "random_9"},
+        ]})
+        self.assertEqual([x["post"] for x in result["bots"]],
+                         ["tag_punisher", "random", "random_2", "random_3"])
+        self.assertEqual(result["players"][0], "P1=split:pc_gto_80bb:tag_punisher")
+        import bots
+        self.assertTrue(all(bots.create_bot(p.split("=", 1)[1])
+                            for p in result["players"]))
+        page = app.UI.read_text(encoding="utf-8")
+        self.assertIn("let preflopValues=['','a17_preflop','gto','pc_gto_80bb'];", page)
+        self.assertIn("BTN (позиция 3; ~53,9% Raise)", page)
+        self.assertIn("row.append(botOptions(b.pre", page)
+        self.assertIn("'pre'));", page)
+        self.assertIn("'post'));", page)
+        self.assertIn("preflop_strategies", page)
+        self.assertNotIn("values=['','gto','gto_fixed'", page)
+
     def test_complete_a17_bot_and_duplicate_profiles(self):
         rows = [{"pre": "gto", "post": "gto"},
                 {"pre": "gto", "post": "gto"},

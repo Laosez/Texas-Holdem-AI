@@ -58,11 +58,8 @@ def _query_identity(payload):
            "opponents":[],"source":_source_hash()}
     for p in payload["opponents"]:
         profile=p["profile"]
-        if profile.startswith("saved:"):
-            doc=core.get_saved(profile)
-        else:
-            scenario="rfi" if payload["model"]!="selected" else p["scenario"]
-            doc=resolve(profile,p["position"],scenario,p["players"])
+        scenario="rfi" if payload["model"]!="selected" else p["scenario"]
+        doc=resolve(profile,p["position"],scenario,p["players"])
         parts["opponents"].append({"profile":doc.get("ref",profile),"position":doc["position"],
                                    "scenario":doc["scenario"],"weights":core.range_weights(
                                    doc,p.get("selector","active") if payload["model"]=="selected" else "active")})
