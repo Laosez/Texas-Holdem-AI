@@ -107,6 +107,28 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(preflop_stage(view("AA",(5,15))),"vs_threebet")
         self.assertEqual(preflop_stage(view("AA",(5,15,34))),"vs_fourbet")
 
+    def test_standardized_protocol_runs_real_9max_hand_and_conserves_chips(self):
+        import os,random
+        from core.engine import Table,Seat
+        from bots import create_bot
+        from unittest.mock import patch as mock_patch
+        with mock_patch.dict(os.environ,{"POKER_PREFLOP_PROTOCOL":"standard_v1"}):
+            for n in (2,9):
+                with self.subTest(players=n):
+                    players={
+                        f"P{i}":create_bot("split:a17_preflop:tag_punisher"
+                                          if i%2 else "split:pc_gto_80bb:tag_punisher")
+                        for i in range(1,n+1)
+                    }
+                    self.assertTrue(all(
+                        b.preflop_protocol=="standard_v1" for b in players.values()))
+                    seats=[Seat(f"P{i}",160) for i in range(1,n+1)]
+                    table=Table(rng=random.Random(31+n))
+                    net=table.play_hand(seats,small_blind=1,big_blind=2,
+                                        dealer_index=0,bot_for=players)
+                    self.assertEqual(sum(net.values()),0,net)
+                    self.assertEqual(set(net),set(players))
+
     def test_standardized_protocol_is_validated_persisted_and_user_selectable(self):
         from types import SimpleNamespace
         regular=[{"pre":"a17_preflop","post":"tag_punisher"},
