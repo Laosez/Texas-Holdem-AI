@@ -59,6 +59,21 @@ SPLIT_PARTS = BASE_BOTS - {"a17_tag", "random_2", "random_3"}
 SPLIT_PARTS.update({"random_2", "random_3"})
 SPLIT_PARTS.discard("a17_tag")
 
+# Only street-appropriate selections appear on Screen 1. CLI and old session
+# profiles retain their existing bot registry for reproducibility.
+PREFLOP_CHOICES = frozenset({"a17_preflop", "gto"})
+POSTFLOP_CHOICES = frozenset({
+    "gto", "smart", "tag_punisher", "wide_defender", "baseline_sane",
+    "nit", "loose_passive", "maniac", "maniac_mixed",
+    "pressure_filler", "random",
+})
+RANDOM_ALIAS_RE = re.compile(r"random_(?:[2-9]|10)\Z")
+
+
+def is_postflop_choice(name: str) -> bool:
+    return name in POSTFLOP_CHOICES or bool(RANDOM_ALIAS_RE.fullmatch(name))
+
+
 # Each of the nine player seats has a separately editable preflop/postflop policy.
 # Blank means INCOMPLETE, never automatic inheritance.
 DEFAULT_BOT_ROWS = [
@@ -112,6 +127,7 @@ def validate_config(data: dict) -> dict:
             raise ValueError("Нужны от 2 до 9 строк ботов")
         rows = []
         bots = []
+        random_count = 0
         for i, row in enumerate(raw_rows, start=1):
             if not isinstance(row, dict):
                 raise ValueError(f"P{i}: выбери обе стратегии")
@@ -120,8 +136,17 @@ def validate_config(data: dict) -> dict:
                 raise ValueError(f"P{i}: некорректная стратегия")
             if not pre or not post:
                 raise ValueError(f"P{i}: Preflop и Postflop обязательны; пустое поле запрещает запуск")
-            if pre not in SPLIT_PARTS or post not in SPLIT_PARTS:
-                raise ValueError(f"P{i}: неподдерживаемая стратегия {pre}/{post}")
+            if pre == "pc_gto_80bb":
+                raise ValueError("PC GTO 80bb пока не установлена в серверном движке; загрузите исходные чарты")
+            if pre not in PREFLOP_CHOICES:
+                raise ValueError(f"P{i}: {pre} не является доступной префлоп-стратегией")
+            if not is_postflop_choice(post):
+                raise ValueError(f"P{i}: {post} не является доступной постфлоп-стратегией")
+            # The UI displays one Random option. Each opponent receives its
+            # own deterministic instance identifier for experiment reporting.
+            if post == "random" or RANDOM_ALIAS_RE.fullmatch(post):
+                random_count += 1
+                post = "random" if random_count == 1 else f"random_{random_count}"
             rows.append({"pre": pre, "post": post})
             bots.append(f"P{i}=split:{pre}:{post}")
     else:

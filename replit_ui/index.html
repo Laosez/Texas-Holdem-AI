@@ -30,10 +30,10 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 </div><p class="note">Для Railway по умолчанию выбран 1 процесс. Движок и контрольные стратегии не изменяются.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
-<p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
+<p class="note">Выбирай префлоп-чарт и постфлоп-алгоритм отдельно. Пустое или недоступное значение блокирует запуск. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button></div>
-<div class="warning">Каждая строка — отдельный игрок. Обе стратегии должны быть выбраны. A17 TAG = A17 Preflop + TAG Punisher.</div>
+<div class="warning">Preflop: A17 / GTO (Old) / GTO (PC). GTO (PC) пока недоступна: исходные чарты ещё не установлены на Railway. Postflop: только постфлоп-боты. Random выбирается один раз — номера игрокам присваиваются автоматически.</div>
 <div id="botError" class="bad" role="alert"></div>
 <div class="buttons"><button class="btn primary" id="start">▶ Запустить</button><button class="btn danger" id="stop" disabled>■ Остановить</button></div>
 <div id="feedback" role="status" class="statusLine muted"></div>
@@ -53,9 +53,13 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const values=['','gto','gto_fixed','a17_preflop','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random','random_2','random_3'];
-const names={'':'— Выбрать —',gto:'GTO',gto_fixed:'GTO Fixed',a17_preflop:'A17 Preflop',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random',random_2:'Random 2',random_3:'Random 3'};
-const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random_2'],['gto','pressure_filler']];
+// Street-specific catalog: never mix preflop charts with postflop policies.
+const preflopValues=['','a17_preflop','gto','pc_gto_80bb'];
+const postflopValues=['','smart','gto','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
+const names={'':'— Выбрать —',gto:'GTO (Old)',pc_gto_80bb:'GTO (PC)',gto_fixed:'GTO Fixed',a17_preflop:'A17',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
+// The server automatically assigns random, random_2, ... by player order.
+const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random'],['gto','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false;
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
@@ -63,14 +67,34 @@ const pct=n=>n===null||n===undefined||n===''?'—':Number(n).toFixed(1)+'%';
 const token=()=>($('key').value||'').trim();
 function feedback(message,bad){$('feedback').textContent=message;$('feedback').style.color=bad?'#ffabb7':'#a7d4f0'}
 function el(t,cls,txt){const x=document.createElement(t);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x}
-function botOptions(value,fn){const s=el('select');for(const v of values){const o=el('option','',names[v]||v);o.value=v;s.append(o)}s.value=value||'';s.onchange=()=>fn(s.value);if(!value)s.classList.add('invalid');return s}
-function valid(){const missing=bots.flatMap((b,i)=>(!b.pre||!b.post)?['P'+(i+1)]:[]);$('botError').textContent=missing.length?'Заполни Preflop и Postflop: '+missing.join(', '):'';$('start').disabled=missing.length>0||working||!token();return missing.length===0}
+function isRandom(value){return value==='random'||/^random_(?:[2-9]|10)$/.test(value)}
+function botOptions(value,fn,street){
+ const s=el('select'),choices=street==='pre'?preflopValues:postflopValues;
+ for(const v of choices){
+  const o=el('option','',names[v]||v);o.value=v;
+  if(v==='pc_gto_80bb'){o.disabled=true;o.title='Ожидает загрузки исходных PC GTO 80bb чартов';}
+  s.append(o);
+ }
+ const normalized=street==='post'&&isRandom(value)?'random':value;
+ s.value=choices.includes(normalized)?normalized:'';
+ s.onchange=()=>fn(s.value);if(!s.value)s.classList.add('invalid');return s;
+}
+function valid(){
+ const invalid=bots.flatMap((b,i)=>{
+  const pre=preflopValues.includes(b.pre)&&b.pre!==''&&b.pre!=='pc_gto_80bb';
+  const post=postflopValues.includes(b.post)&&b.post!==''||isRandom(b.post);
+  return pre&&post?[]:['P'+(i+1)];
+ });
+ const pending=bots.some(b=>b.pre==='pc_gto_80bb');
+ $('botError').textContent=pending?'GTO (PC) ещё не установлена в Railway; необходимо загрузить её чарты':invalid.length?'Выбери корректные Preflop и Postflop: '+invalid.join(', '):'';
+ $('start').disabled=invalid.length>0||working||!token();return invalid.length===0;
+}
 function drawBots(){
  const root=$('bots');root.replaceChildren();
  bots.forEach((b,i)=>{
   const row=el('div','botRow');row.append(el('div','id','P'+(i+1)));
-  row.append(botOptions(b.pre,v=>{bots[i].pre=v;drawBots()},));
-  row.append(botOptions(b.post,v=>{bots[i].post=v;drawBots()},));
+  row.append(botOptions(b.pre,v=>{bots[i].pre=v;drawBots()},'pre'));
+  row.append(botOptions(b.post,v=>{bots[i].post=v;drawBots()},'post'));
   const x=el('button','remove','×');x.title='Удалить игрока';x.disabled=bots.length<=2;
   x.onclick=()=>{bots.splice(i,1);drawBots()};row.append(x);root.append(row);
  });$('addBot').disabled=bots.length>=9;valid();
