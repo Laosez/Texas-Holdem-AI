@@ -37,6 +37,18 @@ jobs:
             --seat-mode rotate --out output/railway_smoke
           test -f output/railway_smoke/tournament_report.json
           test -f output/railway_smoke/by_hand_position_169_all.csv
+      - name: PC GTO BTN smoke
+        env:
+          THAI_ENGINE_IMPL: legacy
+        run: |
+          python -u export_preflop_ranges_v4.py \
+            --players "P1=split:pc_gto_80bb:tag_punisher,P2=split:gto:tag_punisher" \
+            --tournaments 2 --parallel 1 --seed 42 \
+            --chips 500 --sb 1 --bb 2 \
+            --blind-increase-every 50 --max-hands 10000 \
+            --seat-mode rotate --out output/pc_gto_btn_smoke
+          test -f output/pc_gto_btn_smoke/tournament_report.json
+
       - name: Full 169-hand multiway equity smoke
         run: |
           python - <<'PY'
