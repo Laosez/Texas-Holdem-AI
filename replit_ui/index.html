@@ -28,7 +28,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <section class="panel"><div class="heading"><h2><span class="index">01 / </span>Параметры турнира</h2><button class="btn sm outline" id="preset">Контроль V3</button></div>
 <div class="fields">
 <div class="field"><label for="tournaments">Число турниров</label><input type="number" min="1" max="3000" id="tournaments" value="90"></div>
-<div class="field"><label for="parallel">Число процессов</label><select id="parallel"><option value="1">1 · безопасный</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+<div class="field"><label for="parallel">Параллельные процессы (CPU)</label><select id="parallel"><option value="1">1 · последовательно</option><option value="2">2 процесса</option><option value="3">3 процесса</option><option value="4">4 процесса</option></select></div>
 <div class="field"><label for="chips">Стек</label><input type="number" min="10" id="chips" value="500"></div>
 <div class="field"><label for="seed">Seed</label><input type="number" min="0" id="seed" value="2042"></div>
 <div class="field"><label for="sb">Small Blind</label><input type="number" min="1" id="sb" value="1"></div>
@@ -36,7 +36,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="field"><label for="blind_increase_every">Рост блайндов · рук</label><input type="number" min="0" id="blind_increase_every" value="50"></div>
 <div class="field"><label for="max_hands">Лимит рук / турнир</label><input type="number" min="100" id="max_hands" value="10000"></div>
 <div class="field wide"><label for="seat_mode">Рассадка</label><select id="seat_mode"><option value="rotate">Rotate · ротация</option><option value="fixed">Fixed · фиксированная</option></select></div>
-</div><p class="note">Для Railway по умолчанию выбран 1 процесс. Движок и контрольные стратегии не изменяются.</p>
+</div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
@@ -150,7 +150,11 @@ async function loadCatalog(){
   const limit=Number(catalog.workers_max||1);
   parallel.value=String(Math.min(Number(parallel.value),limit));
   Array.from(parallel.options).forEach(o=>o.disabled=Number(o.value)>limit);
-  if(limit===1)parallel.title='Railway: при 1 ГБ RAM выполняется один процесс; увеличение требует изменения ресурса и POKER_MAX_WORKERS';
+  const notice=$('parallelNote');
+  notice.textContent=limit===1?
+   'Многопроцессный расчёт работает. На текущем Railway доступен 1 процесс: для 2+ процессов требуется увеличить RAM контейнера (порог 2,25 ГБ), либо настроить POKER_MAX_WORKERS с учётом потребления памяти.':
+   'Доступно до '+limit+' параллельных процессов · турниры распределяются между отдельными процессами, сохранение результатов остаётся общим.';
+  parallel.title=notice.textContent;
  }catch(e){feedback('Каталог недоступен: '+e.message,true)}
 }
 async function connect(){try{await loadCatalog();await refresh();$('connection').textContent='Подключено';$('connection').className='badge ok';sessionStorage.setItem('skachkov_key',token());feedback('Подключено к Railway.')}catch(e){$('connection').textContent='Ошибка';$('connection').className='badge fail';feedback(e.message,true)}}
