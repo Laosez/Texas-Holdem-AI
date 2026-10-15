@@ -7,6 +7,7 @@
   "bases": [
     "gto",
     "gto_fixed",
+    "pc_gto_80bb",
     "a17_preflop",
     "a17_preflop_legacy",
     "smart",
