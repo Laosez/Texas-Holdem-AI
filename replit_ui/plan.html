@@ -910,6 +910,10 @@ function handMetricsRows(hand,doc){
   for(const [action,pct] of Object.entries(actions))pair(ACTIONS[action]||action,f(Number(pct)));
  }else pair('Стратегия','Не определена');
  if(isHero){
+  if($('cellMetric').value==='intersection'){
+   const share=villainSelectedShare(hand);
+   pair('Выбранный оппонент · участие',Number.isFinite(share)?f(share):'Диапазон не загружен');
+  }
   pair('Equity · текущий фильтр',f(filterEq));
   pair('Equity · выбранные соперники',f(multiEq));
   if(Number.isFinite(anyEq))pair('Equity · Any Two',f(anyEq));
@@ -1045,7 +1049,7 @@ function candidateSwaps(metric){
 // Only the numeric label changes color; card background and action bar stay fixed.
 function visibleMetricScale(metric,docs){
  const values=[];
- if(!['none','box','action'].includes(metric)){
+ if(!['none','box','action','intersection'].includes(metric)){
   for(const doc of docs){
    if(!doc)continue;
    for(const h of HANDS){
@@ -1076,6 +1080,7 @@ function matrix(root,doc,scale,metricChoice){
  if(!doc){root.textContent='Выберите стратегию';return}
  const metric=metricChoice||$('cellMetric').value;
  const showIntersection=metric==='intersection'&&doc===hero;
+ if(showIntersection&&!villain){root.textContent='Выбери диапазон оппонента для пересечения';return}
  const candidates=doc===hero&&!showIntersection?candidateSwaps(metric):{gold:new Set(),red:new Set()};
  for(const h of HANDS){
   const actions=doc.hands?.[h],b=doc.boxes?.[h];
