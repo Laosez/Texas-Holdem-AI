@@ -261,6 +261,27 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn(".handBoxTag{position:absolute;",page)
 
 
+    def test_colored_a17_badges_and_range_outlines(self):
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        # The box badge's color uses the existing A17 group palette.
+        self.assertIn(".matrixPane .handBoxTag.inRange{",page)
+        self.assertIn("background:color-mix(in srgb,var(--group-color",page)
+        self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
+        self.assertIn("tag.classList.add('inRange')",page)
+        self.assertIn(".unifiedGroupList .boxCard.inRange{",page)
+        self.assertIn("members.some(h=>handInRange(hero,h))",page)
+        # Active means a positive participation, not an unknown or Fold 100%.
+        self.assertIn("function handInRange(doc,hand)",page)
+        self.assertIn("return participation!==null&&participation>0;",page)
+        # Brush strokes refresh both the badge color and its range ring.
+        self.assertIn("badge.style.setProperty('--group-color',groupPaletteColor(brushTarget))",page)
+        self.assertIn("badge.classList.toggle('inRange',handInRange(hero,hand))",page)
+        self.assertIn("if(!brushTarget){tag?.remove();return}",page)
+        # Keep gold/red candidate highlighting and the unchanged matrix background.
+        self.assertIn(".hand.candidateGold{border:2px solid #f3c45c}",page)
+        self.assertIn(".hand.candidateRed{border:2px solid #ee6d75}",page)
+        self.assertIn(".matrixPane .hand{background:#303b49!important",page)
+
     def test_numeric_metric_labels_use_visible_min_max_scale(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("function visibleMetricScale(metric,docs)",page)
