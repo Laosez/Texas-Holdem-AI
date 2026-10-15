@@ -59,6 +59,11 @@ def _query_identity(payload):
     for p in payload["opponents"]:
         profile=p["profile"]
         scenario="rfi" if payload["model"]!="selected" else p["scenario"]
+        if profile=="inline:hero":
+            parts["opponents"].append({"profile":profile,"position":p["position"],
+                                      "scenario":scenario,
+                                      "weights":equity.safe_inline_weights(p["weights"])})
+            continue
         doc=resolve(profile,p["position"],scenario,p["players"])
         parts["opponents"].append({"profile":doc.get("ref",profile),"position":doc["position"],
                                    "scenario":doc["scenario"],"weights":core.range_weights(
@@ -87,7 +92,7 @@ def _validate_request(raw):
         if not isinstance(entry,dict):
             raise ValueError("Неверная настройка соперника")
         source=entry.get("profile","builtin:any_two")
-        if source not in core.BUILTINS and not core.REF.fullmatch(str(source)):
+        if source not in core.BUILTINS and source!="inline:hero" and not core.REF.fullmatch(str(source)):
             raise ValueError("Неизвестная стратегия соперника")
         pos=str(entry.get("position","3"))
         scen=str(entry.get("scenario","rfi"))
@@ -98,8 +103,15 @@ def _validate_request(raw):
         selector=str(entry.get("selector","active"))
         if selector!="active" and selector not in core.ACTIONS:
             raise ValueError("Неизвестный фильтр действий")
-        cleaned.append({"profile":source,"position":pos,"scenario":scen,
-                        "players":n,"selector":selector})
+        if source=="inline:hero":
+            if model!="selected" or selector!="active":
+                raise ValueError("Live-диапазон возможен только для selected/active")
+            weights=equity.safe_inline_weights(entry.get("weights"))
+            cleaned.append({"profile":source,"position":pos,"scenario":scen,
+                            "players":n,"selector":selector,"weights":weights})
+        else:
+            cleaned.append({"profile":source,"position":pos,"scenario":scen,
+                            "players":n,"selector":selector})
     return {"opponents":cleaned,"model":model,"trials":trials,"cycles":cycles}
 
 
