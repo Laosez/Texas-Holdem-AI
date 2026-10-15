@@ -117,13 +117,10 @@ def build_ranges(opponents, model="selected"):
             profile="builtin:any_two"
         elif model=="gto_heuristic":
             profile="builtin:gto_heuristic"
-        if profile.startswith("saved:"):
-            doc=planner.get_saved(profile)
-        else:
-            pos=str(opp.get("position","3"))
-            scenario="rfi" if model!="selected" else str(opp.get("scenario","rfi"))
-            n=int(opp.get("players",9))
-            doc=planner.preset(profile,pos,scenario,n)
+        pos=str(opp.get("position","3"))
+        scenario="rfi" if model!="selected" else str(opp.get("scenario","rfi"))
+        n=int(opp.get("players",9))
+        doc=planner.preset(profile,pos,scenario,n)
         selector = str(opp.get("selector","active")) if model=="selected" else "active"
         if profile in ("builtin:gto_heuristic","builtin:any_two"):
             selector="active"
