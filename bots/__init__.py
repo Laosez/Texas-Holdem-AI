@@ -42,6 +42,10 @@ def create_bot(btype: str) -> BotAdapter:
     raw_btype = btype.strip()
     btype = raw_btype.lower()
 
+    from bots.saved_plan_bot import PLAN_TOKEN, SavedPlanPreflopBot
+    if PLAN_TOKEN.fullmatch(btype):
+        return SavedPlanPreflopBot(btype)
+
     if btype.startswith("split:"):
         from bots.street_split_bot import EXPERIMENT_BASES, StreetSplitBot
 
@@ -51,7 +55,8 @@ def create_bot(btype: str) -> BotAdapter:
                 "split strategy format is split:<preflop_bot>:<postflop_bot>"
             )
         preflop_name, postflop_name = tokens[1:]
-        if preflop_name not in EXPERIMENT_BASES or postflop_name not in EXPERIMENT_BASES:
+        if (preflop_name not in EXPERIMENT_BASES and
+                not PLAN_TOKEN.fullmatch(preflop_name)) or postflop_name not in EXPERIMENT_BASES:
             raise ValueError(
                 f"Unsupported split bases: {preflop_name!r}, {postflop_name!r}; "
                 f"supported: {', '.join(sorted(EXPERIMENT_BASES))}"
