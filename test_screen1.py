@@ -120,7 +120,7 @@ class ScreenOneTests(unittest.TestCase):
         page=app.UI.read_text(encoding="utf-8")
         self.assertIn('id="preflop_protocol"',page)
         self.assertIn('value="standard_v1" selected',page)
-        self.assertIn("'preflop_protocol':'standard_v1'",page.replace('"',"").replace("standard_v1'","standard_v1'") if False else page)
+        self.assertIn("preflop_protocol:'standard_v1'",page)
         self.assertIn("preflop_protocol:$('preflop_protocol').value",page)
         self.assertIn("$('preflop_protocol').value=c.preflop_protocol||'legacy'",page)
         self.assertIn("Единый протокол V1",page)
