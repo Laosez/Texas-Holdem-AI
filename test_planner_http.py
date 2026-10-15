@@ -169,7 +169,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(HANDS.includes(h))moveHandsToBox([h],target)",page)
         self.assertIn("moveHandToBox(h,0)",page)
         self.assertIn("for(const b of [...boxOrder(),0])",page)
-        self.assertIn("hero.box_order=order",page)
+        self.assertIn("hero.box_order=boxOrder()",page)
         self.assertIn("box_order:[...boxOrder()]",page)
         self.assertIn("hero.box_order=prev.box_order||boxOrder()",page)
         self.assertIn("label:'Без коробки'",page)
