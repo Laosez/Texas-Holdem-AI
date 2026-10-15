@@ -183,11 +183,18 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(btn_move.type, "raise")
         self.assertEqual(utg_move.type, "fold")
 
-    def test_screen1_only_offers_three_preflop_charts_and_one_random(self):
+    def test_screen1_offers_pc_and_a17_without_old_gto_for_new_sessions(self):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
-                         {"a17_preflop", "gto", "pc_gto_80bb"})
+                         {"a17_preflop", "pc_gto_80bb"})
         self.assertIn("tag_punisher", catalog["postflop_strategies"])
+        self.assertNotIn("gto",catalog["preflop_strategies"])
+        self.assertNotIn("gto",catalog["postflop_strategies"])
+        self.assertIn("gto",app.PREFLOP_CHOICES)  # archival compatibility
+        self.assertIn("gto",app.POSTFLOP_CHOICES)  # archival compatibility
+        self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_threebet"])
+        self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_fourbet"])
+        self.assertIn("50% 4-bet",catalog["preflop_coverage"]["a17_preflop"]["vs_threebet"])
         self.assertEqual(catalog["postflop_strategies"].count("random"), 1)
         for pre in ("tag_punisher", "smart", "random", "gto_fixed"):
             with self.subTest(pre=pre), self.assertRaisesRegex(ValueError, "префлоп"):
@@ -212,13 +219,76 @@ class ScreenOneTests(unittest.TestCase):
         self.assertTrue(all(bots.create_bot(p.split("=", 1)[1])
                             for p in result["players"]))
         page = app.UI.read_text(encoding="utf-8")
-        self.assertIn("let preflopValues=['','a17_preflop','gto','pc_gto_80bb'];", page)
+        self.assertIn("let preflopValues=['','a17_preflop','pc_gto_80bb'];", page)
         self.assertIn("BTN (позиция 3; ~53,9% Raise)", page)
         self.assertIn("row.append(botOptions(b.pre", page)
         self.assertIn("'pre'));", page)
         self.assertIn("'post'));", page)
         self.assertIn("preflop_strategies", page)
         self.assertNotIn("values=['','gto','gto_fixed'", page)
+        self.assertIn("['pc_gto_80bb','smart']",page)
+        self.assertNotIn("['gto','smart']",page)
+
+    def test_three_square_workspaces_wide_results_and_visible_preflop_coverage(self):
+        page=app.UI.read_text(encoding="utf-8")
+        self.assertIn('class="simulatorLayout"',page)
+        self.assertIn('class="column topColumn parametersColumn"',page)
+        self.assertIn('class="column topColumn strategiesColumn"',page)
+        self.assertIn('class="column topColumn journalColumn"',page)
+        self.assertIn('class="panel resultsPanel"',page)
+        self.assertIn('main.simulatorLayout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))',page)
+        self.assertIn('.simulatorLayout .resultsPanel{grid-column:1/-1',page)
+        self.assertIn('.simulatorLayout .resultsPanel .statsTable{min-width:1600px}',page)
+        self.assertIn('id="preflopAudit"',page)
+        self.assertIn("RFI / Open Raise",page)
+        self.assertIn("Call / 3-bet vs Open",page)
+        self.assertIn("Call / 4-bet vs 3-bet",page)
+        self.assertIn("Защита vs 4-bet",page)
+        a=page.index('01 / </span>Параметры турнира')
+        b=page.index('02 / </span>Стратегии игроков')
+        c=page.index('04 / </span>Журнал выполнения')
+        d=page.index('03 / </span>Сессии и результаты')
+        self.assertTrue(a<b<c<d,(a,b,c,d))
+        self.assertNotIn("Preflop: A17 / GTO (Old) / GTO (PC)",page)
+
+    def test_pc_80bb_raises_are_rfi_only_and_other_preflop_responses_are_fallbacks(self):
+        from types import SimpleNamespace
+        from core.bot_api import Action
+        from bots.gto_fixed_bot import FixedGTOPreflopBot
+        from bots.pc_gto_80bb_bot import PCGTO80bbBot
+        from bots.a17_preflop_bot import A17PreflopBot
+        import bots.a17_preflop_bot as a17_policy
+        import bots.pc_gto_80bb_bot as pc_policy
+        from bots.shared_pc_bb_defense import first_bb_vs_single_open,BB_DEFENSE_SOURCE
+
+        assert "fallback:gto_fixed" in BB_DEFENSE_SOURCE
+        legal=[{"type":"fold"},{"type":"call"},{"type":"raise","min":4,"max":500}]
+        def view(history,position="9",to_call=8):
+            return SimpleNamespace(street="preflop",me="P9",
+                hole_cards=[("A","s"),("A","h")],board=[],position=position,
+                pot=20,to_call=to_call,legal_actions=legal,
+                stacks={f"P{i}":500 for i in range(1,10)},history=history)
+        open_hist=[{"street":"preflop","type":"raise","pid":"P1"}]
+        threebet_hist=open_hist+[{"street":"preflop","type":"raise","pid":"P2"}]
+        fourbet_hist=threebet_hist+[{"street":"preflop","type":"raise","pid":"P3"}]
+        bot=PCGTO80bbBot()
+        with patch.object(FixedGTOPreflopBot,"_preflop",return_value=Action("fold")) as backup:
+            for history in (open_hist,threebet_hist,fourbet_hist):
+                with self.subTest(raises=len(history)):
+                    response=bot._preflop([("A","s"),("A","h")],"9",20,8,legal,view(history))
+                    self.assertEqual(response.type,"fold")
+            self.assertEqual(backup.call_count,3)
+        self.assertTrue(first_bb_vs_single_open(view(open_hist,position="BB")))
+        self.assertFalse(first_bb_vs_single_open(view(threebet_hist,position="BB")))
+        self.assertFalse(first_bb_vs_single_open(view(fourbet_hist,position="BB")))
+        with patch.object(FixedGTOPreflopBot,"_preflop",return_value=Action("fold")) as backup:
+            with patch.object(a17_policy.random,"random",return_value=0.1):
+                a17=A17PreflopBot()
+                self.assertEqual(a17._preflop([("A","s"),("A","h")],"9",20,8,legal,view(threebet_hist)).type,"raise")
+                self.assertEqual(a17._preflop([("A","s"),("A","h")],"9",20,8,legal,view(fourbet_hist)).type,"fold")
+                self.assertEqual(backup.call_count,1)
+        with patch.object(pc_policy.random,"randrange",return_value=99):
+            self.assertEqual(bot._preflop([("A","s"),("A","h")],"9",3,2,legal,view([],to_call=2)).type,"raise")
 
     def test_complete_a17_bot_and_duplicate_profiles(self):
         rows = [{"pre": "gto", "post": "gto"},
