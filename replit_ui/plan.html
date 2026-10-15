@@ -160,9 +160,42 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
  pointer-events:none;
 }
 .matrixLayout.double .matrixPane .handBoxTag{top:0;right:0;font-size:8px}
-.matrixGrid .hand.intersectionMuted{opacity:.22}
-.matrixGrid .hand.intersectionMatched{box-shadow:inset 0 0 0 1px #a7bfcc}
-.matrixGrid .hand.intersectionMuted.selected{opacity:.75}
+/* A17 intersection: one matrix, clean diagonal from top-left to bottom-right.
+   Above diagonal is Hero, below is the selected opponent. */
+.matrixGrid .hand.rangeIntersection{
+ background:#3b4652;border-color:#617181;overflow:hidden;
+ color:#fff;
+}
+.matrixGrid .hand.rangeIntersection.intersectionBoth{
+ background:#337fc9;border-color:#72aae6;
+}
+.matrixGrid .hand.rangeIntersection .intersectionTriangle,
+.intersectionKey .rangeSwatch .intersectionTriangle{
+ position:absolute;inset:0;pointer-events:none;
+}
+.matrixGrid .hand.rangeIntersection .intersectionTriangle.upper,
+.intersectionKey .rangeSwatch .intersectionTriangle.upper{
+ background:#337fc9;
+ clip-path:polygon(0 0,100% 0,100% 100%);
+}
+.matrixGrid .hand.rangeIntersection .intersectionTriangle.lower,
+.intersectionKey .rangeSwatch .intersectionTriangle.lower{
+ background:#d9656c;
+ clip-path:polygon(0 0,0 100%,100% 100%);
+}
+.matrixGrid .hand.rangeIntersection .handRank{
+ position:relative;z-index:3;color:#fff;
+ text-shadow:0 1px 3px #122439;
+}
+.matrixGrid .hand.rangeIntersection.selected{outline:2px solid #f2f7fb;outline-offset:-3px}
+.intersectionKey{display:flex;align-items:center;flex-wrap:wrap;gap:7px 14px;margin:4px 0 10px;color:#b8cfe5;font-size:11px}
+.intersectionKey>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.intersectionKey .rangeSwatch{
+ position:relative;display:inline-block;width:18px;height:18px;
+ border-radius:3px;border:1px solid #728497;background:#3b4652;overflow:hidden;
+}
+.intersectionKey .rangeSwatch.both{background:#337fc9}
+
 .matrixPane .handBoxTag.inRange{
  outline:none;border:0;box-shadow:none;background:var(--group-color,#8494a6);
 }
@@ -249,8 +282,14 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
 </section>
 <div class="plannerWorkspace">
-<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Моя матрица</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select><label for="villainMetric" style="margin:0">Соперник</label><select id="villainMetric"><option value="equity">Equity vs меня</option><option value="evAllIn">EV выставления vs меня</option><option value="evCall">EV колла vs меня</option><option value="participation">Диапазон %</option><option value="action">Действия</option></select><button class="btn sm" id="rangeIntersect" type="button" aria-pressed="false">Пересечение диапазонов</button></div></div>
-<div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 10px">Выбери соперника для сравнения диапазонов.</div>
+<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><div class="matrixOptions"><label for="viewOpponent" style="margin:0">Вторая</label><select id="viewOpponent"></select><label for="cellMetric" style="margin:0">Моя матрица</label><select id="cellMetric"><option value="none">Нет · серый фон</option><option value="equity">Equity %</option><option value="participation">Диапазон %</option><option value="dominant">Основное действие %</option><option value="box">Коробка A17</option><option value="combos">Комбинации</option><option value="delta">Δ участия (соперник)</option><option value="intersection">Пересечение диапазонов · диагональ</option><option value="evAllIn">All-in EV · все выставились (BB)</option><option value="evCall">EV колла all-in (chipEV, BB)</option><option value="action">Основное действие</option></select><label for="villainMetric" style="margin:0">Соперник</label><select id="villainMetric"><option value="equity">Equity vs меня</option><option value="evAllIn">EV выставления vs меня</option><option value="evCall">EV колла vs меня</option><option value="participation">Диапазон %</option><option value="action">Действия</option></select><button class="btn sm" id="rangeIntersect" type="button" aria-pressed="false">Пересечение диапазонов</button></div></div>
+<div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 5px">Выбери соперника для сравнения диапазонов.</div>
+<div id="intersectionKey" class="intersectionKey hidden" aria-label="Цветовая легенда пересечения">
+<span><span class="rangeSwatch both"></span>Оба диапазона</span>
+<span><span class="rangeSwatch"><span class="intersectionTriangle upper"></span></span>Только Hero · верхний треугольник</span>
+<span><span class="rangeSwatch"><span class="intersectionTriangle lower"></span></span>Только оппонент · нижний треугольник</span>
+<span><span class="rangeSwatch"></span>Нет ни у кого</span>
+</div>
 <div class="buttons matrixClipboardBar" style="margin:0 0 9px;gap:8px;align-items:center">
 <button class="btn sm" id="copyMatrix" type="button" disabled>Копировать настройки</button>
 <button class="btn sm" id="pasteMatrix" type="button" disabled>Вставить настройки</button>
@@ -324,7 +363,7 @@ const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet'
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 const names={};
 let copiedMatrix=null; // In-page clipboard: action frequencies only, never A17 boxes.
-let intersectionOnly=false,calculatingReverse=false;
+let intersectionOnly=false,calculatingReverse=false,lastNonIntersectionMetric='equity';
 
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -749,9 +788,13 @@ function setMetricLegend(){
   box:'Коробка A17 — категория, а не сила.',
   combos:'Комбинации: 4 suited / 6 pair / 12 offsuit.',
   delta:'Разница участия с соперником, п.п.',
+  intersection:'Пересечение: полная синяя клетка — рука есть у обоих. Синий верхний треугольник — только Hero. Красный нижний — только выбранный соперник. Серая клетка — ни у кого. Учитываются любые положительные частоты участия.',
   action:'Основное действие; частоты в нижней полоске.'
  };
- $('metricLegendText').textContent=(descriptions[metric]||'')+' Фон ячеек постоянный. Цветной уголок — коробка A17, без белой рамки. Режим пересечения показывает только руки двух активных диапазонов. Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.';
+ $('metricLegendText').textContent=(descriptions[metric]||'')+
+  (metric==='intersection'
+   ?' Это сравнение классов рук, а не Equity; точные частоты Hero и соперника смотри при наведении.'
+   :' Фон ячеек постоянный. Цветной уголок — коробка A17, без белой рамки. Рамка коробки в редакторе означает, что хотя бы одна её рука входит в диапазон. Золото/красный — лучшие исключённые / худшие включённые для метрик Equity и EV.');
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -773,30 +816,44 @@ function villainSelectedShare(hand){
  }
  return knownActivePercent(villain,hand);
 }
+function intersectionMembership(hand){
+ const heroShare=knownActivePercent(hero,hand)||0;
+ const opponentShare=villainSelectedShare(hand)||0;
+ const heroHas=heroShare>0,opponentHas=opponentShare>0;
+ return {heroShare,opponentShare,
+  state:heroHas?(opponentHas?'both':'hero'):(opponentHas?'opponent':'none')};
+}
 function intersectionStats(){
  if(!hero||!villain)return null;
- let shared=0,inter=0,uni=0,a=0,b=0;
+ let shared=0,heroOnly=0,opponentOnly=0,neither=0,inter=0,uni=0,a=0,b=0;
  for(const hand of HANDS){
   const first=(knownActivePercent(hero,hand)||0)/100;
   const second=(villainSelectedShare(hand)||0)/100;
   const mass=COMBOS(hand);
   if(first>0&&second>0)shared++;
+  else if(first>0)heroOnly++;
+  else if(second>0)opponentOnly++;
+  else neither++;
   inter+=mass*Math.min(first,second);
   uni+=mass*Math.max(first,second);
   a+=mass*first;b+=mass*second;
  }
- return {classes:shared,comboIntersection:inter,comboUnion:uni,
+ return {classes:shared,heroOnly,opponentOnly,neither,
+         comboIntersection:inter,comboUnion:uni,
          aCombos:a,bCombos:b,jaccard:uni?100*inter/uni:0};
 }
 function renderIntersectionStats(){
  const stats=intersectionStats();
  $('rangeIntersect').setAttribute('aria-pressed',String(intersectionOnly));
  $('rangeIntersect').classList.toggle('primary',intersectionOnly);
+ $('intersectionKey').classList.toggle('hidden',!intersectionOnly);
  $('rangeIntersectionStats').textContent=!stats?'Соперник не загружен.':
-  'Общие руки: '+stats.classes+'/169 · пересечение '+stats.comboIntersection.toFixed(1)+
+  'Общие: '+stats.classes+' · только Hero: '+stats.heroOnly+
+  ' · только оппонент: '+stats.opponentOnly+' · ни у кого: '+stats.neither+
+  ' · пересечение '+stats.comboIntersection.toFixed(1)+
   ' комбо-экв. · Jaccard '+stats.jaccard.toFixed(1)+'% · мои '+
   stats.aCombos.toFixed(1)+' / соперника '+stats.bCombos.toFixed(1)+' комбо-экв.'+
-  (intersectionOnly?' · подсвечены только общие руки':' · нажми «Пересечение диапазонов» для подсветки');
+  (intersectionOnly?' · верх Hero / низ оппонент':' · включи «Пересечение диапазонов» для цветной матрицы');
 }
 function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples){
  if(!doc||!equity)return null;
@@ -1017,7 +1074,9 @@ function metricTextColor(metric,value,scale){
 function matrix(root,doc,scale,metricChoice){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
- const metric=metricChoice||$('cellMetric').value,candidates=doc===hero?candidateSwaps(metric):{gold:new Set(),red:new Set()};
+ const metric=metricChoice||$('cellMetric').value;
+ const showIntersection=metric==='intersection'&&doc===hero;
+ const candidates=doc===hero&&!showIntersection?candidateSwaps(metric):{gold:new Set(),red:new Set()};
  for(const h of HANDS){
   const actions=doc.hands?.[h],b=doc.boxes?.[h];
   const button=el('button','hand '+major(actions));
@@ -1025,30 +1084,35 @@ function matrix(root,doc,scale,metricChoice){
   const boxhit=doc===hero&&selectedBoxes.size>0&&selectedBoxes.has(hero.boxes[h]);
   if(boxhit)button.classList.add('boxhit');
   if(h===selected)button.classList.add('selected');
-  if(intersectionOnly){
-   const both=(knownActivePercent(hero,h)||0)>0&&(villainSelectedShare(h)||0)>0;
-   button.classList.add(both?'intersectionMatched':'intersectionMuted');
+  if(showIntersection){
+   const membership=intersectionMembership(h);
+   button.classList.add('rangeIntersection','intersection'+
+    ({both:'Both',hero:'HeroOnly',opponent:'OpponentOnly',none:'Neither'})[membership.state]);
+   button.title='Hero '+membership.heroShare.toFixed(1)+'% · Оппонент '+
+    membership.opponentShare.toFixed(1)+'% · '+handTooltip(h,doc);
+   if(membership.state==='hero')button.append(el('span','intersectionTriangle upper'));
+   if(membership.state==='opponent')button.append(el('span','intersectionTriangle lower'));
   }
   if(doc===hero&&bulkSelected.has(h))button.classList.add('multiSelected');
   if(candidates.gold.has(h))button.classList.add('candidateGold');
   if(candidates.red.has(h))button.classList.add('candidateRed');
   button.append(el('span','handRank',h));
-  if(Number.isInteger(b)&&b>0){
+  if(!showIntersection&&Number.isInteger(b)&&b>0){
    const tag=el('span','handBoxTag','A'+String(b).padStart(2,'0'));
    tag.style.setProperty('--group-color',groupPaletteColor(b));
    if(handInRange(doc,h))tag.classList.add('inRange');
    button.append(tag);
   }
-  const info=cellMetricValue(doc,h,metric);
+  const info=showIntersection?{value:null,display:''}:cellMetricValue(doc,h,metric);
   if(info.display!==''){
    const center=el('span','handMetric'+(info.display.length>6?' compact':''),info.display);
    const color=metricTextColor(metric,info.value,scale);
    if(color)center.style.color=color;
    button.append(center);
   }
-  const stripe=handActionStripe(actions);
+  const stripe=showIntersection?null:handActionStripe(actions);
   if(stripe)button.append(stripe);
-  button.setAttribute('aria-label',handTooltip(h,doc)+', подробные показатели доступны при наведении или фокусе');
+  button.setAttribute('aria-label',button.title+', подробные показатели доступны при наведении или фокусе');
   button.setAttribute('aria-describedby','handHoverCard');
   button.onmouseenter=e=>showHandHover(h,doc,e);
   button.onmousemove=e=>positionHandHover(e);
@@ -1082,6 +1146,7 @@ function matrix(root,doc,scale,metricChoice){
 }
 function drawMatrices(){
  if(!hero)return;
+ intersectionOnly=$('cellMetric').value==='intersection';
  setMetricLegend();
  renderRangeEV();renderIntersectionStats();renderVillainReverseStatus();
  const showOpponent=$('villainPane').open;
@@ -1461,9 +1526,17 @@ $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDi
 $('oppCount').onchange=updateOppCount;
 $('viewOpponent').onchange=()=>{loadVillain();drawMatrices()};
 $('villainPane').ontoggle=()=>{if(hero)drawMatrices()};
-$('cellMetric').onchange=()=>{hideHandHover();drawMatrices()};
+$('cellMetric').onchange=()=>{
+ if($('cellMetric').value!=='intersection')lastNonIntersectionMetric=$('cellMetric').value;
+ hideHandHover();drawMatrices();
+};
 $('villainMetric').onchange=()=>{hideHandHover();drawMatrices()};
-$('rangeIntersect').onclick=()=>{intersectionOnly=!intersectionOnly;drawMatrices()};
+$('rangeIntersect').onclick=()=>{
+ const selector=$('cellMetric');
+ if(selector.value==='intersection')selector.value=lastNonIntersectionMetric;
+ else{lastNonIntersectionMetric=selector.value;selector.value='intersection'}
+ hideHandHover();drawMatrices();
+};
 $('computeVillainReverse').onclick=runOpponentReverse;
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
