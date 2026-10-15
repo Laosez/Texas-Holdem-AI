@@ -10,7 +10,7 @@ main{display:grid;gap:15px}.panel{min-width:0;background:linear-gradient(140deg,
 .btn{padding:9px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.18)}.btn:disabled{opacity:.42;cursor:not-allowed}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.danger{background:#332232;border-color:#835063;color:#ffbdc6}.btn.ghost{background:transparent}.btn.sm{padding:6px 9px;font-size:11px}.buttons{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.note{font-size:11px;color:#9aafc8;margin:9px 0 0}.badge{padding:4px 9px;border:1px solid #587998;border-radius:25px;font-size:11px;color:#b2cbe7}.badge.ok{border-color:#468873;color:#81e1c0}.badge.warn{border-color:#895f3f;color:#f2c693}.muted{color:var(--muted)}
 .profile{background:#10243a;border:1px solid #37516d;border-radius:9px;padding:14px}.profile h3{margin:0 0 11px;font-size:13px}.profile .summary{font-size:11px;color:#8eafcd}
 .oppHead,.oppRow{display:grid;grid-template-columns:27px minmax(160px,1fr) 100px 126px 115px;gap:7px;align-items:center}.oppHead{font-size:10px;color:#a6c1d8;margin:11px 0 5px}.oppRow{margin-bottom:7px}.oppRow .num{font-weight:850;color:#88b4f1}.oppRow select{font-size:11px;padding:8px 5px}
-.filterTop{display:grid;grid-template-columns:minmax(170px,1fr) 155px 120px;gap:11px;align-items:end}.boxList{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:13px;align-items:start}
+.filterTop{display:grid;grid-template-columns:minmax(170px,1fr) 155px 130px minmax(145px,1fr);gap:11px;align-items:end}.boxList{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:13px;align-items:start}
 .boxCard{min-width:0;border:1px solid #405e7c;border-radius:9px;background:#12273d;padding:9px}.boxCard.active{border-color:#ae90db;background:#202945}.boxCard.dragover{border:2px dashed #9cccf7;padding:8px}
 .boxCardHead{display:flex;align-items:center;gap:5px}.boxSelect{padding:6px;border-radius:6px;border:1px solid #49627b;color:#c0dbf2;background:#1d3650;font-weight:800;cursor:pointer}.boxCard.active .boxSelect{background:#613e7c;color:white;border-color:#b19ed8}
 .boxCardMeta{flex:1;min-width:0;font-size:10px;color:#9dbbd4;text-align:center}
@@ -93,7 +93,8 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 </section>
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Equity-фильтр</h2><span class="badge">Подсветка не редактирует стратегию</span></div>
 <div class="filterTop"><div class="field"><label for="equityModel">Источник equity</label><select id="equityModel"><option value="selected">Выбранные соперники · Multiway</option><option value="any_two">Any Two · N соперников</option><option value="gto_heuristic">GTO Bot · эвристические диапазоны</option></select></div>
-<div class="field"><label for="trials">Точность Monte Carlo</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div>
+<div class="field"><label for="trials">Симуляций / цикл</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div>
+<div class="field"><label for="cycles">Независимые циклы</label><select id="cycles"><option value="1">1 цикл</option><option value="2">2 цикла</option><option value="3">3 цикла</option><option value="4">4 цикла</option></select></div>
 <button class="btn primary" id="computeAll">Рассчитать Monte Carlo</button></div>
 <div class="fields" style="margin-top:12px"><div class="field wide"><div class="right" style="justify-content:space-between"><label for="equityMin">Золотая пунктирная рамка: equity не ниже</label><strong id="minLabel">40%</strong></div><input id="equityMin" type="range" min="0" max="100" step="1" value="40"></div></div>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div><p id="equityStatus" class="note">Нажмите «Рассчитать». Без расчёта equity-подсветка не применяется.</p>
@@ -109,7 +110,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 <span class="small" id="allInStatus" style="max-width:740px">Равные вклады всех участников; без побочных банков. Эффективный стек берётся из блока 01.</span>
 </div>
 <div class="metricLegend"><div class="swatch" id="metricLegendSwatch"></div><span id="metricLegendText">Градиент зависит от показателя в ячейке.</span></div>
-<div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>A17 · редактор 17 коробок</strong><div class="buttons"><button class="btn sm ghost" id="expandAllBoxes">Показать все руки</button><button class="btn sm ghost" id="collapseAllBoxes">Свернуть списки</button><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div></div><div id="boxes" class="boxList"></div><p class="boxInstructions">Стрелка раскрывает список рук. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. За значок ⠿ можно менять расположение коробок. Номер A01–A17 выделяет диапазон на матрице. Удаление из коробки не удаляет руку из стратегии.</p>
+<div class="a17Toolbar"><div class="heading" style="margin-top:2px"><strong>A17 · редактор 17 коробок</strong><div class="buttons"><button class="btn sm ghost" id="expandAllBoxes">Показать все руки</button><button class="btn sm ghost" id="collapseAllBoxes">Свернуть списки</button><button class="btn sm" id="computeBoxes">Пересчитать Eq коробок</button><button class="btn sm ghost" id="clearBoxes">Снять выделение</button></div></div><div id="boxes" class="boxList"></div><p class="boxInstructions">Стрелка раскрывает список рук. Перетащи руку в другую коробку или в «Без коробки», либо нажми ×. За значок ⠿ можно менять расположение коробок. <strong>Eq</strong> — реальное showdown equity диапазона всей коробки при одновременном выставлении против выбранных соперников; это НЕ доля рук выше порога. После изменения состава коробки нажми «Пересчитать Eq коробок». Номер A01–A17 выделяет диапазон на матрице. Удаление из коробки не удаляет руку из стратегии.</p>
 </div>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div id="heroMatrix" class="matrixGrid"></div></div></div>
 <div id="villainPane" class="matrixPane hidden"><h3 id="villainMatrixLabel">Стратегия соперника</h3><div class="matrixViewport"><div id="villainMatrix" class="matrixGrid"></div></div></div></div>
@@ -139,7 +140,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),expandedBoxes=new Set(Array.from({length:18},(_,i)=>i)),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null,perOpponentData=[],comparisonEpoch=0,pairwiseEquity={};
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),expandedBoxes=new Set(Array.from({length:18},(_,i)=>i)),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,rangeEquityResult=null,perOpponentData=[],comparisonEpoch=0,pairwiseEquity={},boxEquityResult=null,boxEquityEpoch=0,boxesComputing=false;
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -206,7 +207,7 @@ function renderOpponents(){
 }
 function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
 function opponentsSelected(){return opponents.slice(0,Number($('oppCount').value)).map(o=>({...o}))}
-function invalidateEquity(){calcEpoch++;comparisonEpoch++;perOpponentData=[];pairwiseEquity={};equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices();refreshComparison()}
+function invalidateEquity(){boxEquityEpoch++;boxEquityResult=null;calcEpoch++;comparisonEpoch++;perOpponentData=[];pairwiseEquity={};equityResults={filter:null,actual:null,any:null};rangeEquityResult=null;drawEquityStats();drawMatrices();refreshComparison()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -223,6 +224,7 @@ function boxOrder(){
  return Array.isArray(order)&&order.length===17&&new Set(order).size===17&&order.every(x=>Number.isInteger(x)&&x>=1&&x<=17) ? order : Array.from({length:17},(_,i)=>i+1);
 }
 function markBoxDirty(){
+ boxEquityEpoch++;boxEquityResult=null;
  dirty=true;$('dirty').textContent='● Есть несохранённые изменения';$('dirty').style.color='#f5c38f';
  drawBoxes();drawMatrices();paintEditor();
 }
@@ -249,12 +251,11 @@ function boxChip(h){
 function drawBoxes(){
  if(!hero)return;
  const root=$('boxes');root.replaceChildren();
- const eq=equityResults.filter?.equity,threshold=Number($('equityMin').value);
+ const eq=boxEquityResult?.equity||null;
  for(const b of [...boxOrder(),0]){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
-  const hits=eq?members.reduce((n,h)=>n+(Number.isFinite(eq[h])&&eq[h]>=threshold?COMBOS(h):0),0):null;
-  const coverage=hits===null||count===0?'—':(100*hits/count).toFixed(0)+'%';
+  const groupEq=members.length&&Number.isFinite(eq?.[String(b)])?Number(eq[String(b)]):null;
   const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===0?' boxPool':''));
   const head=el('div','boxCardHead');
   if(b===0){
@@ -265,8 +266,8 @@ function drawBoxes(){
    choose.onclick=()=>{if(selectedBoxes.has(b))selectedBoxes.delete(b);else selectedBoxes.add(b);drawBoxes();drawMatrices()};
    head.append(choose);
   }
-  const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · Eq '+coverage));
-  summary.title='Доля комбинаций с equity выше порога';head.append(summary);
+  const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · Eq '+(groupEq===null?'—':groupEq.toFixed(1)+'%')));
+  summary.title='Прямое multiway showdown equity всех комбинаций коробки против одновременно выбранных диапазонов соперников (без порога).';head.append(summary);
   if(b!==0){
    const handle=el('button','boxHandle','⠿');handle.type='button';handle.draggable=true;
    handle.title='Переставить коробку';handle.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-box',String(b))};
@@ -638,9 +639,9 @@ async function calculatePerOpponent(){
  for(const item of items){
   if(epoch!==calcEpoch)return;
   try{
-   const settings={model:'selected',trials:Number($('trials').value),opponents:[item.o]};
+   const settings={model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),opponents:[item.o]};
    let task=await post('/api/plan/equity',settings);
-   while(task.status==='running'){
+   while(task.status==='running'||task.status==='queued'){
     await new Promise(r=>setTimeout(r,1100));
     if(epoch!==calcEpoch)return;
     task=await api('/api/plan/equity/'+task.id);
@@ -671,14 +672,19 @@ async function startCalculation(slot,model,people){
  try{
   const trials=Number($('trials').value);
   msg('Запущен Monte Carlo: '+people.length+' соперник(ов), '+trials+' симуляций на руку.');
-  const settings={model,trials,opponents:people};
+  const settings={model,trials,cycles:Number($('cycles').value),opponents:people};
   let job=await post('/api/plan/equity',settings);
-  const progress=(j)=>{
-   if(slot==='filter'){$('equityFill').style.width=(100*j.done/169).toFixed(0)+'%';$('equityStatus').textContent=j.status==='running'?'Расчёт '+j.done+'/169 классов...':j.status}
-   if(slot==='actual')$('actualState').textContent='Расчёт '+j.done+'/169';
+  const progress=j=>{
+   const total=j.total||169;
+   if(slot==='filter'){
+    $('equityFill').style.width=(100*j.done/total).toFixed(0)+'%';
+    $('equityStatus').textContent=j.status==='queued'?'В очереди Monte Carlo…':
+     j.status==='running'?'Monte Carlo: '+j.done+'/'+total+' этапов (циклы × 169 рук)':j.status;
+   }
+   if(slot==='actual')$('actualState').textContent=j.status==='queued'?'В очереди':'Расчёт '+j.done+'/'+total;
   };
   progress(job);
-  while(job.status==='running'){
+  while(job.status==='running'||job.status==='queued'){
    await new Promise(resolve=>setTimeout(resolve,1100));
    job=await api('/api/plan/equity/'+job.id);progress(job);
   }
@@ -692,6 +698,35 @@ async function startCalculation(slot,model,people){
   drawMatrices();drawEquityStats();msg('Equity рассчитано для всех 169 рук'+(job.cached?' (из кэша)':'')+'.');
   return job.result;
  }catch(e){msg('Equity: '+e.message,true);$('equityStatus').textContent='Ошибка расчёта: '+e.message;return null}
+}
+async function calculateBoxesEquity(){
+ if(!hero||boxesComputing)return null;
+ const revision=++boxEquityEpoch,epoch=calcEpoch;
+ const boxes=copy(hero.boxes),people=currentPeople();
+ boxesComputing=true;$('computeBoxes').disabled=true;
+ try{
+  const settings={boxes,opponents:people,trials:Number($('trials').value),cycles:Number($('cycles').value)};
+  let job=await post('/api/plan/boxes-equity',settings);
+  while(job.status==='running'||job.status==='queued'){
+   if(revision!==boxEquityEpoch||epoch!==calcEpoch)return null;
+   $('computeBoxes').textContent=job.status==='queued'?'Eq: в очереди…': 'Eq: '+job.done+'/'+(job.total||17);
+   await new Promise(resolve=>setTimeout(resolve,1100));
+   if(revision!==boxEquityEpoch||epoch!==calcEpoch)return null;
+   job=await api('/api/plan/equity/'+job.id);
+  }
+  if(job.status!=='completed')throw Error(job.error||'Расчёт equity коробок не завершён');
+  if(revision!==boxEquityEpoch||epoch!==calcEpoch)return null;
+  boxEquityResult=job.result;
+  drawBoxes();
+  msg('Equity коробок рассчитано против '+people.length+' соперника(ов) совместно'+(job.cached?' (кэш)':'')+'.');
+  return job.result;
+ }catch(e){
+  if(revision===boxEquityEpoch)msg('Equity коробок: '+e.message,true);
+  return null;
+ }finally{
+  boxesComputing=false;$('computeBoxes').disabled=false;
+  $('computeBoxes').textContent='Пересчитать Eq коробок';
+ }
 }
 function currentPeople(){return opponentsSelected()}
 async function calculateRangeEquity(){
@@ -751,6 +786,7 @@ $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;$('equityMin').oninput=()=>{$('minLabel').textContent=$('equityMin').value+'%';drawMatrices();drawBoxes()};
 $('expandAllBoxes').onclick=()=>{expandedBoxes=new Set(Array.from({length:18},(_,i)=>i));drawBoxes()};
 $('collapseAllBoxes').onclick=()=>{expandedBoxes.clear();drawBoxes()};
+$('computeBoxes').onclick=calculateBoxesEquity;
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
 $('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
@@ -780,8 +816,10 @@ $('computeAll').onclick=async()=>{
   if(model==='selected')equityResults.actual=matrix;
   else await startCalculation('actual','selected',people);
   await calculateRangeEquity();
+  const boxesPromise=calculateBoxesEquity();
   await calculatePerOpponent();
   await calculatePairwise();
+  await boxesPromise;
   drawEquityStats();drawMatrices();drawBoxes();
  }finally{computingAll=false;$('computeAll').disabled=false}
 };
