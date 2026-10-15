@@ -240,7 +240,7 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),expandedBoxes=new Set([0]),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set();
+let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set();
 const names={};
 function msg(t,err=false){$('feedback').textContent=t;$('feedback').style.color=err?'#ffacba':'#b5d5ed'}
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n}
@@ -472,17 +472,11 @@ function drawBoxes(){
    handle.title='Переставить коробку';handle.ondragstart=e=>{e.stopPropagation();e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-skachkov-box',String(b))};
    head.append(handle);
   }
-  const exp=el('button','boxExpand',expandedBoxes.has(b)?'▴':'▾');exp.type='button';
-  exp.title=expandedBoxes.has(b)?'Свернуть руки':'Показать руки';
-  exp.setAttribute('aria-expanded',String(expandedBoxes.has(b)));
-  exp.onclick=()=>{if(expandedBoxes.has(b))expandedBoxes.delete(b);else expandedBoxes.add(b);drawBoxes()};
-  head.append(exp);card.append(head);
-  if(expandedBoxes.has(b)){
-   const list=el('div','boxHandList');
-   if(members.length)for(const h of members)list.append(boxChip(h));
-   else list.append(el('span','boxEmpty','Перетащи сюда руку'));
-   card.append(list);
-  }
+  card.append(head);
+  const list=el('div','boxHandList');
+  if(members.length)for(const h of members)list.append(boxChip(h));
+  else list.append(el('span','boxEmpty','Перетащи сюда руку'));
+  card.append(list);
   card.ondragover=e=>{e.preventDefault();card.classList.add('dragover');e.dataTransfer.dropEffect='move'};
   card.ondragleave=e=>{if(!card.contains(e.relatedTarget))card.classList.remove('dragover')};
   card.ondrop=e=>{card.classList.remove('dragover');boxDropped(e,b)};
@@ -915,8 +909,6 @@ document.addEventListener('pointermove',e=>{
 });
 document.addEventListener('pointerup',finishBoxStroke);
 document.addEventListener('pointercancel',finishBoxStroke);
-$('expandAllBoxes').onclick=()=>{expandedBoxes=new Set(Array.from({length:18},(_,i)=>i));drawBoxes()};
-$('collapseAllBoxes').onclick=()=>{expandedBoxes.clear();drawBoxes()};
 $('clearBoxes').onclick=()=>{selectedBoxes.clear();drawBoxes();drawMatrices()};
 $('moveBox').onclick=()=>moveHandToBox(selected,Number($('handBox').value));
 $('applyHand').onclick=()=>doApply(false);$('applyBoxes').onclick=()=>doApply(true);
