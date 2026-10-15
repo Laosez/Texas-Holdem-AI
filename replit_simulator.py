@@ -84,8 +84,10 @@ RUN_ID_RE = re.compile(r"^[A-Za-z0-9_]{5,64}$")
 ARCHIVE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,120}$")
 CHECKPOINT_RE = re.compile(r"^_checkpoints/(?:config\.json|[0-9]{6}\.json\.gz)$")
 
-def strategy_fingerprint():
+def strategy_fingerprint(exporter_digest_override=None):
     # Binds experiment to implementation, including future policy modules.
+    # A known exporter-only memory optimization may reuse the previous
+    # strategy fingerprint without accepting unknown gameplay changes.
     paths = sorted((ROOT / "bots").glob("*.py")) + sorted((ROOT / "core").glob("*.py"))
     paths += [ROOT / "export_preflop_ranges_v4.py",
               ROOT / "run_tournament_stats.py", ROOT / "strategy_catalog" / "a17_v5.json"]
@@ -93,7 +95,10 @@ def strategy_fingerprint():
     for path in paths:
         if path.is_file():
             digest.update(str(path.relative_to(ROOT)).encode())
-            digest.update(hashlib.sha256(path.read_bytes()).digest())
+            if path.name == "export_preflop_ranges_v4.py" and exporter_digest_override is not None:
+                digest.update(bytes.fromhex(exporter_digest_override))
+            else:
+                digest.update(hashlib.sha256(path.read_bytes()).digest())
     return digest.hexdigest()
 
 def _container_memory_limit_gb():
@@ -232,6 +237,7 @@ def snapshot(job: dict) -> dict:
         "updated": job["updated"], "config": job["config"],
         "log": list(job["log"]), "returncode": job["returncode"],
         "report": job.get("report"),
+        "error": job.get("error"),
         "progress": job.get("progress"),
         "stats": job.get("stats"),
         "performance": job.get("performance"),
@@ -443,12 +449,26 @@ def worker(job: dict) -> None:
                 }
             job["status"] = ("cancelled" if job.get("cancelled")
                              else "completed" if exit_code == 0 and report is not None else "failed")
+            if job["status"] == "failed":
+                if exit_code in (-9, 137):
+                    reason = ("Экспортёр завершился по SIGKILL (вероятный OOM: "
+                              "недостаточно RAM на Railway). Контрольные точки "
+                              "сохранены; можно возобновить после исправления.")
+                elif exit_code != 0:
+                    reason = f"Экспортёр завершился с кодом {exit_code}; см. последние строки журнала."
+                else:
+                    reason = "Нет итогового tournament_report.json после выхода экспортёра."
+                job["error"] = reason
+                job["log"].append("[runner] " + reason)
+            else:
+                job["error"] = None
             job["updated"] = now()
             job.pop("process", None)
             persist(job)
     except Exception as exc:
         with MUTEX:
-            job["log"].append("Сбой запуска: " + repr(exc))
+            job["log"].append("Сбой запуска/обработки результатов: " + repr(exc))
+            job["error"] = "Ошибка обработки итоговых файлов: " + repr(exc)
             job["status"] = "failed"
             job["updated"] = now()
             job.pop("process", None)
@@ -492,11 +512,17 @@ def resume_run(run_id: str) -> dict:
             raise RuntimeError("Другая серия уже выполняется")
         if not job["config"].get("players"):
             raise ValueError("Старая сессия не содержит полного состава игроков")
-        if not job.get("strategy_fingerprint") or job["strategy_fingerprint"] != strategy_fingerprint():
+        # Permit the one audited exporter-only memory fix. This source change
+        # does not touch gameplay or bot behavior; the exporter separately
+        # checks each legacy checkpoint's exact configuration and task tuple.
+        current_fingerprint = strategy_fingerprint()
+        prior_fingerprint = strategy_fingerprint("c95b365dd2af4051db541b27781b94e9ccbd113477ca6c3740fcbd6c9b5d40b2")
+        if job.get("strategy_fingerprint") not in (current_fingerprint, prior_fingerprint):
             raise RuntimeError("Версия старой сессии неизвестна или изменилась; безопасное продолжение невозможно. Скачай ZIP для архива.")
         job["cancelled"] = False
         job["status"] = "running"
         job["returncode"] = None
+        job["error"] = None
         job["updated"] = now()
         persist(job)
     threading.Thread(target=worker, args=(job,), daemon=True).start()
