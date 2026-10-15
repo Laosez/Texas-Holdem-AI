@@ -1633,7 +1633,8 @@ function preserveA17Strategy(name){
  // The shipped initial A17 V5 is protected by the backend, not in meta.saved.
  // Also keep any named user copy of initial A17 plus all optimized A17 revisions.
  return /^(a17|а17)(?:[ -]*v\s*5)?$/.test(label) ||
-  (/^(a17|а17)/.test(label)&&(/оптимиз/.test(label)||/optimi[sz]/.test(label)));
+  (/^(a17|а17)/.test(label)&&
+   /(оптимиз|optimi[sz]|начальн|исходн|базов|original|initial|baseline)/.test(label));
 }
 $('cleanupStrategies').onclick=async()=>{
  if(!meta)return;
