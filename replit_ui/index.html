@@ -4,14 +4,25 @@
 :root{color-scheme:dark;--bg:#081221;--surface:#14243a;--line:#314660;--fg:#ecf5ff;--muted:#9ab0ca;--accent:#7baaf7}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 60% -35%,#27507a,transparent 70%),var(--bg);font:13px/1.5 Inter,system-ui,sans-serif;color:var(--fg)}
 header,.nav,main,footer{width:min(1510px,96%);margin:auto}header{padding:23px 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-weight:850;font-size:11px;letter-spacing:2px;color:#92baf1}.brand strong{display:block;color:white;font-size:25px;letter-spacing:-.6px}.small{color:var(--muted);font-size:11px}.nav{display:grid;grid-template-columns:repeat(4,1fr);background:#101d30;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px}.tab{border-right:1px solid var(--line);padding:13px 12px;display:flex;gap:9px;color:#91a4bc;text-decoration:none}.tab:last-child{border-right:0}.tab.current{background:#1d3b60;color:#fff;box-shadow:inset 0 -3px #7ca9fa}.tab b{font-size:19px}.tab strong{display:block;font-size:13px}.tab small{font-size:10px}
-main{display:grid;grid-template-columns:minmax(365px,.82fr) minmax(620px,1.45fr);gap:16px;align-items:start}.column{display:grid;gap:16px;min-width:0}.panel{min-width:0;background:linear-gradient(140deg,#17283f,#101e30);border:1px solid var(--line);padding:19px;border-radius:12px}.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}.heading h2{margin:0;font-size:18px;letter-spacing:-.25px}.index{color:#82aef2;font-size:12px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.field{min-width:0}.field.wide{grid-column:1/-1}label{display:block;font-size:11px;color:#adc4dc;font-weight:750;margin-bottom:5px}input,select{width:100%;min-width:0;padding:10px 9px;background:#081626;color:#edf4ff;border:1px solid #395572;border-radius:7px;font:inherit}input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent)}select.invalid{border-color:#f0788c}.buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.btn{padding:10px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.19)}.btn:disabled{opacity:.44;cursor:not-allowed}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.danger{background:#332232;border-color:#835063;color:#ffbdc6}.btn.outline{background:transparent}.btn.sm{padding:7px 9px;font-size:11px}.note{font-size:11px;color:#9aafc8;margin:10px 0 0}.bad{color:#ffadba;font-size:12px;font-weight:700}.good{color:#7bdcbf}.muted{color:#9cb4cf}
+main.simulatorLayout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;width:min(1920px,calc(100% - 28px));max-width:none;margin-inline:auto}
+.simulatorLayout .topColumn{min-width:0;height:clamp(440px,calc((100vw - 64px)/3),635px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#3a5471 #102137;align-content:start;padding-bottom:2px}
+.simulatorLayout .resultsPanel{grid-column:1/-1;min-width:0}
+.simulatorLayout .resultsPanel .tableWrap{max-height:min(68vh,730px)}
+.simulatorLayout .resultsPanel .statsTable{min-width:1600px}
+.simulatorLayout .topColumn .panel{padding:15px}
+.simulatorLayout .topColumn .heading h2{font-size:16px}
+.simulatorLayout .journalColumn pre{height:485px;max-height:none;min-height:180px}
+
+.column{display:grid;gap:16px;min-width:0}.panel{min-width:0;background:linear-gradient(140deg,#17283f,#101e30);border:1px solid var(--line);padding:19px;border-radius:12px}.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}.heading h2{margin:0;font-size:18px;letter-spacing:-.25px}.index{color:#82aef2;font-size:12px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.field{min-width:0}.field.wide{grid-column:1/-1}label{display:block;font-size:11px;color:#adc4dc;font-weight:750;margin-bottom:5px}input,select{width:100%;min-width:0;padding:10px 9px;background:#081626;color:#edf4ff;border:1px solid #395572;border-radius:7px;font:inherit}input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent)}select.invalid{border-color:#f0788c}.buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.btn{padding:10px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.19)}.btn:disabled{opacity:.44;cursor:not-allowed}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.danger{background:#332232;border-color:#835063;color:#ffbdc6}.btn.outline{background:transparent}.btn.sm{padding:7px 9px;font-size:11px}.note{font-size:11px;color:#9aafc8;margin:10px 0 0}.bad{color:#ffadba;font-size:12px;font-weight:700}.good{color:#7bdcbf}.muted{color:#9cb4cf}
 .botHead,.botRow{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 27px;gap:7px;align-items:center}.botHead{font-size:10px;color:#b4c7dc;font-weight:700;margin-bottom:8px}.botRow{margin-bottom:8px}.botRow select{font-size:12px;padding:9px 6px}.botRow .id{color:#a9c9f1;font-size:11px;font-weight:800}.botRow .remove{border:0;background:transparent;color:#ffc1c8;font-size:18px;cursor:pointer}.warning{background:#112d3b;border:1px solid #45697b;padding:9px;border-radius:6px;color:#bed3e5;font-size:11px;margin:11px 0}
 .badge{padding:5px 10px;border:1px solid #587998;border-radius:25px;font-size:11px;color:#a8c5e3}.badge.ok{border-color:#468873;color:#81e1c0}.badge.fail{border-color:#9b596b;color:#ffc1cc}
 .toolbar{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.sessionActions{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}.sessionActions .btn{font-size:11px;padding:8px 9px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.stat{background:#10233a;border:1px solid #36516e;border-radius:8px;padding:10px;min-width:0}.stat small{font-size:10px;color:#9daec5;display:block}.stat strong{font-size:20px;font-variant-numeric:tabular-nums;display:block}.progress{height:9px;background:#071625;border:1px solid #293f56;border-radius:20px;overflow:hidden}.progress div{height:100%;width:0;background:linear-gradient(90deg,#417bdf,#69c4d4);transition:width .3s}.progressLine{display:flex;justify-content:space-between;color:#9cb5cb;font-size:11px;margin:6px 0 15px;gap:9px}
 .tableWrap{overflow:auto;border:1px solid #2b4059;border-radius:7px}table{border-collapse:collapse;width:100%;min-width:960px;font-size:11px}th,td{padding:10px 8px;text-align:right;border-bottom:1px solid #2b4054;white-space:nowrap}th{text-align:right;background:#1a3550;color:#b5cfec}td:first-child,th:first-child{text-align:left;position:sticky;left:0;min-width:183px;background:#183049;z-index:1}tbody tr:nth-child(even) td{background:#152b41}tbody tr:nth-child(even) td:first-child{background:#1a344c}.leader{color:#84e4c5;font-weight:800}
 pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160px;height:280px;max-height:550px;overflow:auto;padding:13px;white-space:pre-wrap;word-break:break-word;color:#bbd5f2;font:11px/1.6 ui-monospace,Menlo,monospace}.hide{display:none!important}.statusLine{min-height:19px;font-size:11px;margin-top:10px}footer{color:#758daa;font-size:11px;margin:23px auto 40px}
-@media(max-width:1060px){main{grid-template-columns:1fr}}@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.tab{padding:9px 4px;gap:3px;justify-content:center}.tab b{font-size:13px}.tab strong{font-size:11px}.tab small{display:none}.panel{padding:14px}.toolbar{grid-template-columns:1fr}}
+@media(max-width:1120px){main.simulatorLayout{grid-template-columns:repeat(2,minmax(0,1fr))}.simulatorLayout .journalColumn{grid-column:1/-1;height:310px}.simulatorLayout .journalColumn pre{height:210px}.simulatorLayout .topColumn{height:640px}.simulatorLayout .resultsPanel{grid-column:1/-1}}
+@media(max-width:760px){main.simulatorLayout{grid-template-columns:1fr}.simulatorLayout .topColumn{height:auto;max-height:none;overflow:visible}.simulatorLayout .journalColumn{grid-column:auto;height:auto}.simulatorLayout .journalColumn pre{height:280px}.simulatorLayout .resultsPanel{grid-column:auto}}
+@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.tab{padding:9px 4px;gap:3px;justify-content:center}.tab b{font-size:13px}.tab strong{font-size:11px}.tab small{display:none}.panel{padding:14px}.toolbar{grid-template-columns:1fr}}
 .statsTable .stageHead th{font-size:11px;letter-spacing:1.4px;text-align:center;padding:12px 10px;color:#eff6ff;border-bottom:2px solid #405e80}
 .statsTable .generalGroup{background:#1b2a40}
 .statsTable .preflopGroup{background:#173d5b;border-left:3px solid #5aa3e7}
@@ -35,10 +46,16 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 .trashFooter{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:9px;border-top:1px solid #354e69}
 .trashConfirm{display:flex;align-items:center;gap:8px;font-size:11px;color:#e0c1c5;cursor:pointer;max-width:540px}
 .trashConfirm input{width:15px;height:15px;flex-shrink:0;accent-color:#cd6573}
+.coverageAudit{margin:12px 0;background:#10263a;border:1px solid #344f69;border-radius:9px;padding:11px}
+.coverageAudit summary{cursor:pointer;font-size:11px;font-weight:800;color:#d4e6fa}
+.coverageAudit .coverageTable{min-width:0;table-layout:fixed;margin:10px 0 2px;width:100%;font-size:10px}
+.coverageAudit .coverageTable th,.coverageAudit .coverageTable td{text-align:left;position:static;white-space:normal;line-height:1.38;padding:7px 5px;background:#142a41;border-bottom:1px solid #304861;vertical-align:top;min-width:0}
+.coverageAudit .coverageTable thead th{background:#23405b;color:#d4e8fa}
+.coverageAudit .coverageTable td:first-child{font-weight:750;color:#b9d4ee;width:29%}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><span id="connection" class="badge">Нет соединения</span></header>
 <div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
-<main><div class="column">
+<main class="simulatorLayout"><div class="column topColumn parametersColumn">
 <section class="panel"><div class="heading"><h2><span class="index">01 / </span>Параметры турнира</h2><button class="btn sm outline" id="preset">Контроль V3</button></div>
 <div class="fields">
 <div class="field"><label for="tournaments">Число турниров</label><input type="number" min="1" max="3000" id="tournaments" value="90"></div>
@@ -52,18 +69,32 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="field wide"><label for="seat_mode">Рассадка</label><select id="seat_mode"><option value="rotate">Rotate · ротация</option><option value="fixed">Fixed · фиксированная</option></select></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
+<section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
+</div>
+<div class="column topColumn strategiesColumn">
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
-<div class="warning">Preflop: A17 / GTO (Old) / GTO (PC). <strong>GTO (PC)</strong> использует чарты PC 80 BB для RFI на всех позициях, включая <strong>BTN (позиция 3; ~53,9% Raise)</strong>. При ответах на чужой рейз пока используется GTO Fixed. В Postflop выбирай только постфлоп-алгоритм. Random имеет один пункт; номера назначаются автоматически.</div>
+<div class="warning"><strong>GTO (PC) 80 BB</strong>: точные исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
+<details class="coverageAudit" id="preflopAudit" open><summary>Покрытие префлоп-диапазонов · что реально исполняет бот</summary>
+<table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
+<tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
+<tr><td>BB vs Open</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
+<tr><td>Call / 3-bet vs Open</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
+<tr><td>Call / 4-bet vs 3-bet</td><td>GTO Fixed · эвристика</td><td>A01–A07 и A09: 50/50 Call/4-bet; остальные Fold</td></tr>
+<tr><td>Защита vs 4-bet</td><td>GTO Fixed · эвристика</td><td>GTO Fixed · эвристика</td></tr>
+</tbody></table>
+<p class="note">Это фактическое поведение турнирного движка, а не таблицы solver-GTO. Отдельные PokerCoaching vs Open / vs 3-bet / vs 4-bet пока не оцифрованы. Проценты 3-bet/4-bet в отчёте не подтверждают наличие solver-чарта.</p></details>
 <div id="botError" class="bad" role="alert"></div>
 <div class="buttons"><button class="btn primary" id="start">▶ Запустить</button><button class="btn danger" id="stop" disabled>■ Остановить</button><button class="btn" id="resume" disabled>↻ Продолжить</button></div>
 <div id="feedback" role="status" class="statusLine muted"></div>
 </section></div>
-<div class="column">
-<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><span id="runStatus" class="badge">—</span></div>
+<div class="column topColumn journalColumn">
+<section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre></section>
+</div>
+<section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><span id="runStatus" class="badge">—</span></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
 <div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="trashPanel" id="trashPanel" hidden>
@@ -78,20 +109,18 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <div class="tableWrap"><table class="statsTable"><thead><tr class="stageHead"><th colspan="6" class="generalGroup">ТУРНИРЫ / РЕЗУЛЬТАТ</th><th colspan="5" class="preflopGroup">PREFLOP</th><th colspan="9" class="postflopGroup">POSTFLOP / BB</th></tr><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th class="preflopStart">VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th><th class="postflopStart">Flop AF</th><th>Turn AF</th><th>River AF</th><th>C-bet %</th><th>Fold to bet %</th><th>Check-raise %</th><th>W$SD %</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="20">Нет результатов</td></tr></tbody></table></div>
 <p class="note">При сбое нажми «Продолжить»: уже завершённые турниры сохраняются. Результаты другой версии стратегии автоматически не смешиваются.</p><p class="note">Win % — среди завершённых турниров. Flop/Turn/River AF = (Bet + Raise) / Call; C-bet, Fold to bet, Check-raise и W$SD имеют собственные счётчики возможностей. Net bb/100 учитывает итог всей раздачи в единицах фактического BB (это общий результат, не изолированная постфлоп-прибыль). Новая статистика доступна для новых запусков; «—» означает, что показатель пока не собран. Пустая частота не равна 0%.</p>
 </section>
-<section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre></section>
-<section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
-</div></main><footer>SKACHKOV Poker System · Legacy Engine · Railway Volume /data · Реализация → Проверка → Анализ → План</footer>
+</main><footer>SKACHKOV Poker System · Legacy Engine · Railway Volume /data · Реализация → Проверка → Анализ → План</footer>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 // Preserve full registry for historical profile recognition, but only offer
 // street-appropriate strategies in the new tournament editor.
-let values=['','a17_preflop','gto','pc_gto_80bb'];
-let preflopValues=['','a17_preflop','gto','pc_gto_80bb'];
-let postflopValues=['','gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
+let values=['','a17_preflop','pc_gto_80bb'];
+let preflopValues=['','a17_preflop','pc_gto_80bb'];
+let postflopValues=['','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
-const preset=[['gto','smart'],['gto','gto'],['gto','tag_punisher'],['gto','maniac_mixed'],['gto','baseline_sane'],['a17_preflop','tag_punisher'],['gto','random'],['gto','random'],['gto','pressure_filler']];
+const preset=[['pc_gto_80bb','smart'],['pc_gto_80bb','tag_punisher'],['pc_gto_80bb','wide_defender'],['pc_gto_80bb','maniac_mixed'],['pc_gto_80bb','baseline_sane'],['a17_preflop','tag_punisher'],['pc_gto_80bb','random'],['pc_gto_80bb','random'],['pc_gto_80bb','pressure_filler']];
 let bots=[],sessions=[],selected=null,working=false;
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
@@ -193,15 +222,15 @@ async function loadCatalog(){
   const catalog=await get('/api/catalog');
   if(catalog.strategies?.length){
    values=['',...catalog.strategies];
-   const defaults=['a17_preflop','gto','pc_gto_80bb'];
+   const defaults=['a17_preflop','pc_gto_80bb'];
    const offered=catalog.preflop_strategies||defaults;
-   preflopValues=['',...defaults.filter(v=>offered.includes(v)),...offered.filter(v=>!defaults.includes(v))];
+   preflopValues=['',...defaults.filter(v=>offered.includes(v)),...offered.filter(v=>!defaults.includes(v)&&v!=='gto')];
    for(const saved of catalog.saved_preflop||[]){
     names[saved.token]=saved.name+' · v'+saved.version+' · моя стратегия';
    }
    $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
     ' пользовательских стратегий синхронизировано с редактором. Сохранённая версия используется как Preflop; Postflop выбирается отдельно. Неотредактированные позиции — исходный алгоритм.';
-   postflopValues=['',...(catalog.postflop_strategies||['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v))];
+   postflopValues=['',...(catalog.postflop_strategies||['smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random']).filter(v=>values.includes(v)&&v!=='gto')];
    drawBots();
   }
   const parallel=$('parallel');
