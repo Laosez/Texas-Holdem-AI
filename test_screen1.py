@@ -371,7 +371,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("'post'));", page)
         self.assertIn("preflop_strategies", page)
         self.assertNotIn("values=['','gto','gto_fixed'", page)
-        self.assertIn("['pc_gto_80bb','smart']",page)
+        self.assertIn("['pc_gto_80bb','chaser_postflop_v1']",page)
         self.assertNotIn("['gto','smart']",page)
 
     def test_two_upper_workspaces_full_width_journal_and_results(self):
