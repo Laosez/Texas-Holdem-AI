@@ -1,0 +1,6 @@
+# Separate Railway audit service. Does NOT replace the production Dockerfile.
+FROM python:3.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONHASHSEED=0 THAI_ENGINE_IMPL=legacy
+WORKDIR /app
+COPY . /app
+CMD ["sh", "-c", "python -u -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_gto_postflop_v3 test_ev_decomposition test_plan_ev_workflow test_postflop_telemetry test_postflop_profiles -q && python -u -m unittest discover -s tests -p 'test_fast_eval.py' && python -u -m unittest discover -s tests -p 'test_engine_fast_default.py' && python -u scripts/tournament_eval_compare.py --tournaments 180"]
