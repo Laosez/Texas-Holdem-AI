@@ -81,13 +81,54 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertIsNone(result["decomposition"])
         self.assertIsNone(result["ev_bb"]["K4s"])
 
-    def test_panel_appears_between_matrix_and_editor(self):
+    def test_full_width_section_is_direct_child_of_main_not_workspace(self):
+        from html.parser import HTMLParser
+
+        class Structure(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.stack=[]
+                self.parents={}
+            def handle_starttag(self,tag,attrs):
+                if tag not in ('main','div','section'):
+                    return
+                attrs=dict(attrs)
+                kind=(tag,attrs.get('class',''),attrs.get('id',''))
+                classes=kind[1].split()
+                if ('plannerMain' in classes or 'plannerWorkspace' in classes
+                    or 'editorSection' in classes or 'handEVBreakdown' in classes):
+                    self.parents[classes[0] if 'plannerMain' in classes
+                                 else next(c for c in ('plannerWorkspace','editorSection','handEVBreakdown')
+                                           if c in classes)]=self.stack[-1] if self.stack else None
+                self.stack.append(kind)
+            def handle_endtag(self,tag):
+                if tag in ('main','div','section'):
+                    if not self.stack or self.stack[-1][0]!=tag:
+                        raise AssertionError('Malformed planner layout: '+tag)
+                    self.stack.pop()
+
+        checker=Structure()
+        checker.feed(app.PLAN_UI.read_text(encoding='utf-8'))
+        self.assertEqual(checker.stack,[])
+        self.assertIn('plannerMain',checker.parents)
+        self.assertEqual(checker.parents['editorSection'][1],'plannerWorkspace')
+        self.assertEqual(checker.parents['handEVBreakdown'][1],'plannerMain')
+
+    def test_panel_is_full_width_below_matrix_with_editor_as_sidebar(self):
         s=app.PLAN_UI.read_text(encoding="utf-8")
-        before=s.index('id="heroMatrix"')
+        matrix=s.index('id="heroMatrix"')
+        editor=s.index('class="panel editorSection"')
         block=s.index('id="handEVBreakdown"')
-        after=s.index('class="panel editorSection"')
-        self.assertLess(before,block)
-        self.assertLess(block,after)
+        end=s.index('</main>')
+        self.assertLess(matrix,editor)
+        self.assertLess(editor,block)
+        self.assertLess(block,end)
+        self.assertIn('</section>\n</div>\n\n<section class="panel handEVBreakdown"',s)
+        self.assertIn('.plannerMain>.handEVBreakdown{grid-column:1/-1;width:100%;min-width:0',s)
+        self.assertIn('.plannerWorkspace{display:grid;grid-template-columns:minmax(0,1fr) 342px',s)
+        self.assertIn('@media(max-width:1000px){.plannerWorkspace{grid-template-columns:1fr}',s)
+        self.assertNotIn('.plannerWorkspace>.editorSection{grid-column:2',s)
+        self.assertIn('<span class="index">05 / </span>Декомпозиция выбранной руки',s)
         for key in ("handDecompRun","handDecompTag","handDecompRows","handDecompCost",
                     "handDecompSamples","handDecompEV"):
             self.assertIn('id="'+key+'"',s)
