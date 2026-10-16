@@ -16,7 +16,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import multiprocessing
 import random
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 
 import planner_core as core
@@ -51,9 +53,8 @@ def validate_request(raw):
     trials = raw.get("trials", 200)
     if type(trials) is not int or not 50 <= trials <= 64000:
         raise ValueError("Число симуляций: 50–64000 на руку")
-    if not raw.get("hand") and trials * raw.get("cycles", 1) > 4000:
-        raise ValueError("Полная матрица 169 рук: не более 4000 симуляций/руку. "
-                         "Для глубокого анализа 8000–64000 выбери отдельную руку.")
+    # Full matrix and single-hand analysis both accept up to 64000 trials.
+    # Full matrices run across bounded independent processes.
     # Historical all-in equity endpoint retains its existing 50–2000
     # contract; only the postflop rollout accepts deep single-hand samples.
     base = _validate_request({**raw, "model": "selected",
@@ -238,7 +239,7 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
     return (chip_ev, showdown, pot_state["bb"]) if metrics else (chip_ev, showdown)
 
 
-def calculate(raw, progress=None):
+def calculate(raw, progress=None, *, _hands=None, _return_raw=False):
     payload = validate_request(raw)
     src, provenance = eq.build_ranges(payload["opponents"], "selected")
     disabled = payload["hero_postflop"] == "none" or any(
@@ -253,7 +254,7 @@ def calculate(raw, progress=None):
                        if disabled else
                        "Chip EV в BB при выбранных диапазонах, принудительном входе и стандартном hero open; без ICM и оптимизации префлопа"),
               "opponents": provenance}
-    selected_hands = [payload["hand"]] if payload["hand"] else core.HANDS
+    selected_hands = [payload["hand"]] if payload["hand"] else (list(_hands) if _hands is not None else core.HANDS)
     # Detailed outcomes only for the one selected hand, to keep 169-hand
     # matrix runs compact and avoid coupling existing benchmark callers.
     decomposition = None
@@ -365,4 +366,70 @@ def calculate(raw, progress=None):
         "является приближением для одной руки. "
         "Для полной матрицы σ объединяет разные классы рук."
     )
+    if _return_raw:
+        # Combine sufficient statistics before deriving aggregate SD.
+        result["_raw_stats"] = {
+            "entry_counts": entry_counts,
+            "entry_pots": entry_pots,
+            "entry_ev_sum": entry_ev_sum,
+            "entry_ev_sq": entry_ev_sq,
+        }
     return result
+
+
+def _compute_chunk(raw, hands):
+    """Spawn-safe worker; each hand uses its original deterministic seed."""
+    return calculate(raw, _hands=hands, _return_raw=True)
+
+
+def calculate_parallel(raw, progress=None, workers=1, chunk_size=4):
+    """True multi-core 169-hand rollout; single-hand results stay unchanged.
+
+    Spawn rather than fork: this is called within a live HTTP server thread.
+    """
+    payload = validate_request(raw)
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError("Число процессов Monte Carlo: 1–8")
+    if payload["hand"] or workers == 1:
+        return calculate(payload, progress=progress)
+    chunks = [list(core.HANDS[i:i + chunk_size])
+              for i in range(0, len(core.HANDS), chunk_size)]
+    final = None
+    totals = None
+    done = 0
+    with ProcessPoolExecutor(max_workers=workers,
+                             mp_context=multiprocessing.get_context("spawn")) as pool:
+        jobs = {pool.submit(_compute_chunk, payload, chunk): len(chunk)
+                for chunk in chunks}
+        for job in as_completed(jobs):
+            part = job.result()
+            raw_stats = part.pop("_raw_stats")
+            if final is None:
+                final = part
+                totals = raw_stats
+            else:
+                for name in ("equity", "ev_bb", "showdown_pct", "fold_win_pct",
+                             "ev_ci95_bb"):
+                    final[name].update(part[name])
+                for name in totals:
+                    totals[name] = [a + b for a, b in zip(totals[name],
+                                                          raw_stats[name])]
+            done += jobs[job]
+            if progress:
+                progress(done, len(core.HANDS))
+    counts = totals["entry_counts"]
+    grand_total = sum(counts)
+    final["entry_n_samples"] = counts
+    final["entry_counts_pct"] = [
+        round(100 * count / grand_total, 2) for count in counts]
+    final["entry_pot_bb"] = [
+        round(totals["entry_pots"][i] / count, 3)
+        if count and (final["behavioral_ev_enabled"] or i == 0) else None
+        for i, count in enumerate(counts)]
+    final["entry_ev_sd_bb"] = [
+        round(math.sqrt(max(0., (totals["entry_ev_sq"][i]
+                                - totals["entry_ev_sum"][i]**2/count) /
+                               (count-1))), 5)
+        if count > 1 and final["behavioral_ev_enabled"] else None
+        for i, count in enumerate(counts)]
+    return final
