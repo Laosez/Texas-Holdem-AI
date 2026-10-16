@@ -16,7 +16,7 @@ from typing import List, Tuple
 from core.engine import eval_hand, _FULL_DECK
 
 
-def equity(hole_cards, board, n_opponents, n_sims=100, rng=None):
+def equity(hole_cards, board, n_opponents, n_sims=100, rng=None, evaluator=None):
     """Estimate Hero's expected showdown pot share against random hands.
 
     Draw opponent hands and missing board cards in one without-replacement
@@ -39,6 +39,7 @@ def equity(hole_cards, board, n_opponents, n_sims=100, rng=None):
     draw_count = 2 * n_opponents + missing
     if draw_count > len(remaining):
         raise ValueError("Not enough cards for opponents and board")
+    score_hand = evaluator if evaluator is not None else eval_hand
     sample = (rng or random).sample
     hero_hole = list(hole_cards)
     board_prefix = list(board)
@@ -46,11 +47,11 @@ def equity(hole_cards, board, n_opponents, n_sims=100, rng=None):
     for _ in range(n_sims):
         drawn = sample(remaining, draw_count)
         full_board = board_prefix + drawn[2 * n_opponents:]
-        hero_score = eval_hand(hero_hole, full_board)
+        hero_score = score_hand(hero_hole, full_board)
         best = hero_score
         winners = 1
         for j in range(0, 2 * n_opponents, 2):
-            score = eval_hand(drawn[j:j + 2], full_board)
+            score = score_hand(drawn[j:j + 2], full_board)
             if score > best:
                 best = score
                 winners = 0
