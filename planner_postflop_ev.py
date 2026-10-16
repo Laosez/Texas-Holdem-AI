@@ -103,6 +103,7 @@ class _Policy:
         self.position = position
         self.hero = hero
         self.opened = False
+        self.folded_after_flop = False
 
     def act(self, view):
         from core.bot_api import Action
@@ -119,7 +120,10 @@ class _Policy:
         # Original 9-max position remains an input to the behavior policy;
         # the Table has fewer active seats due to conditional participation.
         view.position = "BTN" if str(self.position) == "3" else str(self.position)
-        return self.postflop.act(view)
+        action = self.postflop.act(view)
+        if self.hero and action.type == "fold":
+            self.folded_after_flop = True
+        return action
 
 
 def _entry_probability(mode, pct, weighted_range, exact_hero):
@@ -190,7 +194,7 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed):
                               dealer_index=0, bot_for=policies)
     if sum(outcome.values()) != 0:
         raise RuntimeError("Payout conservation failed")
-    return outcome["HERO"] / 2., history["showdown"]
+    return outcome["HERO"] / 2., history["showdown"] and not policies["HERO"].folded_after_flop
 
 
 def calculate(raw, progress=None):
@@ -212,6 +216,7 @@ def calculate(raw, progress=None):
     identity = json.dumps(payload,ensure_ascii=False,sort_keys=True)
     salt = hashlib.sha256(identity.encode()).digest()
     n = payload["trials"] * payload["cycles"]
+    entry_counts = [0] * (len(payload["opponents"])+1)
     for index, hand in enumerate(selected_hands):
         seed = int.from_bytes(hashlib.sha256(salt + hand.encode()).digest()[:8], "big")
         rng = random.Random(seed)
@@ -222,6 +227,7 @@ def calculate(raw, progress=None):
         fold_win_total = 0
         while samples < n:
             picked, board = _draw_case(hand, src, payload["opponents"], rng)
+            entry_counts[len(picked)-1] += 1
             if len(picked) <= 1:
                 # Everyone folded before the flop: win the posted blinds only.
                 if not disabled:
@@ -250,4 +256,7 @@ def calculate(raw, progress=None):
         result["fold_win_pct"][hand] = round(100 * fold_win_total / n, 2) if not disabled else None
         if progress:
             progress(index + 1, len(selected_hands))
+    total_entries = sum(entry_counts)
+    result["entry_counts_pct"] = [round(100 * x / total_entries, 2)
+                                   for x in entry_counts]
     return result
