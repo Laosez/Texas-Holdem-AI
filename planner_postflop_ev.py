@@ -151,32 +151,35 @@ def _entry_probability(mode, pct, weighted_range, exact_hero):
 
 
 def _draw_case(hand, ranges, opponents, rng):
-    """Range-weighted conditional sample, rejecting overlapping physical cards."""
-    for _ in range(200):
-        hero = rng.choice(eq.HAND_COMBOS[hand])
-        used = set(hero)
-        picked = [("HERO", hero, None)]
-        failed = False
-        for idx, (weighted, spec) in enumerate(zip(ranges, opponents), 1):
-            p = _entry_probability(spec["entry_mode"], spec["entry_pct"], weighted, hero)
-            if rng.random() >= p:
-                continue
-            cards = weighted.sample(rng)
-            if cards[0] in used or cards[1] in used:
-                failed = True
-                break
-            used.update(cards)
-            picked.append((f"V{idx}", cards, spec))
-        if failed:
-            continue
-        board = rng.sample([c for c in eq.ALL_CARDS if c not in used], 5)
-        return picked, board
-    raise RuntimeError("Не удалось совместно выбрать карты диапазонов: слишком узкие/конфликтующие диапазоны")
+    """Choose hero and entry events once; then condition cards on that lineup.
+
+    Redrawing the entry events after a blocker collision underweights crowded
+    multiway pots. Conditional rejection is instead confined to the fixed
+    lineup, so the externally specified entry probabilities are preserved.
+    """
+    hero = rng.choice(eq.HAND_COMBOS[hand])
+    active = []
+    for idx, (weighted, spec) in enumerate(zip(ranges, opponents), 1):
+        p = _entry_probability(spec["entry_mode"], spec["entry_pct"], weighted, hero)
+        if rng.random() < p:
+            active.append((idx, weighted, spec))
+    # Fail explicitly for impossible physical combinations, rather than
+    # silently redefining the distribution by discarding entire lineups.
+    cards = eq.sample_compatible_hands([o[1] for o in active], hero, rng)
+    picked = [("HERO", hero, None)]
+    picked.extend((f"V{idx}", pair, spec)
+                  for (idx, _, spec), pair in zip(active, cards))
+    used = set(hero)
+    for pair in cards:
+        used.update(pair)
+    board = rng.sample([c for c in eq.ALL_CARDS if c not in used], 5)
+    return picked, board
+
 
 
 def _showdown_share(picked, board):
-    own = eq.score_seven((*picked[0][1], *board))
-    others = [eq.score_seven((*p[1], *board)) for p in picked[1:]]
+    own = eq.score_seven_fast((*picked[0][1], *board))
+    others = [eq.score_seven_fast((*p[1], *board)) for p in picked[1:]]
     best = max((own, *others))
     return 1. / (1. + sum(score == best for score in others)) if own == best else 0.
 
