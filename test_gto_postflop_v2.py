@@ -62,7 +62,7 @@ class GTOPostflopV2Tests(unittest.TestCase):
         catalog=app.strategy_catalog()
         self.assertIn("gto_postflop_v1",catalog["postflop_strategies"])
         self.assertIn("gto_postflop_v2",catalog["postflop_strategies"])
-        self.assertEqual(len(catalog["postflop_strategies"]),6)
+        self.assertEqual(len(catalog["postflop_strategies"]),7)
         self.assertNotIn("gto_postflop_v2",catalog["preflop_strategies"])
         self.assertIn("gto_postflop_v2",app.UI.read_text(encoding="utf-8"))
         self.assertIn("{value:'gto2',label:'GTO V2'}",
@@ -83,7 +83,7 @@ class GTOPostflopV2Tests(unittest.TestCase):
     def test_v1_v2_and_other_profiles_engine_smoke(self):
         for players in (2,9):
             with self.subTest(players=players):
-                profiles=["gto_postflop_v1","gto_postflop_v2","lag_postflop_v1",
+                profiles=["gto_postflop_v1","gto_postflop_v2","gto_postflop_v3","lag_postflop_v1",
                           "tag_postflop_v1","chaser_postflop_v1","trapper_postflop_v1"]
                 bots={f"P{i}":create_bot("split:pc_gto_80bb:"+profiles[(i-1)%len(profiles)])
                       for i in range(1,players+1)}
