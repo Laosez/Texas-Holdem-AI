@@ -72,6 +72,24 @@ class PlanMonteCarloFixTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "несовместимые диапазоны"):
             eq.sample_compatible_hands([aces, aces], hero, random.Random(2), max_attempts=15)
 
+    def test_uncontested_blind_profit_is_position_correct(self):
+        for position, expected in (("3",1.5),("SB",1.0),("BB",0.5)):
+            with self.subTest(position=position):
+                request = {
+                    "hand":"AKs","trials":50,"cycles":1,
+                    "hero_position":position,"hero_stack_bb":20,
+                    "hero_postflop":"gto2",
+                    "opponents":[{
+                        "profile":"builtin:any_two","position":"4",
+                        "scenario":"rfi","players":9,"entry_mode":"never",
+                        "entry_pct":0,"postflop":"none"
+                    }]
+                }
+                result = post.calculate(request)
+                self.assertEqual(result["ev_bb"]["AKs"], expected)
+                self.assertEqual(result["entry_counts_pct"], [100.0, 0.0])
+
+
     def test_no_entry_is_not_showdown(self):
         any_two = eq.WeightedRange({h:1.0 for h in eq.planner.HANDS})
         entry = [{"entry_mode":"never","entry_pct":0}]
