@@ -61,7 +61,7 @@ class HeroPostflopChoiceTests(unittest.TestCase):
         self.assertIn('.plannerStrategyPanel .heroPostflopChoice select{',p)
         self.assertIn('main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr)',p)
         self.assertIn('GTO V1 · контрольная версия',p)
-        self.assertIn("gto:'GTO V1'",p)
+        self.assertIn("{value:'gto',label:'GTO V1'}",p)
         self.assertIn("{value:'gto2',label:'GTO V2'}",p)
 
 
