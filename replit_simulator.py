@@ -144,23 +144,45 @@ def _container_memory_limit_gb():
     return None
 
 
+def _container_cpu_limit():
+    """CPU quota visible inside a cgroup (v2 or v1), in whole workers."""
+    try:
+        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().strip().split()
+        if quota != "max" and int(period) > 0:
+            return max(1, int(quota) // int(period))
+    except (OSError, ValueError):
+        pass
+    try:
+        quota = int(Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").read_text().strip())
+        period = int(Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us").read_text().strip())
+        if quota > 0 and period > 0:
+            return max(1, quota // period)
+    except (OSError, ValueError):
+        pass
+    return None
+
+
 def max_safe_workers():
-    """CPU-process concurrency under a conservative Railway memory budget."""
-    override=os.environ.get("POKER_MAX_WORKERS")
-    if override is not None:
-        try:return max(1,min(4,int(override)))
-        except ValueError:pass
-    if not os.environ.get("RAILWAY_PROJECT_ID"):
-        return max(1,min(4,os.cpu_count() or 4))
-    memory=_container_memory_limit_gb()
-    # Each independent engine process loads substantial evaluator state.
-    # 1 GiB Railway containers stay serial; >=2.25 GiB unlock 2 workers,
-    # and larger containers unlock 3-4 without requiring manual env changes.
-    if memory is None:return 1
-    if memory >= 4.5:return 4
-    if memory >= 3.35:return 3
-    if memory >= 2.25:return 2
-    return 1
+    """Expose up to 8 tournament workers within live cgroup CPU/RAM limits."""
+    cpu = max(1, min(8, _container_cpu_limit() or os.cpu_count() or 1))
+    if os.environ.get("RAILWAY_PROJECT_ID"):
+        memory = _container_memory_limit_gb()
+        # Memory is measured in GiB; Railway's '8 GB' limit is ~7.45 GiB.
+        # 2–4 worker thresholds remain unchanged for earlier small plans.
+        # The 5–8 worker levels reserve headroom for the API and collector.
+        thresholds = (0, 2.25, 3.35, 4.5, 5.05, 5.8, 6.55, 7.25)
+        ram_workers = (max((i + 1 for i, threshold in enumerate(thresholds)
+                            if memory >= threshold), default=1)
+                       if memory is not None else 1)
+        cpu = min(cpu, ram_workers)
+    # Explicit override is a safety ceiling, never permission to exceed RAM.
+    override = os.environ.get("POKER_MAX_WORKERS", "").strip()
+    if override:
+        try:
+            cpu = min(cpu, max(1, int(override)))
+        except ValueError:
+            pass
+    return max(1, cpu)
 
 
 def saved_preflop_options():
@@ -351,7 +373,7 @@ def validate_config(data: dict) -> dict:
     config = {
         "players": bots, "bots": rows,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
-        "parallel": bounded_int(data.get("parallel", 1), "Потоки", 1, 4),
+        "parallel": bounded_int(data.get("parallel", 1), "Потоки", 1, 8),
         "seed": bounded_int(data.get("seed", 2042), "Seed", 0, 2_147_483_647),
         "chips": bounded_int(data.get("chips", 500), "Стек", 10, 1_000_000),
         "sb": sb, "bb": bb,
@@ -363,7 +385,7 @@ def validate_config(data: dict) -> dict:
         "preflop_protocol": preflop_protocol,
     }
     if config["parallel"] > max_safe_workers():
-        raise ValueError(f"Разрешено не более {max_safe_workers()} процессов. Увеличивать POKER_MAX_WORKERS следует только после выделения дополнительной RAM.")
+        raise ValueError(f"Доступно не более {max_safe_workers()} процессов по CPU/RAM. Проверь ресурсы Railway и POKER_MAX_WORKERS.")
     return config
 
 
