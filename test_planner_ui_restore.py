@@ -63,7 +63,7 @@ class PlannerLayoutRecoveryTests(unittest.TestCase):
         page=self.ui
         self.assertIn("const showIntersection=false;",page)
         self.assertNotIn('<details id="villainPane"',page)
-        self.assertIn("background:#2179c5!important;",page)
+        self.assertIn("background:#365b76!important;",page)
         self.assertIn(".matrixGrid .hand.playedRange",page)
         self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
         self.assertIn("background:var(--group-color,#8494a6)!important",page)
