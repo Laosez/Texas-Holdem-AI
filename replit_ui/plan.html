@@ -364,6 +364,10 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .handVsRangeMatrix th,.handVsRangeMatrix td{padding:7px 5px;text-align:right;border-bottom:1px solid #304860;font-variant-numeric:tabular-nums}
 .handVsRangeMatrix th:first-child,.handVsRangeMatrix td:first-child{text-align:left;max-width:150px}
 .handVsRangeMatrix th{color:#a9c2dc;font-weight:700}
+
+/* Keep archived intersection calculations but hide the old red/blue
+   two-matrix legend in the current single-matrix workspace. */
+#intersectionKey,#rangeIntersectionStats{display:none!important}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -401,7 +405,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><span class="small">Синий — входит в диапазон · серый — не входит</span></div>
 <div class="matrixOptions matrixOwnControls"><label for="cellMetric">Показатель в матрице</label><select id="cellMetric"><option value="equity" selected>Showdown Equity %</option><option value="evStrategy">EV розыгрыша · BB</option><option value="showdownRate">Дошли до вскрытия %</option><option value="none">Без числа</option></select><span class="small">Синяя заливка — руки, входящие в мой диапазон</span></div>
 <div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 5px">Выбери соперника для сравнения диапазонов.</div>
-<div id="intersectionKey" class="intersectionKey" aria-label="Цветовая легенда пересечения">
+<div id="intersectionKey" class="intersectionKey hidden" aria-label="Цветовая легенда пересечения">
 <span><span class="rangeSwatch both"><span class="intersectionTriangle upper"></span><span class="intersectionTriangle lower"></span></span>Оба · синий + красный</span>
 <span><span class="rangeSwatch"><span class="intersectionTriangle upper"></span></span>Только Hero · синий верх</span>
 <span><span class="rangeSwatch"><span class="intersectionTriangle lower"></span></span>Только оппонент · красный низ</span>
@@ -798,6 +802,19 @@ function groupWeightedEquity(b){
  for(const h of HANDS){if(hero.boxes[h]!==b)continue;if(!Number.isFinite(eq[h]))return null;const w=COMBOS(h);mass+=w;total+=w*eq[h]}
  return mass?total/mass:null;
 }
+function groupWeightedPostflopEV(b){
+ if(!hero||!Number.isInteger(b)||b<1||b>17)return null;
+ const values=equityResults.filter?.ev_bb;
+ if(!values)return null;
+ let total=0,mass=0;
+ for(const h of HANDS){
+  if(hero.boxes[h]!==b)continue;
+  if(!Number.isFinite(values[h]))return null;
+  const weight=COMBOS(h);
+  total+=weight*values[h];mass+=weight;
+ }
+ return mass?total/mass:null;
+}
 function groupWeightedAllInEV(b){
  if(!hero||!Number.isInteger(b)||b<1||b>17)return null;
  const eq=equityResults.actual?.equity;
@@ -890,7 +907,7 @@ function drawBoxes(){
  for(const b of [...boxOrder(),0]){
   const members=HANDS.filter(h=>hero.boxes[h]===b);
   const count=members.reduce((n,h)=>n+COMBOS(h),0);
-  const groupEV=groupWeightedAllInEV(b);
+  const groupEV=groupWeightedPostflopEV(b);
   const card=el('div','boxCard'+(selectedBoxes.has(b)?' active':'')+(b===brushTarget?' brushTarget':'')+(b===0?' boxPool':'')+(b>0&&members.some(h=>handInRange(hero,h))?' inRange':''));
   card.style.setProperty('--group-color',groupPaletteColor(b));
   const head=el('div','boxCardHead');
@@ -1006,7 +1023,7 @@ function intersectionStats(){
 }
 function renderIntersectionStats(){
  const stats=intersectionStats();
- $('intersectionKey').classList.remove('hidden');
+ $('intersectionKey').classList.add('hidden');
  $('rangeIntersectionStats').textContent=!stats?'Выбери соперника для диагонального сравнения.':
   'Общие: '+stats.classes+' · только Hero: '+stats.heroOnly+
   ' · только соперник: '+stats.opponentOnly+' · ни у кого: '+stats.neither+
