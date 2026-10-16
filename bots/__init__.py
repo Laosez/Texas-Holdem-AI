@@ -98,6 +98,10 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.exploitative_bot import ExploitativeBot
         return _wrap(ExploitativeBot())
 
+    if btype in ("tag_postflop_v1","chaser_postflop_v1","trapper_postflop_v1"):
+        from bots.postflop_archetypes_v1 import HumanPostflopBot
+        return HumanPostflopBot(btype)
+
     if btype in ("gto_postflop_v1","lag_postflop_v1"):
         from bots.postflop_profiles import PostflopProfileBot
         return PostflopProfileBot(btype)
