@@ -69,11 +69,17 @@ SPLIT_PARTS = frozenset(json.loads(
 # Screen 1 choices are street-specific. The full engine catalog remains
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb"})
-POSTFLOP_CHOICES = frozenset({
-    "gto", "smart", "gto_postflop_v1", "lag_postflop_v1",
-    "tag_punisher", "wide_defender", "baseline_sane",
-    "nit", "loose_passive", "maniac", "maniac_mixed", "pressure_filler",
-    "random",
+POSTFLOP_PRIMARY = (
+    "gto_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "chaser_postflop_v1", "trapper_postflop_v1",
+)
+# The new Screen 1 editor exposes exactly these five strategies.
+POSTFLOP_CHOICES = frozenset(POSTFLOP_PRIMARY)
+# Old historical sessions still load their original strategy tokens.
+POSTFLOP_ARCHIVE = frozenset({
+    "gto", "smart", "tag_punisher", "wide_defender",
+    "baseline_sane", "nit", "loose_passive", "maniac",
+    "maniac_mixed", "pressure_filler", "random",
 })
 RANDOM_ALIAS_RE = re.compile(r"random_(?:[2-9]|10)\Z")
 if not PREFLOP_CHOICES | POSTFLOP_CHOICES <= SPLIT_PARTS:
@@ -81,20 +87,21 @@ if not PREFLOP_CHOICES | POSTFLOP_CHOICES <= SPLIT_PARTS:
 
 
 def available_postflop(name: str) -> bool:
-    return name in POSTFLOP_CHOICES or bool(RANDOM_ALIAS_RE.fullmatch(name))
+    return (name in POSTFLOP_CHOICES or name in POSTFLOP_ARCHIVE
+            or bool(RANDOM_ALIAS_RE.fullmatch(name)))
 
 # Each of the nine player seats has a separately editable preflop/postflop policy.
 # Blank means INCOMPLETE, never automatic inheritance.
 DEFAULT_BOT_ROWS = [
-    {"pre": "gto", "post": "smart"},
-    {"pre": "gto", "post": "gto"},
-    {"pre": "gto", "post": "tag_punisher"},
-    {"pre": "gto", "post": "maniac_mixed"},
-    {"pre": "gto", "post": "baseline_sane"},
-    {"pre": "a17_preflop", "post": "tag_punisher"},
-    {"pre": "gto", "post": "random"},
-    {"pre": "gto", "post": "random_2"},
-    {"pre": "gto", "post": "pressure_filler"},
+    {"pre": "a17_preflop", "post": "gto_postflop_v1"},
+    {"pre": "pc_gto_80bb", "post": "gto_postflop_v1"},
+    {"pre": "pc_gto_80bb", "post": "tag_postflop_v1"},
+    {"pre": "pc_gto_80bb", "post": "lag_postflop_v1"},
+    {"pre": "pc_gto_80bb", "post": "chaser_postflop_v1"},
+    {"pre": "pc_gto_80bb", "post": "trapper_postflop_v1"},
+    {"pre": "a17_preflop", "post": "tag_postflop_v1"},
+    {"pre": "a17_preflop", "post": "lag_postflop_v1"},
+    {"pre": "a17_preflop", "post": "trapper_postflop_v1"},
 ]
 PROGRESS_RE = re.compile(
     r"(\d+)/(\d+) tournaments\s*·\s*([\d.]+) tournaments/min\s*·\s*([\d.]+) hands/s"
@@ -184,7 +191,7 @@ def strategy_catalog():
     # its Monte Carlo postflop is useful as a historical control arm.
     # Old manifests continue to load both street tokens unchanged.
     preflop = sorted(PREFLOP_CHOICES - {"gto"}) + [item["token"] for item in saved]
-    postflop = sorted(POSTFLOP_CHOICES)
+    postflop = list(POSTFLOP_PRIMARY)
     return {"strategies": sorted(set(options) | set(preflop)),
             "preflop_strategies": preflop,
             "saved_preflop": saved,
@@ -204,6 +211,21 @@ def strategy_catalog():
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",
                     "model": "heuristic",
                     "features": ["value", "high C-bet", "semi-bluff", "air bluff", "check-raise", "river blockers", "multiway", "SPR"]
+                },
+                "tag_postflop_v1": {
+                    "label": "TAG Postflop V1 · disciplined",
+                    "model": "heuristic",
+                    "features": ["selective value", "pot odds", "low bluff", "draws"]
+                },
+                "chaser_postflop_v1": {
+                    "label": "Draw Chaser Postflop V1",
+                    "model": "heuristic",
+                    "features": ["draw pursuit", "excessive calls", "raw outs"]
+                },
+                "trapper_postflop_v1": {
+                    "label": "Trapper Postflop V1",
+                    "model": "heuristic",
+                    "features": ["slowplay", "passive value", "board texture"]
                 }
             },
             "preflop_protocols": {
