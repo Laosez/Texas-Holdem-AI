@@ -382,6 +382,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .plannerOpponentsPanel .oppRow select{width:100%;min-width:0;max-width:100%;text-overflow:ellipsis;font-size:11px}
 .plannerOpponentsPanel .oppRow .entryControl select{width:100%;max-width:100%}
 .plannerOpponentsPanel .oppRow .entryHint{overflow-wrap:anywhere;font-size:10px}
+.plannerOpponentsPanel .oppTable .oppHead{overflow:visible}
 .plannerOpponentsPanel .oppTable .oppHead>span{overflow:hidden;text-overflow:ellipsis}
 @media(min-width:1600px){
  .plannerOpponentsPanel .oppTable .oppHead,
@@ -498,12 +499,12 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <span class="small" id="allInStatus" style="max-width:740px">Условное выставление при эффективном стеке из сохранённой стратегии, без ICM и побочных банков.</span>
 </div>
 <div class="matrixMetrics hidden" id="rangeEvSummary" style="margin:6px 0 12px">
-<div class="matrixMetric"><span>EV / сыгранную руку</span><strong id="rangeEvPlayed">—</strong><small>BB · с учётом частот и 4/6/12 комбо</small></div>
-<div class="matrixMetric"><span>EV / случайную раздачу</span><strong id="rangeEvDealt">—</strong><small>BB · знаменатель 1326 комбо, Fold=0</small></div>
-<div class="matrixMetric"><span>Убыток от −EV включений</span><strong id="rangeEvNegative">—</strong><small>BB / раздачу · условное выставление</small></div>
-<div class="matrixMetric"><span>Упущенный +EV при Fold</span><strong id="rangeEvMissed">—</strong><small>BB / раздачу · теоретический потенциал</small></div>
+<div class="matrixMetric"><span>EV / сыгранную руку</span><strong id="rangeEvPlayed">—</strong><small>BB · postflop chip EV, взвешено по частотам и комбо</small></div>
+<div class="matrixMetric"><span>EV / случайную раздачу</span><strong id="rangeEvDealt">—</strong><small>BB · 1326 комбо, Fold=0; модельное значение</small></div>
+<div class="matrixMetric"><span>Убыток от −EV включений</span><strong id="rangeEvNegative">—</strong><small>BB / раздачу · отрицательный EV сыгранных рук</small></div>
+<div class="matrixMetric"><span>Упущенный +EV при Fold</span><strong id="rangeEvMissed">—</strong><small>BB / раздачу · положительный EV исключённых рук</small></div>
 </div>
-<p id="rangeEvNote" class="note hidden">Диагностика условного all-in против выбранных соперников, не EV полной стратегии. Неизвестные руки не считаются Fold; равные эффективные стеки, без ICM, фолд-эквити и постфлопа. Оценка приближённая: усреднение per-hand Monte Carlo по комбинациям и частотам, без полной переоценки блокеров на уровне диапазона.</p>
+<p id="rangeEvNote" class="note hidden">Чиповый EV при разыгрывании флопа, тёрна и ривера выбранными постфлоп-стратегиями. Стандартизированный префлоп; без ICM.</p>
 <div class="metricLegend"><span id="metricLegendText">Единый фон. Золотая рамка — лучшие исключённые руки; красная — худшие включённые при сравнении по выбранному показателю.</span></div>
 <div class="matrixMetrics">
 <div class="matrixMetric"><span>Назначено классов</span><strong id="studioDefined">—</strong><small>из 169</small></div>
@@ -1201,6 +1202,12 @@ function handMetricsRows(hand,doc){
   }
   pair('Equity · текущий фильтр',f(filterEq));
   pair('Equity · выбранные соперники',f(multiEq));
+  const postEV=equityResults.filter?.ev_bb?.[hand];
+  const showdown=equityResults.filter?.showdown_pct?.[hand];
+  const foldWin=equityResults.filter?.fold_win_pct?.[hand];
+  pair('Postflop EV розыгрыша',Number.isFinite(postEV)?(postEV>0?'+':'')+postEV.toFixed(3)+' BB':'—');
+  pair('Дошли до вскрытия',f(showdown));
+  pair('Выигрыш без вскрытия',f(foldWin));
   if(Number.isFinite(anyEq))pair('Equity · Any Two',f(anyEq));
   const groupEq=groupWeightedEquity(box);
   pair('Equity A17 · взвешенное',f(groupEq));
@@ -1243,7 +1250,7 @@ function showHandHover(hand,doc,event){
   const line=el('div','handHoverLine');
   line.append(el('span','',name),el('strong','',value));card.append(line);
  }
- const note=el('div','handHoverSub','Equity — доля банка при выставлении. EV — модель chipEV; отсутствие расчёта обозначено «—».');
+ const note=el('div','handHoverSub','Showdown Equity — доля банка при вскрытии без фолдов. Postflop EV — модельная чистая прибыль в BB с торговлей. Результаты приблизительные; «—» означает отсутствие расчёта.');
  note.style.marginTop='9px';card.append(note);
  card.hidden=false;positionHandHover(event);
 }
