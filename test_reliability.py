@@ -239,8 +239,10 @@ class ReliabilityTests(unittest.TestCase):
             self.assertFalse(root.exists())
             self.assertEqual(app.purge_trash(), 0)
 
-    def test_worker_limit_can_be_raised_only_with_admin_variable(self):
-        with patch.dict("os.environ", {"RAILWAY_PROJECT_ID": "test", "POKER_MAX_WORKERS": "2"}):
+    def test_admin_worker_ceiling_cannot_bypass_container_resource_limits(self):
+        with patch.dict("os.environ", {"RAILWAY_PROJECT_ID": "test", "POKER_MAX_WORKERS": "2"}), \
+             patch.object(app, "_container_cpu_limit", return_value=8), \
+             patch.object(app, "_container_memory_limit_gb", return_value=7.45):
             self.assertEqual(app.max_safe_workers(), 2)
             self.assertEqual(app.validate_config({"parallel": 2})["parallel"], 2)
             with self.assertRaisesRegex(ValueError, "не более 2"):
