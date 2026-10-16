@@ -18,6 +18,7 @@ import json
 import math
 import multiprocessing
 import random
+import threading
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 
@@ -39,6 +40,8 @@ RANKS = "23456789TJQKA"
 SUITS = "cdhs"
 PREFLOP_BB = 2
 STARTING_STACK_BB = 20
+# Built-in postflop bots use random.random(); preserve reproducibility per deal.
+_ROLLOUT_RNG_LOCK = threading.RLock()
 
 
 def legal_profile(value):
@@ -224,8 +227,14 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
 
     chips = int(stack_bb) * 2
     seats = [Seat(pid, chips) for pid in ring]
-    outcome = table.play_hand(seats, small_blind=1, big_blind=2,
-                              dealer_index=0, bot_for=policies)
+    with _ROLLOUT_RNG_LOCK:
+        old_state = random.getstate()
+        try:
+            random.seed(seed ^ 0x504F5354)
+            outcome = table.play_hand(seats, small_blind=1, big_blind=2,
+                                      dealer_index=0, bot_for=policies)
+        finally:
+            random.setstate(old_state)
     if sum(outcome.values()) != 0:
         raise RuntimeError("Payout conservation failed")
     chip_ev = outcome["HERO"] / 2.
