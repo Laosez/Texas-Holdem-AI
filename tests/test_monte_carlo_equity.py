@@ -5,6 +5,8 @@ Run from repository root:
 """
 import unittest
 import random
+import os
+from unittest.mock import patch
 
 from bots.monte_carlo_bot import MonteCarloBot
 from core.equity import equity
@@ -57,6 +59,21 @@ class MonteCarloEquityTests(unittest.TestCase):
         hole = [("A", "s"), ("K", "s")]
         board = [("Q", "s"), ("J", "s"), ("T", "s"), ("2", "d"), ("3", "c")]
         self.assertEqual(equity(hole, board, 5, 30, rng=random.Random(2)), 1.0)
+
+    def test_default_fast_matches_legacy_for_same_deals(self):
+        hole = [("Q", "h"), ("J", "h")]
+        board = [("8", "s"), ("7", "d"), ("2", "c")]
+        kwargs = dict(hole_cards=hole, board=board, n_opponents=4, n_sims=2000)
+        with patch.dict(os.environ, {"THAI_EQUITY_EVALUATOR": "fast"}):
+            fast = equity(**kwargs, rng=random.Random(771))
+        with patch.dict(os.environ, {"THAI_EQUITY_EVALUATOR": "legacy"}):
+            legacy = equity(**kwargs, rng=random.Random(771))
+        self.assertEqual(fast, legacy)
+
+    def test_invalid_evaluator_switch(self):
+        with patch.dict(os.environ, {"THAI_EQUITY_EVALUATOR": "unknown"}):
+            with self.assertRaises(ValueError):
+                equity([("A", "s"), ("K", "d")], [], 1, 1, rng=random.Random(1))
 
 
 if __name__ == "__main__":
