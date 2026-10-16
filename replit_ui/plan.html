@@ -998,7 +998,7 @@ function drawBoxes(){
    head.append(choose);
   }
   const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · EV '+(groupEV===null?'—':(groupEV>0?'+':'')+groupEV.toFixed(1)+' BB')));
-  summary.title='EV условного выставления в BB, среднее по комбинациям всех рук коробки. Это не EV открытия или полного плана.';head.append(summary);
+  summary.title='Модельный postflop chip EV в BB, среднее по комбинациям всех рук коробки (при выбранных линиях розыгрыша); не ICM и не полный префлоп EV.';head.append(summary);
   card.append(head);
   const list=el('div','boxHandList');
   if(members.length)for(const h of members)list.append(boxChip(h));
@@ -1045,7 +1045,9 @@ function setMetricLegend(){
  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
  $('allInStatus').textContent='Модель: '+stack+' BB эффективный стек, до '+n+' оппонентов, мёртвые деньги '+dead+
  ' BB. EV учитывает случайное число вошедших игроков; без ICM, фолд-эквити и будущих ставок.';
- $('metricLegendText').textContent='Синий фон — рука в моём диапазоне, серый — вне диапазона. Цветной уголок A17 виден всегда. В центре — выбранный показатель Equity / Postflop EV / % вскрытия.';
+ $('metricLegendText').textContent=metric==='evStrategy'
+  ?'Синий фон — сыгранная рука; серый — исключённая. ЖЁЛТАЯ рамка — перспективная исключённая; КРАСНАЯ — слабая включённая. Порог ревизии EV: 0,25 BB/руку, сравнение модельное и без доверительных интервалов. A17 обозначены цветным уголком.'
+  :'Синий фон — рука в моём диапазоне; серый — вне диапазона. Номер группы A17 цветной. Жёлтая рамка — лучшая исключённая, красная — слабая включённая при сравнении диапазонов.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -1122,23 +1124,60 @@ function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples){
  return {played:activeMass?evMass/activeMass:null,dealt:evMass/1326,
          loss:loss/1326,missed:missed/1326,known,activeMass};
 }
+// Weighted chip-EV review of the current ACTION range.  The per-hand EV
+// comes from real simulated postflop decisions; Fold is zero realization,
+// and hypothetical EV for omitted hands is a missed *candidate*, not profit.
+function strategyRangeEvBreakdown(doc,values){
+ if(!doc||!values)return null;
+ let playedMass=0,weightedEV=0,loss=0,missed=0,knownCombos=0;
+ let knownClasses=0,unknownClasses=0,positivePlayed=0,negativePlayed=0;
+ for(const hand of HANDS){
+  const actions=doc.hands?.[hand];
+  const amount=values[hand];
+  if(!actions||!Object.keys(actions).length||!Number.isFinite(amount)){
+   unknownClasses++;continue;
+  }
+  const combos=COMBOS(hand);
+  const participation=knownActivePercent(doc,hand)/100;
+  const excluded=1-participation;
+  playedMass+=combos*participation;
+  weightedEV+=combos*participation*amount;
+  loss+=combos*participation*Math.max(0,-amount);
+  missed+=combos*excluded*Math.max(0,amount);
+  if(participation>0){if(amount>0)positivePlayed++;if(amount<0)negativePlayed++}
+  knownCombos+=combos;knownClasses++;
+ }
+ return {played:playedMass?weightedEV/playedMass:null,
+         dealt:weightedEV/1326,loss:loss/1326,missed:missed/1326,
+         known:knownCombos,knownClasses,unknownClasses,playedMass,
+         positivePlayed,negativePlayed};
+}
 function renderRangeEV(){
- const enabled=$('cellMetric').value==='evAllIn';
+ const metric=$('cellMetric').value;
+ const enabled=metric==='evStrategy'||metric==='evAllIn';
  $('rangeEvSummary').classList.toggle('hidden',!enabled);
  $('rangeEvNote').classList.toggle('hidden',!enabled);
  if(!enabled)return;
- const summary=rangeEvBreakdown(hero,equityResults.actual?.equity,
-   Number($('stack').value),Number($('allInDead').value),currentPeople().length,
-   equityResults.actual?.pot_multiple);
+ const isPostflop=metric==='evStrategy';
+ const summary=isPostflop
+  ?strategyRangeEvBreakdown(hero,equityResults.filter?.ev_bb)
+  :rangeEvBreakdown(hero,equityResults.actual?.equity,
+    Number($('stack').value),Number($('allInDead').value),
+    currentPeople().length,equityResults.actual?.pot_multiple);
  const fmt=v=>Number.isFinite(v)?(v>0?'+':'')+v.toFixed(3)+' BB':'—';
  $('rangeEvPlayed').textContent=fmt(summary?.played);
  $('rangeEvDealt').textContent=fmt(summary?.dealt);
  $('rangeEvNegative').textContent=fmt(summary?.loss);
  $('rangeEvMissed').textContent=fmt(summary?.missed);
- $('rangeEvNote').textContent='Диагностика условного all-in (не фактический EV стратегии). Показано '+
-  (summary?summary.known+'/1326 известных комбинаций. ':'— — сначала рассчитай Monte Carlo. ')+
-  'Частоты входа учтены. Неизвестные руки не считаются Fold; оценка условная, без ICM, фолд-эквити и постфлопа. '+
-  'EV при ≥1 вошедшем сопернике учитывает переменное число участников и размер банка. При нуле вошедших прибыль от сбросов не моделируется. Оценка по per-hand MC приближённая: card-removal между диапазонами отдельно не переоценивается.';
+ $('rangeEvNote').textContent=isPostflop
+ ?('Postflop chip EV: '+(summary
+   ?summary.knownClasses+'/169 известных классов, '+summary.known+'/1326 комбо. '
+   :'Нажми «Рассчитать Equity + Postflop EV», чтобы получить результаты. ')
+   +'EV/сыгранную руку взвешено по 4/6/12 комбо и частотам. EV/раздачу делится на 1326: Fold=0; неуказанные руки не предполагаются фолдом. '
+   +'Убыток и потенциальный упущенный EV — модельные диагностические оценки, не фактическая прибыль от замены рук. '
+   +'Рейз Hero и вход соперников на префлопе стандартизированы; нет ICM, выборочной ошибки и доверительных интервалов.')
+ :('Диагностика условного all-in: '+(summary?summary.known+'/1326 комбинаций. ':'нужен расчёт. ')
+   +'Не является фактическим EV постфлоп-стратегии.');
 }
 
 function handMetricsRows(hand,doc){
@@ -1281,20 +1320,33 @@ function cellMetricValue(doc,h,metric){
 // Equal-size one-to-one swaps avoid highlighting all 169 hands for one outlier.
 function candidateSwaps(metric){
  const gold=new Set(),red=new Set();
- if(!hero||!['equity','evCall','evAllIn'].includes(metric))return {gold,red};
- const selectedHands=[],excluded=[];
+ if(!hero||!['equity','evCall','evAllIn','evStrategy'].includes(metric))return {gold,red};
+ const included=[],excluded=[];
  for(const h of HANDS){
   const participation=knownActivePercent(hero,h);
-  if(participation===null)continue; // unknown is not Fold
+  if(participation===null)continue;
   const v=cellMetricValue(hero,h,metric).value;
   if(!Number.isFinite(v))continue;
-  (participation>0?selectedHands:excluded).push({hand:h,value:v});
+  (participation>0?included:excluded).push({hand:h,value:v});
  }
- selectedHands.sort((a,b)=>a.value-b.value||a.hand.localeCompare(b.hand));
+ included.sort((a,b)=>a.value-b.value||a.hand.localeCompare(b.hand));
  excluded.sort((a,b)=>b.value-a.value||a.hand.localeCompare(b.hand));
- for(let i=0;i<Math.min(selectedHands.length,excluded.length);i++){
-  if(excluded[i].value<=selectedHands[i].value+1e-7)break;
-  gold.add(excluded[i].hand);red.add(selectedHands[i].hand);
+ if(metric==='evStrategy'){
+  // Absolute-sign review remains useful even when every class is played.
+  // Avoid flagging tiny Monte Carlo deviations around break-even.
+  const threshold=.25;  // BB/hand; a heuristic, NOT a confidence interval.
+  for(const item of included.filter(x=>x.value < -threshold).slice(0,12))red.add(item.hand);
+  for(const item of excluded.filter(x=>x.value > threshold).slice(0,12))gold.add(item.hand);
+  // Also identify the clearest one-for-one range replacements.
+  for(let i=0;i<Math.min(12,included.length,excluded.length);i++){
+   if(excluded[i].value - included[i].value <= threshold)break;
+   red.add(included[i].hand);gold.add(excluded[i].hand);
+  }
+  return {gold,red};
+ }
+ for(let i=0;i<Math.min(included.length,excluded.length);i++){
+  if(excluded[i].value<=included[i].value+1e-7)break;
+  gold.add(excluded[i].hand);red.add(included[i].hand);
  }
  return {gold,red};
 }
@@ -1317,7 +1369,7 @@ function visibleMetricScale(metric,docs){
 }
 function metricTextColor(metric,value,scale){
  if(!Number.isFinite(value)||!scale||['none','box','action'].includes(metric))return '';
- if(['evAllIn','evCall','delta'].includes(metric)){
+ if(['evStrategy','evAllIn','evCall','delta'].includes(metric)){
   if(Math.abs(value)<0.000001)return '#d7e1ee';
   const limit=value<0?scale.negativeMax:scale.positiveMax;
   const intensity=limit>0?Math.min(1,Math.abs(value)/limit):0;
@@ -1550,6 +1602,7 @@ function renderSliderNumbers(values){
  for(const input of $('actionInputs').querySelectorAll('input[data-action]')){
   const n=values[input.dataset.action]||0;
   input.value=String(n);
+  input.style.setProperty('--slider-percent',n+'%');
   const output=input.parentNode.querySelector('strong[data-value]');
   if(output)output.textContent=n+'%';
  }
@@ -1598,6 +1651,7 @@ function paintEditor(){
   const input=el('input');input.id='frequency_'+key;
   input.type='range';input.min='0';input.max='100';input.step='25';
   input.dataset.action=key;input.value=values[key];
+  input.style.setProperty('--slider-percent',values[key]+'%');
   input.oninput=()=>applySliderInput(key,input);
   input.onchange=()=>{sliderGesture=false;paintEditor()};
   const ticks=el('div','actionSliderTicks');
