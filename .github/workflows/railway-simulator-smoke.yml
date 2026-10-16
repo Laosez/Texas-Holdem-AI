@@ -14,6 +14,7 @@ on:
       - fix/planner-hero-gto-v2-visible-20261016
       - feat/gto-postflop-v3-kicker-draw-paired-board-20261016
       - feat/hand-ev-decomposition-loss-attribution-20261016
+      - fix/fullwidth-decomposition-below-planner-workspace-20261016
   pull_request:
     branches:
       - feat/railway-simulator-20261014
