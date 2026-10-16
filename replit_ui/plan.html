@@ -299,7 +299,8 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 @media(max-width:800px){.plannerOpponentsPanel .filterTop{grid-template-columns:repeat(2,minmax(0,1fr))}.plannerOpponentsPanel .filterTop button{grid-column:1/-1}}
 @media(max-width:1050px){
  main.plannerMain{grid-template-columns:minmax(0,1fr)}
- .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerWorkspace,.plannerMain>.handEVBreakdown{grid-column:1/-1}
+ .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}
+ .plannerMain>.handEVBreakdown{grid-column:1/-1}
 }
 
 /* Persistent red/blue range overlay, independent of the metric or selected editor action. */
