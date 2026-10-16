@@ -15,6 +15,7 @@ import math
 import random
 
 import planner_core as planner
+from planner_eval_fast import score_seven_fast
 
 RANKS = "23456789TJQKA"
 ALL_CARDS = tuple(range(52))
@@ -122,6 +123,32 @@ class WeightedRange:
         return self.combos[min(i,len(self.combos)-1)]
 
 
+def sample_compatible_hands(opponents, hero, rng, max_attempts=1000):
+    """Conditional independent-range joint sample for a FIXED hero and lineup.
+
+    Reject conflicting card combinations, never the already-selected entry
+    mask/hero hand. Preserves the requested entrant mixture. Infeasible
+    assignments fail explicitly instead of silently shifting probabilities.
+    """
+    if not opponents:
+        return []
+    for _ in range(max_attempts):
+        used = set(hero)
+        picked = []
+        for opponent in opponents:
+            cards = opponent.sample(rng)
+            if cards[0] in used or cards[1] in used:
+                break
+            used.update(cards)
+            picked.append(cards)
+        if len(picked) == len(opponents):
+            return picked
+    raise ValueError(
+        "Невозможно подобрать непересекающиеся карты для выбранного набора "
+        "активных соперников. Проверь слишком узкие/несовместимые диапазоны."
+    )
+
+
 def safe_inline_weights(weights):
     """Validated live hero range for reverse HU. No user-supplied file refs."""
     if not isinstance(weights, dict) or not 1 <= len(weights) <= 169:
@@ -217,8 +244,8 @@ def simulate_hand(hand, opponents, trials=200, seed=42):
         if len(dealt)!=len(opponents):
             continue
         board=rng.sample([c for c in ALL_CARDS if c not in used],5)
-        own_score=score_seven((*hero,*board))
-        scores=[score_seven((*cards,*board)) for cards in dealt]
+        own_score=score_seven_fast((*hero,*board))
+        scores=[score_seven_fast((*cards,*board)) for cards in dealt]
         best=max([own_score,*scores])
         if own_score==best:
             payoff+=1/(1+sum(s==best for s in scores))
@@ -284,25 +311,20 @@ def simulate_hand_variable(hand, opponents, specs, trials=200, seed=42):
     earned = 0.0
     winning_pot_multiple = 0.0
     accepted = attempts = 0
-    attempt_budget = max(2000, trials*500)
-    while accepted < trials and attempts < attempt_budget:
+    while accepted < trials:
         attempts += 1
         hole, masks = rng.choices(choices, weights=masses, k=1)[0]
         mask = rng.choices(range(1, len(masks)), weights=masks[1:], k=1)[0]
         active = [op for i, op in enumerate(opponents) if mask & (1 << i)]
+        # Do not redraw hero/mask after a card collision: that would bias the
+        # participant-count distribution toward less restrictive lineups.
+        cards = sample_compatible_hands(active, hole, rng)
         used = set(hole)
-        cards = []
-        for opponent in active:
-            dealt = opponent.sample(rng)
-            if dealt[0] in used or dealt[1] in used:
-                break
-            used.update(dealt)
-            cards.append(dealt)
-        if len(cards) != len(active):
-            continue
+        for pair in cards:
+            used.update(pair)
         board = rng.sample([c for c in ALL_CARDS if c not in used], 5)
-        hero_score = score_seven((*hole, *board))
-        scores = [score_seven((*pair, *board)) for pair in cards]
+        hero_score = score_seven_fast((*hole, *board))
+        scores = [score_seven_fast((*pair, *board)) for pair in cards]
         highest = max([hero_score, *scores])
         share = 0.0
         if hero_score == highest:
@@ -310,8 +332,6 @@ def simulate_hand_variable(hand, opponents, specs, trials=200, seed=42):
         earned += share
         winning_pot_multiple += share*(len(active)+1)
         accepted += 1
-    if accepted < trials:
-        raise ValueError(f"Диапазоны и вероятности несовместимы: {accepted}/{trials} допустимых выставлений")
     return round(100*earned/accepted, 2), round(winning_pot_multiple/accepted, 5), counts
 
 
@@ -347,7 +367,7 @@ def simulate_range_equity(hero_weights, opponents, trials=3000, seed=42):
         if len(enemies)!=len(opponents):
             continue
         board=rng.sample([c for c in ALL_CARDS if c not in used],5)
-        scores=[score_seven((*hole,*board)),*(score_seven((*x,*board)) for x in enemies)]
+        scores=[score_seven_fast((*hole,*board)),*(score_seven_fast((*x,*board)) for x in enemies)]
         top=max(scores)
         if scores[0]==top:
             payoff+=1/sum(s==top for s in scores)

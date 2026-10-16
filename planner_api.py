@@ -45,7 +45,7 @@ def resolve(profile, position, scenario, players=9, stack_bb=20):
 
 def _source_hash():
     sha=hashlib.sha256()
-    for filename in ("planner_core.py","planner_equity.py",
+    for filename in ("planner_core.py","planner_equity.py","planner_eval_fast.py",
                      "strategy_catalog/a17_v5.json","bots/gto_bot.py"):
         file=core.ROOT/filename
         sha.update(hashlib.sha256(file.read_bytes()).digest())
@@ -190,7 +190,7 @@ def start_postflop_ev(raw,busy=False):
     equity.build_ranges(payload["opponents"], "selected")
     # Pin to exact current range revisions + policy implementation hashes.
     digest=hashlib.sha256()
-    for name in ("planner_postflop_ev.py","bots/postflop_profiles.py",
+    for name in ("planner_postflop_ev.py","planner_eval_fast.py","core/fast_eval.py","bots/postflop_profiles.py",
                  "bots/postflop_archetypes_v1.py","bots/gto_postflop_v2.py",
                  "bots/gto_postflop_v3.py","planner_ev_decomposition.py",
                  "core/engine.py"):
