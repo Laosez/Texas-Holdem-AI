@@ -343,7 +343,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("const showIntersection=false;",page)
         self.assertIn('id="heroMatrix"',page)
         self.assertNotIn('<details id="villainPane"',page)
-        self.assertIn('background:#2179c5!important;',page)
+        self.assertIn('background:#365b76!important;',page)
         self.assertIn("const info=cellMetricValue(doc,h,metric);",page)
         self.assertIn("if(Number.isInteger(b)&&b>0){",page)
         self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)

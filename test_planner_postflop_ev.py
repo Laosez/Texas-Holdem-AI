@@ -67,7 +67,7 @@ class PostflopEVTests(unittest.TestCase):
         self.assertIn("postflop.onchange=()=>",page)
         self.assertIn("const showIntersection=false;",page)
         self.assertNotIn('<details id="villainPane"',page)
-        self.assertIn("background:#2179c5!important;",page)
+        self.assertIn("background:#365b76!important;",page)
         self.assertIn("background:var(--group-color,#8494a6)!important",page)
         self.assertIn(".editorSection .actionGrid{display:flex!important;flex-direction:column!important;",page)
         self.assertIn("['Соперник / линия','Equity','EV BB','Вскрытие']",page)
