@@ -16,6 +16,7 @@ on:
       - feat/hand-ev-decomposition-loss-attribution-20261016
       - fix/fullwidth-decomposition-below-planner-workspace-20261016
       - feat/plan-ev-default-pot-error-autodecomp-20261016
+      - fix/plan-simulation-controls-two-column-20261016
   pull_request:
     branches:
       - feat/railway-simulator-20261014

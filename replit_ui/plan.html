@@ -482,6 +482,10 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .handDecompCaveat{font-size:11px;line-height:1.6;margin-top:10px}
 @media(max-width:700px){.handDecompControls{align-items:stretch}.handDecompControls .small{text-align:left}}
 
+/* One simulations selector plus one action button, no blank cycles column. */
+.plannerOpponentsPanel .filterTop{display:grid;grid-template-columns:minmax(160px,1fr) minmax(240px,1.55fr);gap:10px}
+.plannerOpponentsPanel .filterTop button{grid-column:auto;min-width:0;white-space:normal}
+@media(max-width:680px){.plannerOpponentsPanel .filterTop{grid-template-columns:minmax(0,1fr)}.plannerOpponentsPanel .filterTop button{grid-column:1}}
 /* 169-hand EV is the sole visible matrix metric; A17 boxes remain drag/drop. */
 #groupEditor>summary,#groupEditor>.a17Workbench>.heading,
 #groupEditor .brushbar,#brushHint,#groupEditor .boxInstructions{display:none!important}
