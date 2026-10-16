@@ -5,6 +5,7 @@ Only the scorer changes within each A/B pair. For biased-entry bug use
 test_planner_mc_fix, which compares entrant frequencies to the model.
 """
 import json
+import random
 import statistics
 import time
 from unittest.mock import patch
@@ -21,6 +22,9 @@ def benchmark_pair(label, calculation, repeats=3):
         rows = []
         outcomes = []
         for _ in range(repeats):
+            # Some postflop strategies draw on module-level random.random.
+            # Reset that RNG too, so the exact same strategy decisions replay.
+            random.seed(20261016)
             t0 = time.perf_counter()
             with patch.object(eq, "score_seven_fast", func):
                 result = calculation()
