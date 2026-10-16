@@ -18,9 +18,9 @@ jobs:
       - name: Run paired-deal pocket pair experiment
         run: |
           set -o pipefail
-          PYTHONPATH=. python -u experiments/low_pair_gto_ab.py --samples 650 | tee low_pairs_ab.txt
+          PYTHONPATH=. python -u experiments/low_pair_gto_variants.py --samples 650 | tee low_pairs_ab.txt
       - name: Publish structured results
         uses: actions/upload-artifact@v4
         with:
-          name: pocket-pair-gto-v1-vs-corrected
+          name: pocket-pair-gto-policy-variants
           path: low_pairs_ab.txt
