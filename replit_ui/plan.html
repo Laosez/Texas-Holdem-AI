@@ -339,7 +339,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 }
 .plannerOpponentsPanel .oppRow select{font-size:11px}
 .matrixGrid .hand.playedRange,.matrixGrid .hand.playedRange:not(.rangeIntersection){
- background:#2179c5!important;border-color:#56a4e5!important;color:#fff!important;
+ background:#365b76!important;border-color:#63839d!important;color:#f4f8fc!important;
 }
 .matrixGrid .hand:not(.playedRange){background:#303b49!important;color:#dce8f4}
 .matrixPane .hand .handBoxTag,.matrixGrid .hand .handBoxTag.inRange{
@@ -567,7 +567,7 @@ const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
- {value:'gto',label:'GTO V1'}, {value:'tag',label:'TAG V1'},
+ {value:'gto',label:'GTO V1'}, {value:'gto2',label:'GTO V2'}, {value:'tag',label:'TAG V1'},
  {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
  {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
  {value:'none',label:'Не учитывать'}
