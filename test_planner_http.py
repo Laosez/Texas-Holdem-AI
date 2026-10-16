@@ -74,20 +74,14 @@ class PlanHttpTests(unittest.TestCase):
                     thread.join(timeout=5)
 
     def test_equity_outline_and_lightweight_opponent_summary(self):
-        page = service.PLAN_UI.read_text(encoding="utf-8")
+        page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("function candidateSwaps(metric)",page)
         self.assertIn("candidateGold",page)
         self.assertIn("candidateRed",page)
-        self.assertIn("if(excluded[i].value<=selectedHands[i].value+1e-7)break",page)
-        self.assertIn("if(participation===null)continue",page)
         self.assertNotIn('id="equityMin"',page)
-        self.assertNotIn('id="perOpponentComparison"',page)
-        self.assertNotIn('Сводка диапазонов',page)
-        self.assertNotIn("function renderComparisonGrid(",page)
         self.assertIn("function renderPerOpponent()",page)
-        self.assertIn("hands.replaceChildren();",page)
-
-
+        self.assertIn("root.replaceChildren();",page)
+        self.assertIn("item.handEq?.ev_bb?.[selected]",page)
     def test_pc_btn_is_explicit_and_non_rfi_not_falsely_filled(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("'3':'BTN · позиция 3'",page)
@@ -120,18 +114,14 @@ class PlanHttpTests(unittest.TestCase):
 
 
     def test_metric_gradient_and_action_stripe_are_independent(self):
-        page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn(".hand.none,.hand.fold,.hand.open,.hand.limp,.hand.call,.hand.threebet,.hand.fourbet,.hand.push{background:#303b49}",page)
+        page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn(".matrixPane .hand{background:#303b49;background-image:none;",page)
         self.assertIn("const center=el('span','handMetric'",page)
         self.assertNotIn("function metricGradient(",page)
-        self.assertNotIn("const colors=metricGradient(",page)
-        self.assertNotIn('id="equityMin"',page)
         self.assertIn("if(stripe)button.append(stripe)",page)
-        for name in ("equity","evAllIn","none"):
-            self.assertIn('value="'+name+'"',page)
-
-
+        for value in ("equity","evStrategy","showdownRate","none"):
+            self.assertIn('value="'+value+'"',page)
+        self.assertIn(".matrixGrid .hand.playedRange",page)
     def test_all_in_call_ev_never_claims_to_be_full_action_ev(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("function modelCallEv(equityPct,potBB,callBB)",page)
@@ -142,18 +132,14 @@ class PlanHttpTests(unittest.TestCase):
 
 
     def test_multiway_all_in_ev_uses_actual_selected_equity(self):
-        page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('value="evAllIn"',page)
-        self.assertIn('id="allInDead"',page)
-        self.assertIn('function modelAllInEv(equityPct,stackBB,deadBB,opponentCount)',page)
-        self.assertIn('const finalPot=(opponentCount+1)*stackBB+deadBB;',page)
-        self.assertIn('return (equityPct/100)*finalPot-stackBB;',page)
-        self.assertIn("equityResults.actual?.equity?.[h]",page)
-        self.assertIn("const opponents=ours?currentPeople().length:1;",page)
-        self.assertIn("if(metric==='evAllIn'){",page)
-        self.assertIn("$('allInDead').oninput=drawMatrices;",page)
-
-
+        page=service.PLAN_UI.read_text(encoding="utf-8")
+        # New main result is actual street-betting chip EV; old all-in diagnostic
+        # math remains available in source but no longer drives the active metric.
+        self.assertIn("if(metric==='evStrategy'){",page)
+        self.assertIn("equityResults.filter?.ev_bb?.[h]",page)
+        self.assertIn("if(metric==='showdownRate'){",page)
+        self.assertIn("equityResults.filter?.showdown_pct?.[h]",page)
+        self.assertIn("equityResults.filter=matrix;equityResults.actual=matrix",page)
     def test_a17_hand_lists_drag_to_pool_reorder_undo_and_save(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         for css in (".boxHandList{",".boxHandChip{",".boxCard{",".boxPool{"):
@@ -183,8 +169,8 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(!Number.isFinite(eq[h]))return null;",page)
         self.assertIn("const w=COMBOS(h);mass+=w;total+=w*eq[h]",page)
         self.assertIn("return mass?total/mass:null;",page)
-        self.assertIn("const groupEV=groupWeightedAllInEV(b);",page)
-        self.assertIn("function groupWeightedAllInEV(b)",page)
+        self.assertIn("const groupEV=groupWeightedPostflopEV(b);",page)
+        self.assertIn("function groupWeightedPostflopEV(b)",page)
         self.assertNotIn('id="computeBoxes"',page)
         self.assertNotIn("async function calculateBoxesEquity()",page)
         self.assertNotIn("await calculateBoxesEquity()",page)
@@ -276,20 +262,16 @@ class PlanHttpTests(unittest.TestCase):
 
     def test_saved_a17_positions_share_one_editor_and_preserve_drafts(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn("function slotKey(players,position,scenario)",page)
-        self.assertIn("function preserveCurrentSlot()",page)
-        self.assertIn("hero.contexts[key]=slot;",page)
-        self.assertIn("hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,",page)
-        self.assertIn("preserveCurrentSlot();",page)
-        self.assertIn("const c=copy(hero);",page)
-        self.assertIn("if(!preserveEdits()){if(hero)setHeroFields(hero);return}",page)
-        self.assertIn("const prior=selectedValue===undefined?control.value:selectedValue;",page)
-        self.assertIn("$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};",page)
-        self.assertIn("$('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};",page)
-        self.assertIn("loadHero({contextChange:true})};",page)
+        for literal in ("function slotKey(players,position,scenario)",
+            "function preserveCurrentSlot()","hero.contexts[key]=slot;",
+            "hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,",
+            "preserveCurrentSlot();","const c=copy(hero);",
+            "if(!preserveEdits()){if(hero)setHeroFields(hero);return}",
+            "const prior=selectedValue===undefined?control.value:selectedValue;"):
+            self.assertIn(literal,page)
+        self.assertIn("useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})",page)
         self.assertIn("BB против открытия: используется GTO Fixed",page)
         self.assertIn("На BB нет RFI",page)
-
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         for label in ('id="heroMatrix"','id="villainMatrix"','id="handBox"',
@@ -346,54 +328,26 @@ class PlanHttpTests(unittest.TestCase):
 
     def test_range_ev_overlap_and_reverse_opponent_matrix_controls(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        for identifier in ("rangeEvSummary","rangeEvPlayed","rangeEvDealt",
-                           "rangeEvNegative","rangeEvMissed","rangeEvNote",
-                           "intersectionKey","rangeIntersectionStats",
-                           "villainMetric","villainReverseStatus","computeVillainReverse"):
-            self.assertIn('id="'+identifier+'"',page)
-        self.assertIn("function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples)",page)
-        self.assertIn("const combos=COMBOS(hand);",page)
-        self.assertIn("activeMass+=combos*play;evMass+=combos*play*ev;",page)
-        self.assertIn("loss+=combos*play*Math.max(0,-ev);",page)
-        self.assertIn("missed+=combos*fold*Math.max(0,ev);",page)
-        self.assertIn("played:activeMass?evMass/activeMass:null,dealt:evMass/1326",page)
-        self.assertIn("function intersectionStats()",page)
-        self.assertIn("inter+=mass*Math.min(first,second);",page)
-        self.assertIn("uni+=mass*Math.max(first,second);",page)
-        self.assertIn("function runOpponentReverse()",page)
-        self.assertIn("profile:'inline:hero'",page)
-        self.assertIn("if(calcEpoch!==epoch||comparisonEpoch!==revision||heroRangeSignature()!==signature)",page)
-        self.assertIn("selectedVillain?selectedReverseResult()?.equity?.[h]:null",page)
-        self.assertIn("await runOpponentReverse();",page)
-        self.assertIn("const mainMetric=$('cellMetric').value,villainMetric=$('villainMetric').value;",page)
-        self.assertIn("matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric)",page)
-        self.assertIn("button.classList.add('rangeIntersection','intersection'+",page)
-        self.assertIn("button.append(el('span','intersectionTriangle upper'))",page)
-        self.assertIn("button.append(el('span','intersectionTriangle lower'))",page)
-        self.assertIn("Только Hero · синий верх",page)
-        self.assertIn("Только оппонент · красный низ",page)
-
+        # Historical reverse/opponent controls are hidden for archived
+        # compatibility, not rendered as a second matrix.
+        self.assertNotIn('<details id="villainPane"',page)
+        self.assertIn('id="hiddenVillainLegacy"',page)
+        self.assertIn('id="perOpponentHands"',page)
+        self.assertIn("function pollPostflop(settings,epoch,report)",page)
+        self.assertIn("function calculatePerOpponent()",page)
+        self.assertIn("post('/api/plan/postflop',settings)",page)
+        self.assertIn("const showIntersection=false;",page)
+        self.assertIn("const showOpponent=$('villainPane').open;",page)
     def test_diagonal_background_is_permanent_and_local_matrix_metrics(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('id="intersectionKey"',page)
-        self.assertNotIn('id="rangeIntersect"',page)
-        self.assertIn("const showIntersection=true;",page)
-        self.assertIn("intersectionOnly=true;",page)
+        self.assertIn("const showIntersection=false;",page)
+        self.assertIn('id="heroMatrix"',page)
+        self.assertNotIn('<details id="villainPane"',page)
+        self.assertIn('background:#2179c5!important;',page)
         self.assertIn("const info=cellMetricValue(doc,h,metric);",page)
         self.assertIn("if(Number.isInteger(b)&&b>0){",page)
-        self.assertIn("clip-path:polygon(0 0,100% 0,100% 100%)",page)
-        self.assertIn("clip-path:polygon(0 0,0 100%,100% 100%)",page)
-        self.assertIn("if(membership.state==='both'||membership.state==='hero')",page)
-        self.assertIn("if(membership.state==='both'||membership.state==='opponent')",page)
-        self.assertIn("background:#427ba8",page)
-        self.assertIn("background:#b76775",page)
-        self.assertIn('class="matrixOptions matrixOwnControls"',page)
-        self.assertIn('class="villainMatrixControls"',page)
-        self.assertIn('id="viewOpponent"',page)
-        self.assertIn('id="villainMetric"',page)
-        self.assertIn("function intersectionStats()",page)
-        self.assertIn("state:heroHas?(opponentHas?'both':'hero'):",page)
-
+        self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
+        self.assertIn('value="evStrategy"',page)
     def test_opponent_add_remove_controls_and_max_eight(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="addOpponent"',page)
@@ -422,7 +376,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("choose.setAttribute('aria-pressed',String(selectedBoxes.has(b)))",page)
         self.assertIn("function groupWeightedAllInEV(b)",page)
         self.assertIn("const ev=modelConditionalAllInEv(eq[h],pots?.[h],stack,dead,n)",page)
-        self.assertIn("const groupEV=groupWeightedAllInEV(b)",page)
+        self.assertIn("const groupEV=groupWeightedPostflopEV(b)",page)
         self.assertIn("· EV '+(groupEV===null?",page)
         self.assertIn('id="cleanupStrategies"',page)
         self.assertIn("function preserveA17Strategy(name)",page)
@@ -551,17 +505,12 @@ class PlanHttpTests(unittest.TestCase):
 
     def test_vertical_equal_matrices_default_and_collapsible_opponent(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('<details id="villainPane" class="matrixPane comparisonDisclosure" open>',page)
-        self.assertIn('<summary><span>02 · Соперник</span>',page)
-        self.assertIn("const showOpponent=$('villainPane').open;",page)
-        self.assertIn("if(showOpponent)matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric);",page)
-        self.assertIn("else $('villainMatrix').replaceChildren();",page)
-        self.assertIn("$('villainPane').ontoggle=()=>{if(hero)drawMatrices()};",page)
-        self.assertIn('.matrixLayout{display:flex;flex-direction:column;gap:10px}',page)
-        self.assertIn('.matrixLayout>.matrixPane{width:100%;min-width:0;box-sizing:border-box}',page)
+        self.assertIn('id="heroMatrix"',page)
+        self.assertNotIn('<details id="villainPane"',page)
+        self.assertIn('id="hiddenVillainLegacy"',page)
+        self.assertIn("const showIntersection=false;",page)
+        self.assertIn("if(showOpponent)matrix($('villainMatrix'),villain",page)
         self.assertNotIn('id="matrixMode"',page)
-        self.assertNotIn(".matrixLayout.double .hand{",page)
-
     def test_a17_brush_and_groups_are_one_panel(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertEqual(page.count('id="groupEditor"'),1)

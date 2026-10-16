@@ -59,21 +59,15 @@ class PlannerLayoutRecoveryTests(unittest.TestCase):
         self.assertTrue(any("plannerOpponentsPanel" in c for _, c in parser.parents["opponents"]))
         self.assertFalse(any("plannerStrategyPanel" in c for _, c in parser.parents["opponents"]))
 
-    def test_always_on_overlap_and_colored_a17_tags(self):
-        page = self.ui
-        for literal in (
-            "const showIntersection=true;",
-            "button.classList.add('rangeIntersection'",
-            "button.append(el('span','intersectionTriangle upper'))",
-            "button.append(el('span','intersectionTriangle lower'))",
-            ".matrixGrid .hand.rangeIntersection .intersectionTriangle.upper",
-            "background:#2786d2!important;",
-            "background:#d25168!important;",
-            "tag.style.setProperty('--group-color',groupPaletteColor(b))",
-            ".matrixGrid .hand.rangeIntersection .handBoxTag",
-            "background:var(--group-color,#8494a6)!important",
-        ):
-            self.assertIn(literal, page)
+    def test_single_matrix_blue_membership_and_colored_a17_tags(self):
+        page=self.ui
+        self.assertIn("const showIntersection=false;",page)
+        self.assertNotIn('<details id="villainPane"',page)
+        self.assertIn("background:#2179c5!important;",page)
+        self.assertIn(".matrixGrid .hand.playedRange",page)
+        self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
+        self.assertIn("background:var(--group-color,#8494a6)!important",page)
+        self.assertIn("z-index:9!important",page)
 
     def test_four_box_columns_multiselect_and_bulk_action(self):
         page = self.ui
