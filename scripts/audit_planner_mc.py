@@ -12,6 +12,9 @@ import math
 import pstats
 import random
 import time
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import planner_equity as eq
 import planner_postflop_ev as post
