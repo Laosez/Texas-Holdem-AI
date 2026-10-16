@@ -1,5 +1,0 @@
-FROM python:3.11-slim
-WORKDIR /app
-COPY . /app
-ENV PYTHONUNBUFFERED=1 PYTHONHASHSEED=0 THAI_ENGINE_IMPL=legacy PYTHONPATH=/app
-CMD ["sh","-c","python -u -m unittest test_planner_mc_fix test_planner test_planner_postflop_ev test_planner_http test_planner_hero_postflop_ui test_planner_ui_colors_ev test_planner_postflop_telemetry test_ev_decomposition test_plan_ev_workflow -q && python -u benchmark_planner_mc_fix.py"]
