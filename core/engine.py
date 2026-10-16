@@ -117,7 +117,16 @@ def _load_or_build_five_card_table() -> dict:
     print(f"[engine] Table cached to {_TABLE_CACHE}", flush=True)
     return table
 
-_FIVE_CARD_TABLE: dict = _load_or_build_five_card_table()
+# Build the historical 2,598,960-entry dictionary only when legacy scoring
+# is explicitly selected, not during ordinary engine imports.
+_FIVE_CARD_TABLE: Optional[dict] = None
+
+
+def _get_five_card_table() -> dict:
+    global _FIVE_CARD_TABLE
+    if _FIVE_CARD_TABLE is None:
+        _FIVE_CARD_TABLE = _load_or_build_five_card_table()
+    return _FIVE_CARD_TABLE
 
 
 def _score_five(cards: List[Card]) -> int:
@@ -126,10 +135,10 @@ def _score_five(cards: List[Card]) -> int:
     Higher = better.  Same output range as the original computation.
     """
     key = tuple(sorted(cards, key=lambda c: (-RANK_TO_INT[c[0]], c[1])))
-    return _FIVE_CARD_TABLE[key]
+    return _get_five_card_table()[key]
 
 
-def eval_hand(hole: List[Card], board: List[Card]) -> int:
+def _legacy_eval_hand(hole: List[Card], board: List[Card]) -> int:
     """
     Pure-Python 5-card hand evaluator. No external dependencies.
     Returns an integer where higher = better.
@@ -146,6 +155,21 @@ def eval_hand(hole: List[Card], board: List[Card]) -> int:
     if len(ranks) == 2 and ranks[0] == ranks[1]:
         base += 40
     return base
+
+from core.fast_eval import fast_eval_hand
+
+# Evaluator mode can be chosen at process startup. The default yields the
+# identical hand-ranking integer without allocating the giant lookup table.
+_HAND_EVAL_MODE = os.environ.get("THAI_HAND_EVALUATOR", "fast").lower()
+if _HAND_EVAL_MODE not in ("fast", "legacy"):
+    raise ValueError("THAI_HAND_EVALUATOR must be 'fast' or 'legacy'")
+_SELECTED_EVALUATOR = _legacy_eval_hand if _HAND_EVAL_MODE == "legacy" else fast_eval_hand
+
+
+def eval_hand(hole: List[Card], board: List[Card]) -> int:
+    """Return the legacy-compatible hand score with fast default scoring."""
+    return _SELECTED_EVALUATOR(hole, board)
+
 
 def _compute_to_call(contrib, alive_pids, pid):
     """
