@@ -11,7 +11,7 @@ import statistics
 import time
 
 from core.equity import equity
-from core.engine import eval_hand, _FULL_DECK
+from core.engine import _legacy_eval_hand as eval_hand, _FULL_DECK
 
 CASES = {
     "preflop_hu": ([("A","s"),("K","s")], [], 1),
