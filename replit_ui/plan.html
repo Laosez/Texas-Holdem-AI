@@ -287,6 +287,10 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .plannerMain>.plannerStrategyPanel{grid-column:1;min-width:0}
 .plannerMain>.plannerOpponentsPanel{grid-column:2;min-width:0}
 .plannerMain>.plannerWorkspace{grid-column:1/-1;min-width:0}
+/* Full-width analytics is a separate main-grid row AFTER matrix + right editor. */
+.plannerMain>.handEVBreakdown{grid-column:1/-1;width:100%;min-width:0;margin-top:0}
+.plannerWorkspace>.editorSection{grid-column:2;grid-row:1}
+.plannerWorkspace>.panel:not(.editorSection){grid-column:1;grid-row:1}
 /* Opponent controls need their own width in the narrow strategy column. */
 .plannerStrategyPanel .profile,.plannerOpponentsPanel .profile{min-width:0}
 .plannerOpponentsPanel .oppTable{overflow-x:auto;max-width:100%}
@@ -297,7 +301,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 @media(max-width:800px){.plannerOpponentsPanel .filterTop{grid-template-columns:repeat(2,minmax(0,1fr))}.plannerOpponentsPanel .filterTop button{grid-column:1/-1}}
 @media(max-width:1050px){
  main.plannerMain{grid-template-columns:minmax(0,1fr)}
- .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}
+ .plannerMain>.plannerStrategyPanel,.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerWorkspace,.plannerMain>.handEVBreakdown{grid-column:1/-1}
 }
 
 /* Persistent red/blue range overlay, independent of the metric or selected editor action. */
@@ -586,26 +590,6 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
 <p class="note">Suited — выше диагонали, пары — на диагонали, offsuit — ниже. Синий фон означает положительную частоту участия Hero. Цветной номер A17 остаётся виден всегда, независимо от Equity/EV.</p>
 </section>
-<section class="panel handEVBreakdown" id="handEVBreakdown">
- <div class="heading"><h2><span class="index">03.1 / </span>Декомпозиция выбранной руки</h2><span id="handDecompTag" class="badge">AQs · не рассчитано</span></div>
- <div class="handDecompHeader">
-  <div><span class="small">Выбранная рука</span><div id="handDecompName" class="bigHand">AQs</div>
-   <p class="small">Итоговый chip EV и диагностика доминирования — по реальным исходам симуляции, не по оценке одной комбинации.</p></div>
-  <div class="handDecompControls"><button class="btn primary" id="handDecompRun" type="button">Разобрать EV выбранной руки</button><span id="handDecompStatus" class="small" role="status">Выбери руку на матрице и запусти анализ.</span></div>
- </div>
- <div class="matrixMetrics handDecompStats">
-  <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
-  <div class="matrixMetric"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small>BB/раздачу · наблюдаемый убыток</small></div>
-  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>симулированных раздач, включая фолды</small></div>
- </div>
- <div class="handDecompTabs" role="group" aria-label="Разделы декомпозиции">
-  <button class="btn sm primary" type="button" data-hand-decomp-tab="sources" aria-pressed="true">Источники EV</button>
-  <button class="btn sm ghost" type="button" data-hand-decomp-tab="domination" aria-pressed="false">Доминирование / флеши</button>
-  <button class="btn sm ghost" type="button" data-hand-decomp-tab="losses" aria-pressed="false">Самые дорогие потери</button>
- </div>
- <div id="handDecompRows" class="handDecompRows"><p class="note">Пока нет анализа. Нажми «Разобрать EV выбранной руки» — будет выполнена отдельная симуляция выбранной руки против указанных соперников.</p></div>
- <p class="note handDecompCaveat">Стоимость потерь — фактический отрицательный net BB на первоначальную раздачу в выбранной модели, а не доказанная ошибка принятого решения. Чтобы измерить стоимость ошибки, потребуется сравнить альтернативные действия при одинаковом состоянии стола. Анализ не включает ICM и не заменяет солвер.</p>
-</section>
 <section class="panel editorSection"><div class="heading"><h2><span class="index">04 / </span>Редактор выбранной руки</h2><div class="buttons"><button class="btn sm ghost" id="undo" disabled>↶ Отменить</button><button class="btn sm ghost" id="resetHand">Снять назначение</button></div></div>
 <div class="two"><div class="profile"><div class="editorHead"><div><span class="small" id="handSelectionMode">СТАРТОВАЯ РУКА</span><div id="selectedHand" class="bigHand">AQs</div><span id="handCombos" class="muted">4 комбинации</span></div>
 <div style="min-width:155px"><label for="handBox">Коробка A17</label><select id="handBox"></select><button class="btn sm" id="moveBox" style="margin-top:7px;width:100%">Переместить</button></div></div>
@@ -624,6 +608,27 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div class="handStatus" style="margin-top:12px"><div id="handDetail" class="small">Нажмите на руку в матрице.</div></div><p class="note">Equity — контрфактическое вскрытие без фолдов. EV — средняя чистая прибыль в BB, включая фолды и ставки, при моделируемом префлоп-банке. Это не ICM EV и не солвер.</p></div></div>
 </section>
 </div>
+
+<section class="panel handEVBreakdown" id="handEVBreakdown">
+ <div class="heading"><h2><span class="index">05 / </span>Декомпозиция выбранной руки</h2><span id="handDecompTag" class="badge">AQs · не рассчитано</span></div>
+ <div class="handDecompHeader">
+  <div><span class="small">Выбранная рука</span><div id="handDecompName" class="bigHand">AQs</div>
+   <p class="small">Итоговый chip EV и диагностика доминирования — по реальным исходам симуляции, не по оценке одной комбинации.</p></div>
+  <div class="handDecompControls"><button class="btn primary" id="handDecompRun" type="button">Разобрать EV выбранной руки</button><span id="handDecompStatus" class="small" role="status">Выбери руку на матрице и запусти анализ.</span></div>
+ </div>
+ <div class="matrixMetrics handDecompStats">
+  <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
+  <div class="matrixMetric"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small>BB/раздачу · наблюдаемый убыток</small></div>
+  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>симулированных раздач, включая фолды</small></div>
+ </div>
+ <div class="handDecompTabs" role="group" aria-label="Разделы декомпозиции">
+  <button class="btn sm primary" type="button" data-hand-decomp-tab="sources" aria-pressed="true">Источники EV</button>
+  <button class="btn sm ghost" type="button" data-hand-decomp-tab="domination" aria-pressed="false">Доминирование / флеши</button>
+  <button class="btn sm ghost" type="button" data-hand-decomp-tab="losses" aria-pressed="false">Самые дорогие потери</button>
+ </div>
+ <div id="handDecompRows" class="handDecompRows"><p class="note">Пока нет анализа. Нажми «Разобрать EV выбранной руки» — будет выполнена отдельная симуляция выбранной руки против указанных соперников.</p></div>
+ <p class="note handDecompCaveat">Стоимость потерь — фактический отрицательный net BB на первоначальную раздачу в выбранной модели, а не доказанная ошибка принятого решения. Чтобы измерить стоимость ошибки, потребуется сравнить альтернативные действия при одинаковом состоянии стола. Анализ не включает ICM и не заменяет солвер.</p>
+</section>
 
 </main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
 <script>
