@@ -52,6 +52,11 @@ class StreetSplitBot(BotAdapter):
     def act(self, view: PlayerView) -> Action:
         street = view.street
         if street == "preflop":
+            # Random is the experimental negative control: under standard_v1
+            # it must remain truly random rather than inherit shared
+            # deterministic response ranges and standard raise sizes.
+            if self.preflop_name == "random":
+                return self.preflop_bot.act(view)
             if self.preflop_protocol == "standard_v1":
                 from bots.standard_preflop import response_action,normalize_rfi_raise
                 shared=response_action(view)
