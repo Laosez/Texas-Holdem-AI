@@ -87,10 +87,10 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
-<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button><button class="btn sm primary" id="comparePost" type="button">GTO Postflop vs LAG · 8 мест</button><button class="btn sm outline" id="compareFivePost" type="button">GTO V1/V2 + 4 стратегии · 9 мест</button></div>
+<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button><button class="btn sm primary" id="comparePost" type="button">GTO Postflop vs LAG · 8 мест</button><button class="btn sm outline" id="compareFivePost" type="button">GTO V1/V2/V3 + TAG/LAG/Chaser/Trapper · 9 мест</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
-<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO V1 / GTO V2 / TAG / LAG / Chaser / Trapper</summary>
+<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO V1 / V2 / V3 / TAG / LAG / Chaser / Trapper</summary>
 <table class="coverageTable"><thead><tr><th>Механика</th><th>GTO Postflop V1</th><th>LAG Postflop V1</th></tr></thead><tbody>
 <tr><td>Готовые сильные руки</td><td>Вэлью-ставки / частичные ловушки</td><td>Чаще ставит и повышает</td></tr>
 <tr><td>Сильные дро</td><td>Сдержанный полублеф</td><td>Частые полублефы / чек-рейзы</td></tr>
@@ -98,7 +98,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <tr><td>Ривер без усиления</td><td>Редкий блеф при блокерах / промахе дро</td><td>Чаще блефует с блокерами / промахом дро</td></tr>
 <tr><td>Мультипот</td><td>Частота блефа снижается</td><td>Частота блефа снижается</td></tr>
 </tbody></table>
-<p class="note"><strong>GTO V1</strong> — контрольная GTO-inspired эвристика. <strong>GTO V2</strong> — исправление двух пар для карманных 22–66 на спаренном борде; не solver. <strong>TAG V1</strong> — выборочная агрессия, <strong>LAG V1</strong> — частые ставки и полублефы, <strong>Chaser V1</strong> — переоценка дро, <strong>Trapper V1</strong> — слоуплей. Архивные модели не предлагаются для новых сборок; прежние результаты сохранены.</p></details>
+<p class="note"><strong>GTO V1</strong> — контрольная GTO-inspired эвристика. <strong>GTO V2</strong> — исправление двух пар для карманных 22–66 на спаренном борде; не solver. <strong>GTO V3</strong> — эксперимент с кикером/парой+дро: A/B пока не показывает устойчивого улучшения EV (против LAG возможное ухудшение); не солвер. <strong>TAG V1</strong> — выборочная агрессия, <strong>LAG V1</strong> — частые ставки и полублефы, <strong>Chaser V1</strong> — переоценка дро, <strong>Trapper V1</strong> — слоуплей. Архивные модели не предлагаются для новых сборок; прежние результаты сохранены.</p></details>
 <details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
@@ -138,11 +138,11 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb'];
-const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
+const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','gto_postflop_v3','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
 let postflopValues=['',...POSTFLOP_FIVE];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',gto_postflop_v2:'GTO Postflop V2 (small-pair fix)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',gto_postflop_v2:'GTO Postflop V2 (small-pair fix)',gto_postflop_v3:'GTO Postflop V3 (experimental Kxs)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],
@@ -302,7 +302,7 @@ $('compareFivePost').onclick=()=>{
  $('preflop_protocol').value='standard_v1';
  $('seat_mode').value='rotate';
  drawBots();
- feedback('Готово: PC GTO префлоп, постфлоп GTO V1/V2, TAG, LAG, Chaser, Trapper; 9 игроков.');
+ feedback('Готово: PC GTO префлоп, постфлоп GTO V1/V2/V3, TAG, LAG, Chaser, Trapper; 9 игроков.');
 };
 $('comparePost').onclick=()=>{
  const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&

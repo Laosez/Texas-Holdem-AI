@@ -317,7 +317,7 @@ class ScreenOneTests(unittest.TestCase):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
                          {"a17_preflop", "pc_gto_80bb"})
-        expected=("gto_postflop_v1","gto_postflop_v2","tag_postflop_v1","lag_postflop_v1",
+        expected=("gto_postflop_v1","gto_postflop_v2","gto_postflop_v3","tag_postflop_v1","lag_postflop_v1",
                   "chaser_postflop_v1","trapper_postflop_v1")
         self.assertEqual(tuple(catalog["postflop_strategies"]),expected)
         self.assertEqual(app.POSTFLOP_CHOICES,set(expected))
@@ -336,7 +336,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(split.preflop_name,"pc_gto_80bb")
         self.assertEqual(split.postflop_name,"gto")
         page=app.UI.read_text(encoding="utf-8")
-        self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
+        self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','gto_postflop_v3','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
         self.assertIn('id="compareFivePost"',page)
         self.assertNotIn('id="compareOldGto"',page)
         self.assertIn("pre:'pc_gto_80bb',post:postflops[i%postflops.length]",page)

@@ -1,0 +1,26 @@
+name: Kxs GTO V2 vs V3 paired EV
+
+on:
+  push:
+    branches:
+      - feat/gto-postflop-v3-kicker-draw-paired-board-20261016
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compare all Kxs hands against GTO TAG LAG
+        run: |
+          set -o pipefail
+          PYTHONPATH=. python -u experiments/kxs_v3_ab.py --samples 450 | tee kxs_v3_ab.txt
+      - name: Publish model results
+        uses: actions/upload-artifact@v4
+        with:
+          name: kxs-postflop-v3-paired-results
+          path: kxs_v3_ab.txt

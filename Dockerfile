@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 THAI_ENGINE_IMPL=legacy
 WORKDIR /app
 COPY . /app
 # Fail the image build if Screen 1 validation, strategy import or actual engine smoke fails.
-RUN python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_postflop_telemetry test_postflop_profiles -v
+RUN python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_gto_postflop_v3 test_postflop_telemetry test_postflop_profiles -v
 RUN THAI_ENGINE_IMPL=legacy python -u export_preflop_ranges_v4.py \
     --players P1=split:a17_preflop:tag_punisher,P2=split:a17_preflop_legacy:tag_punisher --tournaments 2 \
     --parallel 1 --seed 2042 --chips 500 --sb 1 --bb 2 \

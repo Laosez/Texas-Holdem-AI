@@ -12,6 +12,7 @@ on:
       - feat/planner-postflop-ev-matrix-20261016
       - feat/gto-postflop-v2-pair-board-and-soft-blue-20261016
       - fix/planner-hero-gto-v2-visible-20261016
+      - feat/gto-postflop-v3-kicker-draw-paired-board-20261016
   pull_request:
     branches:
       - feat/railway-simulator-20261014
@@ -30,7 +31,7 @@ jobs:
           python-version: '3.11'
       - name: Unit tests
         run: |
-          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 -v
+          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_gto_postflop_v3 -v
       - name: Verify Screen 1 JavaScript syntax
         run: |
           python - <<'PY'
