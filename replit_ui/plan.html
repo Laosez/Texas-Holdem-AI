@@ -331,6 +331,39 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .editorSection .actionSliderField input[type=range]{height:18px;margin:0;cursor:pointer}
 .editorSection .actionSliderTicks{display:none}
 @media(max-width:440px){.editorSection .actionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Screen 2, a single always-blue 13x13 hand matrix and visible flat A17 badges. */
+.plannerOpponentsPanel .oppTable .oppHead,.plannerOpponentsPanel .oppTable .oppRow{
+ grid-template-columns:27px minmax(156px,1.2fr) 85px 112px 94px 118px 174px 27px;
+ min-width:950px;gap:7px;
+}
+.plannerOpponentsPanel .oppRow select{font-size:11px}
+.matrixGrid .hand.playedRange,.matrixGrid .hand.playedRange:not(.rangeIntersection){
+ background:#2179c5!important;border-color:#56a4e5!important;color:#fff!important;
+}
+.matrixGrid .hand:not(.playedRange){background:#303b49!important;color:#dce8f4}
+.matrixPane .hand .handBoxTag,.matrixGrid .hand .handBoxTag.inRange{
+ background:var(--group-color,#8494a6)!important;
+ color:#081424!important;opacity:1!important;
+ display:flex!important;z-index:9!important;position:absolute;top:0;right:0;
+ width:21px;min-width:21px;height:14px;border:0;
+ border-radius:0 3px 0 5px;box-shadow:none;text-shadow:none;
+}
+.editorSection .actionGrid{display:flex!important;flex-direction:column!important;gap:9px}
+.editorSection .actionSliderField{padding:9px 12px;gap:6px}
+.editorSection .actionSliderField .sliderHead{display:flex;flex-direction:row;justify-content:space-between}
+.editorSection .actionSliderField[data-action=fold] input[type=range]{accent-color:#8894a2!important}
+.editorSection .actionSliderField[data-action=open] input[type=range],
+.editorSection .actionSliderField[data-action=threebet] input[type=range],
+.editorSection .actionSliderField[data-action=fourbet] input[type=range],
+.editorSection .actionSliderField[data-action=push] input[type=range]{accent-color:#e36b6e!important}
+.editorSection .actionSliderField[data-action=limp] input[type=range],
+.editorSection .actionSliderField[data-action=call] input[type=range]{accent-color:#58bb86!important}
+.handVsRangeMatrix{overflow-x:auto}
+.handVsRangeMatrix table{border-collapse:collapse;width:100%;min-width:290px;font-size:11px}
+.handVsRangeMatrix th,.handVsRangeMatrix td{padding:7px 5px;text-align:right;border-bottom:1px solid #304860;font-variant-numeric:tabular-nums}
+.handVsRangeMatrix th:first-child,.handVsRangeMatrix td:first-child{text-align:left;max-width:150px}
+.handVsRangeMatrix th{color:#a9c2dc;font-weight:700}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -342,26 +375,31 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div class="field"><label for="heroScenario">Ситуация</label><select id="heroScenario"></select></div>
 <select id="players" class="hidden" aria-label="Формат стола для модели" tabindex="-1"></select>
 <input id="stack" class="hidden" type="hidden" value="20">
+<div class="field wide"><label for="heroPostflop">Моя постфлоп-стратегия</label><select id="heroPostflop">
+<option value="gto">GTO V1</option><option value="tag">TAG V1</option>
+<option value="lag">LAG V1</option><option value="chaser">Chaser V1</option>
+<option value="trapper">Trapper V1</option><option value="random">Random</option>
+<option value="none">Не учитывать · только Equity</option></select></div>
 <div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
 </div><p id="activeContext" class="note">Контекст расчёта: 9-max · 20 BB (из сохранённой стратегии).</p><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
 </section>
 <section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">До 8 диапазонов · Multiway</span></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
-<div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
+<div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
 <div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div id="entryDistribution" class="entryRow">Сначала рассчитай Monte Carlo.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
 <p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div>
 <div class="equityInsideOpponents">
 <div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
 <select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
-<div class="filterTop"><div class="field"><label for="trials">Симуляций / цикл</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div><div class="field"><label for="cycles">Независимые циклы</label><select id="cycles"><option value="1">1 цикл</option><option value="2">2 цикла</option><option value="3">3 цикла</option><option value="4">4 цикла</option></select></div><button class="btn primary" id="computeAll" type="button">Рассчитать Equity против моих соперников</button></div>
+<div class="filterTop"><div class="field"><label for="trials">Симуляций / цикл</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div><div class="field"><label for="cycles">Независимые циклы</label><select id="cycles"><option value="1">1 цикл</option><option value="2">2 цикла</option><option value="3">3 цикла</option><option value="4">4 цикла</option></select></div><button class="btn primary" id="computeAll" type="button">Рассчитать Equity + Postflop EV</button></div>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div>
-<p id="equityStatus" class="note">Equity считается только против добавленных соперников. Нажми кнопку расчёта.</p>
+<p id="equityStatus" class="note">Equity и EV рассчитываются против указанных диапазонов и постфлоп-стратегий. «Не учитывать» оставляет только showdown equity.</p>
 </div>
 <div class="statusLine" role="status" id="feedback"></div>
 </section>
 <div class="plannerWorkspace">
-<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><span class="small">Постоянная диагональ: Hero / соперник</span></div>
-<div class="matrixOptions matrixOwnControls"><label for="cellMetric">Центр моей матрицы</label><select id="cellMetric"><option value="equity" selected>Equity %</option><option value="evAllIn">EV выставления · BB</option><option value="none">Без числа</option></select></div>
+<section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><span class="small">Синий — входит в диапазон · серый — не входит</span></div>
+<div class="matrixOptions matrixOwnControls"><label for="cellMetric">Показатель в матрице</label><select id="cellMetric"><option value="equity" selected>Showdown Equity %</option><option value="evStrategy">EV розыгрыша · BB</option><option value="showdownRate">Дошли до вскрытия %</option><option value="none">Без числа</option></select><span class="small">Синяя заливка — руки, входящие в мой диапазон</span></div>
 <div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 5px">Выбери соперника для сравнения диапазонов.</div>
 <div id="intersectionKey" class="intersectionKey" aria-label="Цветовая легенда пересечения">
 <span><span class="rangeSwatch both"><span class="intersectionTriangle upper"></span><span class="intersectionTriangle lower"></span></span>Оба · синий + красный</span>
@@ -417,19 +455,30 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 </div>
 </div></details>
 <div id="matrixLayout" class="matrixLayout"><div class="matrixPane"><h3 id="heroMatrixLabel">Моя стратегия</h3><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="heroMatrix" class="matrixGrid"></div></div></div></div>
-<details id="villainPane" class="matrixPane comparisonDisclosure" open><summary><span>02 · Соперник</span><strong id="villainMatrixLabel">Стратегия соперника</strong><span class="foldIndicator" aria-hidden="true"></span></summary><div class="matrixViewport"><div class="matrixRanks" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div class="matrixAxisLayout"><div class="matrixAxisLeft" aria-hidden="true"><span>A</span><span>K</span><span>Q</span><span>J</span><span>T</span><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span></div><div id="villainMatrix" class="matrixGrid"></div></div></div><div class="villainMatrixControls"><div class="field"><label for="viewOpponent">Показать соперника</label><select id="viewOpponent"></select></div><div class="field"><label for="villainMetric">Центр матрицы соперника</label><select id="villainMetric"><option value="equity">Equity %</option><option value="evAllIn">EV выставления · BB</option><option value="none">Без числа</option></select></div><button id="computeVillainReverse" class="btn sm" type="button">Рассчитать Equity / EV vs Hero</button></div>
-<p id="villainReverseStatus" class="note">Equity/EV соперника vs моя стратегия: нажми «Рассчитать vs меня» или общий Monte Carlo.</p></details></div>
+<div class="hidden" aria-hidden="true" id="hiddenVillainLegacy">
+<div id="villainPane"><div id="villainMatrix"></div><strong id="villainMatrixLabel"></strong>
+<select id="viewOpponent"></select><select id="villainMetric"><option value="none">—</option></select>
+<button id="computeVillainReverse" type="button">Исторический обратный расчёт</button>
+<p id="villainReverseStatus"></p></div></div></div>
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
-<p class="note">Suited — выше диагонали рангов, пары — на диагонали, offsuit — ниже. Подложка каждой клетки: верхний синий треугольник — Hero, нижний красный — выбранный соперник. Отсутствующая рука оставляет свою половину серой. Номер A17 виден постоянно. Меняется только центральный показатель Equity / EV / пусто.</p>
+<p class="note">Suited — выше диагонали, пары — на диагонали, offsuit — ниже. Синий фон означает положительную частоту участия Hero. Цветной номер A17 остаётся виден всегда, независимо от Equity/EV.</p>
 </section>
 <section class="panel editorSection"><div class="heading"><h2><span class="index">04 / </span>Редактор выбранной руки</h2><div class="buttons"><button class="btn sm ghost" id="undo" disabled>↶ Отменить</button><button class="btn sm ghost" id="resetHand">Снять назначение</button></div></div>
 <div class="two"><div class="profile"><div class="editorHead"><div><span class="small" id="handSelectionMode">СТАРТОВАЯ РУКА</span><div id="selectedHand" class="bigHand">AQs</div><span id="handCombos" class="muted">4 комбинации</span></div>
 <div style="min-width:155px"><label for="handBox">Коробка A17</label><select id="handBox"></select><button class="btn sm" id="moveBox" style="margin-top:7px;width:100%">Переместить</button></div></div>
 <div id="selectionInfo" class="selectionInfo hidden"><div class="selectionInfoHead"><strong id="selectionCount">Выбрано: 0</strong><button class="btn sm ghost" id="clearHandSelection" type="button">Снять мультивыбор</button></div><div id="selectedHandChips" class="selectedHandChips"></div></div>
 <h3>Действия и частоты (%)</h3><div id="actionInputs" class="actionGrid"></div><div id="actionStatus" class="note">Ползунки применяют частоты сразу · шаг 25% · сумма 100%.</div></div>
-<div class="profile"><h3>Equity выбранной руки при выставлении</h3><div id="perOpponentHands"></div><div class="thirds" style="margin-top:10px"><div class="stat"><span>Vs все одновременно</span><strong id="handActual">—</strong></div><div class="stat"><span>Vs фильтр 02</span><strong id="handFilter">—</strong></div><div class="stat hidden"><span>Any Two HU · архив</span><strong id="handAny">—</strong></div></div>
-<p class="note">Все расчёты запускаются единой кнопкой Monte Carlo в блоке 02.</p>
-<div class="handStatus" style="margin-top:12px"><div id="handDetail" class="small">Нажмите на руку в матрице.</div></div><p class="note">Индивидуальное equity — HU против соответствующего диапазона; итоговое — совместный multiway, не сумма и не среднее.</p></div></div>
+<div class="profile"><h3>Выбранная рука · Equity / EV до вскрытия</h3>
+<div class="thirds" style="margin-top:10px">
+<div class="stat"><span>Showdown Equity</span><strong id="handActual">—</strong></div>
+<div class="stat"><span>Postflop EV · BB</span><strong id="handFilter">—</strong></div>
+<div class="stat"><span>Шанс вскрытия</span><strong id="handShowdown">—</strong></div>
+<div class="stat hidden"><span>Any Two HU · архив</span><strong id="handAny">—</strong></div>
+</div>
+<div class="small" style="margin:11px 0 5px">Матрица отношений выбранной руки к диапазонам соперников · HU</div>
+<div id="perOpponentHands" class="handVsRangeMatrix"></div>
+<p class="note">Единая кнопка в блоке 02 рассчитывает showdown equity и EV розыгрыша выбранными стратегиями. Отдельные HU результаты обновляются при выборе другой руки.</p>
+<div class="handStatus" style="margin-top:12px"><div id="handDetail" class="small">Нажмите на руку в матрице.</div></div><p class="note">Equity — контрфактическое вскрытие без фолдов. EV — средняя чистая прибыль в BB, включая фолды и ставки, при моделируемом префлоп-банке. Это не ICM EV и не солвер.</p></div></div>
 </section>
 </div>
 
