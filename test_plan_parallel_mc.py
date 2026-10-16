@@ -49,6 +49,30 @@ class ParallelPlanMCTests(unittest.TestCase):
         self.assertEqual(old,new)
         self.assertEqual(new["decomposition"]["samples"], 50)
 
+    def test_background_api_uses_spawned_workers_and_persistent_cache(self):
+        import tempfile
+        import time
+        from pathlib import Path
+        from unittest.mock import patch
+        import planner_api as api
+        import replit_simulator
+        request = sample()
+        request["opponents"][0]["entry_pct"] = 9.25
+        with tempfile.TemporaryDirectory() as td, \
+             patch.object(api, "CACHE_PATH", Path(td)), \
+             patch.object(replit_simulator, "max_safe_workers", return_value=2):
+            job = api.start_postflop_ev(request)
+            deadline = time.monotonic() + 30
+            while job["status"] in ("queued", "running") and time.monotonic() < deadline:
+                time.sleep(.1)
+                job = api.get_task(job["id"])
+            self.assertEqual(job["status"], "completed", job.get("error"))
+            self.assertEqual(len(job["result"]["ev_bb"]),169)
+            self.assertEqual(sum(job["result"]["entry_n_samples"]),8450)
+            cached = api.start_postflop_ev(request)
+            self.assertTrue(cached["cached"])
+            self.assertEqual(job["result"], cached["result"])
+
     def test_invalid_parallel_worker_count(self):
         with self.assertRaisesRegex(ValueError,"1–8"):
             post.calculate_parallel(sample(),workers=9)
