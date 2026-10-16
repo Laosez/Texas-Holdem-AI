@@ -18,12 +18,16 @@ base={
              selector="active",entry_mode="manual",entry_pct=30,postflop="tag"),
     ],
 }
-for n,worker in [(50,1),(50,8),(250,8)]:
-    setting={**base,"trials":n}
-    started=time.perf_counter()
-    result=mc.calculate_parallel(setting,workers=worker)
-    elapsed=time.perf_counter()-started
-    print("BENCH_REALISTIC", "trials",n,"workers",worker,"sec",round(elapsed,3),
-          "sim",sum(result["entry_n_samples"]),
-          "per_second",round(sum(result["entry_n_samples"])/elapsed),
-          "active_pct",result["entry_counts_pct"],flush=True)
+def main():
+    for n,worker in [(50,1),(50,8),(250,8)]:
+        setting={**base,"trials":n}
+        started=time.perf_counter()
+        result=mc.calculate_parallel(setting,workers=worker)
+        elapsed=time.perf_counter()-started
+        print("BENCH_REALISTIC", "trials",n,"workers",worker,"sec",round(elapsed,3),
+              "sim",sum(result["entry_n_samples"]),
+              "per_second",round(sum(result["entry_n_samples"])/elapsed),
+              "active_pct",result["entry_counts_pct"],flush=True)
+
+if __name__ == '__main__':
+    main()
