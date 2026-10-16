@@ -1594,34 +1594,89 @@ async function runOpponentReverse(){
  }finally{calculatingReverse=false;drawMatrices()}
 }
 function renderPerOpponent(){
- const hands=$('perOpponentHands');if(!hands)return;
- hands.replaceChildren();
+ const root=$('perOpponentHands');if(!root)return;root.replaceChildren();
+ const table=el('table');const header=el('thead');const columns=['Соперник / линия','Equity','EV BB','Вскрытие'];
+ const tr=el('tr');for(const label of columns)tr.append(el('th','',label));
+ header.append(tr);table.append(header);
+ const body=el('tbody');
  perOpponentData.forEach((item,i)=>{
-  const line=el('div','stat');line.style.marginBottom='6px';
-  line.append(el('span','',`#${i+1} ${item.label} · HU`));
-  line.append(el('strong','',pct(item.handEq?.equity?.[selected])));
-  const actions=item.doc?.hands?.[selected];
-  line.append(el('small','',actions?Object.entries(actions).map(([a,v])=>(ACTIONS[a]||a)+' '+v+'%').join(' · '):'Частоты действий не назначены'));
-  hands.append(line);
+  const row=el('tr');
+  const label='#'+(i+1)+' · '+item.label+' · '+postflopName(item.o.postflop||'gto');
+  const values=[label,pct(item.handEq?.equity?.[selected]),
+    Number.isFinite(item.handEq?.ev_bb?.[selected])?
+      (item.handEq.ev_bb[selected]>0?'+':'')+item.handEq.ev_bb[selected].toFixed(2):'—',
+    pct(item.handEq?.showdown_pct?.[selected])];
+  values.forEach(v=>row.append(el('td','',v)));
+  body.append(row);
  });
+ table.append(body);root.append(table);
+ const note=el('div','small','HU показатели отдельно против каждого диапазона; общая Multiway EV не равна их сумме.');
+ note.style.marginTop='7px';root.append(note);
+}
+function postflopRequest(overrides={}){
+ return {model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),
+  opponents:currentPeople(),hero_postflop:$('heroPostflop').value,
+  hero_position:hero.position,hero_stack_bb:Number($('stack').value),...overrides};
+}
+async function pollPostflop(settings,epoch,report){
+ let job=await post('/api/plan/postflop',settings);
+ while(job.status==='queued'||job.status==='running'){
+  if(calcEpoch!==epoch)return null;
+  if(report)report(job);
+  await new Promise(resolve=>setTimeout(resolve,1100));
+  if(calcEpoch!==epoch)return null;
+  job=await api('/api/plan/postflop/'+job.id);
+ }
+ if(job.status!=='completed')throw Error(job.error||'Не удалось рассчитать постфлоп EV');
+ if(calcEpoch!==epoch)return null;
+ if(report)report(job);
+ return job.result;
+}
+async function calculateFullPostflop(people){
+ const epoch=calcEpoch;
+ try{
+  $('equityFill').style.width='0%';
+  $('equityStatus').textContent='Monte Carlo: Equity + EV по 169 рукам…';
+  const data=await pollPostflop(postflopRequest({opponents:people}),epoch,task=>{
+   const progress=task.total?100*task.done/task.total:0;
+   $('equityFill').style.width=progress.toFixed(0)+'%';
+   $('equityStatus').textContent=task.status==='completed'?'Расчёт готов':
+    'Monte Carlo: '+(task.done||0)+' / '+(task.total||169)+' рук';
+  });
+  if(!data)return null;
+  msg('Equity / EV рассчитаны для 169 классов рук'+(data.behavioral_ev_enabled?' с выбранными постфлоп-профилями.':'. EV отключён настройкой «Не учитывать».'));
+  return data;
+ }catch(e){
+  $('equityStatus').textContent='Ошибка: '+e.message;
+  msg('Postflop Monte Carlo: '+e.message,true);
+  return null;
+ }
+}
+function scheduleSingleHandComparison(){
+ if(!equityResults.filter||huComparisonHand===selected||!perOpponentData.length)return;
+ if(huComparisonTimer!==null)clearTimeout(huComparisonTimer);
+ huComparisonTimer=setTimeout(()=>{huComparisonTimer=null;void calculatePerOpponent()},220);
 }
 async function calculatePerOpponent(){
- const epoch=calcEpoch,items=perOpponentData.slice();
- for(const item of items){
-  if(epoch!==calcEpoch)return;
+ if(!equityResults.filter||!hero)return;
+ if(huComparisonTimer!==null){clearTimeout(huComparisonTimer);huComparisonTimer=null}
+ const revision=++huComparisonRevision,epoch=calcEpoch,hand=selected;
+ huComparisonHand=hand;
+ for(const item of perOpponentData){
+  if(calcEpoch!==epoch||huComparisonRevision!==revision||selected!==hand)return;
+  item.handEq=null;item.error=null;
+ }
+ renderPerOpponent();
+ for(const item of perOpponentData){
+  if(calcEpoch!==epoch||huComparisonRevision!==revision||selected!==hand)return;
   try{
-   const settings={model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),opponents:[item.o]};
-   let task=await post('/api/plan/equity',settings);
-   while(task.status==='running'||task.status==='queued'){
-    await new Promise(r=>setTimeout(r,1100));
-    if(epoch!==calcEpoch)return;
-    task=await api('/api/plan/equity/'+task.id);
-   }
-   if(task.status!=='completed')throw Error(task.error||'HU расчёт не завершён');
-   if(epoch!==calcEpoch)return;
-   item.handEq=task.result;
-   if(epoch!==calcEpoch)return;
-  }catch(e){if(epoch!==calcEpoch)return;item.error=e.message}
+   const output=await pollPostflop(postflopRequest({
+     opponents:[item.o],hand,
+     trials:Math.min(200,Number($('trials').value))
+   }),epoch);
+   if(!output)return;
+   item.handEq=output;
+  }catch(e){item.error=e.message}
   renderPerOpponent();
  }
 }
@@ -1690,6 +1745,8 @@ function renderAll(){drawBoxes();drawMatrices();refreshComparison();drawEquitySt
 async function connect(){
  try{
   const data=await api('/api/plan/catalog');meta=data;
+  const storedLine=localStorage.getItem('skachkov_hero_postflop');
+  if(POSTFLOP_OPTIONS.some(x=>x.value===storedLine))$('heroPostflop').value=storedLine;
   const lastPlan=localStorage.getItem('skachkov_last_plan_profile');
   const selectable=profileOptions();
   refill($('heroProfile'),selectable,selectable.some(x=>x.value===lastPlan)?lastPlan:'builtin:a17_v5');
@@ -1711,6 +1768,7 @@ $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
 $('pasteMatrix').onclick=pasteMatrixSettings;
 $('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);invalidateEquity();loadHero()};
+$('heroPostflop').onchange=()=>{localStorage.setItem('skachkov_hero_postflop',$('heroPostflop').value);invalidateEquity()};
 $('heroPosition').onchange=()=>{useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
