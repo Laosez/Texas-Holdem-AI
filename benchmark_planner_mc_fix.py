@@ -5,6 +5,7 @@ Only the scorer changes within each A/B pair. For biased-entry bug use
 test_planner_mc_fix, which compares entrant frequencies to the model.
 """
 import json
+from collections import Counter
 import random
 import statistics
 import time
@@ -64,6 +65,26 @@ def main():
                            "entry_pct":75.0,"postflop":"gto"}]}
     benchmark_pair("postflop_line_200_AKs_2_opponents",
                    lambda:post.calculate(payload),repeats=2)
+    # Same stress case that exposed the original 25/50/25 -> 31/64/5 bias.
+    rng=random.Random(424242)
+    specs=[{"entry_mode":"manual","entry_pct":50.0}]*2
+    counts=Counter(len(post._draw_case("KK",[aces,aces],specs,rng)[0])-1
+                   for _ in range(12000))
+    actual=[round(100*counts[i]/12000,2) for i in range(3)]
+    print("PLAN_ENTRY_FREQUENCY "+json.dumps({
+         "scenario":"Hero KK vs two AA-only 50% entrants",
+         "expected_pct":[25,50,25],"observed_pct":actual,"trials":12000,
+         "max_abs_error_pp":round(max(abs(a-b) for a,b in zip(actual,(25,50,25))),2)
+         },sort_keys=True),flush=True)
+    if max(abs(a-b) for a,b in zip(actual,(25,50,25)))>2:
+        raise AssertionError("Entrant distribution still biased")
+
+    # Full 169-cell calculation: measure the actual user-visible matrix path.
+    op={"profile":"builtin:any_two","position":"4","scenario":"rfi",
+        "players":9,"selector":"active","entry_mode":"always","entry_pct":100.0}
+    benchmark_pair("full_169_hand_matrix_250_each_1_opponent",
+                   lambda:eq.calculate_matrix([op],trials=250,cycles=1),
+                   repeats=2)
     print("PLAN_MC_BENCHMARK_PASS",flush=True)
 
 
