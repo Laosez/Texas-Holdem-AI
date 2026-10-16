@@ -489,6 +489,14 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
+const POSTFLOP_OPTIONS=[
+ {value:'gto',label:'GTO V1'}, {value:'tag',label:'TAG V1'},
+ {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
+ {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
+ {value:'none',label:'Не учитывать'}
+];
+const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||'Не учитывать';
+let huComparisonRevision=0,huComparisonHand='',huComparisonTimer=null;
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 const names={};
 let copiedMatrix=null; // In-page clipboard: action frequencies only, never A17 boxes.
@@ -675,6 +683,11 @@ function renderOpponents(){
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
+  const postflop=el('select');
+  postflop.title='Постфлоп-стратегия соперника; «Не учитывать» — только Equity без EV';
+  refill(postflop,POSTFLOP_OPTIONS,opp.postflop||'gto');
+  postflop.onchange=()=>{opponents[i].postflop=postflop.value;invalidateEquity()};
+  row.append(postflop);
   const entry=el('div','entryControl'),mode=el('select');
   refill(mode,[{value:'range',label:'Ширина диапазона'},
                {value:'always',label:'100% · входит в банк'},
@@ -704,7 +717,7 @@ function addOpponent(){
  if(opponents.length>=8)return;
  const fallback=['9','8','7','6','5','4','3','SB'][opponents.length];
  opponents.push({profile:'builtin:a17_v5',position:fallback,scenario:'rfi',
-  players:9,selector:'active',entry_mode:'range',entry_pct:100});
+  players:9,selector:'active',postflop:'gto',entry_mode:'range',entry_pct:100});
  renderOpponents();invalidateEquity();loadVillain();
 }
 function removeOpponent(index){
@@ -717,7 +730,7 @@ function removeOpponent(index){
  $('viewOpponent').value=String(nextIndex);
  invalidateEquity();loadVillain();
 }
-function invalidateEquity(){calcEpoch++;comparisonEpoch++;perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
+function invalidateEquity(){calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -1223,7 +1236,7 @@ function matrix(root,doc,scale,metricChoice){
  root.replaceChildren();
  if(!doc){root.textContent='Выберите стратегию';return}
  const metric=metricChoice||$('cellMetric').value;
- const showIntersection=true;
+ const showIntersection=false;
  const candidates=doc===hero?candidateSwaps(metric):{gold:new Set(),red:new Set()};
  for(const h of HANDS){
   const actions=doc.hands?.[h],b=doc.boxes?.[h];
@@ -1676,7 +1689,7 @@ async function connect(){
    profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two',
             'builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two'][i],
    position:['9','8','7','6','5','4','3','SB'][i],scenario:'rfi',players:9,selector:'active',
-   entry_mode:'range',entry_pct:100}));
+   postflop:'gto',entry_mode:'range',entry_pct:100}));
   renderOpponents();$('viewOpponent').value='0';
   sessionStorage.setItem('skachkov_key',token());
   await loadHero();await loadVillain();
@@ -1687,7 +1700,7 @@ $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
 $('pasteMatrix').onclick=pasteMatrixSettings;
 $('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);loadHero()};
-$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
+$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
