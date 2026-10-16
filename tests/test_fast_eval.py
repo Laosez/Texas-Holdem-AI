@@ -5,7 +5,7 @@ python -m unittest discover -s tests -p 'test_fast_eval.py'
 import random
 import unittest
 
-from core.engine import _FULL_DECK, eval_hand
+from core.engine import _FULL_DECK, _legacy_eval_hand as eval_hand
 from core.fast_eval import fast_eval_hand
 
 
