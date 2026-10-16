@@ -98,7 +98,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <tr><td>Ривер без усиления</td><td>Редкий блеф при блокерах / промахе дро</td><td>Чаще блефует с блокерами / промахом дро</td></tr>
 <tr><td>Мультипот</td><td>Частота блефа снижается</td><td>Частота блефа снижается</td></tr>
 </tbody></table>
-<p class="note"><strong>GTO V1</strong> — контрольная GTO-inspired эвристика. <strong>GTO V2</strong> — исправление двух пар для карманных 22–66 на спаренном борде; не solver. <strong>GTO V3</strong> — гипотеза улучшений Kxs/кикера/пара+дро; не солвер. <strong>TAG V1</strong> — выборочная агрессия, <strong>LAG V1</strong> — частые ставки и полублефы, <strong>Chaser V1</strong> — переоценка дро, <strong>Trapper V1</strong> — слоуплей. Архивные модели не предлагаются для новых сборок; прежние результаты сохранены.</p></details>
+<p class="note"><strong>GTO V1</strong> — контрольная GTO-inspired эвристика. <strong>GTO V2</strong> — исправление двух пар для карманных 22–66 на спаренном борде; не solver. <strong>GTO V3</strong> — эксперимент с кикером/парой+дро: A/B пока не показывает устойчивого улучшения EV (против LAG возможное ухудшение); не солвер. <strong>TAG V1</strong> — выборочная агрессия, <strong>LAG V1</strong> — частые ставки и полублефы, <strong>Chaser V1</strong> — переоценка дро, <strong>Trapper V1</strong> — слоуплей. Архивные модели не предлагаются для новых сборок; прежние результаты сохранены.</p></details>
 <details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
@@ -142,11 +142,11 @@ const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','gto_postflop_v3','tag_
 let postflopValues=['',...POSTFLOP_FIVE];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',gto_postflop_v2:'GTO Postflop V2 (small-pair fix)',gto_postflop_v3:'GTO Postflop V3 (Kxs / kicker / pair+draw)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO Postflop V1 (model)',gto_postflop_v2:'GTO Postflop V2 (small-pair fix)',gto_postflop_v3:'GTO Postflop V3 (experimental Kxs)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],
- ['pc_gto_80bb','gto_postflop_v3'],
+ ['pc_gto_80bb','gto_postflop_v2'],
  ['pc_gto_80bb','tag_postflop_v1'],
  ['pc_gto_80bb','lag_postflop_v1'],
  ['pc_gto_80bb','chaser_postflop_v1'],
