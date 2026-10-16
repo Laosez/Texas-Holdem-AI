@@ -119,8 +119,9 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("const center=el('span','handMetric'",page)
         self.assertNotIn("function metricGradient(",page)
         self.assertIn("if(stripe)button.append(stripe)",page)
-        for value in ("equity","evStrategy","showdownRate","none"):
-            self.assertIn('value="'+value+'"',page)
+        self.assertIn('<select id="cellMetric" class="hidden"',page)
+        self.assertIn('<option value="evStrategy" selected>',page)
+        self.assertNotIn('Показатель в матрице</label>',page)
         self.assertIn(".matrixGrid .hand.playedRange",page)
     def test_all_in_call_ev_never_claims_to_be_full_action_ev(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
@@ -179,7 +180,7 @@ class PlanHttpTests(unittest.TestCase):
 
     def test_gto_neutral_mode_and_detailed_hover(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('value="none">Без числа',page)
+        self.assertIn('<option value="evStrategy" selected>',page)
         self.assertIn(".hand.metricNeutral{background:#303b49",page)
         self.assertNotIn('id="minPlayFrequency"',page)
         self.assertNotIn('id="playMinLabel"',page)
@@ -324,7 +325,9 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("return stackBB*potMultiple+deadBB*equityPct/100-stackBB",page)
         self.assertIn("equityResults.actual?.pot_multiple?.[h]",page)
         self.assertIn("equityResults.actual?.pot_multiple",page)
-        self.assertIn("Equity матрицы условно на ≥1 активного соперника",page)
+        self.assertIn("Средний банк, BB",page)
+        self.assertIn("entry_ev_sd_bb",page)
+        self.assertIn("entry_pot_bb",page)
 
     def test_range_ev_overlap_and_reverse_opponent_matrix_controls(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")

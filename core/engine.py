@@ -469,6 +469,11 @@ class Table:
                     for pid in start_chips
                 }
 
+                # Optional instrumentation: final pot in chips (including
+                # everyone's invested chips), independent of net profit.
+                on_hand_pot = getattr(self, "on_hand_pot", None)
+                if callable(on_hand_pot):
+                    on_hand_pot(hand_id, total_pot, big_blind)
                 on_hand_end = getattr(self, "on_hand_end", None)
                 if callable(on_hand_end):
                     on_hand_end(hand_id, net, big_blind, (), ())
@@ -498,6 +503,12 @@ class Table:
 
         # Distribute pot using side pots
         share_net = self._showdown_and_settle(hole, board, total_contrib)
+
+        # Optional final-pot telemetry; side pots still sum to total chips
+        # invested. This hook has no effect on dealing/actions/payouts.
+        on_hand_pot = getattr(self, "on_hand_pot", None)
+        if callable(on_hand_pot):
+            on_hand_pot(hand_id, sum(total_contrib.values()), big_blind)
 
         # Apply showdown results
         for pid, delta in share_net.items():

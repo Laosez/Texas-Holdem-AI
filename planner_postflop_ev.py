@@ -48,7 +48,17 @@ def legal_profile(value):
 def validate_request(raw):
     """Use existing strict per-opponent range validation without modifying it."""
     from planner_api import _validate_request
-    base = _validate_request({**raw, "model": "selected"})
+    trials = raw.get("trials", 200)
+    if type(trials) is not int or not 50 <= trials <= 64000:
+        raise ValueError("Число симуляций: 50–64000 на руку")
+    if not raw.get("hand") and trials * raw.get("cycles", 1) > 4000:
+        raise ValueError("Полная матрица 169 рук: не более 4000 симуляций/руку. "
+                         "Для глубокого анализа 8000–64000 выбери отдельную руку.")
+    # Historical all-in equity endpoint retains its existing 50–2000
+    # contract; only the postflop rollout accepts deep single-hand samples.
+    base = _validate_request({**raw, "model": "selected",
+                              "trials": min(trials, 2000)})
+    base["trials"] = trials
     base["hero_postflop"] = legal_profile(raw.get("hero_postflop", "gto"))
     base["hero_position"] = str(raw.get("hero_position", "3"))
     core.validate_context(9, base["hero_position"], "rfi")
@@ -171,7 +181,7 @@ def _showdown_share(picked, board):
     return 1. / (1. + sum(score == best for score in others)) if own == best else 0.
 
 
-def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, detail=False):
+def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, detail=False, metrics=False):
     """One complete legal preflop-to-river betting hand with sampled cards."""
     from core.engine import Seat, Table
 
@@ -194,6 +204,10 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
             history["players"] = tuple(players)
             history["winners"] = tuple(winners)
     table.on_hand_end = finish
+    pot_state = {"bb": None}
+    if metrics:
+        table.on_hand_pot = lambda hand_id, chips, bb: pot_state.__setitem__(
+            "bb", chips / float(bb))
 
     chips = int(stack_bb) * 2
     seats = [Seat(pid, chips) for pid in ring]
@@ -205,9 +219,11 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
     showdown = history["showdown"] and not policies["HERO"].folded_after_flop
     if detail:
         from planner_ev_decomposition import classify_case
-        return chip_ev, showdown, classify_case(
+        classified = classify_case(
             picked, board, history, policies["HERO"].fold_street, chip_ev)
-    return chip_ev, showdown
+        return (chip_ev, showdown, classified, pot_state["bb"]) if metrics else (
+            chip_ev, showdown, classified)
+    return (chip_ev, showdown, pot_state["bb"]) if metrics else (chip_ev, showdown)
 
 
 def calculate(raw, progress=None):
@@ -244,6 +260,12 @@ def calculate(raw, progress=None):
                       sort_keys=True).encode()).digest()
     n = payload["trials"] * payload["cycles"]
     entry_counts = [0] * (len(payload["opponents"])+1)
+    entry_pots = [0.] * len(entry_counts)
+    entry_ev_sum = [0.] * len(entry_counts)
+    entry_ev_sq = [0.] * len(entry_counts)
+    # Track the second moment as well as the mean; pot size alone cannot
+    # determine Monte Carlo EV precision.
+    hand_ev_squared = {}
     for index, hand in enumerate(selected_hands):
         seed = int.from_bytes(hashlib.sha256(salt + hand.encode()).digest()[:8], "big")
         rng = random.Random(seed)
@@ -253,16 +275,22 @@ def calculate(raw, progress=None):
         ev_total = 0.
         showdown_total = 0
         fold_win_total = 0
+        ev_squared_total = 0.
         while samples < n:
             picked, board = _draw_case(hand, src, payload["opponents"], rng)
-            entry_counts[len(picked)-1] += 1
+            entrants = len(picked) - 1
+            entry_counts[entrants] += 1
             if len(picked) <= 1:
                 # Everyone folded before the flop: win the posted blinds only.
                 if not disabled:
                     ev_total += 1.5
+                    ev_squared_total += 1.5 ** 2
+                    entry_ev_sum[0] += 1.5
+                    entry_ev_sq[0] += 1.5 ** 2
                     fold_win_total += 1
                     if decomposition:
                         decomposition.add(1.5,"uncontested")
+                entry_pots[0] += 1.5  # SB 0.5 + BB 1.0
                 samples += 1
                 continue
             result["equity"].setdefault(hand, 0.)
@@ -272,9 +300,17 @@ def calculate(raw, progress=None):
                 rollout = _play_case(
                     picked, board, payload["hero_postflop"],
                     payload["hero_position"], payload["hero_stack_bb"],
-                    policy_seed_rng.randrange(1 << 50), detail=bool(decomposition)
+                    policy_seed_rng.randrange(1 << 50), detail=bool(decomposition),
+                    metrics=True
                 )
                 chip_ev, at_showdown = rollout[:2]
+                pot_bb = rollout[-1]
+                if pot_bb is None:
+                    raise RuntimeError("Final pot telemetry missing")
+                entry_pots[entrants] += pot_bb
+                entry_ev_sum[entrants] += chip_ev
+                entry_ev_sq[entrants] += chip_ev ** 2
+                ev_squared_total += chip_ev ** 2
                 if decomposition:
                     event,risk,flush = rollout[2]
                     decomposition.add(chip_ev,event,risk=risk,flush=flush)
@@ -286,6 +322,9 @@ def calculate(raw, progress=None):
             100. * result["equity"].get(hand, 0.) / accepted, 3
         ) if accepted else None
         result["ev_bb"][hand] = round(ev_total / n, 4) if not disabled else None
+        if not disabled and n > 1:
+            sigma2 = max(0., (ev_squared_total - ev_total**2/n)/(n-1))
+            hand_ev_squared[hand] = round(1.96 * math.sqrt(sigma2/n), 4)
         result["showdown_pct"][hand] = round(100 * showdown_total / n, 2) if not disabled else None
         result["fold_win_pct"][hand] = round(100 * fold_win_total / n, 2) if not disabled else None
         if progress:
@@ -295,4 +334,22 @@ def calculate(raw, progress=None):
     total_entries = sum(entry_counts)
     result["entry_counts_pct"] = [round(100 * x / total_entries, 2)
                                    for x in entry_counts]
+    result["entry_n_samples"] = entry_counts
+    result["entry_pot_bb"] = [round(entry_pots[k]/v,3) if v and
+                              (not disabled or k==0) else None
+                              for k,v in enumerate(entry_counts)]
+    result["entry_ev_sd_bb"] = [
+        round(math.sqrt(max(0.,(entry_ev_sq[k] -
+            entry_ev_sum[k]**2/v)/(v-1))),5)
+        if v>1 and not disabled else None
+        for k,v in enumerate(entry_counts)
+    ]
+    result["ev_ci95_bb"] = hand_ev_squared if not disabled else {}
+    result["entry_stats_note"] = (
+        "Средний банк = фактический финальный банк (все ставки), BB. "
+        "σ EV оценивается по фактическим net BB; прогноз ±95% для N прогонов "
+        "использует ожидаемое N × P(числа активных соперников) и "
+        "является приближением для одной руки. "
+        "Для полной матрицы σ объединяет разные классы рук."
+    )
     return result
