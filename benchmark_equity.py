@@ -11,6 +11,7 @@ import statistics
 import time
 
 from core.equity import equity
+from core.engine import eval_hand, _FULL_DECK
 
 CASES = {
     "preflop_hu": ([("A","s"),("K","s")], [], 1),
@@ -19,6 +20,49 @@ CASES = {
     "turn_hu": ([("A","h"),("Q","d")], [("A","c"),("7","h"),("2","s"),("J","c")], 1),
     "river_multiway": ([("K","c"),("K","d")], [("A","s"),("T","h"),("7","d"),("4","c"),("2","h")], 4),
 }
+
+
+def baseline_equity(hole_cards, board, n_opponents, n_sims, rng):
+    """Original core/equity.py algorithm (before this audit) for timing parity."""
+    used = set(tuple(c) for c in hole_cards) | set(tuple(c) for c in board)
+    remaining = [c for c in _FULL_DECK if c not in used]
+    wins, total = 0.0, 0
+    for _ in range(n_sims):
+        sampled = rng.sample(remaining, 2 * n_opponents)
+        opp_hands = [sampled[i * 2:(i + 1) * 2] for i in range(n_opponents)]
+        dealt_set = set(tuple(c) for c in sampled)
+        rest = [c for c in remaining if tuple(c) not in dealt_set]
+        need = 5 - len(board)
+        if need > 0:
+            extra = rng.sample(rest, need)
+            full_board = list(board) + extra
+        else:
+            full_board = list(board)
+        my_score = eval_hand(list(hole_cards), full_board)
+        best_opp = max(eval_hand(oh, full_board) for oh in opp_hands)
+        if my_score > best_opp:
+            wins += 1
+        elif my_score == best_opp:
+            tying = sum(1 for oh in opp_hands if eval_hand(oh, full_board) == my_score)
+            wins += 1.0 / (1 + tying)
+        total += 1
+    return wins / total if total > 0 else 0.5
+
+
+def compare_engines():
+    """Same evaluator, random opponent model, case and number of iterations."""
+    print("HEAD_TO_HEAD_BEGIN", flush=True)
+    for name, (hole, board, opponents) in CASES.items():
+        for n in (2000, 8000):
+            start = time.perf_counter()
+            old = baseline_equity(hole, board, opponents, n, random.Random(481))
+            old_time = time.perf_counter() - start
+            start = time.perf_counter()
+            new = equity(hole, board, opponents, n_sims=n, rng=random.Random(481))
+            new_time = time.perf_counter() - start
+            print("COMPARE case=%s n=%d old=%.6f new=%.6f old_s=%.4f new_s=%.4f speedup=%.3fx" %
+                  (name, n, old, new, old_time, new_time, old_time / new_time), flush=True)
+    print("HEAD_TO_HEAD_END", flush=True)
 
 
 def main():
@@ -54,6 +98,7 @@ def main():
         writer.writeheader()
         writer.writerows(results)
     print("Wrote", args.output)
+    compare_engines()
 
 
 if __name__ == "__main__":
