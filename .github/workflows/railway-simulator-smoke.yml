@@ -7,6 +7,7 @@ on:
       - feat/reliability-a17-20261014
       - feat/plan-multiway-editor-20261014
       - fix/planner-33-66-colors-box-bulk-20261015
+      - fix/screen1-five-postflop-only-20261016
       - feat/planner-postflop-ev-matrix-20261016
   pull_request:
     branches:
