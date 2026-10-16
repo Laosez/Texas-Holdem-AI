@@ -191,7 +191,8 @@ def start_postflop_ev(raw,busy=False):
     # Pin to exact current range revisions + policy implementation hashes.
     digest=hashlib.sha256()
     for name in ("planner_postflop_ev.py","bots/postflop_profiles.py",
-                 "bots/postflop_archetypes_v1.py","core/engine.py"):
+                 "bots/postflop_archetypes_v1.py","bots/gto_postflop_v2.py",
+                 "core/engine.py"):
         digest.update((core.ROOT/name).read_bytes())
     key={
         "type":"postflop_line_rollout_v1",
