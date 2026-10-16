@@ -467,13 +467,14 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div class="field wide heroPostflopChoice">
 <label for="heroPostflop">Постфлоп · моя стратегия розыгрыша</label>
 <select id="heroPostflop">
-<option value="gto2" selected>GTO V2 · исправленные мелкие пары</option>
+<option value="gto3" selected>GTO V3 · кикер, пара + дро, борд</option>
+<option value="gto2">GTO V2 · исправленные мелкие пары</option>
 <option value="gto">GTO V1 · контрольная версия</option>
 <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
 <option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
 <option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
 </select>
-<p id="heroPostflopHint" class="heroPostflopHint" role="status" aria-live="polite">GTO V2 корректирует оценку карманных 22–66 на спаренных бордах. Учитывается при расчёте Equity + EV.</p>
+<p id="heroPostflopHint" class="heroPostflopHint" role="status" aria-live="polite">GTO V3 учитывает кикер, пару + дро и относительную силу двух пар. Изменяет Postflop EV, не исходное Showdown Equity.</p>
 </div>
 <div class="field"><label for="heroPosition">Моя позиция</label><select id="heroPosition"></select></div>
 <div class="field"><label for="heroScenario">Ситуация</label><select id="heroScenario"></select></div>
@@ -591,13 +592,15 @@ const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
- {value:'gto',label:'GTO V1'}, {value:'gto2',label:'GTO V2'}, {value:'tag',label:'TAG V1'},
+ {value:'gto',label:'GTO V1'}, {value:'gto2',label:'GTO V2'},
+ {value:'gto3',label:'GTO V3'}, {value:'tag',label:'TAG V1'},
  {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
  {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
  {value:'none',label:'Не учитывать'}
 ];
 const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||'Не учитывать';
 const HERO_LINE_DESCRIPTIONS={
+ gto3:'GTO V3: кикер, пара с флеш-/стрит-дро, две пары на спаренном борде. Смотри EV, а не исходное Showdown Equity.',
  gto2:'GTO V2: корректная оценка 22–66 на спаренном борде. Используется для расчёта EV.',
  gto:'GTO V1: исходная постфлоп-эвристика, сохранена для сравнения с V2.',
  tag:'TAG V1: дисциплинированный розыгрыш с упором на вэлью.',
@@ -1938,7 +1941,7 @@ async function connect(){
   const data=await api('/api/plan/catalog');meta=data;
   const storedLine=localStorage.getItem('skachkov_hero_postflop');
   if(POSTFLOP_OPTIONS.some(x=>x.value===storedLine))$('heroPostflop').value=storedLine;
-  else $('heroPostflop').value='gto2'; // New profiles default to GTO V2; existing choices persist.
+  else $('heroPostflop').value='gto3'; // New profiles default to V3; saved preferences persist.
   refreshHeroPostflopChoice();
   const lastPlan=localStorage.getItem('skachkov_last_plan_profile');
   const selectable=profileOptions();
