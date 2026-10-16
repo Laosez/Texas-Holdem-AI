@@ -177,6 +177,15 @@ def _draw_case(hand, ranges, opponents, rng):
 
 
 
+def _uncontested_net_bb(hero_position):
+    """Net blind profit when every other player folds, with no antes."""
+    if hero_position == "SB":
+        return 1.0  # Hero posted 0.5 BB; receives villain's 1 BB.
+    if hero_position == "BB":
+        return 0.5  # Hero posted 1 BB; receives villain's 0.5 BB.
+    return 1.5      # Neither blind belongs to Hero.
+
+
 def _showdown_share(picked, board):
     own = eq.score_seven_fast((*picked[0][1], *board))
     others = [eq.score_seven_fast((*p[1], *board)) for p in picked[1:]]
@@ -284,15 +293,16 @@ def calculate(raw, progress=None):
             entrants = len(picked) - 1
             entry_counts[entrants] += 1
             if len(picked) <= 1:
-                # Everyone folded before the flop: win the posted blinds only.
+                # Net winnings exclude Hero's own blind (SB/BB).
+                uncontested = _uncontested_net_bb(payload["hero_position"])
                 if not disabled:
-                    ev_total += 1.5
-                    ev_squared_total += 1.5 ** 2
-                    entry_ev_sum[0] += 1.5
-                    entry_ev_sq[0] += 1.5 ** 2
+                    ev_total += uncontested
+                    ev_squared_total += uncontested ** 2
+                    entry_ev_sum[0] += uncontested
+                    entry_ev_sq[0] += uncontested ** 2
                     fold_win_total += 1
                     if decomposition:
-                        decomposition.add(1.5,"uncontested")
+                        decomposition.add(uncontested,"uncontested")
                 entry_pots[0] += 1.5  # SB 0.5 + BB 1.0
                 samples += 1
                 continue
