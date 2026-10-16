@@ -213,13 +213,22 @@ def calculate(raw, progress=None):
                        "Chip EV в BB при выбранных диапазонах, принудительном входе и стандартном hero open; без ICM и оптимизации префлопа"),
               "opponents": provenance}
     selected_hands = [payload["hand"]] if payload["hand"] else core.HANDS
-    identity = json.dumps(payload,ensure_ascii=False,sort_keys=True)
-    salt = hashlib.sha256(identity.encode()).digest()
+    # Common random *deals* for all postflop policies: switching GTO/TAG/LAG
+    # does not re-roll hole cards, entrants or board. Action randomness is
+    # independent of the deal stream.
+    deal_only = {
+        "opponents": [{k:v for k,v in item.items() if k!="postflop"}
+                      for item in payload["opponents"]],
+        "trials":payload["trials"],"cycles":payload["cycles"],
+    }
+    salt = hashlib.sha256(json.dumps(deal_only,ensure_ascii=False,
+                      sort_keys=True).encode()).digest()
     n = payload["trials"] * payload["cycles"]
     entry_counts = [0] * (len(payload["opponents"])+1)
     for index, hand in enumerate(selected_hands):
         seed = int.from_bytes(hashlib.sha256(salt + hand.encode()).digest()[:8], "big")
         rng = random.Random(seed)
+        policy_seed_rng = random.Random(seed ^ 0x6C616773)
         samples = 0
         accepted = 0
         ev_total = 0.
@@ -242,7 +251,7 @@ def calculate(raw, progress=None):
                 chip_ev, at_showdown = _play_case(
                     picked, board, payload["hero_postflop"],
                     payload["hero_position"], payload["hero_stack_bb"],
-                    rng.randrange(1 << 50)
+                    policy_seed_rng.randrange(1 << 50)
                 )
                 ev_total += chip_ev
                 showdown_total += at_showdown
