@@ -1864,7 +1864,8 @@ async function runOpponentReverse(){
  calculatingReverse=true;drawMatrices();
  try{
   let job=await post('/api/plan/equity',{
-   model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),
+   // This is the legacy all-in HU comparator, not the deeper postflop EV matrix.
+   model:'selected',trials:Math.min(2000,Number($('trials').value)),cycles:Number($('cycles').value),
    opponents:[{profile:'inline:hero',position:hero.position,scenario:hero.scenario,
                players:hero.players,selector:'active',weights}]
   });
