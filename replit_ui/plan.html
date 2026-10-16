@@ -457,6 +457,27 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  background:#101f31;border:1px solid #36516a;border-radius:7px;
  padding:9px 10px;font-size:11px;line-height:1.55;color:#cde0ef;overflow-wrap:anywhere
 }
+
+/* The per-hand telemetry panel belongs between the 03 matrix and 04 editor. */
+.handEVBreakdown{margin-top:12px;min-width:0}
+.handDecompHeader{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.handDecompHeader>div:first-child{flex:1 1 180px;max-width:540px}
+.handDecompHeader .bigHand{margin-top:4px}
+.handDecompControls{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex:1 1 240px}
+.handDecompControls .small{max-width:420px;text-align:right;overflow-wrap:anywhere}
+.handDecompTabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 10px}
+.handDecompTabs button{font-size:12px}
+.handDecompRows{max-width:100%;overflow-x:auto;min-height:88px}
+.handDecompTable{border-collapse:collapse;width:100%;min-width:530px;font-size:12px}
+.handDecompTable th,.handDecompTable td{padding:9px 10px;border-bottom:1px solid #2b465f}
+.handDecompTable th{color:#abc4db;text-align:left;font-weight:700}
+.handDecompTable td:not(:first-child),.handDecompTable th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.handDecompTable td:first-child{min-width:215px}
+.handDecompTable tr.decompLoss td:first-child{color:#f0bdc3}
+.handDecompTable tr.decompPositive td:first-child{color:#add8bf}
+.handDecompEmpty{color:#a9bdce;padding:15px 4px}
+.handDecompCaveat{font-size:11px;line-height:1.6;margin-top:10px}
+@media(max-width:700px){.handDecompControls{align-items:stretch}.handDecompControls .small{text-align:left}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -564,6 +585,26 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <p id="villainReverseStatus"></p></div></div></div>
 <div class="actionLegend" aria-label="Обозначение частот действий"><strong>Полоска внизу каждой руки:</strong><span><i class="swatch fold"></i>Fold</span><span><i class="swatch raise"></i>Raise</span><span><i class="swatch limp"></i>Limp</span><span><i class="swatch call"></i>Call</span><span>Длина сегмента = частота действия</span></div>
 <p class="note">Suited — выше диагонали, пары — на диагонали, offsuit — ниже. Синий фон означает положительную частоту участия Hero. Цветной номер A17 остаётся виден всегда, независимо от Equity/EV.</p>
+</section>
+<section class="panel handEVBreakdown" id="handEVBreakdown">
+ <div class="heading"><h2><span class="index">03.1 / </span>Декомпозиция выбранной руки</h2><span id="handDecompTag" class="badge">AQs · не рассчитано</span></div>
+ <div class="handDecompHeader">
+  <div><span class="small">Выбранная рука</span><div id="handDecompName" class="bigHand">AQs</div>
+   <p class="small">Итоговый chip EV и диагностика доминирования — по реальным исходам симуляции, не по оценке одной комбинации.</p></div>
+  <div class="handDecompControls"><button class="btn primary" id="handDecompRun" type="button">Разобрать EV выбранной руки</button><span id="handDecompStatus" class="small" role="status">Выбери руку на матрице и запусти анализ.</span></div>
+ </div>
+ <div class="matrixMetrics handDecompStats">
+  <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
+  <div class="matrixMetric"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small>BB/раздачу · наблюдаемый убыток</small></div>
+  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>симулированных раздач, включая фолды</small></div>
+ </div>
+ <div class="handDecompTabs" role="group" aria-label="Разделы декомпозиции">
+  <button class="btn sm primary" type="button" data-hand-decomp-tab="sources" aria-pressed="true">Источники EV</button>
+  <button class="btn sm ghost" type="button" data-hand-decomp-tab="domination" aria-pressed="false">Доминирование / флеши</button>
+  <button class="btn sm ghost" type="button" data-hand-decomp-tab="losses" aria-pressed="false">Самые дорогие потери</button>
+ </div>
+ <div id="handDecompRows" class="handDecompRows"><p class="note">Пока нет анализа. Нажми «Разобрать EV выбранной руки» — будет выполнена отдельная симуляция выбранной руки против указанных соперников.</p></div>
+ <p class="note handDecompCaveat">Стоимость потерь — фактический отрицательный net BB на первоначальную раздачу в выбранной модели, а не доказанная ошибка принятого решения. Чтобы измерить стоимость ошибки, потребуется сравнить альтернативные действия при одинаковом состоянии стола. Анализ не включает ICM и не заменяет солвер.</p>
 </section>
 <section class="panel editorSection"><div class="heading"><h2><span class="index">04 / </span>Редактор выбранной руки</h2><div class="buttons"><button class="btn sm ghost" id="undo" disabled>↶ Отменить</button><button class="btn sm ghost" id="resetHand">Снять назначение</button></div></div>
 <div class="two"><div class="profile"><div class="editorHead"><div><span class="small" id="handSelectionMode">СТАРТОВАЯ РУКА</span><div id="selectedHand" class="bigHand">AQs</div><span id="handCombos" class="muted">4 комбинации</span></div>
@@ -851,7 +892,7 @@ function removeOpponent(index){
  $('viewOpponent').value=String(nextIndex);
  invalidateEquity();loadVillain();
 }
-function invalidateEquity(){calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
+function invalidateEquity(){handDecompResult=null;handDecompSignature='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -1523,6 +1564,7 @@ function drawMatrices(){
  $('heroMatrix').classList.toggle('brushActive',brushMode==='paint');
  if(showOpponent)matrix($('villainMatrix'),villain,visibleMetricScale(villainMetric,[villain]),villainMetric);
  else $('villainMatrix').replaceChildren();
+  renderHandDecomposition();
 }
 
 function updateMatrixClipboard(){
@@ -1807,6 +1849,111 @@ function renderPerOpponent(){
  const note=el('div','small','HU показатели отдельно против каждого диапазона; общая Multiway EV не равна их сумме.');
  note.style.marginTop='7px';root.append(note);
 }
+// Selected-hand EV outcomes; this is separate from the 169-class matrix
+// calculation. All source rows partition actual per-deal net chip EV.
+let handDecompResult=null,handDecompSignature='',handDecompTab='sources',computingHandDecomp=false;
+const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
+function decompRequestSignature(){
+ if(!hero)return '';
+ return JSON.stringify(postflopRequest({hand:selected}));
+}
+function decompTable(headers,items,valueFactory){
+ const tbl=el('table','handDecompTable'),thead=el('thead'),heading=el('tr');
+ for(const name of headers){const c=el('th','',name);heading.append(c)}
+ thead.append(heading);tbl.append(thead);
+ const body=el('tbody');
+ for(const item of items){
+  const values=valueFactory(item);
+  const tr=el('tr',item.cost_bb>0?'decompLoss':item.contribution_bb>0?'decompPositive':'');
+  for(const value of values){const td=el('td','',value);tr.append(td)}
+  body.append(tr);
+ }
+ tbl.append(body);return tbl;
+}
+function renderHandDecomposition(){
+ if(!hero)return;
+ $('handDecompName').textContent=selected;
+ const good=handDecompResult?.hand===selected&&handDecompSignature===decompRequestSignature();
+ const data=good?handDecompResult:null;
+ $('handDecompTag').textContent=selected+(data?' · '+data.samples+' раздач':' · нет анализа');
+ $('handDecompEV').textContent=data?decompFormat(data.ev_bb)+' BB':'—';
+ $('handDecompCost').textContent=data?.loss_exposures?.length
+  ?decompFormat(data.loss_exposures[0].cost_bb)+' BB':'—';
+ $('handDecompSamples').textContent=data?String(data.samples):'—';
+ for(const button of document.querySelectorAll('[data-hand-decomp-tab]')){
+  const active=button.dataset.handDecompTab===handDecompTab;
+  button.classList.toggle('primary',active);button.classList.toggle('ghost',!active);
+  button.setAttribute('aria-pressed',String(active));
+ }
+ const root=$('handDecompRows');root.replaceChildren();
+ if(!data){
+  root.append(el('p','handDecompEmpty',
+   'Для '+selected+' нет актуальной декомпозиции. Выбери соперников и нажми «Разобрать EV выбранной руки».'));
+  return;
+ }
+ if(handDecompTab==='sources'){
+  root.append(decompTable(
+   ['Исход раздачи','Случаев','Частота','Средний BB','Вклад в EV, BB'],
+   data.events||[],
+   x=>[x.label,String(x.count),Number(x.frequency_pct).toFixed(1)+'%',
+      decompFormat(x.avg_bb),decompFormat(x.contribution_bb)]));
+  const note=el('p','small','Каждая раздача ровно в одной строке. Сумма вкладов = итоговый EV '+decompFormat(data.ev_bb)+' BB (возможны погрешности округления).');
+  root.append(note);
+ }else if(handDecompTab==='domination'){
+  const heading=el('h3','','Флешевое доминирование · по дошедшим до вскрытия');
+  root.append(heading);
+  if((data.flush||[]).length){
+   root.append(decompTable(
+    ['Вид столкновения','Случаев','Частота','Средний BB','Вклад, BB'],
+    data.flush,
+    x=>[x.label,String(x.count),Number(x.frequency_pct).toFixed(1)+'%',
+       decompFormat(x.avg_bb),decompFormat(x.contribution_bb)]));
+  }else root.append(el('p','handDecompEmpty','Флешевых вскрытий в выборке не обнаружено. Увеличь число симуляций.'));
+  root.append(el('p','small','Соперник определяется по сильнейшей комбинации среди игроков на вскрытии. Отрицательный вклад — потери в таких ситуациях; метки не суммируются с таблицей исходов.'));
+ }else{
+  const list=data.loss_exposures||[];
+  if(!list.length){
+   root.append(el('p','handDecompEmpty','Отрицательных исходов в выборке нет. Это не гарантия отсутствия риска.'));
+  }else{
+   root.append(decompTable(
+    ['Сценарий потери','Случаев','Частота','Средняя потеря, BB','Стоимость, BB/раздачу'],
+    list,
+    x=>[x.label,String(x.count),Number(x.frequency_pct).toFixed(1)+'%',
+       Number(x.avg_loss_bb).toFixed(3),Number(x.cost_bb).toFixed(3)]));
+  }
+  root.append(el('p','small','Отсортировано по фактической стоимости потерь: сумма отрицательных net BB / все симуляции. Потеря при фолде включает деньги, уже вложенные в банк. Это кандидаты для проверки, а не доказанные ошибки стратегии.'));
+ }
+}
+async function calculateHandDecomposition(){
+ if(computingHandDecomp||!hero)return;
+ const epoch=calcEpoch,hand=selected;
+ const settings=postflopRequest({hand});
+ const signature=JSON.stringify(settings);
+ computingHandDecomp=true;
+ $('handDecompRun').disabled=true;
+ $('handDecompStatus').textContent='Рассчитываем '+hand+' по выбранным диапазонам…';
+ try{
+  const output=await pollPostflop(settings,epoch,task=>{
+   $('handDecompStatus').textContent='Расчёт '+hand+': '+(task.done||0)+' / '+(task.total||1);
+  });
+  if(!output||epoch!==calcEpoch||signature!==decompRequestSignature())return;
+  if(!output.decomposition){
+   handDecompResult=null;
+   $('handDecompStatus').textContent='EV отключён. Выбери постфлоп-профили для всех активных игроков.';
+  }else{
+   handDecompResult=output.decomposition;
+   handDecompSignature=signature;
+   $('handDecompStatus').textContent='Разобрано '+hand+' · '+output.decomposition.samples+' симуляций · '+postflopName($('heroPostflop').value);
+  }
+  renderHandDecomposition();
+ }catch(e){
+  $('handDecompStatus').textContent='Не удалось разобрать EV: '+e.message;
+ }finally{
+  computingHandDecomp=false;
+  $('handDecompRun').disabled=false;
+ }
+}
+
 function postflopRequest(overrides={}){
  return {model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),
   opponents:currentPeople(),hero_postflop:$('heroPostflop').value,
@@ -2084,6 +2231,10 @@ $('delete').onclick=async()=>{
   msg('Не удалось удалить стратегию: '+e.message,true);
  }finally{button.disabled=!hero||hero.readonly}
 };
+$('handDecompRun').onclick=calculateHandDecomposition;
+for(const tab of document.querySelectorAll('[data-hand-decomp-tab]')){
+ tab.onclick=()=>{handDecompTab=tab.dataset.handDecompTab;renderHandDecomposition()};
+}
 let computingAll=false;
 $('computeAll').onclick=async()=>{
  if(computingAll||!hero)return;
