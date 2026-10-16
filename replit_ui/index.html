@@ -59,7 +59,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 <section class="panel"><div class="heading"><h2><span class="index">01 / </span>Параметры турнира</h2><button class="btn sm outline" id="preset">Контроль V3</button></div>
 <div class="fields">
 <div class="field"><label for="tournaments">Число турниров</label><input type="number" min="1" max="3000" id="tournaments" value="90"></div>
-<div class="field"><label for="parallel">Параллельные процессы (CPU)</label><select id="parallel"><option value="1">1 · последовательно</option><option value="2">2 процесса</option><option value="3">3 процесса</option><option value="4">4 процесса</option></select></div>
+<div class="field"><label for="parallel">Параллельные процессы (CPU)</label><select id="parallel"><option value="1">1 · последовательно</option><option value="2">2 процесса</option><option value="3">3 процесса</option><option value="4">4 процесса</option><option value="5">5 процессов</option><option value="6">6 процессов</option><option value="7">7 процессов</option><option value="8">8 процессов</option></select></div>
 <div class="field"><label for="chips">Стек</label><input type="number" min="10" id="chips" value="500"></div>
 <div class="field"><label for="seed">Seed</label><input type="number" min="0" id="seed" value="2042"></div>
 <div class="field"><label for="sb">Small Blind</label><input type="number" min="1" id="sb" value="1"></div>
@@ -283,8 +283,8 @@ async function loadCatalog(){
   Array.from(parallel.options).forEach(o=>o.disabled=Number(o.value)>limit);
   const notice=$('parallelNote');
   notice.textContent=limit===1?
-   'Многопроцессный расчёт работает. На текущем Railway доступен 1 процесс: для 2+ процессов требуется увеличить RAM контейнера (порог 2,25 ГБ), либо настроить POKER_MAX_WORKERS с учётом потребления памяти.':
-   'Доступно до '+limit+' параллельных процессов · турниры распределяются между отдельными процессами, сохранение результатов остаётся общим.';
+   'Доступен 1 процесс по текущим CPU/RAM. Проверь лимиты Railway или ограничивающую переменную POKER_MAX_WORKERS.':
+   'Доступно до '+limit+' процессов (по CPU и RAM текущего сервиса) · больше процессов ускоряет серию турниров, но увеличивает потребление ресурсов и стоимость.';
   parallel.title=notice.textContent;
  }catch(e){feedback('Каталог недоступен: '+e.message,true)}
 }
