@@ -9,7 +9,9 @@ after Gate 1 closes.
 """
 from __future__ import annotations
 
+import os
 import random
+from core.fast_eval import fast_eval_hand
 from itertools import combinations
 from typing import List, Tuple
 
@@ -39,7 +41,15 @@ def equity(hole_cards, board, n_opponents, n_sims=100, rng=None, evaluator=None)
     draw_count = 2 * n_opponents + missing
     if draw_count > len(remaining):
         raise ValueError("Not enough cards for opponents and board")
-    score_hand = evaluator if evaluator is not None else eval_hand
+    if evaluator is None:
+        # Fast direct 5–7 card evaluator by default. Roll back without code changes:
+        # THAI_EQUITY_EVALUATOR=legacy
+        eval_mode = os.environ.get("THAI_EQUITY_EVALUATOR", "fast").lower()
+        if eval_mode not in ("fast", "legacy"):
+            raise ValueError("THAI_EQUITY_EVALUATOR must be 'fast' or 'legacy'")
+        score_hand = eval_hand if eval_mode == "legacy" else fast_eval_hand
+    else:
+        score_hand = evaluator
     sample = (rng or random).sample
     hero_hole = list(hole_cards)
     board_prefix = list(board)
