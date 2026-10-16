@@ -129,11 +129,11 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertIn('@media(max-width:1000px){.plannerWorkspace{grid-template-columns:1fr}',s)
         self.assertNotIn('.plannerWorkspace>.editorSection{grid-column:2',s)
         self.assertIn('<span class="index">05 / </span>Декомпозиция выбранной руки',s)
-        for key in ("handDecompRun","handDecompTag","handDecompRows","handDecompCost",
+        for key in ("handDecompTag","handDecompRows","handDecompCost",
                     "handDecompSamples","handDecompEV"):
             self.assertIn('id="'+key+'"',s)
-        for tab in ("sources","domination","losses"):
-            self.assertIn('data-hand-decomp-tab="'+tab+'"',s)
+        self.assertNotIn('id="handDecompRun"',s)
+        self.assertNotIn('data-hand-decomp-tab=',s)
         self.assertIn("decomposition.add(chip_ev,event,risk=risk,flush=flush)",
                       __import__("inspect").getsource(ev.calculate))
         self.assertIn("const output=await pollPostflop(settings,epoch",s)
