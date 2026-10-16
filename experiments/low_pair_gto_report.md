@@ -81,3 +81,24 @@ strength, range and opponent behavior matter.
 GitHub Actions runs:
 - [Strict correction vs baseline](https://github.com/Laosez/Texas-Holdem-AI/actions/runs/38837263009)
 - [Strict, bluffcatch and probe variants](https://github.com/Laosez/Texas-Holdem-AI/actions/runs/38837538079)
+
+## GTO V1 vs GTO V1 mirror opponent (additional holdout)
+
+[GitHub Actions experiment](https://github.com/Laosez/Texas-Holdem-AI/actions/runs/38837938906). Run 2026-10-16, 1,200 independent physical deal scenarios per hand per match: 5 hands × 2 opposing lineups × 1,200 = **12,000 distinct deals**. Each deal is replayed under baseline, corrected, bluffcatch and probe hero, **opponents always remain unchanged GTO V1**. Preflop is the same scripted 2.5 BB BTN hero open and calls, 20 BB effective stack. This is a *best response to this bot*, not a solver Nash convergence test.
+
+| Hand | HU GTO baseline EV | HU corrected Δ | HU bluffcatch Δ | HU probe Δ | 3-way GTO corrected Δ |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 22 | -2.2992 | +1.6442 | +0.8333 | +1.6575 | +2.1000 |
+| 33 | -2.3775 | +1.8125 | +1.1979 | +1.8583 | +2.0888 |
+| 44 | -2.2667 | +1.6550 | +0.9838 | +1.6358 | +2.2163 |
+| 55 | -2.0758 | +1.6375 | +1.0783 | +1.5813 | +1.8458 |
+| 66 | -1.6617 | +1.2658 | +0.8512 | +1.2767 | +1.7279 |
+| **Mean (class equal-weight)** | — | **+1.6030** | +0.9889 | +1.6019 | **+1.9958** |
+
+The 95% paired CI half-width for each corrected HU class is ~0.35–0.39 BB; for corrected three-way each ~0.44–0.47 BB. Therefore all individual corrected-vs-original paired tests are clearly positive in this fixed model. **However absolute corrected HU EV is still negative**, from -0.6550 to -0.3958 BB per standardized *forced-open* opportunity. These are NOT inferred recommendations to open these hands preflop at 20 BB.
+
+### Opponent count implementation
+
+`_opponents(view)` counts players in `view.opponents`, which are surviving players not in `folded`; includes all-ins. Therefore this updates on each betting decision. `multi = 1/(1 + .55*(n-1))`: HU 1.000, 2 opponents 0.645, 3 opponents 0.476, 4 opponents 0.377. Weak-pair no-bet frequencies fall from 9% to 5.81%, 4.29%, 3.40% respectively; top-pair no-bet frequencies 58% → 37.4%, 27.6%, 21.9%. Ordinary air/draw bluffs stop entirely above three opponents. **Monster no-bet frequency 80% does not adjust for n**, and neither do fixed one-pair pot-odds thresholds. Thus the pocket-pair/two-pair categorization bug is especially pronounced in multiway scenarios. No exact equity vs surviving ranges is calculated inside this heuristic bot.
+
+**Production GTO V1 remains unchanged.** A genuine symmetric self-play test where *both* players simultaneously adopt the same policy cannot establish improved overall chip EV in zero-sum rake-free poker; this compares a changed hero against a fixed V1 reference. Next: board-relative strength buckets, independent seeds, 40/80 BB, villain range-conditioned thresholding.
