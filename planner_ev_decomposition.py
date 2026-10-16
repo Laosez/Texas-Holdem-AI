@@ -17,7 +17,7 @@ LABELS={
     "fold_river":"Наш фолд на ривере","fold_other":"Наш фолд",
     "win_without_showdown":"Победа без вскрытия (постфлоп)",
     "higher_flush":"Флеш проиграл старшему флешу",
-    "flush_vs_full_house":"Флеш проиграл фулл-хаусу / каре",
+    "flush_vs_full_house":"Флеш проиграл фулл-хаусу / каре / стрит-флешу",
     "higher_pair":"Проигрыш старшей паре",
     "better_kicker":"Проигрыш паре с лучшим кикером",
     "higher_straight":"Стрит проиграл старшему стриту",
@@ -33,7 +33,8 @@ LABELS={
 FLUSH_LABELS={
     "lower_flush":"Флеш против младшего флеша",
     "higher_flush":"Флеш против старшего флеша",
-    "full_house_plus":"Флеш против фулл-хауса / каре",
+    "equal_flush":"Разделили банк с равным флешем",
+    "full_house_plus":"Флеш против фулл-хауса / каре / стрит-флеша",
     "other_hand":"Флеш против других комбинаций",
 }
 
@@ -62,7 +63,10 @@ def classify_showdown(hero_hole, villain_holes, board, *, hero_won):
     flush=None
     if hero_cat==5:
         if opponent_cat==5:
-            flush="lower_flush" if hero_won else "higher_flush"
+            # Compare the actual best-five flush strength, not only net payout:
+            # side pots and splits can make "won money" differ from showdown rank.
+            flush=("equal_flush" if opponent_score==hero_score else
+                   "lower_flush" if hero_score>opponent_score else "higher_flush")
         elif opponent_cat>=6 and not hero_won:
             flush="full_house_plus"
         else:
