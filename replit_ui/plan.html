@@ -956,7 +956,7 @@ function setMetricLegend(){
  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
  $('allInStatus').textContent='Модель: '+stack+' BB эффективный стек, до '+n+' оппонентов, мёртвые деньги '+dead+
  ' BB. EV учитывает случайное число вошедших игроков; без ICM, фолд-эквити и будущих ставок.';
- $('metricLegendText').textContent='Диагональная подложка постоянная: верхний синий треугольник — Hero, нижний красный — выбранный соперник. Если рука отсутствует, её половина серая. Номер коробки A17 показан в углу; центр — Equity / EV / пусто.';
+ $('metricLegendText').textContent='Синий фон — рука в моём диапазоне, серый — вне диапазона. Цветной уголок A17 виден всегда. В центре — выбранный показатель Equity / Postflop EV / % вскрытия.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -1155,6 +1155,13 @@ function cellMetricValue(doc,h,metric){
  let value=null,display='—';
  if(metric==='none')return {value:null,display:''};
  if(metric==='equity'){value=valueOrNull(filtered);display=value===null?'—':value.toFixed(1)+'%'}
+ else if(metric==='evStrategy'){
+  value=valueOrNull(ours?equityResults.filter?.ev_bb?.[h]:null);
+  display=value===null?'—':(value>0?'+':'')+value.toFixed(2);
+ }else if(metric==='showdownRate'){
+  value=valueOrNull(ours?equityResults.filter?.showdown_pct?.[h]:null);
+  display=value===null?'—':value.toFixed(1)+'%';
+ }
  else if(metric==='participation'){
   value=knownActivePercent(doc,h);display=value===null?'—':value.toFixed(0)+'%';
  }else if(metric==='dominant'){
@@ -1312,7 +1319,7 @@ function matrix(root,doc,scale,metricChoice){
 }
 function drawMatrices(){
  if(!hero)return;
- intersectionOnly=true;
+ intersectionOnly=false;
  setMetricLegend();
  renderRangeEV();renderIntersectionStats();renderVillainReverseStatus();
  const showOpponent=$('villainPane').open;
@@ -1621,11 +1628,15 @@ async function calculatePerOpponent(){
 function pct(x){return x===null||x===undefined?'—':Number(x).toFixed(1)+'%'}
 function drawEquityStats(){
  const filter=equityResults.filter?.equity,actual=equityResults.actual?.equity,any=equityResults.any?.equity;
- $('handFilter').textContent=pct(filter?.[selected]);$('handActual').textContent=pct(actual?.[selected]);$('handAny').textContent=pct(any?.[selected]);
+ $('handFilter').textContent=Number.isFinite(equityResults.filter?.ev_bb?.[selected])?
+  ((equityResults.filter.ev_bb[selected]>0?'+':'')+equityResults.filter.ev_bb[selected].toFixed(2)+' BB'):'—';
+ $('handActual').textContent=pct(actual?.[selected]);$('handAny').textContent=pct(any?.[selected]);
+ $('handShowdown').textContent=pct(equityResults.filter?.showdown_pct?.[selected]);
  const eq=equityResults.filter;
- $('equityStatus').textContent=eq?'Расчёт готов · '+eq.simulations_per_hand+' симуляций/руку · Monte Carlo (погрешность выборки)':'Расчёт не выполнен. Настройки соперников могут быть произвольными.';
+ $('equityStatus').textContent=eq?('Готово · '+eq.simulations_per_hand+' раздач/руку · '+eq.note):
+  'Выбери постфлоп-профили и рассчитай Equity + EV выбранных диапазонов.';
  if(eq)$('equityFill').style.width='100%';drawBoxes();renderEntryDistribution();
- $('handDetail').textContent='Моя: '+handTooltip(selected,hero);renderPerOpponent();
+ $('handDetail').textContent='Моя: '+handTooltip(selected,hero);renderPerOpponent();scheduleSingleHandComparison();
 }
 async function startCalculation(slot,model,people){
  const revision=calcEpoch;
@@ -1699,7 +1710,7 @@ async function connect(){
 $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
 $('pasteMatrix').onclick=pasteMatrixSettings;
-$('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);loadHero()};
+$('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);invalidateEquity();loadHero()};
 $('heroPosition').onchange=()=>{useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
@@ -1819,17 +1830,14 @@ let computingAll=false;
 $('computeAll').onclick=async()=>{
  if(computingAll||!hero)return;
  computingAll=true;$('computeAll').disabled=true;
- const people=currentPeople(),model=$('equityModel').value;
  try{
-  // This is the single explicit run; all requested calculations share these opponents.
-  const matrix=await startCalculation('filter',model,people);
+  const matrix=await calculateFullPostflop(currentPeople());
   if(!matrix)return;
-  // Keep the filter's selected model distinct from actual selected-opponent equity.
-  if(model==='selected')equityResults.actual=matrix;
-  else await startCalculation('actual','selected',people);
-  await calculatePerOpponent();
-  await runOpponentReverse();
+  equityResults.filter=matrix;equityResults.actual=matrix;
+  huComparisonHand='';
   drawEquityStats();drawMatrices();drawBoxes();
+  // HU comparisons for this specific selected hand, not 8x169 extra rollouts.
+  await calculatePerOpponent();
  }finally{computingAll=false;$('computeAll').disabled=false}
 };
 $('key').value=sessionStorage.getItem('skachkov_key')||'';
