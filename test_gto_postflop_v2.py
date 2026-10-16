@@ -62,7 +62,8 @@ class GTOPostflopV2Tests(unittest.TestCase):
         catalog=app.strategy_catalog()
         self.assertIn("gto_postflop_v1",catalog["postflop_strategies"])
         self.assertIn("gto_postflop_v2",catalog["postflop_strategies"])
-        self.assertEqual(len(catalog["postflop_strategies"]),7)
+        self.assertEqual(len(catalog["postflop_strategies"]),8)
+        self.assertIn("random",catalog["postflop_strategies"])
         self.assertNotIn("gto_postflop_v2",catalog["preflop_strategies"])
         self.assertIn("gto_postflop_v2",app.UI.read_text(encoding="utf-8"))
         self.assertIn("{value:'gto2',label:'GTO V2'}",
