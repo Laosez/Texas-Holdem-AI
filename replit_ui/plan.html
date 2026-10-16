@@ -161,7 +161,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .groupDrawer .boxCard{padding:7px}
 .groupDrawer .boxInstructions{margin:10px 0 2px}
 .groupDrawer .heading{margin-top:13px!important}
-.matrixPane .actionStripe{height:4px;bottom:2px;left:2px;right:2px;opacity:.7
+.matrixPane .actionStripe{height:4px;bottom:2px;left:2px;right:2px;opacity:.88}
 /* A17 identity is a small, flat corner at the EXACT palette hue; no
    color-mixing, opacity, glow or tinted hand-cell background. */
 .matrixPane .handBoxTag{
@@ -368,6 +368,79 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 /* Keep archived intersection calculations but hide the old red/blue
    two-matrix legend in the current single-matrix workspace. */
 #intersectionKey,#rangeIntersectionStats{display:none!important}
+
+/* Accurate Screen 2 eight-column layout: the range has a bounded width.
+   One shared inner grid for the header and each opponent prevents drift. */
+.plannerOpponentsPanel .oppTable{width:100%;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden}
+.plannerOpponentsPanel .oppTable .oppHead,
+.plannerOpponentsPanel .oppTable .oppRow{
+ display:grid;
+ grid-template-columns:24px minmax(142px,174px) 72px 91px 89px 102px minmax(135px,1fr) 25px;
+ column-gap:6px;min-width:802px;align-items:start;width:100%
+}
+.plannerOpponentsPanel .oppRow>*{min-width:0;max-width:100%}
+.plannerOpponentsPanel .oppRow select{width:100%;min-width:0;max-width:100%;text-overflow:ellipsis;font-size:11px}
+.plannerOpponentsPanel .oppRow .entryControl select{width:100%;max-width:100%}
+.plannerOpponentsPanel .oppRow .entryHint{overflow-wrap:anywhere;font-size:10px}
+.plannerOpponentsPanel .oppTable .oppHead{overflow:visible}
+.plannerOpponentsPanel .oppTable .oppHead>span{overflow:hidden;text-overflow:ellipsis}
+@media(min-width:1600px){
+ .plannerOpponentsPanel .oppTable .oppHead,
+ .plannerOpponentsPanel .oppTable .oppRow{
+  grid-template-columns:25px minmax(150px,183px) 78px 100px 92px 110px minmax(140px,1fr) 27px;
+ }
+}
+/* Canonical A17 palette: same color for the group tile and the hand's badge. */
+#groupEditor #boxes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#groupEditor #boxes .boxCard{min-width:0;border-left:4px solid var(--group-color,#8494a6)}
+#groupEditor #boxes .boxSelect{
+ background:var(--group-color,#8494a6);border:1px solid var(--group-color,#8494a6);
+ color:#081424;font-weight:900;min-width:37px;box-shadow:none
+}
+#groupEditor #boxes .boxCard.active .boxSelect{color:#081424;outline:2px solid #f5f7fc}
+#groupEditor #boxes .boxCardMeta{overflow-wrap:anywhere}
+.matrixGrid .hand .handBoxTag,.matrixGrid .hand .handBoxTag.inRange{
+ background:var(--group-color,#8494a6)!important;
+ color:#081424!important;opacity:1!important;
+ display:flex!important;align-items:center;justify-content:center;
+ position:absolute;top:0;right:0;z-index:9!important;
+ width:24px;min-width:24px;height:15px;
+ padding:0 1px;font-weight:900;font-size:9px;line-height:15px;
+ border:0;border-radius:0 3px 0 5px;text-shadow:none;box-shadow:none
+}
+/* Match every slider to the exact corresponding bottom-of-hand segment. */
+.editorSection .actionSliderField[data-action=fold]{--slider-color:#8995a2}
+.editorSection .actionSliderField[data-action=open],
+.editorSection .actionSliderField[data-action=threebet],
+.editorSection .actionSliderField[data-action=fourbet],
+.editorSection .actionSliderField[data-action=push]{--slider-color:#e36b6e}
+.editorSection .actionSliderField[data-action=limp]{--slider-color:#53b98b}
+.editorSection .actionSliderField[data-action=call]{--slider-color:#63b2cf}
+.editorSection .actionSliderField .sliderHead label{color:var(--slider-color);font-weight:850}
+.editorSection .actionSliderField input[type=range]{
+ appearance:none;-webkit-appearance:none;width:100%;height:9px;padding:0;
+ border:0;border-radius:99px;cursor:pointer;
+ accent-color:var(--slider-color)!important;
+ background:linear-gradient(90deg,var(--slider-color) 0%,var(--slider-color) var(--slider-percent,0%),#30485c var(--slider-percent,0%),#30485c 100%)
+}
+.editorSection .actionSliderField input[type=range]::-webkit-slider-thumb{
+ -webkit-appearance:none;appearance:none;width:17px;height:17px;border-radius:50%;
+ background:var(--slider-color);border:2px solid #f5f9ff;box-shadow:0 0 0 2px #11283f
+}
+.editorSection .actionSliderField input[type=range]::-moz-range-thumb{
+ width:13px;height:13px;border-radius:50%;background:var(--slider-color);
+ border:2px solid #f5f9ff
+}
+.editorSection .actionSliderField .sliderHead strong{color:var(--slider-color)}
+/* Highlight rank-review opportunities without overriding blue membership. */
+.matrixGrid .hand.candidateGold{border:3px solid #f3c45c!important}
+.matrixGrid .hand.candidateRed{border:3px solid #ee6d75!important}
+.matrixGrid .hand.candidateGold::after,.matrixGrid .hand.candidateRed::after{
+ content:"";position:absolute;inset:1px;pointer-events:none;border:1px solid currentColor;border-radius:2px;z-index:3
+}
+.matrixGrid .hand.candidateGold::after{color:#f3c45c}
+.matrixGrid .hand.candidateRed::after{color:#ee6d75}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -426,12 +499,12 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <span class="small" id="allInStatus" style="max-width:740px">Условное выставление при эффективном стеке из сохранённой стратегии, без ICM и побочных банков.</span>
 </div>
 <div class="matrixMetrics hidden" id="rangeEvSummary" style="margin:6px 0 12px">
-<div class="matrixMetric"><span>EV / сыгранную руку</span><strong id="rangeEvPlayed">—</strong><small>BB · с учётом частот и 4/6/12 комбо</small></div>
-<div class="matrixMetric"><span>EV / случайную раздачу</span><strong id="rangeEvDealt">—</strong><small>BB · знаменатель 1326 комбо, Fold=0</small></div>
-<div class="matrixMetric"><span>Убыток от −EV включений</span><strong id="rangeEvNegative">—</strong><small>BB / раздачу · условное выставление</small></div>
-<div class="matrixMetric"><span>Упущенный +EV при Fold</span><strong id="rangeEvMissed">—</strong><small>BB / раздачу · теоретический потенциал</small></div>
+<div class="matrixMetric"><span>EV / сыгранную руку</span><strong id="rangeEvPlayed">—</strong><small>BB · postflop chip EV, взвешено по частотам и комбо</small></div>
+<div class="matrixMetric"><span>EV / случайную раздачу</span><strong id="rangeEvDealt">—</strong><small>BB · 1326 комбо, Fold=0; модельное значение</small></div>
+<div class="matrixMetric"><span>Убыток от −EV включений</span><strong id="rangeEvNegative">—</strong><small>BB / раздачу · отрицательный EV сыгранных рук</small></div>
+<div class="matrixMetric"><span>Упущенный +EV при Fold</span><strong id="rangeEvMissed">—</strong><small>BB / раздачу · положительный EV исключённых рук</small></div>
 </div>
-<p id="rangeEvNote" class="note hidden">Диагностика условного all-in против выбранных соперников, не EV полной стратегии. Неизвестные руки не считаются Fold; равные эффективные стеки, без ICM, фолд-эквити и постфлопа. Оценка приближённая: усреднение per-hand Monte Carlo по комбинациям и частотам, без полной переоценки блокеров на уровне диапазона.</p>
+<p id="rangeEvNote" class="note hidden">Чиповый EV при разыгрывании флопа, тёрна и ривера выбранными постфлоп-стратегиями. Стандартизированный префлоп; без ICM.</p>
 <div class="metricLegend"><span id="metricLegendText">Единый фон. Золотая рамка — лучшие исключённые руки; красная — худшие включённые при сравнении по выбранному показателю.</span></div>
 <div class="matrixMetrics">
 <div class="matrixMetric"><span>Назначено классов</span><strong id="studioDefined">—</strong><small>из 169</small></div>
@@ -926,7 +999,7 @@ function drawBoxes(){
    head.append(choose);
   }
   const summary=el('span','boxCardMeta',members.length+' рук · '+count+' комбо'+(b===0?'':' · EV '+(groupEV===null?'—':(groupEV>0?'+':'')+groupEV.toFixed(1)+' BB')));
-  summary.title='EV условного выставления в BB, среднее по комбинациям всех рук коробки. Это не EV открытия или полного плана.';head.append(summary);
+  summary.title='Модельный postflop chip EV в BB, среднее по комбинациям всех рук коробки (при выбранных линиях розыгрыша); не ICM и не полный префлоп EV.';head.append(summary);
   card.append(head);
   const list=el('div','boxHandList');
   if(members.length)for(const h of members)list.append(boxChip(h));
@@ -973,7 +1046,9 @@ function setMetricLegend(){
  const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
  $('allInStatus').textContent='Модель: '+stack+' BB эффективный стек, до '+n+' оппонентов, мёртвые деньги '+dead+
  ' BB. EV учитывает случайное число вошедших игроков; без ICM, фолд-эквити и будущих ставок.';
- $('metricLegendText').textContent='Синий фон — рука в моём диапазоне, серый — вне диапазона. Цветной уголок A17 виден всегда. В центре — выбранный показатель Equity / Postflop EV / % вскрытия.';
+ $('metricLegendText').textContent=metric==='evStrategy'
+  ?'Синий фон — сыгранная рука; серый — исключённая. ЖЁЛТАЯ рамка — перспективная исключённая; КРАСНАЯ — слабая включённая. Порог ревизии EV: 0,25 BB/руку, сравнение модельное и без доверительных интервалов. A17 обозначены цветным уголком.'
+  :'Синий фон — рука в моём диапазоне; серый — вне диапазона. Номер группы A17 цветной. Жёлтая рамка — лучшая исключённая, красная — слабая включённая при сравнении диапазонов.';
 }
 function knownActivePercent(doc,hand){
  const acts=doc?.hands?.[hand];
@@ -1050,23 +1125,60 @@ function rangeEvBreakdown(doc,equity,stack,dead,opponents,potMultiples){
  return {played:activeMass?evMass/activeMass:null,dealt:evMass/1326,
          loss:loss/1326,missed:missed/1326,known,activeMass};
 }
+// Weighted chip-EV review of the current ACTION range.  The per-hand EV
+// comes from real simulated postflop decisions; Fold is zero realization,
+// and hypothetical EV for omitted hands is a missed *candidate*, not profit.
+function strategyRangeEvBreakdown(doc,values){
+ if(!doc||!values)return null;
+ let playedMass=0,weightedEV=0,loss=0,missed=0,knownCombos=0;
+ let knownClasses=0,unknownClasses=0,positivePlayed=0,negativePlayed=0;
+ for(const hand of HANDS){
+  const actions=doc.hands?.[hand];
+  const amount=values[hand];
+  if(!actions||!Object.keys(actions).length||!Number.isFinite(amount)){
+   unknownClasses++;continue;
+  }
+  const combos=COMBOS(hand);
+  const participation=knownActivePercent(doc,hand)/100;
+  const excluded=1-participation;
+  playedMass+=combos*participation;
+  weightedEV+=combos*participation*amount;
+  loss+=combos*participation*Math.max(0,-amount);
+  missed+=combos*excluded*Math.max(0,amount);
+  if(participation>0){if(amount>0)positivePlayed++;if(amount<0)negativePlayed++}
+  knownCombos+=combos;knownClasses++;
+ }
+ return {played:playedMass?weightedEV/playedMass:null,
+         dealt:weightedEV/1326,loss:loss/1326,missed:missed/1326,
+         known:knownCombos,knownClasses,unknownClasses,playedMass,
+         positivePlayed,negativePlayed};
+}
 function renderRangeEV(){
- const enabled=$('cellMetric').value==='evAllIn';
+ const metric=$('cellMetric').value;
+ const enabled=metric==='evStrategy'||metric==='evAllIn';
  $('rangeEvSummary').classList.toggle('hidden',!enabled);
  $('rangeEvNote').classList.toggle('hidden',!enabled);
  if(!enabled)return;
- const summary=rangeEvBreakdown(hero,equityResults.actual?.equity,
-   Number($('stack').value),Number($('allInDead').value),currentPeople().length,
-   equityResults.actual?.pot_multiple);
+ const isPostflop=metric==='evStrategy';
+ const summary=isPostflop
+  ?strategyRangeEvBreakdown(hero,equityResults.filter?.ev_bb)
+  :rangeEvBreakdown(hero,equityResults.actual?.equity,
+    Number($('stack').value),Number($('allInDead').value),
+    currentPeople().length,equityResults.actual?.pot_multiple);
  const fmt=v=>Number.isFinite(v)?(v>0?'+':'')+v.toFixed(3)+' BB':'—';
  $('rangeEvPlayed').textContent=fmt(summary?.played);
  $('rangeEvDealt').textContent=fmt(summary?.dealt);
  $('rangeEvNegative').textContent=fmt(summary?.loss);
  $('rangeEvMissed').textContent=fmt(summary?.missed);
- $('rangeEvNote').textContent='Диагностика условного all-in (не фактический EV стратегии). Показано '+
-  (summary?summary.known+'/1326 известных комбинаций. ':'— — сначала рассчитай Monte Carlo. ')+
-  'Частоты входа учтены. Неизвестные руки не считаются Fold; оценка условная, без ICM, фолд-эквити и постфлопа. '+
-  'EV при ≥1 вошедшем сопернике учитывает переменное число участников и размер банка. При нуле вошедших прибыль от сбросов не моделируется. Оценка по per-hand MC приближённая: card-removal между диапазонами отдельно не переоценивается.';
+ $('rangeEvNote').textContent=isPostflop
+ ?('Postflop chip EV: '+(summary
+   ?summary.knownClasses+'/169 известных классов, '+summary.known+'/1326 комбо. '
+   :'Нажми «Рассчитать Equity + Postflop EV», чтобы получить результаты. ')
+   +'EV/сыгранную руку взвешено по 4/6/12 комбо и частотам. EV/раздачу делится на 1326: Fold=0; неуказанные руки не предполагаются фолдом. '
+   +'Убыток и потенциальный упущенный EV — модельные диагностические оценки, не фактическая прибыль от замены рук. '
+   +'Рейз Hero и вход соперников на префлопе стандартизированы; нет ICM, выборочной ошибки и доверительных интервалов.')
+ :('Диагностика условного all-in: '+(summary?summary.known+'/1326 комбинаций. ':'нужен расчёт. ')
+   +'Не является фактическим EV постфлоп-стратегии.');
 }
 
 function handMetricsRows(hand,doc){
@@ -1090,6 +1202,12 @@ function handMetricsRows(hand,doc){
   }
   pair('Equity · текущий фильтр',f(filterEq));
   pair('Equity · выбранные соперники',f(multiEq));
+  const postEV=equityResults.filter?.ev_bb?.[hand];
+  const showdown=equityResults.filter?.showdown_pct?.[hand];
+  const foldWin=equityResults.filter?.fold_win_pct?.[hand];
+  pair('Postflop EV розыгрыша',Number.isFinite(postEV)?(postEV>0?'+':'')+postEV.toFixed(3)+' BB':'—');
+  pair('Дошли до вскрытия',f(showdown));
+  pair('Выигрыш без вскрытия',f(foldWin));
   if(Number.isFinite(anyEq))pair('Equity · Any Two',f(anyEq));
   const groupEq=groupWeightedEquity(box);
   pair('Equity A17 · взвешенное',f(groupEq));
@@ -1132,7 +1250,7 @@ function showHandHover(hand,doc,event){
   const line=el('div','handHoverLine');
   line.append(el('span','',name),el('strong','',value));card.append(line);
  }
- const note=el('div','handHoverSub','Equity — доля банка при выставлении. EV — модель chipEV; отсутствие расчёта обозначено «—».');
+ const note=el('div','handHoverSub','Showdown Equity — доля банка при вскрытии без фолдов. Postflop EV — модельная чистая прибыль в BB с торговлей. Результаты приблизительные; «—» означает отсутствие расчёта.');
  note.style.marginTop='9px';card.append(note);
  card.hidden=false;positionHandHover(event);
 }
@@ -1209,20 +1327,33 @@ function cellMetricValue(doc,h,metric){
 // Equal-size one-to-one swaps avoid highlighting all 169 hands for one outlier.
 function candidateSwaps(metric){
  const gold=new Set(),red=new Set();
- if(!hero||!['equity','evCall','evAllIn'].includes(metric))return {gold,red};
- const selectedHands=[],excluded=[];
+ if(!hero||!['equity','evCall','evAllIn','evStrategy'].includes(metric))return {gold,red};
+ const included=[],excluded=[];
  for(const h of HANDS){
   const participation=knownActivePercent(hero,h);
-  if(participation===null)continue; // unknown is not Fold
+  if(participation===null)continue;
   const v=cellMetricValue(hero,h,metric).value;
   if(!Number.isFinite(v))continue;
-  (participation>0?selectedHands:excluded).push({hand:h,value:v});
+  (participation>0?included:excluded).push({hand:h,value:v});
  }
- selectedHands.sort((a,b)=>a.value-b.value||a.hand.localeCompare(b.hand));
+ included.sort((a,b)=>a.value-b.value||a.hand.localeCompare(b.hand));
  excluded.sort((a,b)=>b.value-a.value||a.hand.localeCompare(b.hand));
- for(let i=0;i<Math.min(selectedHands.length,excluded.length);i++){
-  if(excluded[i].value<=selectedHands[i].value+1e-7)break;
-  gold.add(excluded[i].hand);red.add(selectedHands[i].hand);
+ if(metric==='evStrategy'){
+  // Absolute-sign review remains useful even when every class is played.
+  // Avoid flagging tiny Monte Carlo deviations around break-even.
+  const threshold=.25;  // BB/hand; a heuristic, NOT a confidence interval.
+  for(const item of included.filter(x=>x.value < -threshold).slice(0,12))red.add(item.hand);
+  for(const item of excluded.filter(x=>x.value > threshold).slice(0,12))gold.add(item.hand);
+  // Also identify the clearest one-for-one range replacements.
+  for(let i=0;i<Math.min(12,included.length,excluded.length);i++){
+   if(excluded[i].value - included[i].value <= threshold)break;
+   red.add(included[i].hand);gold.add(excluded[i].hand);
+  }
+  return {gold,red};
+ }
+ for(let i=0;i<Math.min(included.length,excluded.length);i++){
+  if(excluded[i].value<=included[i].value+1e-7)break;
+  gold.add(excluded[i].hand);red.add(included[i].hand);
  }
  return {gold,red};
 }
@@ -1245,7 +1376,7 @@ function visibleMetricScale(metric,docs){
 }
 function metricTextColor(metric,value,scale){
  if(!Number.isFinite(value)||!scale||['none','box','action'].includes(metric))return '';
- if(['evAllIn','evCall','delta'].includes(metric)){
+ if(['evStrategy','evAllIn','evCall','delta'].includes(metric)){
   if(Math.abs(value)<0.000001)return '#d7e1ee';
   const limit=value<0?scale.negativeMax:scale.positiveMax;
   const intensity=limit>0?Math.min(1,Math.abs(value)/limit):0;
@@ -1478,6 +1609,7 @@ function renderSliderNumbers(values){
  for(const input of $('actionInputs').querySelectorAll('input[data-action]')){
   const n=values[input.dataset.action]||0;
   input.value=String(n);
+  input.style.setProperty('--slider-percent',n+'%');
   const output=input.parentNode.querySelector('strong[data-value]');
   if(output)output.textContent=n+'%';
  }
@@ -1526,6 +1658,7 @@ function paintEditor(){
   const input=el('input');input.id='frequency_'+key;
   input.type='range';input.min='0';input.max='100';input.step='25';
   input.dataset.action=key;input.value=values[key];
+  input.style.setProperty('--slider-percent',values[key]+'%');
   input.oninput=()=>applySliderInput(key,input);
   input.onchange=()=>{sliderGesture=false;paintEditor()};
   const ticks=el('div','actionSliderTicks');
