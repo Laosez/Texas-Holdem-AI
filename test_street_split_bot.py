@@ -27,7 +27,7 @@ class TestStreetSplitBot(unittest.TestCase):
         post = _CounterBot("call")
         mix = StreetSplitBot(pre, post, preflop_name="gto", postflop_name="tag_punisher")
         for street in ("preflop", "flop", "turn", "river"):
-            view = SimpleNamespace(street=street, history=[{"street": "preflop"}])
+            view = SimpleNamespace(street=street,position="9",history=[{"street": "preflop"}])
             decision = mix.act(view)
             self.assertEqual(decision.type, "fold" if street == "preflop" else "call")
             self.assertIs((pre.views if street == "preflop" else post.views)[-1], view)
@@ -82,7 +82,7 @@ class TestStreetSplitBot(unittest.TestCase):
         # Confirm routing: preflop cannot reach RandomBot.
         with patch.object(bot.preflop_bot, "act", return_value=Action("fold")) as pre:
             with patch.object(bot.postflop_bot, "act") as post:
-                preflop_view = SimpleNamespace(street="preflop")
+                preflop_view = SimpleNamespace(street="preflop",position="9")
                 self.assertEqual(bot.act(preflop_view), Action("fold"))
                 pre.assert_called_once_with(preflop_view)
                 post.assert_not_called()
