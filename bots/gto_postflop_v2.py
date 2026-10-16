@@ -32,6 +32,13 @@ class GTOPostflopV2Bot(PostflopProfileBot):
         if not any(n >= 2 for n in counts.values()):
             return read
 
+        # River: if the board's five cards already play as the best hand,
+        # the hole pocket contributes no value at all. Preserve V1 "air".
+        if len(board) == 5:
+            from core.engine import eval_hand
+            if eval_hand(cards, board) == eval_hand([], board):
+                return read
+
         pocket_rank = _RANK[cards[0][0]]
         public_max = max(_RANK[c[0]] for c in board)
         if pocket_rank > public_max:
