@@ -13,6 +13,7 @@
     "smart",
     "gto_postflop_v1",
     "gto_postflop_v2",
+    "gto_postflop_v3",
     "lag_postflop_v1",
     "tag_punisher",
     "wide_defender",
