@@ -833,21 +833,46 @@ function refreshEntryHints(){
    :opp.entry_mode==='never'?'Не участвует в банке: 0%.':'Участие всегда: 100%.';
  }
 }
+const SIM_COUNTS=[250,500,1000,2000,4000,8000,16000,32000,64000];
 function renderEntryDistribution(){
- const target=$('entryDistribution');if(!target)return;
- target.replaceChildren();
- const result=equityResults.actual||equityResults.filter;
- const percentages=result?.entry_counts_pct;
- if(!Array.isArray(percentages)){
-  target.textContent='После Monte Carlo появятся вероятности от 0 до '+$('oppCount').value+' активных оппонентов.';
+ const root=$('entryDistribution');if(!root)return;
+ root.replaceChildren();
+ const data=equityResults.actual||equityResults.filter,prob=data?.entry_counts_pct;
+ if(!Array.isArray(prob)){
+  root.textContent='После Monte Carlo появятся частоты, средний финальный банк и погрешности EV.';
+  $('entryDistributionNote').textContent='Точность можно оценить только по разбросу фактических net BB, а не по размеру банка.';
   return;
  }
- percentages.forEach((value,index)=>{
-  const cell=el('span','entryCell');
-  cell.textContent=index+' соп. · '+Number(value).toFixed(1)+'%';target.append(cell);
+ const targetN=Number($('entryPrecisionTrials').value)||1000;
+ const table=el('table',''),thead=el('thead'),row=el('tr');
+ for(const h of ['Активных соперников','Вероятность','Случаев','Средний банк, BB','±95% EV, BB при '+targetN.toLocaleString('ru-RU')]){
+  row.append(el('th','',h));
+ }
+ thead.append(row);table.append(thead);
+ const body=el('tbody');
+ prob.forEach((pct,k)=>{
+  const tr=el('tr');
+  const n=data.entry_n_samples?.[k]||0;
+  const pot=data.entry_pot_bb?.[k],sigma=data.entry_ev_sd_bb?.[k];
+  // Forecast CI of conditional chip EV, not a CI derived from pot size.
+  // Expected number of this stratum in a target-N single-hand sample.
+  const expected=targetN*Number(pct)/100;
+  const estimate=Number.isFinite(sigma)&&n>=30&&expected>=30
+   ?1.96*sigma/Math.sqrt(expected):null;
+  for(const value of [
+   k+' соп.',Number(pct).toFixed(1)+'%',String(n),
+   Number.isFinite(pot)?Number(pot).toFixed(2):'—',
+   estimate===null?'— (мало данных)':'±'+estimate.toFixed(3)
+  ])tr.append(el('td','',value));
+  body.append(tr);
  });
- $('entryDistributionNote').textContent='Все сбросили: '+Number(percentages[0]).toFixed(1)+
-  '%. Equity матрицы условно на ≥1 активного соперника. Вероятности с учётом блокеров наших карт; до 8 оппонентов.';
+ table.append(body);root.append(table);
+ $('entryDistributionNote').textContent=
+  'Банк — реальный финальный пот, включая ставки всех игроков. ±95% — прогноз '
+  +'погрешности условного chip EV при '+targetN.toLocaleString('ru-RU')
+  +' симуляциях одной руки: 1,96 × σ/√(N × P). '
+  +'σ оценивается по прошлой выборке; при анализе всей матрицы включает различия между руками. '
+  +'Редкие строки скрыты при <30 наблюдениях или ожидаемых случаях.';
 }
 function updateOpponentButtons(){
  $('oppCount').value=String(opponents.length);
@@ -2156,6 +2181,11 @@ $('computeVillainReverse').onclick=runOpponentReverse;
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
+$('entryPrecisionTrials').onchange=renderEntryDistribution;
+$('trials').onchange=()=>{
+ $('entryPrecisionTrials').value=$('trials').value;
+ invalidateEquity();
+};
 $('brushInspect').onclick=()=>{finishBoxStroke();brushMode='inspect';drawMatrices();updateBrushControls()};
 $('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControls()};
 $('brushTarget').onchange=()=>{brushTarget=Number($('brushTarget').value);drawBoxes();drawMatrices()};
