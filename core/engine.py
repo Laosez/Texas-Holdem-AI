@@ -117,7 +117,15 @@ def _load_or_build_five_card_table() -> dict:
     print(f"[engine] Table cached to {_TABLE_CACHE}", flush=True)
     return table
 
-_FIVE_CARD_TABLE: dict = _load_or_build_five_card_table()
+# Load the legacy lookup only if the legacy evaluator is explicitly used.
+# Importing core.engine must not allocate 2,598,960 Python dictionary entries.
+_FIVE_CARD_TABLE: Optional[dict] = None
+
+def _get_five_card_table() -> dict:
+    global _FIVE_CARD_TABLE
+    if _FIVE_CARD_TABLE is None:
+        _FIVE_CARD_TABLE = _load_or_build_five_card_table()
+    return _FIVE_CARD_TABLE
 
 
 def _score_five(cards: List[Card]) -> int:
@@ -126,10 +134,10 @@ def _score_five(cards: List[Card]) -> int:
     Higher = better.  Same output range as the original computation.
     """
     key = tuple(sorted(cards, key=lambda c: (-RANK_TO_INT[c[0]], c[1])))
-    return _FIVE_CARD_TABLE[key]
+    return _get_five_card_table()[key]
 
 
-def eval_hand(hole: List[Card], board: List[Card]) -> int:
+def _legacy_eval_hand(hole: List[Card], board: List[Card]) -> int:
     """
     Pure-Python 5-card hand evaluator. No external dependencies.
     Returns an integer where higher = better.
@@ -146,6 +154,22 @@ def eval_hand(hole: List[Card], board: List[Card]) -> int:
     if len(ranks) == 2 and ranks[0] == ranks[1]:
         base += 40
     return base
+
+from core.fast_eval import fast_eval_hand
+
+# The default path uses a compact direct evaluator and never needs the giant
+# lookup dictionary. Set THAI_HAND_EVALUATOR=legacy *before starting Python*
+# to restore the historical evaluator for compatibility/debugging.
+_HAND_EVAL_MODE = os.environ.get("THAI_HAND_EVALUATOR", "fast").lower()
+if _HAND_EVAL_MODE not in ("fast", "legacy"):
+    raise ValueError("THAI_HAND_EVALUATOR must be 'fast' or 'legacy'")
+_SELECTED_EVALUATOR = _legacy_eval_hand if _HAND_EVAL_MODE == "legacy" else fast_eval_hand
+
+
+def eval_hand(hole: List[Card], board: List[Card]) -> int:
+    """Evaluate a Texas Hold'em hand, with a fast-by-default legacy fallback."""
+    return _SELECTED_EVALUATOR(hole, board)
+
 
 def _compute_to_call(contrib, alive_pids, pid):
     """
