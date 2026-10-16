@@ -17,7 +17,8 @@ jobs:
           python-version: '3.11'
       - name: Run paired-deal pocket pair experiment
         run: |
-          python -u experiments/low_pair_gto_ab.py --samples 650 | tee low_pairs_ab.txt
+          set -o pipefail
+          PYTHONPATH=. python -u experiments/low_pair_gto_ab.py --samples 650 | tee low_pairs_ab.txt
       - name: Publish structured results
         uses: actions/upload-artifact@v4
         with:
