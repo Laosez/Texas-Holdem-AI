@@ -481,6 +481,25 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .handDecompEmpty{color:#a9bdce;padding:15px 4px}
 .handDecompCaveat{font-size:11px;line-height:1.6;margin-top:10px}
 @media(max-width:700px){.handDecompControls{align-items:stretch}.handDecompControls .small{text-align:left}}
+
+/* 169-hand EV is the sole visible matrix metric; A17 boxes remain drag/drop. */
+#groupEditor>summary,#groupEditor>.a17Workbench>.heading,
+#groupEditor .brushbar,#brushHint,#groupEditor .boxInstructions{display:none!important}
+#groupEditor{margin-top:5px}
+#groupEditor>.a17Workbench{margin:0}
+.entryPrecisionTools{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;margin:8px 0}
+.entryPrecisionTools label{font-size:11px;color:#bfd1e2}
+.entryPrecisionTools select{width:128px;min-width:100px;padding:5px 8px}
+.entryDistributionTable{max-width:100%;overflow-x:auto}
+.entryDistributionTable table{border-collapse:collapse;width:100%;font-size:11px;min-width:520px}
+.entryDistributionTable th,.entryDistributionTable td{padding:7px 8px;border-bottom:1px solid #344b65}
+.entryDistributionTable th{text-align:right;color:#b4cbe0}
+.entryDistributionTable th:first-child,.entryDistributionTable td:first-child{text-align:left}
+.entryDistributionTable td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.handDecompTable th button{border:0;background:none;color:inherit;font:inherit;font-weight:inherit;cursor:pointer;text-align:inherit;padding:3px}
+.handDecompTable th button:hover{text-decoration:underline}
+.handDecompTable tr.decompLoss td{color:#ef9eaa}
+.handDecompTable tr.decompPositive td{color:#98d9ba}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -512,12 +531,17 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">До 8 диапазонов · Multiway</span></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
-<div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div id="entryDistribution" class="entryRow">Сначала рассчитай Monte Carlo.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
+<div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div class="entryPrecisionTools"><label for="entryPrecisionTrials">Погрешность EV при числе симуляций на руку</label>
+<select id="entryPrecisionTrials"><option value="250">250</option><option value="500">500</option><option value="1000" selected>1 000</option><option value="2000">2 000</option><option value="4000">4 000</option><option value="8000">8 000</option><option value="16000">16 000</option><option value="32000">32 000</option><option value="64000">64 000</option></select></div>
+<div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
 <p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div>
 <div class="equityInsideOpponents">
 <div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
 <select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
-<div class="filterTop"><div class="field"><label for="trials">Симуляций / цикл</label><select id="trials"><option value="100">100 / руку · черновик</option><option value="200" selected>200 / руку · быстро</option><option value="500">500 / руку</option><option value="1000">1000 / руку</option></select></div><div class="field"><label for="cycles">Независимые циклы</label><select id="cycles"><option value="1">1 цикл</option><option value="2">2 цикла</option><option value="3">3 цикла</option><option value="4">4 цикла</option></select></div><button class="btn primary" id="computeAll" type="button">Рассчитать Equity + Postflop EV</button></div>
+<div class="filterTop"><div class="field"><label for="trials">Количество симуляций / руку</label><select id="trials">
+<option value="250">250 · обзор</option><option value="500">500</option><option value="1000" selected>1 000 · стандарт</option><option value="2000">2 000</option><option value="4000">4 000 · матрица 169 рук</option>
+<option value="8000">8 000 · выбранная рука</option><option value="16000">16 000 · выбранная рука</option><option value="32000">32 000 · выбранная рука</option><option value="64000">64 000 · выбранная рука</option>
+</select></div><input id="cycles" type="hidden" value="1"><button class="btn primary" id="computeAll" type="button">Рассчитать Equity + Postflop EV</button></div><p class="small">До 4 000 симуляций — полная матрица 169 рук; 8 000–64 000 — автоматический подробный анализ при выборе одной руки. Циклы объединены в одно N; это были независимые повторы, а не потоки.</p>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div>
 <p id="equityStatus" class="note">Equity и EV рассчитываются против указанных диапазонов и постфлоп-стратегий. «Не учитывать» оставляет только showdown equity.</p>
 </div>
@@ -525,7 +549,8 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 </section>
 <div class="plannerWorkspace">
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><span class="small">Синий — входит в диапазон · серый — не входит</span></div>
-<div class="matrixOptions matrixOwnControls"><label for="cellMetric">Показатель в матрице</label><select id="cellMetric"><option value="equity" selected>Showdown Equity %</option><option value="evStrategy">EV розыгрыша · BB</option><option value="showdownRate">Дошли до вскрытия %</option><option value="none">Без числа</option></select><span class="small">Синяя заливка — руки, входящие в мой диапазон</span></div>
+<select id="cellMetric" class="hidden" aria-label="Показатель матрицы зафиксирован"><option value="evStrategy" selected>EV розыгрыша · BB</option></select>
+<p class="small" style="margin:0 0 10px">Число в каждой руке — EV розыгрыша, BB. Синяя заливка — руки моего диапазона.</p>
 <div id="rangeIntersectionStats" class="small" role="status" style="margin:-2px 0 5px">Выбери соперника для сравнения диапазонов.</div>
 <div id="intersectionKey" class="intersectionKey hidden" aria-label="Цветовая легенда пересечения">
 <span><span class="rangeSwatch both"><span class="intersectionTriangle upper"></span><span class="intersectionTriangle lower"></span></span>Оба · синий + красный</span>
@@ -613,19 +638,14 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  <div class="handDecompHeader">
   <div><span class="small">Выбранная рука</span><div id="handDecompName" class="bigHand">AQs</div>
    <p class="small">Итоговый chip EV и диагностика доминирования — по реальным исходам симуляции, не по оценке одной комбинации.</p></div>
-  <div class="handDecompControls"><button class="btn primary" id="handDecompRun" type="button">Разобрать EV выбранной руки</button><span id="handDecompStatus" class="small" role="status">Выбери руку на матрице и запусти анализ.</span></div>
+  <div class="handDecompControls"><span id="handDecompStatus" class="small" role="status">Нажми на руку на матрице — декомпозиция рассчитается автоматически.</span></div>
  </div>
  <div class="matrixMetrics handDecompStats">
   <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
-  <div class="matrixMetric"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small>BB/раздачу · наблюдаемый убыток</small></div>
+  <div class="matrixMetric"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small id="handDecompCostLabel">BB/раздачу · наблюдаемый убыток</small></div>
   <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>симулированных раздач, включая фолды</small></div>
  </div>
- <div class="handDecompTabs" role="group" aria-label="Разделы декомпозиции">
-  <button class="btn sm primary" type="button" data-hand-decomp-tab="sources" aria-pressed="true">Источники EV</button>
-  <button class="btn sm ghost" type="button" data-hand-decomp-tab="domination" aria-pressed="false">Доминирование / флеши</button>
-  <button class="btn sm ghost" type="button" data-hand-decomp-tab="losses" aria-pressed="false">Самые дорогие потери</button>
- </div>
- <div id="handDecompRows" class="handDecompRows"><p class="note">Пока нет анализа. Нажми «Разобрать EV выбранной руки» — будет выполнена отдельная симуляция выбранной руки против указанных соперников.</p></div>
+ <div id="handDecompRows" class="handDecompRows"><p class="note">Выбери руку на матрице для автоматического расчёта источников EV.</p></div>
  <p class="note handDecompCaveat">Стоимость потерь — фактический отрицательный net BB на первоначальную раздачу в выбранной модели, а не доказанная ошибка принятого решения. Чтобы измерить стоимость ошибки, потребуется сравнить альтернативные действия при одинаковом состоянии стола. Анализ не включает ICM и не заменяет солвер.</p>
 </section>
 
