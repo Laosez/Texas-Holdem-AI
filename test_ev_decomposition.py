@@ -16,9 +16,9 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertEqual(classify_showdown(hero,[lower],board,hero_won=True)[2],"lower_flush")
         self.assertEqual(classify_showdown(hero,[upper],board,hero_won=False)[1],"higher_flush")
         self.assertEqual(classify_showdown(hero,[upper],board,hero_won=False)[2],"higher_flush")
-        tied=[("K","d"),("4","d")]
-        river_flush=[("A","s"),("K","s"),("Q","s"),("J","s"),("T","s")]
-        self.assertEqual(classify_showdown(hero,[tied],river_flush,hero_won=True)[2],
+        tied=[("Q","h"),("3","h")]
+        river_flush=[("A","s"),("J","s"),("9","s"),("5","s"),("2","s")]
+        self.assertEqual(classify_showdown([("K","d"),("4","d")],[tied],river_flush,hero_won=True)[2],
                          "equal_flush")
 
     def test_kicker_and_higher_pair_losses(self):
