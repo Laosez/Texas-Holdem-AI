@@ -106,6 +106,7 @@ class _Policy:
         self.hero = hero
         self.opened = False
         self.folded_after_flop = False
+        self.fold_street = None
 
     def act(self, view):
         from core.bot_api import Action
@@ -125,6 +126,7 @@ class _Policy:
         action = self.postflop.act(view)
         if self.hero and action.type == "fold":
             self.folded_after_flop = True
+            self.fold_street = view.street
         return action
 
 
@@ -169,7 +171,7 @@ def _showdown_share(picked, board):
     return 1. / (1. + sum(score == best for score in others)) if own == best else 0.
 
 
-def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed):
+def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, detail=False):
     """One complete legal preflop-to-river betting hand with sampled cards."""
     from core.engine import Seat, Table
 
@@ -188,6 +190,9 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed):
     history = {"showdown": False}
     def finish(hand_id, net, bb, players, winners):
         history["showdown"] = bool(players)
+        if detail:
+            history["players"] = tuple(players)
+            history["winners"] = tuple(winners)
     table.on_hand_end = finish
 
     chips = int(stack_bb) * 2
@@ -196,7 +201,13 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed):
                               dealer_index=0, bot_for=policies)
     if sum(outcome.values()) != 0:
         raise RuntimeError("Payout conservation failed")
-    return outcome["HERO"] / 2., history["showdown"] and not policies["HERO"].folded_after_flop
+    chip_ev = outcome["HERO"] / 2.
+    showdown = history["showdown"] and not policies["HERO"].folded_after_flop
+    if detail:
+        from planner_ev_decomposition import classify_case
+        return chip_ev, showdown, classify_case(
+            picked, board, history, policies["HERO"].fold_street, chip_ev)
+    return chip_ev, showdown
 
 
 def calculate(raw, progress=None):
@@ -215,6 +226,12 @@ def calculate(raw, progress=None):
                        "Chip EV в BB при выбранных диапазонах, принудительном входе и стандартном hero open; без ICM и оптимизации префлопа"),
               "opponents": provenance}
     selected_hands = [payload["hand"]] if payload["hand"] else core.HANDS
+    # Detailed outcomes only for the one selected hand, to keep 169-hand
+    # matrix runs compact and avoid coupling existing benchmark callers.
+    decomposition = None
+    if payload["hand"] and not disabled:
+        from planner_ev_decomposition import EVDecomposition
+        decomposition = EVDecomposition(payload["hand"])
     # Common random *deals* for all postflop policies: switching GTO/TAG/LAG
     # does not re-roll hole cards, entrants or board. Action randomness is
     # independent of the deal stream.
@@ -244,17 +261,23 @@ def calculate(raw, progress=None):
                 if not disabled:
                     ev_total += 1.5
                     fold_win_total += 1
+                    if decomposition:
+                        decomposition.add(1.5,"uncontested")
                 samples += 1
                 continue
             result["equity"].setdefault(hand, 0.)
             result["equity"][hand] += _showdown_share(picked, board)
             accepted += 1
             if not disabled:
-                chip_ev, at_showdown = _play_case(
+                rollout = _play_case(
                     picked, board, payload["hero_postflop"],
                     payload["hero_position"], payload["hero_stack_bb"],
-                    policy_seed_rng.randrange(1 << 50)
+                    policy_seed_rng.randrange(1 << 50), detail=bool(decomposition)
                 )
+                chip_ev, at_showdown = rollout[:2]
+                if decomposition:
+                    event,risk,flush = rollout[2]
+                    decomposition.add(chip_ev,event,risk=risk,flush=flush)
                 ev_total += chip_ev
                 showdown_total += at_showdown
                 fold_win_total += bool(not at_showdown and chip_ev > 0)
@@ -267,6 +290,8 @@ def calculate(raw, progress=None):
         result["fold_win_pct"][hand] = round(100 * fold_win_total / n, 2) if not disabled else None
         if progress:
             progress(index + 1, len(selected_hands))
+    if payload["hand"]:
+        result["decomposition"] = decomposition.result() if decomposition else None
     total_entries = sum(entry_counts)
     result["entry_counts_pct"] = [round(100 * x / total_entries, 2)
                                    for x in entry_counts]
