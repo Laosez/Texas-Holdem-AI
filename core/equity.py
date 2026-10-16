@@ -44,7 +44,7 @@ def equity(hole_cards, board, n_opponents, n_sims=100, rng=None, evaluator=None)
     if evaluator is None:
         # Fast direct 5–7 card evaluator by default. Roll back without code changes:
         # THAI_EQUITY_EVALUATOR=legacy
-        eval_mode = os.environ.get("THAI_EQUITY_EVALUATOR", "fast").lower()
+        eval_mode = os.environ.get("THAI_EQUITY_EVALUATOR", os.environ.get("THAI_HAND_EVALUATOR", "fast")).lower()
         if eval_mode not in ("fast", "legacy"):
             raise ValueError("THAI_EQUITY_EVALUATOR must be 'fast' or 'legacy'")
         score_hand = _legacy_eval_hand if eval_mode == "legacy" else fast_eval_hand
