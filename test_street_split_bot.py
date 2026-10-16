@@ -87,6 +87,30 @@ class TestStreetSplitBot(unittest.TestCase):
                 pre.assert_called_once_with(preflop_view)
                 post.assert_not_called()
 
+    def test_fully_random_preflop_not_replaced_by_standard_v1(self):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"POKER_PREFLOP_PROTOCOL": "standard_v1"}):
+            bot = create_bot("split:random:random")
+            self.assertEqual((bot.preflop_name, bot.postflop_name), ("random", "random"))
+            self.assertEqual(bot.preflop_protocol, "standard_v1")
+            for street in ("preflop", "flop", "turn", "river"):
+                with patch("bots.standard_preflop.response_action",
+                           side_effect=AssertionError("Random must bypass V1")):
+                    result = bot.act(SimpleNamespace(
+                        street=street,legal_actions=[{"type":"check"}]))
+                self.assertEqual(result, Action("check"))
+
+    def test_random_preflop_can_pair_with_nonrandom_postflop(self):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"POKER_PREFLOP_PROTOCOL": "standard_v1"}):
+            bot = create_bot("split:random:gto_postflop_v2")
+            self.assertEqual(bot.preflop_name, "random")
+            self.assertEqual(bot.postflop_name, "gto_postflop_v2")
+            self.assertEqual(bot.act(SimpleNamespace(
+                street="preflop",legal_actions=[{"type":"check"}])), Action("check"))
+
     def test_maniac_mixed_postflop_uses_distinct_preset(self):
         mixed = create_bot("split:gto:maniac_mixed")
         trigger = create_bot("split:gto:maniac")
