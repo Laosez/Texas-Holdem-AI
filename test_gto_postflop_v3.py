@@ -81,7 +81,7 @@ class GTOV3Tests(unittest.TestCase):
         self.assertEqual(ev.PROFILE_NAMES["gto3"],"gto_postflop_v3")
         page=app.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('option value="gto3"',page)
-        self.assertIn("{value:'gto3',label:'GTO V3'}",page)
+        self.assertIn("{value:'gto3',label:'GTO V3 · эксперимент'}",page)
         self.assertIn("hero_postflop:$('heroPostflop').value",page)
         self.assertIn("gto_postflop_v3",app.UI.read_text(encoding="utf-8"))
 
