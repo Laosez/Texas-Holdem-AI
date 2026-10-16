@@ -23,9 +23,10 @@ class PlanEVWorkflowTests(unittest.TestCase):
     def test_deep_single_hand_contract_matrix_budget(self):
         data=ev.validate_request(request(trials=64000))
         self.assertEqual(data["trials"],64000)
-        with self.assertRaisesRegex(ValueError,"Полная матрица 169 рук"):
-            ev.validate_request(request(hand=None,trials=8000))
-        self.assertEqual(ev.validate_request(request(hand=None,trials=4000))["trials"],4000)
+        self.assertEqual(ev.validate_request(request(hand=None,trials=8000))["trials"],8000)
+        self.assertEqual(ev.validate_request(request(hand=None,trials=64000))["trials"],64000)
+        with self.assertRaisesRegex(ValueError,"50–64000"):
+            ev.validate_request(request(hand=None,trials=64001))
 
     def test_true_final_pot_and_ci_from_same_rollouts(self):
         result=ev.calculate(request(trials=250))

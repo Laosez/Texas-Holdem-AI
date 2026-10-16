@@ -543,9 +543,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
 <select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
 <div class="filterTop"><div class="field"><label for="trials">Количество симуляций / руку</label><select id="trials">
-<option value="250">250 · обзор</option><option value="500">500</option><option value="1000" selected>1 000 · стандарт</option><option value="2000">2 000</option><option value="4000">4 000 · матрица 169 рук</option>
-<option value="8000">8 000 · выбранная рука</option><option value="16000">16 000 · выбранная рука</option><option value="32000">32 000 · выбранная рука</option><option value="64000">64 000 · выбранная рука</option>
-</select></div><input id="cycles" type="hidden" value="1"><button class="btn primary" id="computeAll" type="button">Рассчитать Equity + Postflop EV</button></div><p class="small">До 4 000 симуляций — полная матрица 169 рук; 8 000–64 000 — автоматический подробный анализ при выборе одной руки. Циклы объединены в одно N; это были независимые повторы, а не потоки.</p>
+<option value="250">250 · обзор</option><option value="500">500</option><option value="1000" selected>1 000 · стандарт</option><option value="2000">2 000</option><option value="4000">4 000</option>
+<option value="8000">8 000</option><option value="16000">16 000 · точный расчёт</option><option value="32000">32 000 · длительный</option><option value="64000">64 000 · максимальная точность</option>
+</select></div><input id="cycles" type="hidden" value="1"><button class="btn primary" id="computeAll" type="button">Рассчитать Equity + Postflop EV</button></div><p class="small">Вся матрица 169 рук доступна при N = 250–64 000 на руку. Для больших N используются параллельные CPU-процессы по доступным ресурсам Railway. N × 169 — общее число раздач; N ≥ 16 000 создаёт высокую вычислительную нагрузку. Подробный анализ выбранной руки рассчитывается отдельно. Циклов нет.</p>
 <div class="progress" style="margin-top:9px"><div id="equityFill"></div></div>
 <p id="equityStatus" class="note">Equity и EV рассчитываются против указанных диапазонов и постфлоп-стратегий. «Не учитывать» оставляет только showdown equity.</p>
 </div>
@@ -1864,7 +1864,8 @@ async function runOpponentReverse(){
  calculatingReverse=true;drawMatrices();
  try{
   let job=await post('/api/plan/equity',{
-   model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),
+   // This is the legacy all-in HU comparator, not the deeper postflop EV matrix.
+   model:'selected',trials:Math.min(2000,Number($('trials').value)),cycles:Number($('cycles').value),
    opponents:[{profile:'inline:hero',position:hero.position,scenario:hero.scenario,
                players:hero.players,selector:'active',weights}]
   });
@@ -2040,13 +2041,6 @@ async function pollPostflop(settings,epoch,report){
  return job.result;
 }
 async function calculateFullPostflop(people){
- if(Number($('trials').value)>4000){
-  const message='Матрица 169 рук: максимум 4 000 симуляций на руку. '
-   +'Сейчас выбрано '+Number($('trials').value).toLocaleString('ru-RU')
-   +' для глубокого автоматического анализа одной выбранной руки.';
-  $('equityStatus').textContent=message;msg(message,true);
-  return null;
- }
  const epoch=calcEpoch;
  try{
   $('equityFill').style.width='0%';
