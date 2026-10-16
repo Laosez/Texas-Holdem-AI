@@ -181,6 +181,33 @@ def _schedule(identity,compute,total):
         return public_task(job)
 
 
+def start_postflop_ev(raw,busy=False):
+    """Run full multi-street line simulation; separate from historic all-in equity."""
+    if busy:
+        raise RuntimeError("Заверши турнирную серию перед запуском постфлоп EV")
+    from planner_postflop_ev import validate_request,calculate
+    payload=validate_request(raw)
+    equity.build_ranges(payload["opponents"], "selected")
+    # Pin to exact current range revisions + policy implementation hashes.
+    digest=hashlib.sha256()
+    for name in ("planner_postflop_ev.py","bots/postflop_profiles.py",
+                 "bots/postflop_archetypes_v1.py","core/engine.py"):
+        digest.update((core.ROOT/name).read_bytes())
+    key={
+        "type":"postflop_line_rollout_v1",
+        "ranges":_query_identity(payload),
+        "hero":payload["hero_postflop"],
+        "position":payload["hero_position"],
+        "stack":payload["hero_stack_bb"],
+        "villains":[p["postflop"] for p in payload["opponents"]],
+        "hand":payload["hand"],
+        "rules_sha":digest.hexdigest(),
+    }
+    identity=hashlib.sha256(json.dumps(key,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+    return _schedule(identity,lambda progress:calculate(payload,progress=progress),
+                     1 if payload["hand"] else len(core.HANDS))
+
+
 def start_equity(raw,busy=False):
     if busy:raise RuntimeError("Дождись завершения турниров перед тяжёлым расчётом equity")
     payload=_validate_request(raw)
@@ -261,6 +288,14 @@ def get_route(handler,path):
         except (ValueError,TypeError) as exc:
             handler.reply(400,{"error":str(exc)})
         return True
+    if path.startswith("/api/plan/postflop/"):
+        try:
+            handler.reply(200,get_task(path.rsplit("/",1)[-1]))
+        except KeyError:
+            handler.reply(404,{"error":"Постфлоп расчёт не найден"})
+        except ValueError as exc:
+            handler.reply(400,{"error":str(exc)})
+        return True
     if path.startswith("/api/plan/equity/"):
         try:
             handler.reply(200,get_task(path.rsplit("/",1)[-1]))
@@ -286,6 +321,15 @@ def post_route(handler,path,payload,busy=False):
     if path=="/api/plan/boxes-equity":
         try:
             result=start_box_equity(payload,busy=busy)
+            handler.reply(200 if result["status"]=="completed" else 202,result)
+        except (ValueError,TypeError,KeyError) as exc:
+            handler.reply(400,{"error":str(exc)})
+        except RuntimeError as exc:
+            handler.reply(409,{"error":str(exc)})
+        return True
+    if path=="/api/plan/postflop":
+        try:
+            result=start_postflop_ev(payload,busy=busy)
             handler.reply(200 if result["status"]=="completed" else 202,result)
         except (ValueError,TypeError,KeyError) as exc:
             handler.reply(400,{"error":str(exc)})
