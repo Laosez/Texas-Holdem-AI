@@ -129,6 +129,10 @@ def main():
     nfiles = verify_identical()
     if legacy["total_hands"] != fast["total_hands"] or legacy["winners"] != fast["winners"]:
         raise AssertionError("Tournament aggregate mismatch")
+    if fast["peak_rss_mib"] >= legacy["peak_rss_mib"]:
+        raise AssertionError("Fast evaluator did not reduce process peak RSS")
+    if fast["wall_seconds"] >= legacy["wall_seconds"]:
+        raise AssertionError("Fast evaluator did not improve tournament wall time")
     print("TOURNAMENT_EVALUATOR_AUDIT_PASS " + json.dumps({
         "tournaments_each": a.tournaments, "total_tournaments": a.tournaments * 2,
         "same_tournament_reports": True, "compared_files": nfiles,
