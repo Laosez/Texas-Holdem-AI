@@ -18,18 +18,35 @@ class InputTests(unittest.TestCase):
         self.assertEqual((c["blind_increase_every"], c["seat_mode"], c["parallel"]), (50, "rotate", 1))
 
     def test_railway_process_count_respects_memory_budget(self):
-        with patch.dict(app.os.environ, {"RAILWAY_PROJECT_ID":"test"},clear=False):
+        with patch.dict(app.os.environ, {"RAILWAY_PROJECT_ID":"test"},clear=False), \
+             patch.object(app,"_container_cpu_limit",return_value=8):
             with patch.dict(app.os.environ, {"POKER_MAX_WORKERS":""},clear=False):
-                for gib, expected in ((None,1),(1.0,1),(2.25,2),(3.35,3),(4.5,4)):
-                    with self.subTest(gib=gib):
-                        with patch.object(app,"_container_memory_limit_gb",return_value=gib):
-                            self.assertEqual(app.max_safe_workers(),expected)
-            with patch.dict(app.os.environ,{"POKER_MAX_WORKERS":"2"},clear=False):
+                for gib, expected in ((None,1),(1.0,1),(2.25,2),(3.35,3),
+                                      (4.5,4),(5.05,5),(5.8,6),(6.55,7),
+                                      (7.25,8),(8.0,8)):
+                    with self.subTest(gib=gib), \
+                         patch.object(app,"_container_memory_limit_gb",return_value=gib):
+                        self.assertEqual(app.max_safe_workers(),expected)
+                        if expected == 8:
+                            self.assertEqual(app.validate_config({"parallel":8})["parallel"],8)
+            with patch.dict(app.os.environ,{"POKER_MAX_WORKERS":"2"},clear=False), \
+                 patch.object(app,"_container_memory_limit_gb",return_value=8.0):
                 self.assertEqual(app.max_safe_workers(),2)
+            with patch.dict(app.os.environ,{"POKER_MAX_WORKERS":"8"},clear=False), \
+                 patch.object(app,"_container_memory_limit_gb",return_value=1.0):
+                self.assertEqual(app.max_safe_workers(),1)
             with patch.dict(app.os.environ, {"POKER_MAX_WORKERS":""},clear=False), \
                  patch.object(app,"_container_memory_limit_gb",return_value=1.0):
                 with self.assertRaisesRegex(ValueError,"не более 1 процессов"):
                     app.validate_config({"parallel":2})
+            with patch.dict(app.os.environ, {"POKER_MAX_WORKERS":""},clear=False), \
+                 patch.object(app,"_container_memory_limit_gb",return_value=8.0), \
+                 patch.object(app,"_container_cpu_limit",return_value=4):
+                self.assertEqual(app.max_safe_workers(),4)
+
+    def test_parallel_validation_never_allows_over_eight(self):
+        with self.assertRaisesRegex(ValueError,"1–8"):
+            app.validate_config({"parallel":9})
 
     def test_a17_tag_and_all_control_bots_known(self):
         self.assertTrue(all(app.valid_bot(x) for x in app.DEFAULT_PLAYERS))
