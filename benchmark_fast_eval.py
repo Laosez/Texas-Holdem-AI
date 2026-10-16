@@ -8,7 +8,7 @@ import random
 import statistics
 import time
 
-from core.engine import eval_hand as legacy_eval_hand
+from core.engine import _legacy_eval_hand as legacy_eval_hand
 from core.fast_eval import fast_eval_hand
 from core.equity import equity
 
