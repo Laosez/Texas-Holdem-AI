@@ -16,71 +16,49 @@ from typing import List, Tuple
 from core.engine import eval_hand, _FULL_DECK
 
 
-def equity(hole_cards, board, n_opponents, n_sims=100):
-    """Hero's expected fraction of pot vs n_opponents random hands.
+def equity(hole_cards, board, n_opponents, n_sims=100, rng=None):
+    """Estimate Hero's expected showdown pot share against random hands.
 
-    Hero wins -> 1.0. Tie at showdown -> 0.5 / (number of tying players).
-    Hero loses -> 0.0. Returned value is mean over n_sims trials.
-
-    Parameters
-    ----------
-    hole_cards : list of (rank, suit) tuples
-        Hero's two hole cards.
-    board : list of (rank, suit) tuples
-        Community cards dealt so far (0-5 cards).
-    n_opponents : int
-        Number of opponents (required, no default). Must be >= 1.
-    n_sims : int
-        Number of Monte Carlo simulations to run.
+    Draw opponent hands and missing board cards in one without-replacement
+    sample. Ties are split across every player holding the best hand.
+    An optional rng allows reproducible independent simulations.
     """
     if not hole_cards or len(hole_cards) < 2:
         return 0.5
-
-    n_opponents = max(1, n_opponents)
-
-    used = set(tuple(c) for c in hole_cards) | set(tuple(c) for c in board)
-    remaining = [c for c in _FULL_DECK if c not in used]
-
-    wins = 0.0
-    total = 0
-
+    if len(hole_cards) != 2 or len(board) not in (0, 3, 4, 5):
+        raise ValueError("Expected two hole cards and 0, 3, 4 or 5 board cards")
+    if not isinstance(n_opponents, int) or not 1 <= n_opponents <= 22:
+        raise ValueError("Invalid number of opponents")
+    if not isinstance(n_sims, int) or n_sims < 1:
+        raise ValueError("n_sims must be a positive integer")
+    known = [tuple(c) for c in hole_cards] + [tuple(c) for c in board]
+    if len(set(known)) != len(known) or any(c not in _FULL_DECK for c in known):
+        raise ValueError("Duplicate or invalid cards")
+    remaining = [c for c in _FULL_DECK if c not in set(known)]
+    missing = 5 - len(board)
+    draw_count = 2 * n_opponents + missing
+    if draw_count > len(remaining):
+        raise ValueError("Not enough cards for opponents and board")
+    sample = (rng or random).sample
+    hero_hole = list(hole_cards)
+    board_prefix = list(board)
+    payout = 0.0
     for _ in range(n_sims):
-        # Need 2 cards per opponent
-        if len(remaining) < 2 * n_opponents:
-            break
-
-        # Deal cards to all opponents from the remaining deck
-        sampled = random.sample(remaining, 2 * n_opponents)
-        opp_hands = [sampled[i * 2:(i + 1) * 2] for i in range(n_opponents)]
-
-        # Remove dealt opponent cards before completing the board
-        dealt_set = set(tuple(c) for c in sampled)
-        rest = [c for c in remaining if tuple(c) not in dealt_set]
-
-        # Complete board to 5 cards if needed
-        need = 5 - len(board)
-        if need > 0:
-            if len(rest) < need:
-                continue
-            extra = random.sample(rest, need)
-            full_board = list(board) + extra
-        else:
-            full_board = list(board)
-
-        my_score = eval_hand(list(hole_cards), full_board)
-
-        # Hero must beat ALL opponents to win; tie for best = split
-        best_opp = max(eval_hand(oh, full_board) for oh in opp_hands)
-        if my_score > best_opp:
-            wins += 1
-        elif my_score == best_opp:
-            # Count how many opponents tied with hero
-            tying = sum(1 for oh in opp_hands
-                        if eval_hand(oh, full_board) == my_score)
-            wins += 1.0 / (1 + tying)  # hero's share of the tie
-        total += 1
-
-    return wins / total if total > 0 else 0.5
+        drawn = sample(remaining, draw_count)
+        full_board = board_prefix + drawn[2 * n_opponents:]
+        hero_score = eval_hand(hero_hole, full_board)
+        best = hero_score
+        winners = 1
+        for j in range(0, 2 * n_opponents, 2):
+            score = eval_hand(drawn[j:j + 2], full_board)
+            if score > best:
+                best = score
+                winners = 0
+            if score == best:
+                winners += 1
+        if hero_score == best:
+            payout += 1.0 / winners
+    return payout / n_sims
 
 
 def equity_bucket(hole_cards, board, n_opponents, n_buckets=20, n_sims=100):
