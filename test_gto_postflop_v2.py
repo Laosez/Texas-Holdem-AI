@@ -69,7 +69,7 @@ class GTOPostflopV2Tests(unittest.TestCase):
                       app.PLAN_UI.read_text(encoding="utf-8"))
         self.assertEqual(ev.PROFILE_NAMES["gto2"],"gto_postflop_v2")
         request={
-            "model":"selected","hand":"55","trials":12,"cycles":1,
+            "model":"selected","hand":"55","trials":50,"cycles":1,
             "hero_postflop":"gto2","hero_position":"3","hero_stack_bb":20,
             "opponents":[{
                 "profile":"builtin:any_two","position":"9","scenario":"rfi",
