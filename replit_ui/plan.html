@@ -941,7 +941,7 @@ function removeOpponent(index){
  $('viewOpponent').value=String(nextIndex);
  invalidateEquity();loadVillain();
 }
-function invalidateEquity(){handDecompResult=null;handDecompSignature='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
+function invalidateEquity(){handDecompResult=null;handDecompSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
