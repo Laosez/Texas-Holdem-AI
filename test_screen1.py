@@ -316,9 +316,9 @@ class ScreenOneTests(unittest.TestCase):
     def test_screen1_offers_pc_and_a17_without_old_gto_for_new_sessions(self):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
-                         {"a17_preflop", "pc_gto_80bb"})
+                         {"a17_preflop", "pc_gto_80bb", "random"})
         expected=("gto_postflop_v1","gto_postflop_v2","gto_postflop_v3","tag_postflop_v1","lag_postflop_v1",
-                  "chaser_postflop_v1","trapper_postflop_v1")
+                  "chaser_postflop_v1","trapper_postflop_v1","random")
         self.assertEqual(tuple(catalog["postflop_strategies"]),expected)
         self.assertEqual(app.POSTFLOP_CHOICES,set(expected))
         self.assertNotIn("gto",catalog["preflop_strategies"])
@@ -340,13 +340,13 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn('id="compareFivePost"',page)
         self.assertNotIn('id="compareOldGto"',page)
         self.assertIn("pre:'pc_gto_80bb',post:postflops[i%postflops.length]",page)
-        self.assertIn("preflopValues=['','a17_preflop','pc_gto_80bb']",page)
+        self.assertIn("preflopValues=['','a17_preflop','pc_gto_80bb','random']",page)
 
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_threebet"])
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_fourbet"])
         self.assertIn("50% 4-bet",catalog["preflop_coverage"]["a17_preflop"]["vs_threebet"])
-        self.assertNotIn("random",catalog["postflop_strategies"])
-        for pre in ("tag_punisher", "smart", "random", "gto_fixed"):
+        self.assertIn("random",catalog["postflop_strategies"])
+        for pre in ("tag_punisher", "smart", "gto_fixed"):
             with self.subTest(pre=pre), self.assertRaisesRegex(ValueError, "префлоп"):
                 app.validate_config({"bots": [
                     {"pre": pre, "post": "gto"},
@@ -369,7 +369,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertTrue(all(bots.create_bot(p.split("=", 1)[1])
                             for p in result["players"]))
         page = app.UI.read_text(encoding="utf-8")
-        self.assertIn("let preflopValues=['','a17_preflop','pc_gto_80bb'];", page)
+        self.assertIn("let preflopValues=['','a17_preflop','pc_gto_80bb','random'];", page)
         self.assertIn("BTN (позиция 3; ~53,9% Raise)", page)
         self.assertIn("row.append(botOptions(b.pre", page)
         self.assertIn("'pre'));", page)
@@ -378,6 +378,37 @@ class ScreenOneTests(unittest.TestCase):
         self.assertNotIn("values=['','gto','gto_fixed'", page)
         self.assertIn("['pc_gto_80bb','chaser_postflop_v1']",page)
         self.assertNotIn("['gto','smart']",page)
+
+    def test_random_pre_post_controls_and_seven_random_field(self):
+        catalog = app.strategy_catalog()
+        self.assertIn("random", catalog["preflop_strategies"])
+        self.assertIn("random", catalog["postflop_strategies"])
+        rows = [
+            {"pre": "a17_preflop", "post": "gto_postflop_v2"},
+            {"pre": "pc_gto_80bb", "post": "gto_postflop_v2"},
+        ] + [{"pre": "random", "post": "random"} for _ in range(7)]
+        request = app.validate_config({
+            "bots": rows, "seat_mode": "rotate",
+            "preflop_protocol": "standard_v1", "tournaments": 900
+        })
+        self.assertEqual(request["tournaments"], 900)
+        self.assertEqual(request["seat_mode"], "rotate")
+        self.assertEqual(request["preflop_protocol"], "standard_v1")
+        self.assertEqual(request["players"][0], "P1=split:a17_preflop:gto_postflop_v2")
+        self.assertEqual(request["players"][1], "P2=split:pc_gto_80bb:gto_postflop_v2")
+        self.assertEqual(
+            request["players"][2:],
+            [f"P{i}=split:random:random" +
+             (f"_{i-2}" if i > 3 else "") for i in range(3,10)]
+        )
+        self.assertEqual(len(set(request["players"])), 9)
+        from bots import create_bot
+        for name in request["players"]:
+            self.assertIsNotNone(create_bot(name.split("=", 1)[1]))
+        page = app.UI.read_text(encoding="utf-8")
+        self.assertIn('id="compareRandom"', page)
+        self.assertIn("...Array.from({length:7},()=>({pre:'random',post:'random'}))",page)
+        self.assertIn("const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];",page)
 
     def test_two_upper_workspaces_full_width_journal_and_results(self):
         page=app.UI.read_text(encoding="utf-8")
