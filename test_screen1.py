@@ -148,7 +148,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("Единый протокол V1",page)
         self.assertIn('id="compareRfi"',page)
         self.assertIn("bots=Array.from({length:9}",page)
-        self.assertIn("post:'tag_punisher'",page)
+        self.assertIn("post:'tag_postflop_v1'",page)
         self.assertIn("savedForComparison.filter",page)
         self.assertIn("$('seat_mode').value='rotate'",page)
         self.assertIn("Покрытие ИСХОДНЫХ алгоритмов",page)
@@ -317,13 +317,18 @@ class ScreenOneTests(unittest.TestCase):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
                          {"a17_preflop", "pc_gto_80bb"})
-        self.assertIn("tag_punisher", catalog["postflop_strategies"])
+        expected=("gto_postflop_v1","tag_postflop_v1","lag_postflop_v1",
+                  "chaser_postflop_v1","trapper_postflop_v1")
+        self.assertEqual(tuple(catalog["postflop_strategies"]),expected)
+        self.assertEqual(app.POSTFLOP_CHOICES,set(expected))
         self.assertNotIn("gto",catalog["preflop_strategies"])
-        self.assertIn("gto",catalog["postflop_strategies"])
         self.assertIn("gto",app.PREFLOP_CHOICES)  # archival compatibility
-        self.assertIn("gto",app.POSTFLOP_CHOICES)  # archival compatibility
-        self.assertEqual(catalog["postflop_profiles"]["gto"]["model"],"legacy_heuristic")
-        self.assertIn("100 Monte Carlo",catalog["postflop_profiles"]["gto"]["features"][0])
+        self.assertTrue(app.available_postflop("gto"))
+        self.assertTrue(app.available_postflop("random_2"))
+        self.assertTrue(app.available_postflop("tag_punisher"))
+        for name in expected:
+            self.assertIn(name,catalog["postflop_profiles"])
+        self.assertTrue(all(row["post"] in expected for row in app.DEFAULT_BOT_ROWS))
         from bots import create_bot
         from bots.street_split_bot import StreetSplitBot
         split=create_bot("split:pc_gto_80bb:gto")
@@ -331,16 +336,16 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(split.preflop_name,"pc_gto_80bb")
         self.assertEqual(split.postflop_name,"gto")
         page=app.UI.read_text(encoding="utf-8")
-        self.assertIn("GTO Old · Postflop (Monte Carlo)",page)
-        self.assertIn('id="compareOldGto"',page)
-        self.assertIn("postflops=['gto','gto_postflop_v1','tag_punisher']",page)
-        self.assertIn("pre:'pc_gto_80bb',post:postflops[i%3]",page)
+        self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
+        self.assertIn('id="compareFivePost"',page)
+        self.assertNotIn('id="compareOldGto"',page)
+        self.assertIn("pre:'pc_gto_80bb',post:postflops[i%postflops.length]",page)
         self.assertIn("preflopValues=['','a17_preflop','pc_gto_80bb']",page)
 
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_threebet"])
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_fourbet"])
         self.assertIn("50% 4-bet",catalog["preflop_coverage"]["a17_preflop"]["vs_threebet"])
-        self.assertEqual(catalog["postflop_strategies"].count("random"), 1)
+        self.assertNotIn("random",catalog["postflop_strategies"])
         for pre in ("tag_punisher", "smart", "random", "gto_fixed"):
             with self.subTest(pre=pre), self.assertRaisesRegex(ValueError, "префлоп"):
                 app.validate_config({"bots": [
@@ -371,7 +376,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("'post'));", page)
         self.assertIn("preflop_strategies", page)
         self.assertNotIn("values=['','gto','gto_fixed'", page)
-        self.assertIn("['pc_gto_80bb','smart']",page)
+        self.assertIn("['pc_gto_80bb','chaser_postflop_v1']",page)
         self.assertNotIn("['gto','smart']",page)
 
     def test_two_upper_workspaces_full_width_journal_and_results(self):
