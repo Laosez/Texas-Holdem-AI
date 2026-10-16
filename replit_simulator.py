@@ -70,7 +70,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_v2", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -94,7 +94,7 @@ def available_postflop(name: str) -> bool:
 # Blank means INCOMPLETE, never automatic inheritance.
 DEFAULT_BOT_ROWS = [
     {"pre": "a17_preflop", "post": "gto_postflop_v1"},
-    {"pre": "pc_gto_80bb", "post": "gto_postflop_v1"},
+    {"pre": "pc_gto_80bb", "post": "gto_postflop_v2"},
     {"pre": "pc_gto_80bb", "post": "tag_postflop_v1"},
     {"pre": "pc_gto_80bb", "post": "lag_postflop_v1"},
     {"pre": "pc_gto_80bb", "post": "chaser_postflop_v1"},
@@ -206,6 +206,12 @@ def strategy_catalog():
                     "label": "GTO Postflop V1 (GTO-inspired, не solver)",
                     "model": "heuristic",
                     "features": ["value", "C-bet", "draw", "semi-bluff", "check-raise", "river blockers", "multiway", "SPR"]
+                },
+                "gto_postflop_v2": {
+                    "label": "GTO Postflop V2 · исправление мелких пар (не solver)",
+                    "model": "heuristic",
+                    "features": ["V1 action frequencies", "22–66 paired-board two-pair correction",
+                                 "board-relative overpairs", "multiway scaling"]
                 },
                 "lag_postflop_v1": {
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",
