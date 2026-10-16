@@ -127,7 +127,7 @@ def ci95(deltas):
 
 
 def sampled_flop_state(picked, board):
-    if any(v >= 2 for v in Counter(c[0] for c in board[:3]).values()):
+    if any(v >= 2 for v in Counter(ev._card(c)[0] for c in board[:3]).values()):
         r = read_hand([ev._card(c) for c in picked[0][1]],
                       [ev._card(c) for c in board[:3]])
         if r.category == 2:
