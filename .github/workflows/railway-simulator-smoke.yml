@@ -28,6 +28,15 @@ jobs:
       - name: Unit tests
         run: |
           python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_postflop_ev -v
+      - name: Verify Screen 1 JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          html = Path("replit_ui/index.html").read_text(encoding="utf-8")
+          code = html.split("<script>", 1)[1].split("</script>", 1)[0]
+          Path("/tmp/poker_replay_screen1.js").write_text(code, encoding="utf-8")
+          PY
+          node --check /tmp/poker_replay_screen1.js
       - name: Verify Screen 2 JavaScript syntax
         run: |
           python - <<'PY'
