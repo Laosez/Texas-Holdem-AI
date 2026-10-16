@@ -441,24 +441,48 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .matrixGrid .hand.candidateGold::after{color:#f3c45c}
 .matrixGrid .hand.candidateRed::after{color:#ee6d75}
 
+
+/* Hero strategy = explicit preflop + postflop, visible even in narrow 33% column. */
+.plannerStrategyPanel .heroPostflopChoice{
+ border:1px solid #456079;border-left:3px solid #82a5c0;border-radius:8px;
+ background:#192f43;padding:11px 12px;min-width:0;
+}
+.plannerStrategyPanel .heroPostflopChoice label{font-size:12px;color:#d5e4f1;font-weight:750;margin-bottom:6px}
+.plannerStrategyPanel .heroPostflopChoice select{
+ width:100%;max-width:100%;min-width:0;background:#223c54;color:#f4f9fd;
+ border:1px solid #6b8ca4;font-size:13px;font-weight:700;padding:10px 30px 10px 11px;
+}
+.plannerStrategyPanel .heroPostflopHint{font-size:11px;color:#b0c6d9;line-height:1.5;margin:7px 0 0}
+.plannerStrategyPanel .heroStrategyComposition{
+ background:#101f31;border:1px solid #36516a;border-radius:7px;
+ padding:9px 10px;font-size:11px;line-height:1.55;color:#cde0ef;overflow-wrap:anywhere
+}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
 <main class="plannerMain">
 <section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">01 / </span>Моя стратегия</h2><span class="badge">Позиции и действия</span></div>
 <div class="profile"><h3>Моя стратегия</h3><div class="fields">
-<div class="field wide"><label for="heroProfile">Стратегия / пресет</label><select id="heroProfile"></select></div>
+<div class="field wide"><label for="heroProfile">Префлоп · диапазон / пресет</label><select id="heroProfile"></select></div>
+<div class="field wide heroPostflopChoice">
+<label for="heroPostflop">Постфлоп · моя стратегия розыгрыша</label>
+<select id="heroPostflop">
+<option value="gto2" selected>GTO V2 · исправленные мелкие пары</option>
+<option value="gto">GTO V1 · контрольная версия</option>
+<option value="tag">TAG V1</option><option value="lag">LAG V1</option>
+<option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
+<option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
+</select>
+<p id="heroPostflopHint" class="heroPostflopHint" role="status" aria-live="polite">GTO V2 корректирует оценку карманных 22–66 на спаренных бордах. Учитывается при расчёте Equity + EV.</p>
+</div>
 <div class="field"><label for="heroPosition">Моя позиция</label><select id="heroPosition"></select></div>
 <div class="field"><label for="heroScenario">Ситуация</label><select id="heroScenario"></select></div>
 <select id="players" class="hidden" aria-label="Формат стола для модели" tabindex="-1"></select>
 <input id="stack" class="hidden" type="hidden" value="20">
-<div class="field wide"><label for="heroPostflop">Моя постфлоп-стратегия</label><select id="heroPostflop">
-<option value="gto">GTO V1</option><option value="tag">TAG V1</option>
-<option value="lag">LAG V1</option><option value="chaser">Chaser V1</option>
-<option value="trapper">Trapper V1</option><option value="random">Random</option>
-<option value="none">Не учитывать · только Equity</option></select></div>
 <div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
-</div><p id="activeContext" class="note">Контекст расчёта: 9-max · 20 BB (из сохранённой стратегии).</p><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
+</div>
+<p id="heroStrategyComposition" class="heroStrategyComposition" role="status" aria-live="polite">Сборка: префлоп-диапазон + GTO V2 (постфлоп)</p>
+<p id="activeContext" class="note">Контекст расчёта: 9-max · 20 BB (из сохранённой стратегии).</p><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
 </section>
 <section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">До 8 диапазонов · Multiway</span></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
@@ -573,6 +597,22 @@ const POSTFLOP_OPTIONS=[
  {value:'none',label:'Не учитывать'}
 ];
 const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||'Не учитывать';
+const HERO_LINE_DESCRIPTIONS={
+ gto2:'GTO V2: корректная оценка 22–66 на спаренном борде. Используется для расчёта EV.',
+ gto:'GTO V1: исходная постфлоп-эвристика, сохранена для сравнения с V2.',
+ tag:'TAG V1: дисциплинированный розыгрыш с упором на вэлью.',
+ lag:'LAG V1: более агрессивные ставки, полублефы и давление.',
+ chaser:'Chaser V1: модель соперника с повышенным интересом к дро.',
+ trapper:'Trapper V1: слоуплей и ловушки.',
+ random:'Random: случайные легальные действия; контрольный профиль.',
+ none:'Постфлоп не моделируется; доступно только showdown Equity.'
+};
+function refreshHeroPostflopChoice(){
+ const line=$('heroPostflop').value;
+ $('heroPostflopHint').textContent=HERO_LINE_DESCRIPTIONS[line]||'Выбери постфлоп-линию.';
+ const range=$('heroProfile').selectedOptions[0]?.textContent||'Не выбран';
+ $('heroStrategyComposition').textContent='Сборка для EV: '+range+' (префлоп) + '+postflopName(line)+' (постфлоп)';
+}
 let huComparisonRevision=0,huComparisonHand='',huComparisonTimer=null;
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 const names={};
@@ -625,6 +665,7 @@ function setHeroFields(doc){
  $('strategyName').value=doc.name;
  $('activeContext').textContent='Контекст стратегии: '+doc.players+'-max · '+doc.stack_bb+' BB. Параметры сохранены внутри выбранной стратегии.';
  showBbRfiHint(doc);
+ refreshHeroPostflopChoice();
 }
 // One editable strategy spans all positions, scenarios and table sizes.
 function slotKey(players,position,scenario){return String(players)+'|'+position+'|'+scenario}
@@ -1897,6 +1938,8 @@ async function connect(){
   const data=await api('/api/plan/catalog');meta=data;
   const storedLine=localStorage.getItem('skachkov_hero_postflop');
   if(POSTFLOP_OPTIONS.some(x=>x.value===storedLine))$('heroPostflop').value=storedLine;
+  else $('heroPostflop').value='gto2'; // New profiles default to GTO V2; existing choices persist.
+  refreshHeroPostflopChoice();
   const lastPlan=localStorage.getItem('skachkov_last_plan_profile');
   const selectable=profileOptions();
   refill($('heroProfile'),selectable,selectable.some(x=>x.value===lastPlan)?lastPlan:'builtin:a17_v5');
@@ -1918,7 +1961,11 @@ $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
 $('pasteMatrix').onclick=pasteMatrixSettings;
 $('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);invalidateEquity();loadHero()};
-$('heroPostflop').onchange=()=>{localStorage.setItem('skachkov_hero_postflop',$('heroPostflop').value);invalidateEquity()};
+$('heroPostflop').onchange=()=>{
+ localStorage.setItem('skachkov_hero_postflop',$('heroPostflop').value);
+ refreshHeroPostflopChoice();
+ invalidateEquity();
+};
 $('heroPosition').onchange=()=>{useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
