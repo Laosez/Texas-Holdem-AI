@@ -2036,6 +2036,13 @@ async function pollPostflop(settings,epoch,report){
  return job.result;
 }
 async function calculateFullPostflop(people){
+ if(Number($('trials').value)>4000){
+  const message='Матрица 169 рук: максимум 4 000 симуляций на руку. '
+   +'Сейчас выбрано '+Number($('trials').value).toLocaleString('ru-RU')
+   +' для глубокого автоматического анализа одной выбранной руки.';
+  $('equityStatus').textContent=message;msg(message,true);
+  return null;
+ }
  const epoch=calcEpoch;
  try{
   $('equityFill').style.width='0%';
@@ -2197,7 +2204,11 @@ $('equityModel').onchange=invalidateEquity;
 $('entryPrecisionTrials').onchange=renderEntryDistribution;
 $('trials').onchange=()=>{
  $('entryPrecisionTrials').value=$('trials').value;
- invalidateEquity();
+ // Preserve the last 169-hand matrix and its recorded sample size while
+ // the selected hand is re-evaluated at a deeper N.
+ renderEntryDistribution();
+ renderHandDecomposition();
+ scheduleHandDecomposition();
 };
 $('brushInspect').onclick=()=>{finishBoxStroke();brushMode='inspect';drawMatrices();updateBrushControls()};
 $('brushPaint').onclick=()=>{brushMode='paint';drawMatrices();updateBrushControls()};
