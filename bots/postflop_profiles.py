@@ -157,13 +157,17 @@ class PostflopProfileBot(BotAdapter):
         self.profile=profile
         self.lag=profile=="lag_postflop_v1"
 
+    def _read_hand(self, cards, board):
+        """Override only in future versions; V1 behavior stays unchanged."""
+        return read_hand(cards, board)
+
     def act(self,view):
         if view.street not in ("flop","turn","river"):
             raise ValueError("Postflop profile cannot decide preflop")
         cards=list(view.hole_cards or ())
         board=list(view.board or ())
         if len(cards)!=2 or len(board)<3:return _fallthrough(view)
-        read=read_hand(cards,board)
+        read=self._read_hand(cards,board)
         call=_to_call(view)
         n=_opponents(view)
         ip=_in_position(view)
