@@ -15,6 +15,7 @@ on:
       - feat/gto-postflop-v3-kicker-draw-paired-board-20261016
       - feat/hand-ev-decomposition-loss-attribution-20261016
       - fix/fullwidth-decomposition-below-planner-workspace-20261016
+      - feat/plan-ev-default-pot-error-autodecomp-20261016
   pull_request:
     branches:
       - feat/railway-simulator-20261014
@@ -33,7 +34,7 @@ jobs:
           python-version: '3.11'
       - name: Unit tests
         run: |
-          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_gto_postflop_v3 test_ev_decomposition -v
+          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_gto_postflop_v3 test_ev_decomposition test_plan_ev_workflow -v
       - name: Verify Screen 1 JavaScript syntax
         run: |
           python - <<'PY'
