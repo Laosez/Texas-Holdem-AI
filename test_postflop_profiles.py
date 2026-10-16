@@ -35,7 +35,8 @@ class PostflopProfileTests(unittest.TestCase):
             bot=create_bot("split:a17_preflop:"+name)
             self.assertEqual(bot.postflop_name,name)
             self.assertEqual(bot.postflop_bot.profile,name)
-        self.assertIn("gto",catalog["postflop_strategies"])
+        self.assertNotIn("gto",catalog["postflop_strategies"])
+        self.assertTrue(app.available_postflop("gto"))  # archive only
         with self.assertRaises(ValueError):
             PostflopProfileBot("gto")
         for name in ("gto_postflop_v1","lag_postflop_v1"):
@@ -43,7 +44,7 @@ class PostflopProfileTests(unittest.TestCase):
                 PostflopProfileBot(name).act(make_view(street="preflop"))
         ui=app.UI.read_text(encoding="utf-8")
         self.assertIn('id="comparePost"',ui)
-        self.assertIn('id="compareOldGto"',ui)
+        self.assertIn('id="compareFivePost"',ui)
 
         self.assertIn('id="postflopModels"',ui)
         self.assertIn("bots=Array.from({length:8}",ui)
