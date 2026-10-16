@@ -15,7 +15,7 @@ from core.fast_eval import fast_eval_hand
 from itertools import combinations
 from typing import List, Tuple
 
-from core.engine import eval_hand, _FULL_DECK
+from core.engine import _legacy_eval_hand, _FULL_DECK
 
 
 def equity(hole_cards, board, n_opponents, n_sims=100, rng=None, evaluator=None):
@@ -47,7 +47,7 @@ def equity(hole_cards, board, n_opponents, n_sims=100, rng=None, evaluator=None)
         eval_mode = os.environ.get("THAI_EQUITY_EVALUATOR", "fast").lower()
         if eval_mode not in ("fast", "legacy"):
             raise ValueError("THAI_EQUITY_EVALUATOR must be 'fast' or 'legacy'")
-        score_hand = eval_hand if eval_mode == "legacy" else fast_eval_hand
+        score_hand = _legacy_eval_hand if eval_mode == "legacy" else fast_eval_hand
     else:
         score_hand = evaluator
     sample = (rng or random).sample
