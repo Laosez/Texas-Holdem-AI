@@ -68,10 +68,10 @@ SPLIT_PARTS = frozenset(json.loads(
 
 # Screen 1 choices are street-specific. The full engine catalog remains
 # available for legacy CLI exports and reproducible historical sessions.
-PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb"})
+PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
     "gto_postflop_v1", "gto_postflop_v2", "gto_postflop_v3", "tag_postflop_v1", "lag_postflop_v1",
-    "chaser_postflop_v1", "trapper_postflop_v1",
+    "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
 POSTFLOP_CHOICES = frozenset(POSTFLOP_PRIMARY)
@@ -238,6 +238,11 @@ def strategy_catalog():
                     "label": "Trapper Postflop V1",
                     "model": "heuristic",
                     "features": ["slowplay", "passive value", "board texture"]
+                },
+                "random": {
+                    "label": "Random · случайные допустимые действия и размеры ставок",
+                    "model": "random_baseline",
+                    "features": ["uniform legal action", "random raise size", "no hand evaluation"]
                 }
             },
             "preflop_protocols": {
