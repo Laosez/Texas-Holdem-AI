@@ -1,7 +1,8 @@
 import random
 from core.table_order import position_tightness
 from core.bot_api import Action, PlayerView, acting_opponents_for
-from core.engine import eval_hand, _FULL_DECK
+from core.engine import _FULL_DECK
+from core.equity import equity
 
 
 class MonteCarloBot:
@@ -92,54 +93,12 @@ class MonteCarloBot:
     # Monte Carlo equity estimation (multi-opponent)
     # ----------------------------------------------------
     def _estimate_equity(self, hole, board, num_opponents=1, sims=500):
-        wins = 0
-        ties = 0
+        """Expected share of the showdown pot against random opponent hands.
 
-        # Build the used-card set and remaining deck ONCE before the loop.
-        base_used = set(tuple(c) for c in hole) | set(tuple(c) for c in board)
-        base_remaining = [c for c in _FULL_DECK if c not in base_used]
-        need_board = 5 - len(board)
-
-        for _ in range(sims):
-            # Per-sim exclusion grows as we deal opponent hands.
-            sim_used = base_used.copy()
-            remaining = base_remaining  # read-only reference; filter inline below
-            opp_hands = []
-            valid = True
-
-            for _ in range(num_opponents):
-                avail = [c for c in remaining if c not in sim_used]
-                if len(avail) < 2:
-                    valid = False
-                    break
-                opp = random.sample(avail, 2)
-                opp_hands.append(opp)
-                sim_used |= {tuple(c) for c in opp}
-
-            if not valid:
-                continue
-
-            # Complete the board from what's still available.
-            if need_board > 0:
-                avail_board = [c for c in base_remaining if c not in sim_used]
-                if len(avail_board) < need_board:
-                    continue
-                full_board = list(board) + random.sample(avail_board, need_board)
-            else:
-                full_board = list(board)
-
-            my_score = eval_hand(hole, full_board)
-
-            # Hero must beat ALL opponents
-            opp_scores = [eval_hand(opp, full_board) for opp in opp_hands]
-            best_opp = max(opp_scores)
-
-            if my_score > best_opp:
-                wins += 1
-            elif my_score == best_opp:
-                ties += 1
-
-        return (wins + ties * 0.5) / sims
+        Delegate to the canonical calculator so multiway ties are split
+        between *all* players sharing the best hand, not always 50/50.
+        """
+        return equity(hole, board, num_opponents, n_sims=sims)
 
     # ----------------------------------------------------
     # Remaining deck helper (used outside _estimate_equity)
