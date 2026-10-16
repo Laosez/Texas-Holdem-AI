@@ -22,6 +22,8 @@ EQUITY_TASKS = {}
 MAX_EQUITY_WORKERS = 2
 MAX_EQUITY_PENDING = 8
 EQUITY_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_EQUITY_WORKERS,thread_name_prefix="poker-mc")
+# One full-matrix multicore computation at once, to keep CPU/RAM bounded.
+POSTFLOP_EXECUTOR = ThreadPoolExecutor(max_workers=1,thread_name_prefix="poker-postflop")
 CACHE_PATH = core.DATA_ROOT / "plan_equity_cache"
 
 
@@ -133,12 +135,12 @@ def _cached_task(identity):
     target=CACHE_PATH/(identity+".json")
     if target.is_file():
         result=json.loads(target.read_text(encoding="utf-8"))
-        if isinstance(result,dict) and isinstance(result.get("equity"),dict) and len(result["equity"]) in (17,169):
+        if isinstance(result,dict) and isinstance(result.get("equity"),dict) and len(result["equity"]) in (1,17,169):
             return {"id":identity,"status":"completed","done":1,"total":1,"result":result,"cached":True}
     return None
 
 
-def _schedule(identity,compute,total):
+def _schedule(identity,compute,total,executor=None):
     # In-memory task metadata is bounded; no unbounded thread spawning.
     CACHE_PATH.mkdir(parents=True,exist_ok=True)
     cached=_cached_task(identity)
@@ -174,7 +176,7 @@ def _schedule(identity,compute,total):
                 with LOCK:job.update(status="completed",done=job["total"],result=result)
             except Exception as exc:
                 with LOCK:job.update(status="failed",error=str(exc))
-        try:EQUITY_EXECUTOR.submit(execute)
+        try:(executor or EQUITY_EXECUTOR).submit(execute)
         except Exception:
             EQUITY_TASKS.pop(identity,None)
             raise
@@ -185,7 +187,7 @@ def start_postflop_ev(raw,busy=False):
     """Run full multi-street line simulation; separate from historic all-in equity."""
     if busy:
         raise RuntimeError("Заверши турнирную серию перед запуском постфлоп EV")
-    from planner_postflop_ev import validate_request,calculate
+    from planner_postflop_ev import validate_request,calculate_parallel
     payload=validate_request(raw)
     equity.build_ranges(payload["opponents"], "selected")
     # Pin to exact current range revisions + policy implementation hashes.
@@ -206,8 +208,12 @@ def start_postflop_ev(raw,busy=False):
         "rules_sha":digest.hexdigest(),
     }
     identity=hashlib.sha256(json.dumps(key,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
-    return _schedule(identity,lambda progress:calculate(payload,progress=progress),
-                     1 if payload["hand"] else len(core.HANDS))
+    from replit_simulator import max_safe_workers
+    workers=max_safe_workers() if not payload["hand"] else 1
+    return _schedule(identity,lambda progress:calculate_parallel(
+                         payload,progress=progress,workers=workers),
+                     1 if payload["hand"] else len(core.HANDS),
+                     executor=POSTFLOP_EXECUTOR)
 
 
 def start_equity(raw,busy=False):
