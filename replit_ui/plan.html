@@ -2278,7 +2278,7 @@ function balanceSection(groups,keys){
 function renderBalanceLedger(root,data){
  const groups=data.outcome_groups||[],n=data.samples;
  root.append(el('h4','evLedgerSubheading','Баланс'));
- const top=makeEvLedger(['Механизм','N','Побед','Потерь','EV +','EV −','ΔEV']);
+ const top=makeEvLedger(['Механизм','N','N +','N −','EV +','EV −','ΔEV']);
  const totals={count:0,win:0,loss:0,positive:0,negative:0};
  for(const part of BALANCE_SECTIONS){
   const g=balanceSection(groups,part.keys);
