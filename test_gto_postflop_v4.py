@@ -92,7 +92,7 @@ class GTOV4Tests(unittest.TestCase):
         self.assertEqual(sum(changes.values()), 0)
 
         req = {
-            "model": "selected", "hand": "AQs", "trials": 32, "cycles": 1,
+            "model": "selected", "hand": "AQs", "trials": 50, "cycles": 1,
             "hero_postflop": "gto3", "hero_position": "3", "hero_stack_bb": 20,
             "opponents": [{
                 "profile": "builtin:any_two", "position": "9",
@@ -104,7 +104,7 @@ class GTOV4Tests(unittest.TestCase):
         v4 = ev.calculate({**req, "hero_postflop": "gto4"})
         self.assertEqual(v3["equity"]["AQs"], v4["equity"]["AQs"])
         self.assertIsInstance(v4["ev_bb"]["AQs"], float)
-        self.assertEqual(v4["simulations_per_hand"], 32)
+        self.assertEqual(v4["simulations_per_hand"], 50)
 
 
 if __name__ == "__main__":
