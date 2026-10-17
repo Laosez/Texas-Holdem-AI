@@ -358,7 +358,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("opponents=Array.from({length:8}",page)
         self.assertIn("const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];",page)
         self.assertIn("const heroSeat=normalizeFixedSeats();",page)
-        self.assertIn("row.append(el('span','oppHeroBadge','HERO · моя стратегия'));",page)
+        self.assertIn("row.setAttribute('aria-label','Hero · моя стратегия');",page)
         self.assertIn("remove.disabled=true;remove.classList.add('hidden');",page)
         self.assertIn("entry_mode:i<3?'range':'never'",page)
         self.assertIn("function opponentBulkRow(){",page)
