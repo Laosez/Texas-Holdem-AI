@@ -2,7 +2,7 @@
 import math
 import unittest
 
-from planner_ev_decomposition import EVDecomposition,classify_showdown,preflop_domination,showdown_group
+from planner_ev_decomposition import EVDecomposition,classify_showdown,preflop_domination,showdown_group,showdown_mechanism,reason_for_event
 import planner_postflop_ev as ev
 import replit_simulator as app
 
@@ -52,6 +52,45 @@ class EVDecompositionTests(unittest.TestCase):
             [("4","s"),("3","d")],[[("8","d"),("7","h")]],tied,True)
         self.assertEqual(group,"showdown_split")
 
+    def test_showdown_explanation_by_hand_class_and_kicker(self):
+        board=[("K","d"),("9","h"),("4","c"),("3","h"),("T","d")]
+        label=showdown_mechanism(
+            [("K","s"),("2","s")],[[("K","h"),("Q","s")]],board)[1]
+        self.assertIn("Преимущество кикера",label)
+        label=showdown_mechanism(
+            [("A","s"),("A","h")],[[("K","h"),("Q","s")]],board)[1]
+        self.assertIn("Одна пара",label)
+        self.assertIn("Старшая пара",label)
+        label=showdown_mechanism(
+            [("J","s"),("8","s")],[[("A","h"),("Q","h")]],
+            [("2","s"),("4","s"),("7","s"),("K","c"),("3","d")])[1]
+        self.assertIn("Флеш против",label)
+        self.assertEqual(reason_for_event("uncontested")[0],"pre_uncontested")
+        self.assertEqual(reason_for_event("win_without_showdown")[0],"pre_villain_folds")
+        self.assertIn("тёрне",reason_for_event("fold_turn")[1])
+
+    def test_reasons_partition_each_group_and_reconcile_ev(self):
+        d=EVDecomposition("AKo")
+        d.add(1.5,"uncontested",group="pre_win")
+        d.add(3,"win_without_showdown",group="pre_win")
+        d.add(-2,"fold_flop",group="pre_loss")
+        d.add(10,"showdown_5_win",group="showdown_win",
+              reason=("showdown_categories_5_4","Флеш против стрита"))
+        d.add(-5,"showdown_1_loss",group="showdown_loss",
+              reason=("showdown_same_1_kicker","Одна пара · Преимущество кикера"))
+        output=d.result()
+        self.assertEqual(output["samples"],5)
+        self.assertEqual(sum(x["count"] for x in output["outcome_groups"]),5)
+        self.assertAlmostEqual(output["ev_bb"],1.5)
+        for group in output["outcome_groups"]:
+            self.assertEqual(group["count"],sum(x["count"] for x in group["reasons"]))
+            self.assertAlmostEqual(
+                group["contribution_bb"],
+                sum(x["contribution_bb"] for x in group["reasons"]),places=4)
+        pre_win=output["outcome_groups"][0]
+        self.assertEqual(pre_win["count"],2)
+        self.assertEqual(len(pre_win["reasons"]),2)
+
     def test_six_primary_groups_plus_ties_reconcile(self):
         d=EVDecomposition("AKo")
         cases=[
@@ -100,6 +139,10 @@ class EVDecompositionTests(unittest.TestCase):
         d=result["decomposition"]
         self.assertEqual(d["samples"],75)
         self.assertEqual(sum(x["count"] for x in d["outcome_groups"]),75)
+        for group in d["outcome_groups"]:
+            self.assertEqual(sum(x["count"] for x in group["reasons"]),group["count"])
+            self.assertAlmostEqual(sum(x["contribution_bb"] for x in group["reasons"]),
+                                   group["contribution_bb"],places=4)
         self.assertEqual(d["hand"],"K4s")
         self.assertEqual(sum(row["count"] for row in d["events"]),75)
         self.assertLess(abs(sum(row["contribution_bb"] for row in d["events"])-result["ev_bb"]["K4s"]),.0003)
@@ -184,6 +227,8 @@ class EVDecompositionTests(unittest.TestCase):
                       __import__("inspect").getsource(ev.calculate))
         self.assertIn("const output=await pollPostflop(settings,epoch",s)
         self.assertIn("function renderHandDecomposition(){",s)
+        self.assertIn("decompReasonDisclosure",s)
+        self.assertIn("reason.within_group_pct",s)
         self.assertIn("renderHandDecomposition();",s)
 
 
