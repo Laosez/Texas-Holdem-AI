@@ -248,9 +248,11 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
     return (chip_ev, showdown, pot_state["bb"]) if metrics else (chip_ev, showdown)
 
 
-def calculate(raw, progress=None, *, _hands=None, _return_raw=False):
+def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
+              _prepared=None):
     payload = validate_request(raw)
-    src, provenance = eq.build_ranges(payload["opponents"], "selected")
+    src, provenance = (_prepared if _prepared is not None
+                       else eq.build_ranges(payload["opponents"], "selected"))
     disabled = payload["hero_postflop"] == "none" or any(
         spec["postflop"] == "none" and spec["entry_mode"] != "never"
         for spec in payload["opponents"]
@@ -531,12 +533,22 @@ def _single_parallel(raw, progress, workers, batch_size=256):
     return result
 
 
+_MATRIX_RANGES = None
+
+
+def _init_matrix_worker(raw):
+    """Build immutable opponent distributions only once per worker."""
+    global _MATRIX_RANGES
+    _MATRIX_RANGES = eq.build_ranges(raw["opponents"], "selected")
+
+
 def _compute_chunk(raw, hands):
     """Spawn-safe worker; each hand uses its original deterministic seed."""
-    return calculate(raw, _hands=hands, _return_raw=True)
+    return calculate(raw, _hands=hands, _return_raw=True,
+                     _prepared=_MATRIX_RANGES)
 
 
-def calculate_parallel(raw, progress=None, workers=1, chunk_size=4):
+def calculate_parallel(raw, progress=None, workers=1, chunk_size=8):
     """True multi-core 169-hand rollout; single-hand results stay unchanged.
 
     Spawn rather than fork: this is called within a live HTTP server thread.
@@ -556,7 +568,9 @@ def calculate_parallel(raw, progress=None, workers=1, chunk_size=4):
     totals = None
     done = 0
     with ProcessPoolExecutor(max_workers=workers,
-                             mp_context=multiprocessing.get_context("spawn")) as pool:
+                             mp_context=multiprocessing.get_context("spawn"),
+                             initializer=_init_matrix_worker,
+                             initargs=(payload,)) as pool:
         jobs = {pool.submit(_compute_chunk, payload, chunk): len(chunk)
                 for chunk in chunks}
         for job in as_completed(jobs):
