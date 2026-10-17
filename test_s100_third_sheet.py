@@ -19,10 +19,11 @@ class S100ThirdSheetTests(unittest.TestCase):
 
         for page in (main, plan):
             self.assertIn('<a class="tab" href="/s100"><b>03</b>', page)
-            self.assertIn("100 сценариев S100", page)
+            self.assertIn("Постфлоп · План</strong><small>100 сценариев S100", page)
         self.assertIn('<a class="tab" href="/"><b>01</b>', check)
         self.assertIn('<a class="tab" href="/plan"><b>02</b>', check)
         self.assertIn('<a class="tab current" href="/s100" aria-current="page">', check)
+        self.assertIn("Постфлоп · План S100", check)
         self.assertEqual(check.count('id="key"'), 1)
         self.assertEqual(check.count('id="connect"'), 1)
         self.assertIn("sessionStorage.getItem('skachkov_key')", check)
