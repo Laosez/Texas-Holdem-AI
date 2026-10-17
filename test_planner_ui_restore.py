@@ -71,7 +71,7 @@ class PlannerLayoutRecoveryTests(unittest.TestCase):
 
     def test_four_box_columns_multiselect_and_bulk_action(self):
         page = self.ui
-        self.assertIn('id="groupEditor" class="groupDrawer groupEditor" open', page)
+        self.assertIn('id="groupEditor" class="groupDrawer groupEditor"><summary>', page)
         self.assertIn(".unifiedGroupList .boxList{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))", page)
         self.assertIn("if(wasSelected)selectedBoxes.delete(b);else selectedBoxes.add(b);", page)
         self.assertIn("if(selectedBoxes.size&&hero)return HANDS.filter(h=>selectedBoxes.has(hero.boxes?.[h]));", page)
