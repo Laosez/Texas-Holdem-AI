@@ -337,9 +337,9 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                 entry_ev_sq[entrants] += chip_ev ** 2
                 ev_squared_total += chip_ev ** 2
                 if decomposition:
-                    event,risk,flush,group,matchup = rollout[2]
+                    event,risk,flush,group,matchup,reason = rollout[2]
                     decomposition.add(chip_ev,event,risk=risk,flush=flush,
-                                      group=group,matchup=matchup)
+                                      group=group,matchup=matchup,reason=reason)
                 ev_total += chip_ev
                 showdown_total += at_showdown
                 fold_win_total += bool(not at_showdown and chip_ev > 0)
@@ -401,7 +401,8 @@ def _single_batch(cases, hero_profile, hero_position, stack_bb, disabled):
     for picked, board, seed in cases:
         if len(picked) == 1:
             out.append((None, uncontested if not disabled else None,
-                        False, 1.5, ("uncontested", None, None, "pre_win", None)))
+                        False, 1.5, ("uncontested", None, None, "pre_win", None,
+                         ("pre_uncontested", "Все соперники не вошли в банк"))))
             continue
         share = _showdown_share(picked, board)
         if disabled:
@@ -499,9 +500,9 @@ def _single_parallel(raw, progress, workers, batch_size=256):
                     else:
                         showdown_total += showdown
                         fold_win_total += bool(not showdown and net > 0)
-                    event, risk, flush, group, matchup = classified
+                    event, risk, flush, group, matchup, reason = classified
                     decomposition.add(net, event, risk=risk, flush=flush,
-                                      group=group, matchup=matchup)
+                                      group=group, matchup=matchup, reason=reason)
                 completed += 1
             if progress:
                 progress(completed, n)

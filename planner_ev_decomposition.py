@@ -135,6 +135,65 @@ def showdown_group(hero_hole,villain_holes,board,hero_won):
     return ("showdown_loss_dominated" if relation=="villain" else "showdown_loss"),matchup
 
 
+def showdown_mechanism(hero_hole,villain_holes,board):
+    """Observable best-five comparison at showdown, not preflop domination.
+
+    In multiway spots we compare Hero with the strongest remaining rival.
+    Side pots can make payout signs differ from ranking of the best hands.
+    """
+    h_score=eval_hand(list(hero_hole),list(board))
+    h_cat=h_score>>24
+    if not villain_holes:
+        return "showdown_no_rival","Не определена комбинация соперника"
+    v_hand=max(villain_holes,key=lambda h:eval_hand(list(h),list(board)))
+    v_score=eval_hand(list(v_hand),list(board))
+    v_cat=v_score>>24
+    h_name=CATEGORIES.get(h_cat,"Комбинация")
+    v_name=CATEGORIES.get(v_cat,"Комбинация")
+    if h_score==v_score:
+        return "showdown_equal","Равные итоговые комбинации · раздел банка"
+    if h_cat!=v_cat:
+        return ("showdown_categories_%s_%s"%(h_cat,v_cat),
+                "%s против %s"%(h_name,v_name))
+    # Same hand category: distinguish actual rank strength from kickers.
+    if h_cat==1:
+        hp=_pair_rank(list(hero_hole)+list(board))
+        vp=_pair_rank(list(v_hand)+list(board))
+        reason="Старшая пара" if hp!=vp else "Преимущество кикера"
+    elif h_cat==0:
+        reason="Старшая карта / кикер"
+    elif h_cat==2:
+        reason="Старшие две пары / кикер"
+    elif h_cat==3:
+        reason="Старшая тройка / кикер"
+    elif h_cat==4:
+        reason="Более высокий стрит"
+    elif h_cat==5:
+        reason="Более высокий флеш"
+    elif h_cat==6:
+        reason="Более высокий фулл-хаус"
+    elif h_cat==7:
+        reason="Более высокое каре / кикер"
+    else:
+        reason="Более высокий стрит-флеш"
+    return "showdown_same_%s_%s"%(h_cat,"rank" if h_cat!=1 or hp!=vp else "kicker"),(
+        "%s · %s"%(h_name,reason))
+
+
+def reason_for_event(event):
+    """Reason when no showdown hand comparison is available."""
+    if event=="uncontested":
+        return "pre_uncontested","Все соперники не вошли в банк"
+    if event=="win_without_showdown":
+        return "pre_villain_folds","Соперники сбросили до вскрытия"
+    if event.startswith("fold_"):
+        street=event.removeprefix("fold_")
+        return event,{"flop":"Наш фолд на флопе",
+                      "turn":"Наш фолд на тёрне",
+                      "river":"Наш фолд на ривере"}.get(street,"Наш фолд")
+    return "unspecified","Причина не определена"
+
+
 class EVDecomposition:
     def __init__(self,hand):
         self.hand=hand
@@ -145,8 +204,9 @@ class EVDecomposition:
         self.ev_total=0.0
         self.groups=defaultdict(lambda:{"count":0,"net":0.0})
         self.matchups=defaultdict(lambda:{"count":0,"wins":0,"net":0.0})
+        self.reasons=defaultdict(lambda:{"count":0,"net":0.0,"label":""})
 
-    def add(self,net_bb, event, *, risk=None, flush=None, group=None, matchup=None):
+    def add(self,net_bb, event, *, risk=None, flush=None, group=None, matchup=None, reason=None):
         self.n+=1
         self.ev_total+=net_bb
         e=self.event[event];e["count"]+=1;e["net"]+=net_bb
@@ -156,6 +216,9 @@ class EVDecomposition:
             else:
                 group="pre_loss" if event.startswith("fold_") else "pre_win"
         bucket=self.groups[group];bucket["count"]+=1;bucket["net"]+=net_bb
+        reason_key,reason_label=reason if reason is not None else reason_for_event(event)
+        r=self.reasons[(group,reason_key)]
+        r["count"]+=1;r["net"]+=net_bb;r["label"]=reason_label
         if matchup:
             relation,hero_rank,rival_rank=matchup
             entry=self.matchups[(relation,hero_rank,rival_rank)]
@@ -194,13 +257,25 @@ class EVDecomposition:
                 "contribution_bb":round(v["net"]/n,5)}
                for key,v in self.flush.items()]
         flush.sort(key=lambda x:-x["count"])
-        grouped=[{
-            "key":key,"label":label,"count":self.groups[key]["count"],
-            "frequency_pct":round(100*self.groups[key]["count"]/n,2),
-            "avg_bb":round(self.groups[key]["net"]/self.groups[key]["count"],4)
-                     if self.groups[key]["count"] else 0.,
-            "contribution_bb":round(self.groups[key]["net"]/n,5)}
-            for key,label in OUTCOME_GROUPS]
+        grouped=[]
+        for key,label in OUTCOME_GROUPS:
+            group=self.groups[key]
+            reasons=[{"key":code,"label":stat["label"],
+                      "count":stat["count"],
+                      "frequency_pct":round(100*stat["count"]/n,2),
+                      "within_group_pct":round(100*stat["count"]/group["count"],2),
+                      "avg_bb":round(stat["net"]/stat["count"],4),
+                      "contribution_bb":round(stat["net"]/n,5)}
+                     for (category,code),stat in self.reasons.items()
+                     if category==key and stat["count"]]
+            reasons.sort(key=lambda r:(-r["count"],r["label"]))
+            assert sum(v["count"] for v in reasons)==group["count"]
+            grouped.append({
+                "key":key,"label":label,"count":group["count"],
+                "frequency_pct":round(100*group["count"]/n,2),
+                "avg_bb":round(group["net"]/group["count"],4) if group["count"] else 0.,
+                "contribution_bb":round(group["net"]/n,5),
+                "reasons":reasons})
         matchups=[{"relation":rel,"hero":hero,"villain":villain,
                    "count":stats["count"],"wins":stats["wins"],
                    "win_pct":round(100*stats["wins"]/stats["count"],1),
@@ -227,11 +302,11 @@ def classify_case(picked,board,history,hero_fold_street,net_bb):
     """Detailed event, risk, flush, mutually exclusive group, preflop matchup."""
     if hero_fold_street:
         street=hero_fold_street if hero_fold_street in ("flop","turn","river") else "other"
-        return "fold_"+street,"fold_"+street+"_loss",None,"pre_loss",None
+        return "fold_"+street,"fold_"+street+"_loss",None,"pre_loss",None,reason_for_event("fold_"+street)
     players=history.get("players",())
     if "HERO" not in players:
         return "win_without_showdown",None,None,(
-            "pre_win" if net_bb>=0 else "pre_loss"),None
+            "pre_win" if net_bb>=0 else "pre_loss"),None,reason_for_event("win_without_showdown")
     hero_hole=next(cards for pid,cards,_ in picked if pid=="HERO")
     remaining=[cards for pid,cards,_ in picked if pid!="HERO" and pid in players]
     hero_cards=[tuple(_card(c)) for c in hero_hole]
@@ -241,7 +316,8 @@ def classify_case(picked,board,history,hero_fold_street,net_bb):
     event,risk,flush=classify_showdown(
         hero_cards,rival_cards,board_cards,hero_won=hero_won)
     group,matchup=showdown_group(hero_cards,rival_cards,board_cards,hero_won)
-    return event,risk,flush,group,matchup
+    reason=showdown_mechanism(hero_cards,rival_cards,board_cards)
+    return event,risk,flush,group,matchup,reason
 
 
 def _card(card_id):
