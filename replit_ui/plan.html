@@ -631,34 +631,62 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  .evLedgerSort{margin-left:0}
 }
 .plannerOpponentsPanel .oppBulkPosition{display:flex;align-items:center;font-size:10px;font-weight:700;color:#b4d8f2;min-height:32px;white-space:nowrap}
+
+/* Full Hero editor lives in the fixed nine-seat grid; block 01 handles only
+   version naming and saving, with the authoritative input nodes moved into
+   their canonical Hero row during renderOpponents(). */
+.plannerStrategyPanel .heroVersionPanel{padding:12px}
+.plannerStrategyPanel .heroVersionPanel .field{margin:0 0 8px}
+.plannerStrategyPanel .heroVersionPanel .heroStrategyComposition{
+ font-size:11px;margin:8px 0 4px;padding:6px 8px}
+.plannerStrategyPanel .heroVersionActions{gap:5px;margin-top:10px}
+.plannerOpponentsPanel .oppHeroSeat{
+ border:1px solid #5788b4;background:linear-gradient(105deg,#204261,#173753);
+ align-items:center;padding:7px 4px}
+.plannerOpponentsPanel .oppHeroSeat select{
+ background:#10283f;border-color:#527da1;color:#eef6ff;
+ font-weight:750;min-width:0}
+.plannerOpponentsPanel .oppHeroSeat .num{font-weight:900}
+.plannerOpponentsPanel .oppHeroEdit{
+ width:100%;padding:8px 3px;border-radius:5px;cursor:pointer;
+ border:1px solid #5c8cba;background:#24567d;color:#eaf5ff;
+ font-weight:750;font-size:10px;white-space:nowrap}
+.plannerOpponentsPanel .oppHeroEntry{
+ min-height:32px;display:flex;align-items:center;font-size:10px;
+ font-weight:800;line-height:1.2;color:#b3daf7}
+.plannerOpponentsPanel .oppHeroSeat .oppHeroEmpty{height:1px}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
 <main class="plannerMain">
-<section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">01 / </span>Моя стратегия</h2><span class="badge">Позиции и действия</span></div>
-<div class="profile"><h3>Моя стратегия</h3><div class="fields">
-<div class="field wide"><label for="heroProfile">Префлоп · диапазон / пресет</label><select id="heroProfile"></select></div>
-<div class="field wide heroPostflopChoice">
-<label for="heroPostflop">Постфлоп · моя стратегия розыгрыша</label>
-<select id="heroPostflop">
-<option value="gto2" selected>GTO V2 · исправленные мелкие пары</option>
-<option value="gto3">GTO V3 · эксперимент Kxs/кикер/дро</option>
-<option value="gto">GTO V1 · контрольная версия</option>
-<option value="tag">TAG V1</option><option value="lag">LAG V1</option>
-<option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
-<option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
-</select>
-<p id="heroPostflopHint" class="heroPostflopHint" role="status" aria-live="polite">GTO V2 — базовая постфлоп-модель; эксперимент GTO V3 доступен рядом для сравнения Postflop EV.</p>
-</div>
-<div class="field"><label for="heroPosition">Моя позиция</label><select id="heroPosition"></select></div>
-<div class="field"><label for="heroScenario">Ситуация</label><select id="heroScenario"></select></div>
-<select id="players" class="hidden" aria-label="Формат стола для модели" tabindex="-1"></select>
-<input id="stack" class="hidden" type="hidden" value="20">
-<div class="field wide"><label for="strategyName">Название новой версии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
-</div>
-<p id="heroStrategyComposition" class="heroStrategyComposition" role="status" aria-live="polite">Сборка: префлоп-диапазон + GTO V2 (постфлоп)</p>
-<p id="activeContext" class="note">Контекст расчёта: 9-max · 20 BB (из сохранённой стратегии).</p><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
-</section>
+<section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">01 / </span>Версии стратегии</h2><span class="badge">Сохранение · A17</span></div>
+ <div class="profile heroVersionPanel">
+  <div class="field"><label for="strategyName">Название стратегии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
+  <div id="heroControlDock" class="hidden" aria-hidden="true">
+   <label for="heroProfile">Префлоп · диапазон / пресет</label><select id="heroProfile"></select>
+   <label for="heroPostflop">Постфлоп · моя стратегия</label>
+   <select id="heroPostflop">
+    <option value="gto2" selected>GTO V2 · исправленные мелкие пары</option>
+    <option value="gto3">GTO V3 · эксперимент Kxs/кикер/дро</option>
+    <option value="gto">GTO V1 · контрольная версия</option>
+    <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
+    <option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
+    <option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
+   </select>
+   <label for="heroPosition">Моя позиция</label><select id="heroPosition"></select>
+   <label for="heroScenario">Ситуация</label><select id="heroScenario"></select>
+   <p id="heroPostflopHint" role="status">Постфлоп-профиль Hero</p>
+  </div>
+  <select id="players" class="hidden" aria-label="Формат стола для модели" tabindex="-1"></select>
+  <input id="stack" class="hidden" type="hidden" value="20">
+  <p id="heroStrategyComposition" class="heroStrategyComposition" role="status" aria-live="polite">Префлоп + постфлоп Hero</p>
+  <p id="activeContext" class="note">9-max · 20 BB</p>
+  <p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: защита против открытия соперника.</p>
+  <div class="buttons heroVersionActions"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div>
+  <p id="dirty" class="note">Выберите пресет для редактирования.</p>
+ </div>
+ </section>
 <section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">9-max · Hero + 8 мест</span></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">8 мест + Hero</span><button id="addOpponent" class="btn sm hidden" type="button" aria-label="Добавить соперника" disabled>+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
@@ -1038,12 +1066,34 @@ function normalizeFixedSeats(){
  });
  return heroPos;
 }
-function heroPositionSeatRow(position){
+// Reuse the exact existing Hero controls so state and change listeners remain
+// authoritative for the range editor, Monte Carlo and saved versions.
+function heroPositionSeatRow(position,controls){
  const row=el('div','oppRow oppHeroSeat');
+ row.setAttribute('aria-label','Hero · моя стратегия');
  row.append(el('span','num','H'));
- row.append(el('span','oppHeroBadge','HERO · моя стратегия'));
- row.append(el('span','oppFixedSeat',fixedSeatCaption(position)));
- for(let i=0;i<5;i++)row.append(el('span','oppHeroEmpty',''));
+ const profile=controls.profile;
+ profile.setAttribute('aria-label','Hero · префлоп-диапазон');
+ profile.title='Моя стратегия · префлоп / пресет';
+ row.append(profile);
+ const pos=controls.position;
+ pos.setAttribute('aria-label','Hero · позиция');
+ row.append(pos);
+ const scenario=controls.scenario;
+ scenario.setAttribute('aria-label','Hero · ситуация');
+ row.append(scenario);
+ const edit=el('button','oppHeroEdit','169 рук ↓');
+ edit.type='button';edit.title='Действия Hero редактируются в матрице 169 рук';
+ edit.onclick=()=>document.querySelector('.editorSection')?.scrollIntoView({behavior:'smooth',block:'start'});
+ row.append(edit);
+ const postflop=controls.postflop;
+ postflop.setAttribute('aria-label','Hero · постфлоп-стратегия');
+ postflop.title=HERO_LINE_DESCRIPTIONS[postflop.value]||'Постфлоп-модель Hero';
+ row.append(postflop);
+ const entry=el('span','oppHeroEntry','Hero · выбранная рука');
+ entry.title='Monte Carlo разыгрывает выбранную руку Hero условно; ширина диапазона задаётся его стратегией';
+ row.append(entry);
+ row.append(el('span','oppHeroEmpty',''));
  return row;
 }
 function updateOpponentButtons(){
@@ -1087,13 +1137,19 @@ function renderOpponents(){
  const heroSeat=normalizeFixedSeats();
  updateOpponentButtons();
  const count=opponents.length;
+ // Grab mounted selects BEFORE clearing the table: replaceChildren detaches
+ // their DOM nodes, and an ID lookup would otherwise temporarily fail.
+ const heroControls={
+  profile:$('heroProfile'),position:$('heroPosition'),
+  scenario:$('heroScenario'),postflop:$('heroPostflop')
+ };
  const target=$('opponents');target.replaceChildren();
  target.append(opponentBulkRow());
  const heroRank=FIXED_TABLE_POSITIONS.indexOf(heroSeat);
  opponents.slice(0,count).forEach((opp,i)=>{
   if(heroRank<FIXED_TABLE_POSITIONS.indexOf(opp.position) &&
      (i===0||FIXED_TABLE_POSITIONS.indexOf(opponents[i-1].position)<heroRank))
-   target.append(heroPositionSeatRow(heroSeat));
+   target.append(heroPositionSeatRow(heroSeat,heroControls));
   const row=el('div','oppRow');row.append(el('div','num','#'+(i+1)));
   const p=el('select');refill(p,profileOptions(),opp.profile);p.onchange=()=>{
    opponents[i].profile=p.value; // Changing range must not move a fixed position.
