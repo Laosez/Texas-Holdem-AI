@@ -1993,8 +1993,14 @@ async function calculateHandDecomposition(){
  $('handDecompStatus').textContent='Monte Carlo для '+hand+' · '+settings.trials.toLocaleString('ru-RU')+' симуляций…';
  try{
   const output=await pollPostflop(settings,epoch,task=>{
-   if(signature===decompRequestSignature())
-    $('handDecompStatus').textContent='Расчёт '+hand+' · '+(task.status==='running'?'в работе':'в очереди');
+   if(signature===decompRequestSignature()){
+    const total=Number(task.total)||settings.trials;
+    const done=Number(task.done)||0;
+    $('handDecompStatus').textContent=task.status==='queued'
+     ?'Расчёт '+hand+' · в очереди на CPU'
+     :'Расчёт '+hand+' · '+done.toLocaleString('ru-RU')
+       +' / '+total.toLocaleString('ru-RU')+' симуляций';
+   }
   });
   if(!output||epoch!==calcEpoch||signature!==decompRequestSignature())return;
   if(!output.decomposition){
@@ -2006,7 +2012,8 @@ async function calculateHandDecomposition(){
    const ci=output.ev_ci95_bb?.[hand];
    $('handDecompStatus').textContent='Готово · '+hand+' · '+output.decomposition.samples
     +' симуляций · '+postflopName($('heroPostflop').value)
-    +(Number.isFinite(ci)?' · EV 95% ±'+ci.toFixed(3)+' BB':'');
+    +(Number.isFinite(ci)?' · EV 95% ±'+ci.toFixed(3)+' BB':'')
+    +(Number.isFinite(output.compute_seconds)?' · '+output.compute_seconds.toFixed(1)+' с':'');
   }
   renderHandDecomposition();
  }catch(e){
