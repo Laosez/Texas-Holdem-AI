@@ -75,8 +75,12 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertNotIn('id="entryPrecisionTrials"',page)
         self.assertIn('id="opponentEntrySummary"',page)
         self.assertIn('Средний банк, BB',page)
-        self.assertIn('aria-sort',page)
-        self.assertIn("decompSort.column===col.key",page)
+        self.assertNotIn('decompSort.column===col.key',page)
+        self.assertIn("DECOMP_LABELS={",page)
+        self.assertIn("activeDecompGroup=opened?null:group.key",page)
+        self.assertIn("decompOneDetail",page)
+        self.assertNotIn('class="decompMatchupDisclosure"',page)
+        self.assertNotIn('decompReasonDisclosure',page)
 
 
 if __name__=="__main__":

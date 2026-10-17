@@ -91,6 +91,40 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertEqual(pre_win["count"],2)
         self.assertEqual(len(pre_win["reasons"]),2)
 
+    def test_final_hand_domination_is_not_preflop_domination(self):
+        # A7 has no matching high card with KQ preflop, but wins at
+        # showdown with the SAME five-card hand category (high card).
+        board=[("2","c"),("4","d"),("9","h"),("J","c"),("3","d")]
+        category,matchup=showdown_group(
+            [("A","s"),("7","h")],[ [("K","h"),("Q","s")] ],board,True)
+        self.assertEqual(category,"showdown_win_dominates")
+        self.assertIsNone(matchup)
+
+        # AK preflop dominates AQ, but on this board Hero has trips K,
+        # rival only has two pair (K and Q): different made-hand category.
+        board=[("K","s"),("K","d"),("Q","h"),("3","d"),("2","c")]
+        category,matchup=showdown_group(
+            [("A","s"),("K","h")],[ [("A","d"),("Q","s")] ],board,True)
+        self.assertEqual(category,"showdown_win")
+        self.assertEqual(matchup[0],"hero")
+
+    def test_same_final_hand_category_domination_rank_and_kicker(self):
+        board=[("2","c"),("5","d"),("9","h"),("J","c"),("3","d")]
+        # Different pair ranks.
+        category,_=showdown_group(
+            [("A","s"),("A","d")],[ [("K","s"),("K","h")] ],board,True)
+        self.assertEqual(category,"showdown_win_dominates")
+        # Same pair rank; Q kicker dominates our four.
+        board=[("K","s"),("5","d"),("9","h"),("J","c"),("3","d")]
+        category,_=showdown_group(
+            [("K","h"),("4","c")],[ [("K","d"),("Q","s")] ],board,False)
+        self.assertEqual(category,"showdown_loss_dominated")
+        # Different made-hand categories are NOT domination.
+        board=[("A","h"),("2","d"),("9","h"),("J","c"),("3","d")]
+        category,_=showdown_group(
+            [("A","s"),("A","d")],[ [("K","s"),("Q","s")] ],board,True)
+        self.assertEqual(category,"showdown_win")
+
     def test_six_primary_groups_plus_ties_reconcile(self):
         d=EVDecomposition("AKo")
         cases=[
@@ -227,8 +261,11 @@ class EVDecompositionTests(unittest.TestCase):
                       __import__("inspect").getsource(ev.calculate))
         self.assertIn("const output=await pollPostflop(settings,epoch",s)
         self.assertIn("function renderHandDecomposition(){",s)
-        self.assertIn("decompReasonDisclosure",s)
+        self.assertIn("decompCompactTable",s)
+        self.assertIn("activeDecompGroup",s)
+        self.assertIn("decompOneDetail",s)
         self.assertIn("reason.within_group_pct",s)
+        self.assertNotIn("renderDominationMatchups(",s)
         self.assertIn("renderHandDecomposition();",s)
 
 
