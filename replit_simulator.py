@@ -586,7 +586,7 @@ def worker(job: dict) -> None:
         "--blind-increase-every", str(config["blind_increase_every"]),
         "--max-hands", str(config["max_hands"]),
         "--seat-mode", config["seat_mode"],
-        "--button-policy",config["button_policy"],
+        "--button-policy",config.get("button_policy","moving"),
         "--out", str(output),
         "--checkpoint-dir", str(output / "_checkpoints"),
     ]
