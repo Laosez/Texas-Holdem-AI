@@ -2,42 +2,87 @@
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SKACHKOV S100 · Постфлоп-справочник</title>
 <style>
-:root{color-scheme:dark;--bg:#0c1828;--panel:#142840;--line:#35536b;--ink:#eff5ff;--muted:#abc0d3;--accent:#79b8ee}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#173552 0,#0c1828 58%);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}
-main{max-width:1480px;margin:auto;padding:30px 24px 70px}a{color:var(--accent)}.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
-h1{font-size:27px;letter-spacing:.03em;margin:0}h2{font-size:18px;margin:0 0 14px}h3{font-size:14px;margin:0}
-.sub{color:var(--muted);margin:6px 0 0}.intro{max-width:1000px;margin:18px 0 24px}
-.panel{border:1px solid var(--line);border-radius:13px;background:linear-gradient(135deg,#152b42,#112135);padding:20px;margin:18px 0}
-.badge{display:inline-block;border:1px solid var(--line);border-radius:15px;color:#bad7ee;padding:3px 10px;font-size:11px;font-weight:700}
-.controls{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:10px}
-.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:11px;font-weight:750;color:var(--muted)}
-input,select,button{font:inherit;min-width:0;color:var(--ink);background:#0b1d2d;border:1px solid #45627b;border-radius:7px;padding:9px 11px}
-button{background:#235a88;cursor:pointer;border-color:#4a8bb9;font-weight:700}button:hover{background:#3273a7}button.secondary{background:#142f48}
-.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.prob{background:#091d2d;border:1px solid #294861;border-radius:8px;padding:12px}
-.prob strong{font-size:17px}.prob span{color:var(--muted);font-size:11px}
-#inspectorResults{min-height:65px} .pill{font-weight:800;color:#a9d9ff;font-size:20px;margin-bottom:5px}
-.statline{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;color:var(--muted)}
-#message{min-height:21px;color:#ffd2a4;margin:12px 0 0}
-.tablewrap{overflow:auto;max-height:72vh;border:1px solid #35536b;border-radius:8px}
-table{border-collapse:collapse;width:100%;min-width:920px;background:#13273c}th{font-size:11px;color:#b9ccdc;position:sticky;top:0;background:#1c344d;text-align:left;z-index:1}
-td,th{padding:11px 10px;border-bottom:1px solid #2b455d;vertical-align:top}td{font-size:12px}tr:hover td{background:#1b3c58}
-.group{font-size:11px;color:#84bce7;font-weight:700}.act{font-weight:800;color:#aed9fa}
-.note{font-size:12px;color:var(--muted)}.filterbar{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:9px;margin-bottom:12px}
-.summary{font-size:12px;color:var(--muted);margin:10px 0 0}#exampleButtons{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-@media(max-width:930px){.controls{grid-template-columns:repeat(3,minmax(100px,1fr))}.grid2{grid-template-columns:1fr}.filterbar{grid-template-columns:1fr 1fr}}
-@media(max-width:580px){main{padding:18px 12px}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.filterbar{grid-template-columns:1fr}h1{font-size:22px}}
-</style></head><body><main>
-<header class="top"><div><h1>SKACHKOV / S100</h1><p class="sub">Единые постфлоп-сценарии для человека и бота · версия 1.0</p></div>
-<div><span class="badge">100 сценариев</span> &nbsp; <a href="/plan">← Лист «П»</a></div></header>
-<p class="intro">10 семейств силы руки × 5 осмысленных подтипов × Heads-up/Multiway = <b>100 распознаваемых ситуаций</b>. В справочнике и в боте используется <b>один и тот же набор параметров</b>. Частоты пока экспериментальные: это не solver GTO и не доказанно прибыльная стратегия.</p>
+:root{color-scheme:dark;--bg:#081221;--surface:#14243a;--line:#314660;--fg:#ecf5ff;--muted:#9ab0ca;--accent:#7baaf7;--ok:#89dbc5;--warn:#e9b279}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 60% -35%,#27507a,transparent 70%),var(--bg);font:13px/1.5 Inter,system-ui,sans-serif;color:var(--fg)}
+header,.nav,main,footer{width:min(1510px,96%);margin:auto}
+header{padding:23px 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:850;font-size:11px;letter-spacing:2px;color:#92baf1}
+.brand strong{display:block;color:white;font-size:25px;letter-spacing:-.6px}
+.right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nav{display:grid;grid-template-columns:repeat(4,1fr);background:#101d30;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.tab{border-right:1px solid var(--line);padding:13px 12px;display:flex;gap:9px;color:#91a4bc;text-decoration:none}
+.tab:last-child{border-right:0}
+.tab.current{background:#1d3b60;color:#fff;box-shadow:inset 0 -3px #7ca9fa}
+.tab:hover:not(.current):is(a){background:#192c45;color:#e9f4ff}
+.tab b{font-size:19px}.tab strong{display:block;font-size:13px}.tab small{font-size:10px}
+main.s100Main{display:grid;gap:15px;margin-bottom:38px}
+.panel{min-width:0;background:linear-gradient(140deg,#17283f,#101e30);border:1px solid var(--line);padding:19px;border-radius:12px}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px;flex-wrap:wrap}
+.heading h2{margin:0;font-size:18px;letter-spacing:-.25px}
+.index{color:#82aef2;font-size:12px}
+.badge{padding:4px 9px;border:1px solid #587998;border-radius:25px;font-size:11px;color:#b2cbe7;display:inline-block}
+.badge.ok{border-color:#468873;color:#81e1c0}.badge.fail{border-color:#9b596b;color:#ffc1cc}
+input,select{width:100%;min-width:0;padding:9px;background:#081626;color:#edf4ff;border:1px solid #395572;border-radius:7px;font:inherit}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label{display:block;font-size:11px;color:#adc4dc;font-weight:700;margin-bottom:5px}
+.btn{padding:9px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.18)}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.sm{padding:6px 9px;font-size:11px}.btn.outline{background:transparent}
+.note,.summary{font-size:11px;color:#9aafc8;margin:9px 0 0}
+.muted{color:var(--muted)}.small{color:var(--muted);font-size:11px}
+.panelIntro{margin:0;color:#b8cde1;font-size:12px;line-height:1.75}
+.panelIntro strong{color:#f4f9ff}
+.hintLink{color:#9ac9f4;text-decoration:underline;font-size:11px}
+.s100Top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.exampleButtons{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 13px}
+.controls{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:11px}
+.field{min-width:0}.field input,.field select{width:100%}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.prob{border:1px solid #36516e;background:#10233a;border-radius:8px;padding:12px;min-width:0}
+.prob strong{font-size:17px;color:#c8e6ff;font-variant-numeric:tabular-nums}
+#inspectorResults{min-height:12px;margin-top:10px}
+#inspectorResults:empty{display:none}
+.pill{font-weight:800;font-size:18px;color:#d8edff;margin-bottom:7px}
+.statusLine{min-height:18px;font-size:11px;color:#ffb6b6;margin:10px 0}
+.actionsRow{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;margin-top:13px}
+.tablewrap{overflow:auto;border:1px solid #2b4059;border-radius:7px;max-height:72vh}
+table{border-collapse:collapse;width:100%;min-width:960px;font-size:11px}
+th,td{padding:10px 8px;border-bottom:1px solid #2b4054;vertical-align:middle;text-align:left}
+th{position:sticky;top:0;z-index:2;background:#1a3550;color:#b5cfec;white-space:nowrap}
+td{color:#dce8f5}td:first-child,th:first-child{position:sticky;left:0;z-index:1;background:#183049;font-weight:800;color:#a8d5fa;min-width:65px}
+th:first-child{z-index:3;background:#1a3550}
+tbody tr:nth-child(even) td{background:#152b41}
+tbody tr:nth-child(even) td:first-child{background:#1a344c}
+tbody tr:hover td{filter:brightness(1.27)}
+.group{font-size:11px;color:#9dc9ed;font-weight:700}.act{font-weight:800;color:#aed9fa}
+.filterbar{display:grid;grid-template-columns:minmax(210px,1fr) minmax(160px,220px) minmax(160px,220px) auto;gap:9px;margin-bottom:12px;align-items:end}
+.tableMeta{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.summary{line-height:1.65}
+.panel .buttons{display:flex;gap:7px;flex-wrap:wrap}
+@media(max-width:1050px){.controls{grid-template-columns:repeat(3,minmax(0,1fr))}.filterbar{grid-template-columns:repeat(2,minmax(0,1fr))}.filterbar>.btn{align-self:end}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){header,.nav,main,footer{width:min(100% - 20px,1510px)}
+header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right input{flex:1!important;width:100%!important;min-width:100px}
+.tab{padding:9px 4px;gap:3px;justify-content:center}.tab b{font-size:13px}.tab strong{font-size:11px}.tab small{display:none}
+.panel{padding:14px}.controls,.filterbar,.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.actionsRow{justify-content:stretch}.actionsRow>.btn{width:100%}
+}
+@media(max-width:410px){.controls,.filterbar,.grid2{grid-template-columns:1fr}.right #key{min-width:0}}
+
+</style></head><body>
+<header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect" type="button">Подключиться</button></div></header>
+<div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Проверка</strong><small>100 сценариев S100</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
+<main class="s100Main">
+<section class="panel"><div class="heading"><h2><span class="index">01 / </span>Проверка · сценарии S100</h2><span class="badge">S001–S100 · справочник человека и бота</span></div>
+<p class="panelIntro"><strong>10 семейств силы руки × 5 подтипов × HU / Multiway = 100 сценариев.</strong> Человек изучает справочник и проверяет ситуации, а бот использует тот же набор правил при выборе действий. Частоты экспериментальные: не являются GTO-решением и не подтверждены сравнительным EV-тестированием.</p>
+</section>
 <section class="panel">
-<h2>Проверить раздачу: какой сценарий увидит бот?</h2>
-<div id="exampleButtons">
-<button class="secondary" type="button" data-example="aqtrue">AQ · A-Q-7-7</button>
-<button class="secondary" type="button" data-example="aqshared">AQ · A-7-7-2</button>
-<button class="secondary" type="button" data-example="t6weak">T6 · K-7-7-T</button>
-<button class="secondary" type="button" data-example="top">KQ · K-9-4</button>
+<div class="heading"><h2><span class="index">02 / </span>Проверить раздачу</h2><span class="badge">Та же логика, что у бота S100</span></div>
+<p class="note" style="margin:0 0 13px">Укажите карты и цену Call — получите код сценария, вероятности действий и объяснение.</p>
+<div id="exampleButtons" class="exampleButtons">
+<button class="btn sm outline" type="button" data-example="aqtrue">AQ · A-Q-7-7</button>
+<button class="btn sm outline" type="button" data-example="aqshared">AQ · A-7-7-2</button>
+<button class="btn sm outline" type="button" data-example="t6weak">T6 · K-7-7-T</button>
+<button class="btn sm outline" type="button" data-example="top">KQ · K-9-4</button>
 </div>
 <div class="controls">
 <div class="field"><label for="hole">HERO · две карты</label><input id="hole" value="As Qs" placeholder="As Qs"></div>
@@ -47,29 +92,30 @@ td,th{padding:11px 10px;border-bottom:1px solid #2b455d;vertical-align:top}td{fo
 <div class="field"><label for="call">Цена Call, BB</label><input id="call" type="number" min="0" step="0.5" value="8"></div>
 <div class="field"><label for="stack">Стек HERO, BB</label><input id="stack" type="number" min="0" step="1" value="80"></div>
 </div>
-<div class="top" style="margin-top:14px"><div class="field" style="width:min(290px,100%)"><label for="key">Ключ приложения (если не подставлен)</label><input id="key" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY"></div>
-<button type="button" id="inspect">Распознать и показать решение</button></div>
-<p id="message" role="status"></p>
+<div class="actionsRow"><span class="note" style="margin:0">Ключ общий для листов 1–3 и вводится в шапке.</span><button type="button" class="btn primary" id="inspect">Распознать сценарий и показать решение</button></div>
+<p id="message" class="statusLine" role="status"></p>
 <div id="inspectorResults" aria-live="polite"></div>
 </section>
 <section class="panel">
-<div class="top"><h2>Справочник сценариев S001–S100</h2><span id="count" class="badge">Загрузка…</span></div>
+<div class="heading"><h2><span class="index">03 / </span>Справочник сценариев S001–S100</h2><span id="count" class="badge">Загрузка…</span></div>
 <div class="filterbar">
 <div class="field"><label for="query">Поиск</label><input id="query" placeholder="Например, две пары или S061"></div>
 <div class="field"><label for="family">Сила руки</label><select id="family"><option value="">Все 10 семейств</option></select></div>
 <div class="field"><label for="mode">Тип банка</label><select id="mode"><option value="">HU + Multiway</option><option value="hu">Heads-up</option><option value="multi">Multiway</option></select></div>
-<button type="button" class="secondary" id="reset">Сбросить фильтры</button>
+<button type="button" class="btn sm outline" id="reset">Сбросить фильтры</button>
 </div>
 <div class="tablewrap"><table><thead><tr><th>Код</th><th>Тип руки</th><th>Подтип сценария</th><th>Соперники</th><th>Нет ставки</th><th>Против ставки</th><th>Принцип</th></tr></thead><tbody id="rows"></tbody></table></div>
 <p class="summary">Частоты в таблице — базовые настройки сценария. При проверке конкретных карт бот дополнительно учитывает размер ставки, дро, угрозы на борде, SPR и возможность легального рейза. Правило «лучший EV» появится только после статистической проверки.</p>
 </section>
 </main>
+<footer class="small" style="margin-bottom:35px">SKACHKOV / POKER SYSTEM · S100 — экспериментальные частоты, единый классификатор человека и бота.</footer>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 const state={all:[]};
+const token=()=>($('key').value||'').trim();
 $('key').value=sessionStorage.getItem('skachkov_key')||'';
-const auth=()=>({'X-Runner-Key':$('key').value.trim()});
+const auth=()=>({'X-Runner-Key':token()});
 const pct=n=>(100*n).toFixed(0)+'%';
 const td=(tr,value,className='')=>{const el=document.createElement('td');el.textContent=value;if(className)el.className=className;tr.append(el)};
 async function getCatalog(){
@@ -115,5 +161,23 @@ $('inspect').addEventListener('click',async()=>{
   const tip=document.createElement('p');tip.className='note';tip.textContent='Общий принцип: '+x.scenario.learning_rule+' · ставка '+pct(x.scenario.policy.bet_size_pot)+' банка. '+(x.call_threshold===null?'Сейчас нет ставки для колла.':'Порог pot odds для Call: '+pct(x.call_threshold)+'.');result.append(tip);
  }catch(e){$('message').textContent=e.message}
 });
-getCatalog().catch(e=>{$('message').textContent=e.message;$('count').textContent='Нет данных'});
+async function connect(){
+ if(!token()){
+  $('connection').textContent='Не подключено';$('connection').className='badge';
+  $('message').textContent='Укажи ключ POKER_RUNNER_KEY в верхней панели.';
+  return;
+ }
+ try{
+  await getCatalog();
+  sessionStorage.setItem('skachkov_key',token());
+  $('connection').textContent='Подключено';$('connection').className='badge ok';
+  $('message').textContent='';
+ }catch(e){
+  $('connection').textContent='Ошибка доступа';$('connection').className='badge fail';
+  $('message').textContent=e.message;$('count').textContent='Нет данных';
+ }
+}
+$('connect').addEventListener('click',connect);
+$('key').addEventListener('keydown',e=>{if(e.key==='Enter')connect()});
+if(token())connect();else $('count').textContent='Требуется ключ';
 </script></body></html>
