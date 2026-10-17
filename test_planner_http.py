@@ -271,7 +271,7 @@ class PlanHttpTests(unittest.TestCase):
             "if(!preserveEdits()){if(hero)setHeroFields(hero);return}",
             "const prior=selectedValue===undefined?control.value:selectedValue;"):
             self.assertIn(literal,page)
-        self.assertIn("useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})",page)
+        self.assertIn("useBbDefenseWhenRfi();renderOpponents();invalidateEquity();loadHero({contextChange:true});loadVillain()",page)
         self.assertIn("BB против открытия: используется GTO Fixed",page)
         self.assertIn("На BB нет RFI",page)
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
@@ -353,7 +353,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
         self.assertIn('value="evStrategy"',page)
     def test_fixed_nine_positions_and_hidden_legacy_add_remove(self):
-        page=app.PLAN_UI.read_text(encoding="utf-8")
+        page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="addOpponent" class="btn sm hidden"',page)
         self.assertIn("opponents=Array.from({length:8}",page)
         self.assertIn("const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];",page)
