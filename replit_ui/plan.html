@@ -540,6 +540,32 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .decompReasonTable .decompLoss td{color:#ef9eaa}
 .decompReasonTable .decompPositive td{color:#98d9ba}
 
+
+/* Selected-hand outcomes: seven rows maximum; one compact on-demand detail. */
+.handDecompRows .decompCompactTable{width:100%;border-collapse:collapse;table-layout:fixed}
+.decompCompactTable th,.decompCompactTable td{padding:8px 10px!important;font-size:12px}
+.decompCompactTable th:first-child,.decompCompactTable td:first-child{width:46%;text-align:left}
+.decompCompactTable th:not(:first-child),.decompCompactTable td:not(:first-child){
+ text-align:right;font-variant-numeric:tabular-nums}
+.decompCompactTable .decompGroupButton{border:0;background:none;color:inherit;cursor:pointer;
+ text-align:left;font:inherit;font-weight:650;padding:2px 0;max-width:100%;white-space:normal}
+.decompCompactTable .isDecompActive{background:rgba(101,155,201,.12)}
+.decompCompactTable .decompGroupButton:focus-visible{outline:2px solid #a5cfee;outline-offset:3px}
+#decompOneDetail{padding:12px 15px;margin-top:10px;border-top:1px solid #415670;
+ background:rgba(49,75,101,.12);border-radius:5px}
+#decompOneDetail .decompOneTitle{font-size:12px;display:block;margin-bottom:6px}
+#decompOneDetail .decompOneReason{display:grid;grid-template-columns:minmax(0,1fr) 110px 115px;
+ align-items:center;column-gap:12px;padding:6px 0;font-size:11px}
+#decompOneDetail .decompOneCount{text-align:right;color:#a9bfd3}
+#decompOneDetail .decompOneReason strong{text-align:right;font-variant-numeric:tabular-nums}
+#decompOneDetail .decompNegative{color:#f19ca8}
+#decompOneDetail .decompPositiveText{color:#96dac0}
+.handDecompCaveat{font-size:10px!important;opacity:.7}
+@media(max-width:600px){
+ #decompOneDetail .decompOneReason{grid-template-columns:minmax(0,1fr) 74px 78px;column-gap:4px}
+ .decompCompactTable th,.decompCompactTable td{padding:6px 4px!important;font-size:11px}
+}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -678,7 +704,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  <div class="heading"><h2><span class="index">05 / </span>Декомпозиция выбранной руки</h2><span id="handDecompTag" class="badge">AQs · не рассчитано</span></div>
  <div class="handDecompHeader">
   <div><span class="small">Выбранная рука</span><div id="handDecompName" class="bigHand">AQs</div>
-   <p class="small">Итоговый chip EV и диагностика доминирования — по реальным исходам симуляции, не по оценке одной комбинации.</p></div>
+   </div>
   <div class="handDecompControls"><span id="handDecompStatus" class="small" role="status">Нажми на руку на матрице — декомпозиция рассчитается автоматически.</span></div>
  </div>
  <div class="matrixMetrics handDecompStats">
@@ -687,11 +713,8 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
   <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>N из блока 02 · все исходы, включая фолды</small></div>
  </div>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Выбери руку на матрице для автоматического расчёта источников EV.</p></div>
-<details class="decompMatchupDisclosure"><summary>Доминирование стартовых рук · конкретные столкновения</summary>
-<p class="note">Доминирование: AK против AQ или QQ против 99. Соперник — сильнейший по итоговому борду из дошедших до вскрытия. При нескольких оппонентах это не охватывает все столкновения.</p>
-<div id="handDecompMatchups" class="handDecompRows">После расчёта появятся конкретные пары стартовых рук.</div>
-</details>
- <p class="note handDecompCaveat">Стоимость потерь — фактический отрицательный net BB на первоначальную раздачу в выбранной модели, а не доказанная ошибка принятого решения. Чтобы измерить стоимость ошибки, потребуется сравнить альтернативные действия при одинаковом состоянии стола. Анализ не включает ICM и не заменяет солвер.</p>
+
+ <p class="note handDecompCaveat">EV — BB на раздачу. Доминирование — более сильная комбинация того же типа на вскрытии. Не ICM.</p>
 </section>
 
 </main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
@@ -1949,129 +1972,93 @@ function renderPerOpponent(){
 // The main matrix (169 classes) keeps its own independent result.
 let handDecompResult=null,handDecompSignature='',computingHandDecomp=false;
 let autoDecompKey='',autoDecompTimer=null,autoDecompPending=false;
-let decompSort={column:'fixed',desc:false};
+let activeDecompGroup=null, activeDecompSignature='';
 const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
 function decompRequestSignature(){
  if(!hero)return '';
  return JSON.stringify(postflopRequest({hand:selected}));
 }
-const decompColumns=[
- {key:'label',label:'Исход раздачи'},
- {key:'count',label:'Случаев'},
- {key:'frequency_pct',label:'Частота'},
- {key:'avg_bb',label:'Средний BB'},
- {key:'contribution_bb',label:'Вклад в EV, BB'}
-];
+const DECOMP_LABELS={
+ pre_win:'До вскрытия +',
+ pre_loss:'До вскрытия −',
+ showdown_win:'Вскрытие +',
+ showdown_win_dominates:'Доминирование +',
+ showdown_loss:'Вскрытие −',
+ showdown_loss_dominated:'Доминирование −',
+ showdown_split:'Ничья'
+};
 function renderHandDecomposition(){
  if(!hero)return;
  $('handDecompName').textContent=selected;
- const good=handDecompResult?.hand===selected&&handDecompSignature===decompRequestSignature();
- const data=good?handDecompResult:null;
+ const signature=decompRequestSignature();
+ if(signature!==activeDecompSignature){
+  activeDecompGroup=null;
+  activeDecompSignature=signature;
+ }
+ const valid=handDecompResult?.hand===selected && handDecompSignature===signature;
+ const data=valid?handDecompResult:null;
  $('handDecompTag').textContent=selected+(data?' · '+data.samples+' раздач':' · расчёт');
  $('handDecompEV').textContent=data?decompFormat(data.ev_bb)+' BB':'—';
  const worst=data?.loss_exposures?.[0];
  $('handDecompCost').textContent=worst?decompFormat(-worst.cost_bb)+' BB':'—';
- $('handDecompCostLabel').textContent=worst?worst.label+' · BB/раздачу':'BB/раздачу · наблюдаемый убыток';
+ $('handDecompCostLabel').textContent=worst?worst.label:'Убыток, BB/раздачу';
  $('handDecompSamples').textContent=data?data.samples.toLocaleString('ru-RU'):'—';
  const root=$('handDecompRows');root.replaceChildren();
  if(!data){
-  root.append(el('p','handDecompEmpty','Для '+selected+' выполняется автоматический расчёт источников EV.'));
-  renderDominationMatchups(null);
+  root.append(el('p','handDecompEmpty','Расчёт выбранной руки…'));
   return;
  }
- const tbl=el('table','handDecompTable'),head=el('thead'),header=el('tr');
- for(const col of decompColumns){
-  const th=el('th');
-  th.setAttribute('aria-sort',decompSort.column===col.key?(decompSort.desc?'descending':'ascending'):'none');
-  const marker=decompSort.column===col.key?(decompSort.desc?' ↓':' ↑'):'';
-  const btn=el('button','',col.label+marker);btn.type='button';
-  btn.title='Сортировать по '+col.label;
-  btn.onclick=()=>{
-   if(decompSort.column===col.key)decompSort.desc=!decompSort.desc;
-   else{decompSort.column=col.key;decompSort.desc=col.key==='count'||col.key==='frequency_pct'}
+ const entries=(data.outcome_groups||[])
+    .filter(g=>g.key!=='showdown_split'||g.count>0);
+ const table=el('table','handDecompTable decompCompactTable');
+ const head=el('thead'),trHead=el('tr');
+ for(const label of ['Исход','N','%','BB','EV']){
+  const h=el('th','',label);h.scope='col';trHead.append(h);
+ }
+ head.append(trHead);table.append(head);
+ const body=el('tbody');
+ for(const group of entries){
+  const opened=activeDecompGroup===group.key;
+  const tr=el('tr',
+   (group.contribution_bb<0?'decompLoss':group.contribution_bb>0?'decompPositive':'')
+   +(opened?' isDecompActive':''));
+  const title=el('td');
+  const button=el('button','decompGroupButton',
+    (opened?'▾ ':'▸ ')+(DECOMP_LABELS[group.key]||group.label));
+  button.type='button';
+  button.setAttribute('aria-expanded',String(opened));
+  button.setAttribute('aria-controls','decompOneDetail');
+  button.onclick=()=>{
+   activeDecompGroup=opened?null:group.key;
    renderHandDecomposition();
   };
-  th.append(btn);header.append(th);
- }
- head.append(header);tbl.append(head);
- const body=el('tbody');
- const events=[...(data.outcome_groups||data.events||[])].filter(x=>x.key!=='showdown_split'||x.count>0);
- if(decompSort.column!=='fixed')events.sort((a,b)=>{
-  const x=a[decompSort.column],y=b[decompSort.column];
-  const delta=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'ru');
-  return (decompSort.desc?-delta:delta)||a.key.localeCompare(b.key);
- });
- for(const x of events){
-  const tr=el('tr',x.contribution_bb<0?'decompLoss':x.contribution_bb>0?'decompPositive':'');
-  for(const value of [x.label,String(x.count),Number(x.frequency_pct).toFixed(1)+'%',
-                      decompFormat(x.avg_bb),decompFormat(x.contribution_bb)]){
-   tr.append(el('td','',value));
+  title.append(button);tr.append(title);
+  for(const v of [String(group.count),Number(group.frequency_pct).toFixed(1),
+                  decompFormat(group.avg_bb),decompFormat(group.contribution_bb)]){
+   tr.append(el('td','',v));
   }
   body.append(tr);
-  // Each primary group owns a detailed account of how the pot was won/lost.
-  const reasons=Array.isArray(x.reasons)?x.reasons:[];
-  if(reasons.length){
-   const detailRow=el('tr','decompReasonRow'),cell=el('td');
-   cell.colSpan=decompColumns.length;
-   const details=el('details','decompReasonDisclosure');
-   details.append(el('summary','','Как именно · '+reasons.length+' сценариев'));
-   const sub=el('table','decompReasonTable'),head=el('thead'),hdr=el('tr');
-   for(const label of ['Механизм исхода','Случаев','Доля внутри группы','Средний BB','Вклад в EV, BB']){
-    hdr.append(el('th','',label));
-   }
-   head.append(hdr);sub.append(head);
-   const subbody=el('tbody');
-   for(const reason of reasons){
-    const sr=el('tr',reason.contribution_bb<0?'decompLoss':reason.contribution_bb>0?'decompPositive':'');
-    for(const value of [reason.label,String(reason.count),
-                        Number(reason.within_group_pct).toFixed(1)+'%',
-                        decompFormat(reason.avg_bb),decompFormat(reason.contribution_bb)]){
-     sr.append(el('td','',value));
-    }
-    subbody.append(sr);
-   }
-   sub.append(subbody);details.append(sub);cell.append(details);
-   detailRow.append(cell);body.append(detailRow);
-  }
- }
- tbl.append(body);root.append(tbl);
- renderDominationMatchups(data);
- root.append(el('p','small','Каждая симуляция в одном исходе. Сумма вкладов = итоговому EV '
-  +decompFormat(data.ev_bb)+' BB (с учётом округления). Красный — отрицательный вклад, зелёный — положительный. '
-  +'Раскрой «Как именно»: там фактические сочетания комбинаций, кикеры и улицы фолдов. Доминирование стартовых рук выделено отдельно. Вложенные строки не нужно повторно суммировать с итогами.'));
-}
-function renderDominationMatchups(data){
- const root=$('handDecompMatchups');if(!root)return;
- root.replaceChildren();
- const matchups=data?.domination_matchups||[];
- if(!matchups.length){
-  root.append(el('p','note',data?'В этой выборке префлоп-доминирование на вскрытии не встретилось.':'Пока нет рассчитанных столкновений.'));
-  return;
- }
- const hero=matchups.filter(x=>x.relation==='hero');
- const rival=matchups.filter(x=>x.relation==='villain');
- const sum=x=>x.reduce((acc,row)=>acc+row.count,0);
- const won=x=>x.reduce((acc,row)=>acc+row.wins,0);
- const summary=el('p','note','Мы доминируем: '+sum(hero)+' случаев · побед '+won(hero)
-  +' · нас доминируют: '+sum(rival)+' случаев · побед '+won(rival)
-  +'. Считаются только состоявшиеся вскрытия; частоты относятся к общей выборке.');
- root.append(summary);
- const table=el('table','handDecompTable'),head=el('thead'),thead=el('tr');
- for(const h of ['Стартовые руки','Исходное преимущество','Случаев','Побед','Win %','Вклад в EV, BB']){
-  thead.append(el('th','',h));
- }
- head.append(thead);table.append(head);
- const body=el('tbody');
- for(const item of matchups.slice(0,25)){
-  const tr=el('tr',item.contribution_bb<0?'decompLoss':item.contribution_bb>0?'decompPositive':'');
-  const values=[item.hero+' / '+item.villain,
-   item.relation==='hero'?'Мы доминируем':'Нас доминируют',
-   String(item.count),String(item.wins),Number(item.win_pct).toFixed(1)+'%',
-   decompFormat(item.contribution_bb)];
-  values.forEach(v=>tr.append(el('td','',v)));body.append(tr);
  }
  table.append(body);root.append(table);
- if(matchups.length>25)root.append(el('p','small','Показаны 25 наиболее частых столкновений из '+matchups.length+'.'));
+ const selectedGroup=entries.find(g=>g.key===activeDecompGroup);
+ if(selectedGroup && Array.isArray(selectedGroup.reasons)){
+  const panel=el('div','decompOneDetail');panel.id='decompOneDetail';
+  panel.append(el('strong','decompOneTitle',
+                   DECOMP_LABELS[selectedGroup.key]||selectedGroup.label));
+  if(!selectedGroup.reasons.length){
+   panel.append(el('p','small','В этой категории нет случаев.'));
+  }else{
+   for(const reason of selectedGroup.reasons){
+    const row=el('div','decompOneReason');
+    row.append(el('span','decompOneName',reason.label));
+    row.append(el('span','decompOneCount',reason.count+' · '+Number(reason.within_group_pct).toFixed(1)+'%'));
+    row.append(el('strong',reason.contribution_bb<0?'decompNegative':'decompPositiveText',
+                         decompFormat(reason.contribution_bb)+' BB'));
+    panel.append(row);
+   }
+  }
+  root.append(panel);
+ }
 }
 function scheduleHandDecomposition(){
  if(!hero)return;
