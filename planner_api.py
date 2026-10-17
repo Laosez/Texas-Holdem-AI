@@ -144,18 +144,60 @@ def _validate_request(raw):
     return {"opponents":cleaned,"model":model,"trials":trials,"cycles":cycles}
 
 
+def _valid_cached_result(result):
+    """Accept both single/matrix and paired A/B result envelopes."""
+    if not isinstance(result,dict):
+        return False
+    if isinstance(result.get("equity"),dict):
+        return len(result["equity"]) in (1,17,169)
+    if result.get("model")!="postflop_paired_v1":
+        return False
+    left,right,comparison=result.get("a"),result.get("b"),result.get("comparison")
+    if not all(isinstance(side,dict) and isinstance(side.get("equity"),dict)
+               and len(side["equity"])==1
+               and isinstance(side.get("decomposition"),dict)
+               for side in (left,right)):
+        return False
+    return (isinstance(comparison,dict)
+            and comparison.get("method")=="paired_common_deals_v1"
+            and type(comparison.get("samples")) is int
+            and comparison["samples"]>0
+            and isinstance(comparison.get("by_opponents"),list))
+
+
+def _cached_units(result):
+    """Progress reflects the actual completed experiment, including A/B."""
+    if result.get("model")=="postflop_paired_v1":
+        return result["comparison"]["samples"]
+    count=len(result["equity"])
+    if count==1:
+        return int(result.get("simulations_per_hand",1))
+    return count
+
+
 def _cached_task(identity):
     target=CACHE_PATH/(identity+".json")
-    if target.is_file():
+    try:
         result=json.loads(target.read_text(encoding="utf-8"))
-        if isinstance(result,dict) and isinstance(result.get("equity"),dict) and len(result["equity"]) in (1,17,169):
-            return {"id":identity,"status":"completed","done":1,"total":1,"result":result,"cached":True}
+    except (OSError,ValueError):
+        # Partial/old/corrupted cache entries are recomputed, not served.
+        return None
+    if _valid_cached_result(result):
+        completed=_cached_units(result)
+        return {"id":identity,"status":"completed",
+                "done":completed,"total":completed,
+                "result":result,"cached":True}
     return None
 
 
 def _schedule(identity,compute,total,executor=None):
     # In-memory task metadata is bounded; no unbounded thread spawning.
     CACHE_PATH.mkdir(parents=True,exist_ok=True)
+    # Hot repeated requests should reuse the in-memory task/result without
+    # parsing its JSON file. The second check under LOCK still prevents races.
+    with LOCK:
+        current=EQUITY_TASKS.get(identity)
+        if current:return public_task(current)
     cached=_cached_task(identity)
     if cached:return cached
     with LOCK:
@@ -294,10 +336,8 @@ def get_task(id_):
     with LOCK:
         if id_ in EQUITY_TASKS:
             return public_task(EQUITY_TASKS[id_])
-    target=CACHE_PATH/(id_+".json")
-    if target.is_file():
-        return {"id":id_,"status":"completed","done":169,"total":169,
-                "result":json.loads(target.read_text(encoding="utf-8")),"cached":True}
+    cached=_cached_task(id_)
+    if cached:return cached
     raise KeyError(id_)
 
 

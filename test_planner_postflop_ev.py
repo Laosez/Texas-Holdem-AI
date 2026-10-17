@@ -105,6 +105,81 @@ class PostflopEVTests(unittest.TestCase):
         self.assertEqual(dead.act(SimpleNamespace(to_call=2)).type, "fold")
         self.assertEqual(dead.act(SimpleNamespace(to_call=0)).type, "check")
 
+    def test_paired_physical_deal_is_prepared_once_per_trial(self):
+        import random
+        raw=setup(hero="gto3",profile="tag",hand="T6s",trials=50)
+        raw["hero_postflop_b"]="lag"
+        with patch("planner_postflop_ev._physical_deal",
+                   wraps=post._physical_deal) as prepared:
+            result=post.calculate_parallel(raw,workers=1)
+        self.assertEqual(prepared.call_count,50)
+        self.assertEqual(result["comparison"]["samples"],50)
+        self.assertAlmostEqual(
+            result["comparison"]["delta_ev_bb"],
+            result["b"]["ev_bb"]["T6s"]-result["a"]["ev_bb"]["T6s"],
+            delta=.00011)
+        ranges,_=eq.build_ranges(raw["opponents"],"selected")
+        picked,board=post._draw_case("T6s",ranges,raw["opponents"],random.Random(42))
+        fixed=post._physical_deal(picked,board,raw["hero_position"],2026)
+        for strategy in ("gto3","lag"):
+            params=(picked,board,strategy,raw["hero_position"],20,2026)
+            self.assertEqual(
+                post._play_case(*params,detail=True,metrics=True),
+                post._play_case(*params,detail=True,metrics=True,prepared=fixed))
+
+    def test_paired_multi_process_2000_cases(self):
+        """Exercise spawn-based worker path, not just the 50-trial inline path."""
+        raw=setup(hero="gto3",hand="AQs",entry="never",trials=2000)
+        raw["hero_postflop_b"]="tag"
+        report=post.calculate_parallel(raw,workers=2)
+        self.assertEqual(report["comparison"]["samples"],2000)
+        self.assertEqual(report["comparison"]["delta_ev_bb"],0)
+        self.assertEqual(report["comparison"]["delta_ci95_bb"],0)
+        self.assertEqual(report["a"]["entry_n_samples"][0],2000)
+        self.assertEqual(report["b"]["entry_n_samples"][0],2000)
+        self.assertEqual(report["a"]["ev_bb"]["AQs"],1.5)
+        self.assertEqual(report["b"]["ev_bb"]["AQs"],1.5)
+
+    def test_paired_disk_cache_survives_restart_and_corruption(self):
+        import tempfile
+        from pathlib import Path
+        import planner_api as api
+        class ImmediateExecutor:
+            def submit(self,work):
+                work()
+        result={
+            "model":"postflop_paired_v1",
+            "a":{"equity":{"AQs":40.},"decomposition":{"samples":3000}},
+            "b":{"equity":{"AQs":42.},"decomposition":{"samples":3000}},
+            "comparison":{"method":"paired_common_deals_v1",
+                          "samples":3000,"by_opponents":[]}
+        }
+        identity="a"*64
+        with tempfile.TemporaryDirectory() as folder, \
+             patch.object(api,"CACHE_PATH",Path(folder)), \
+             patch.object(api,"EQUITY_TASKS",{}):
+            first=api._schedule(identity,lambda progress:result,3000,
+                                executor=ImmediateExecutor())
+            self.assertEqual(first["status"],"completed")
+            api.EQUITY_TASKS.clear()  # simulate a new server instance
+            cached=api._schedule(identity,
+                 lambda progress: self.fail("Unexpected repeat Monte Carlo"),
+                 3000,executor=ImmediateExecutor())
+            self.assertEqual(cached["status"],"completed")
+            self.assertTrue(cached["cached"])
+            self.assertEqual(cached["done"],3000)
+            self.assertEqual(cached["total"],3000)
+            self.assertEqual(api.get_task(identity)["result"],result)
+            bad="b"*64
+            (Path(folder)/(bad+".json")).write_text("{corrupted",encoding="utf-8")
+            self.assertIsNone(api._cached_task(bad))
+            with self.assertRaises(KeyError):
+                api.get_task(bad)
+            basic="c"*64
+            (Path(folder)/(basic+".json")).write_text(
+                '{"equity":{"AQs":50.0},"simulations_per_hand":2500}',encoding="utf-8")
+            self.assertEqual(api.get_task(basic)["done"],2500)
+
     def test_paired_same_policy_shares_deals_and_has_zero_delta(self):
         raw = setup(hero="gto3",profile="tag",hand="AQs",trials=50)
         raw["hero_postflop_b"] = "gto3"

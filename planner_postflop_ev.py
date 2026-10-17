@@ -223,42 +223,51 @@ def _showdown_share(picked, board):
     return 1. / (1. + sum(score == best for score in others)) if own == best else 0.
 
 
-def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, detail=False, metrics=False):
-    """One complete legal preflop-to-river betting hand with sampled cards."""
-    from core.engine import Seat, Table
+def _physical_deal(picked, board, hero_position, seed):
+    """Materialize immutable physical seats once for both A/B policies.
 
-    # Physical seating is fixed for the entire 9-max hand. Players excluded
-    # from the entered-pot scenario must still occupy seats; otherwise an
-    # engine with 7 entrants reassigns UTG to SB and UTG+1 to BB.
-    by_position = {str(hero_position): ("HERO", picked[0][1],
-                                       _Policy(hero_profile, hero_position, hero=True))}
-    for pid, cards, spec in picked[1:]:
-        pos = str(spec["position"])
+    Inactive players still post blinds and fold. Only policies/game state
+    are re-created per strategy; none of the sampled cards are resampled.
+    """
+    by_position={str(hero_position):("HERO", picked[0][1], None)}
+    for pid,cards,spec in picked[1:]:
+        pos=str(spec["position"])
         if pos in by_position or pos not in SEAT_ORDER:
             raise ValueError("Повторяющаяся или некорректная позиция за столом")
-        by_position[pos] = (pid, cards, _Policy(spec["postflop"], pos))
-
-    occupied = set(board)
-    for _, cards, _ in by_position.values():
+        by_position[pos]=(pid,cards,spec)
+    occupied=set(board)
+    for _,cards,_ in by_position.values():
         occupied.update(cards)
-    if len(occupied) != 5 + 2 * len(by_position):
+    if len(occupied)!=5+2*len(by_position):
         raise RuntimeError("Пересечение физических карт при подготовке раздачи")
-    # Dummy cards are drawn AFTER the actual board and participant cards, so
-    # the conditional Monte Carlo range distribution remains unchanged.
-    filler_cards = iter(random.Random(seed ^ 0x4649584544534541).sample(
-        [card for card in eq.ALL_CARDS if card not in occupied],
-        2 * (len(SEAT_ORDER) - len(by_position))))
-    for position in SEAT_ORDER:
-        if position not in by_position:
-            by_position[position] = (
-                "FOLD_" + position, (next(filler_cards), next(filler_cards)),
-                _InactivePolicy())
+    # No dependence on the postflop policy; deterministic dead cards.
+    absent=len(SEAT_ORDER)-len(by_position)
+    filler=iter(random.Random(seed ^ 0x4649584544534541).sample(
+        [c for c in eq.ALL_CARDS if c not in occupied],2*absent))
+    for pos in SEAT_ORDER:
+        if pos not in by_position:
+            by_position[pos]=("FOLD_"+pos,(next(filler),next(filler)),None)
+    ring=tuple(by_position[pos][0] for pos in SEAT_ORDER)
+    holes={by_position[pos][0]:by_position[pos][1] for pos in SEAT_ORDER}
+    specs={by_position[pos][0]:by_position[pos][2] for pos in SEAT_ORDER}
+    return ring,holes,specs
 
-    ring = [by_position[position][0] for position in SEAT_ORDER]
-    holes = {by_position[position][0]: by_position[position][1]
-             for position in SEAT_ORDER}
-    policies = {by_position[position][0]: by_position[position][2]
-                for position in SEAT_ORDER}
+
+def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed,
+               *, detail=False, metrics=False, prepared=None):
+    """One complete legal hand; optionally reuse paired physical seat layout."""
+    from core.engine import Seat, Table
+
+    ring,holes,specs = prepared if prepared is not None else (
+        _physical_deal(picked,board,hero_position,seed))
+    policies={}
+    for pid in ring:
+        if pid=="HERO":
+            policies[pid]=_Policy(hero_profile,hero_position,hero=True)
+        elif pid.startswith("FOLD_"):
+            policies[pid]=_InactivePolicy()
+        else:
+            policies[pid]=_Policy(specs[pid]["postflop"],str(specs[pid]["position"]))
 
     table = Table(rng=_FixedDeal(ring, holes, board, seed))
     history = {"showdown": False}
@@ -646,11 +655,12 @@ def _paired_batch(cases, profile_a, profile_b, hero_position, stack_bb):
             out.append((None, result, result))
             continue
         share = _showdown_share(picked, board)
+        physical=_physical_deal(picked,board,hero_position,seed)
         a = _play_case(picked, board, profile_a, hero_position, stack_bb,
-                       seed, detail=True, metrics=True)
+                       seed, detail=True, metrics=True, prepared=physical)
         b = (a if profile_a == profile_b else
              _play_case(picked, board, profile_b, hero_position, stack_bb,
-                        seed, detail=True, metrics=True))
+                        seed, detail=True, metrics=True, prepared=physical))
         if a[-1] is None or b[-1] is None:
             raise RuntimeError("Final pot telemetry missing in paired A/B")
         # _play_case produces (net, showdown, classification, final_pot)
