@@ -17,13 +17,13 @@ class NumericPostflopClassifierTests(unittest.TestCase):
     def test_each_deal_yields_exactly_one_street_scenario(self):
         examples = [
             # Existing fundamental postflop classes remain deterministic.
-            ("14 12", "14-7-2", "F-TP"),
+            ("14 12", "14-7-2", "F-TPHK"),
             ("14s 12s", "14-10s-7s", "F-TPFD"),
             ("9 8", "7-6-2", "F-OESD"),
             ("10 7", "9-6-2", "F-GS"),
             ("77", "14-7-2", "F-SET"),
             ("9s 4s", "10s-7s-2", "F-FD"),
-            ("14s 12s", "10s-7s-2s", "F-FL"),
+            ("14s 12s", "10s-7s-2s", "F-FL2"),
             # P0: combinations where the formerly generic class lost vital draw equity.
             ("9s 8s", "7s-6s-2", "F-FDOESD"),
             ("14s 13s", "12s-11s-2", "F-FDGS"),
@@ -44,14 +44,14 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             ("9s 4s", "14s-7-2", "F-BFD"),
             ("8 3", "14-10-2", "F-AIR"),
             # Pre-existing turn/river results should not regress.
-            ("14 10", "14-7-7-2", "T-2SH"),
-            ("10 6", "13-7-7-10", "T-2SL"),
+            ("14 10", "14-7-7-2", "T-TPBP"),
+            ("10 6", "13-7-7-10", "T-MPBP"),
             ("14 7", "14-7-2-2", "T-2OWN"),
             ("9s 4s", "14s-7s-2-3-11", "R-MFD"),
-            ("14 10", "7-7-4-4-2", "R-2BD"),
+            ("14 10", "7-7-4-4-2", "R-2BDHK"),
             ("88", "5s-7s-5z-3z-14z", "R-2PK"),
-            ("77", "7-14-14-4-2", "R-FH"),
-            ("77", "7-7-14-4-2", "R-4K"),
+            ("77", "7-14-14-4-2", "R-FHSET"),
+            ("77", "7-7-14-4-2", "R-4KPK"),
             ("14 2", "10-9-8-7-6", "R-BSTR"),
         ]
         for hand, board, code in examples:
@@ -93,12 +93,38 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             self.assertTrue(result["scenario"]["name"])
             self.assertEqual(len(result["scenario"]), 3)
 
+    def test_3000_random_river_paths_have_one_scenario_per_street(self):
+        """A full hand has F -> T -> R scenarios, not a single lifetime label."""
+        rng = random.Random(31018)
+        deck = [(rank, suit) for rank in range(2, 15) for suit in "cdhs"]
+        for _ in range(3000):
+            cards = rng.sample(deck, 7)
+            observed = []
+            for board_size, prefix in ((3, "F"), (4, "T"), (5, "R")):
+                dealt = cards[:2] + cards[2:2 + board_size]
+                suit_counts = {s: sum(c[1] == s for c in dealt) for s in "cdhs"}
+                repeated = list(dict.fromkeys(
+                    suit for _, suit in dealt if suit_counts[suit] >= 2))
+                labels = {s: "szy"[i] for i, s in enumerate(repeated)}
+                normalized = [str(rank) + labels.get(suit, "")
+                              for rank, suit in dealt]
+                found = classify_numeric(" ".join(normalized[:2]),
+                                         "-".join(normalized[2:]))
+                self.assertTrue(found["scenario"]["id"].startswith(prefix + "-"))
+                observed.append(found["scenario"]["id"])
+            self.assertEqual(len(observed), 3)
+        self.assertEqual(
+            [classify_numeric("14 12", b)["scenario"]["id"] for b in
+             ("14-7-2", "14-7-2-7", "14-7-2-7-12")],
+            ["F-TPHK", "T-TPBP", "R-2OWN"],
+        )
+
     def test_strategy_ledger_examples_have_correct_single_scenario(self):
         html = (app.ROOT / "replit_ui/s100.html").read_text(encoding="utf-8")
         start = html.index("const rows=[") + len("const rows=[")
         end = html.index("\n];", start)
         entries = ast.literal_eval("[" + html[start:end] + "]")
-        self.assertGreaterEqual(len(entries), 40)
+        self.assertGreaterEqual(len(entries), 80)
         streets = {"Флоп": 0, "Тёрн": 0, "Ривер": 0}
         seen = set()
         for street, hole, board, title, expected in entries:
@@ -109,9 +135,9 @@ class NumericPostflopClassifierTests(unittest.TestCase):
                 self.assertNotIn((street, expected), seen)
                 seen.add((street, expected))
                 streets[street] += 1
-        self.assertGreaterEqual(streets["Флоп"], 25)
-        self.assertGreaterEqual(streets["Тёрн"], 3)
-        self.assertGreaterEqual(streets["Ривер"], 6)
+        self.assertGreaterEqual(streets["Флоп"], 40)
+        self.assertGreaterEqual(streets["Тёрн"], 15)
+        self.assertGreaterEqual(streets["Ривер"], 15)
 
     def test_original_s100_unchanged_and_numeric_api_authenticated(self):
         with patch.object(app, "TOKEN", "numeric_classifier_test_key"):
@@ -136,7 +162,7 @@ class NumericPostflopClassifierTests(unittest.TestCase):
                 with post("/api/postflop/classify") as response:
                     self.assertEqual(response.status, 200)
                     parsed = json.load(response)
-                    self.assertEqual(parsed["scenario"]["id"], "F-TP")
+                    self.assertEqual(parsed["scenario"]["id"], "F-TPHK")
                 with urllib.request.urlopen(urllib.request.Request(
                         url + "/api/s100",
                         headers={"X-Runner-Key": "numeric_classifier_test_key"}),

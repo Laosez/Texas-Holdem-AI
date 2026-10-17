@@ -49,7 +49,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
         start = text.index("const rows=[") + len("const rows=[")
         end = text.index("\n];", start)
         examples = ast.literal_eval("[" + text[start:end] + "]")
-        self.assertEqual(len(examples), 44)
+        self.assertGreaterEqual(len(examples), 80)
         for street, hole, board, title, code in examples:
             with self.subTest(scenario=code):
                 variations = _physical_variants(hole, board, code)
@@ -61,7 +61,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
         result = compare_request(request_for([
             {"hole": h, "board": b} for _,h,b,_,_ in examples
         ]))
-        self.assertEqual(len(result["rows"]), 44)
+        self.assertEqual(len(result["rows"]), len(examples))
 
     def test_up_to_five_and_original_gto_or_lag_bot_modules_untouched(self):
         five = list(POLICIES)[:5]
@@ -72,7 +72,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
         self.assertEqual(set(result["rows"][0]["actions"]), set(five))
         for strategies in [[], five + ["tag_postflop_v1"],
                            ["gto_postflop_v1", "gto_postflop_v1"],
-                           ["gto_postflop_v1", "os.system('echo broken')"]]:
+                           ["gto_postflop_v1", "unknown_postflop_profile"]]:
             with self.subTest(strategies=strategies):
                 with self.assertRaises(ValueError):
                     compare_request({"strategies": strategies,
@@ -105,7 +105,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
                 data = {**basic,"context": {**basic["context"],**changes}}
                 with self.assertRaises(ValueError):
                     compare_request(data)
-        too_many = request_for([{"hole":"14 12","board":"14-7-2"}] * 51)
+        too_many = request_for([{"hole":"14 12","board":"14-7-2"}] * 101)
         with self.assertRaises(ValueError):
             compare_request(too_many)
 
@@ -128,7 +128,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
                 with urllib.request.urlopen(authorized,timeout=25) as r:
                     self.assertEqual(r.status,200)
                     data=json.load(r)
-                    self.assertEqual(data["rows"][0]["scenario"]["id"],"F-TP")
+                    self.assertEqual(data["rows"][0]["scenario"]["id"],"F-TPHK")
                 original=urllib.request.Request(base+"/api/s100",headers={"X-Runner-Key":"compare_secret"})
                 with urllib.request.urlopen(original,timeout=20) as r:
                     self.assertEqual(len(json.load(r)["scenarios"]),100)
