@@ -102,6 +102,10 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.postflop_archetypes_v1 import HumanPostflopBot
         return HumanPostflopBot(btype)
 
+    if btype == "s100_postflop_v1":
+        from bots.s100_postflop import S100PostflopBot
+        return S100PostflopBot()
+
     if btype == "gto_postflop_v4":
         from bots.gto_postflop_v4 import GTOPostflopV4Bot
         return GTOPostflopV4Bot()
