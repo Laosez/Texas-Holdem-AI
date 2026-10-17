@@ -738,6 +738,8 @@ function refreshHeroPostflopChoice(){
 }
 let huComparisonRevision=0,huComparisonHand='',huComparisonTimer=null;
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
+let matrixContextKey='',handWriteSeq=0,handWritebacks=new Map();
+const HAND_RESULT_METRICS=['equity','ev_bb','showdown_pct','fold_win_pct','ev_ci95_bb'];
 const names={};
 let copiedMatrix=null; // In-page clipboard: action frequencies only, never A17 boxes.
 let intersectionOnly=true,calculatingReverse=false;
@@ -996,7 +998,7 @@ function removeOpponent(index){
  $('viewOpponent').value=String(nextIndex);
  invalidateEquity();loadVillain();
 }
-function invalidateEquity(){handDecompResult=null;handDecompSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
+function invalidateEquity(){handDecompResult=null;handDecompSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};matrixContextKey='';handWritebacks.clear();drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -2078,6 +2080,7 @@ async function calculateHandDecomposition(){
    }
   });
   if(!output||epoch!==calcEpoch||signature!==decompRequestSignature())return;
+  acceptSingleHandMatrixResult(hand,output,settings);
   if(!output.decomposition){
    handDecompResult=null;
    $('handDecompStatus').textContent='EV отключён: выбери постфлоп-профили для активных игроков.';
@@ -2108,6 +2111,70 @@ function postflopRequest(overrides={}){
   opponents:currentPeople(),hero_postflop:$('heroPostflop').value,
   hero_position:hero.position,hero_stack_bb:Number($('stack').value),...overrides};
 }
+// Detailed selected-hand Monte Carlo replaces the corresponding matrix cell.
+// Excluding trials preserves the other 168 classes when only N changes.
+function postflopMatrixContext(settings=postflopRequest()){
+ const {hand,trials,cycles,...context}=settings;
+ return JSON.stringify(context);
+}
+function replaceMatrixHand(matrix,hand,output){
+ if(!matrix||!output||!HANDS.includes(hand))return matrix;
+ const result={...matrix};
+ for(const metric of HAND_RESULT_METRICS){
+  const incoming=output[metric];
+  if(incoming && Object.prototype.hasOwnProperty.call(incoming,hand)){
+   result[metric]={...(result[metric]||{}),[hand]:incoming[hand]};
+  }
+ }
+ result.hand_samples={...(result.hand_samples||{}),
+                      [hand]:output.simulations_per_hand};
+ result.matrix_partial=Object.keys(result.equity||{}).length<169;
+ return result;
+}
+function acceptSingleHandMatrixResult(hand,output,settings){
+ if(!output||!HANDS.includes(hand))return false;
+ const context=postflopMatrixContext(settings);
+ if(context!==postflopMatrixContext())return false;
+ if(matrixContextKey && matrixContextKey!==context){
+  equityResults.filter=null;equityResults.actual=null;handWritebacks.clear();
+ }
+ const previous=equityResults.filter?.model==='postflop_line_rollout_v1'
+  ?equityResults.filter:null;
+ const initial=previous||{
+  model:'postflop_line_rollout_v1',equity:{},ev_bb:{},
+  showdown_pct:{},fold_win_pct:{},ev_ci95_bb:{},
+  behavioral_ev_enabled:output.behavioral_ev_enabled,
+  simulations_per_hand:output.simulations_per_hand,
+  note:output.note,opponents:output.opponents,
+  matrix_partial:true
+ };
+ const updated=replaceMatrixHand(initial,hand,output);
+ if(!updated)return false;
+ const sameActual=equityResults.actual===previous;
+ equityResults.filter=updated;
+ if(sameActual||!equityResults.actual||
+    equityResults.actual.model==='postflop_line_rollout_v1')equityResults.actual=updated;
+ matrixContextKey=context;
+ handWritebacks.set(hand,{context,output,seq:++handWriteSeq});
+ drawMatrices();drawEquityStats();
+ return true;
+}
+function acceptCompleteMatrixResult(matrix,startedAt,context){
+ if(!matrix||context!==postflopMatrixContext())return false;
+ let merged={...matrix,hand_samples:{},matrix_partial:false};
+ // Preserve hand results finished after the full-matrix job started.
+ const survivors=[...handWritebacks.entries()].filter(([hand,entry])=>
+  entry.context===context && entry.seq>startedAt);
+ handWritebacks.clear();
+ for(const [hand,entry] of survivors){
+  merged=replaceMatrixHand(merged,hand,entry.output);
+  handWritebacks.set(hand,entry);
+ }
+ equityResults.filter=merged;equityResults.actual=merged;
+ matrixContextKey=context;
+ return true;
+}
+
 async function pollPostflop(settings,epoch,report){
  let job=await post('/api/plan/postflop',settings);
  while(job.status==='queued'||job.status==='running'){
@@ -2393,10 +2460,10 @@ let computingAll=false;
 $('computeAll').onclick=async()=>{
  if(computingAll||!hero)return;
  computingAll=true;$('computeAll').disabled=true;
+ const startedAt=handWriteSeq,context=postflopMatrixContext();
  try{
   const matrix=await calculateFullPostflop(currentPeople());
-  if(!matrix)return;
-  equityResults.filter=matrix;equityResults.actual=matrix;
+  if(!matrix||!acceptCompleteMatrixResult(matrix,startedAt,context))return;
   huComparisonHand='';
   drawEquityStats();drawMatrices();drawBoxes();
   // HU comparisons for this specific selected hand, not 8x169 extra rollouts.
