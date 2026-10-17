@@ -630,6 +630,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  .evLedgerTable{min-width:610px}
  .evLedgerSort{margin-left:0}
 }
+.plannerOpponentsPanel .oppBulkPosition{display:flex;align-items:center;font-size:10px;font-weight:700;color:#b4d8f2;min-height:32px;white-space:nowrap}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -908,7 +909,7 @@ async function loadHero({contextChange=false}={}){
                              Number($('players').value),Number($('stack').value));
    hero=doc;hero.contexts=hero.contexts||{};
    dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';
-   invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg(heroContextMessage(doc));
+   invalidateEquity();setHeroFields(doc);renderOpponents();paintEditor();renderAll();msg(heroContextMessage(doc));
   }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
   finally{loadingSource=false}
   return;
@@ -936,7 +937,7 @@ async function loadHero({contextChange=false}={}){
   hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
         hands:copy(slot.hands),range_origin:origin};
   undos=[];bulkSelected.clear();selectedBoxes.clear();brushMode='inspect';
-  invalidateEquity();setHeroFields(hero);paintEditor();renderAll();
+  invalidateEquity();setHeroFields(hero);renderOpponents();paintEditor();renderAll();
   msg(heroContextMessage(hero)+(dirty?' · Есть изменения в других позициях.':''));
  }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
  finally{loadingSource=false}
@@ -1071,7 +1072,8 @@ function opponentBulkRow(){
   return select;
  };
  row.append(makeSelect(profileOptions(),'Диапазон → всем','profile'));
- for(let i=0;i<3;i++)row.append(el('span','oppBulkBlank',''));
+ row.append(el('span','oppBulkPosition','9-max · фикс.'));
+ for(let i=0;i<2;i++)row.append(el('span','oppBulkBlank',''));
  row.append(makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop'));
  row.append(el('span','oppBulkBlank',''));
  row.append(el('span','oppBulkBlank',''));
