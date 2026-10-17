@@ -527,6 +527,19 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .decompMatchupDisclosure>summary{cursor:pointer;color:#c9dff1;font-weight:750;font-size:12px}
 .decompMatchupDisclosure>.note{margin:8px 0}
 
+
+.handDecompTable .decompReasonRow>td{padding:0 10px 8px 25px;border-bottom:1px solid #253d56}
+.decompReasonDisclosure>summary{font-size:11px;cursor:pointer;color:#a8c8e5;padding:4px 0;list-style:none}
+.decompReasonDisclosure>summary::before{content:"▸ ";color:#92b4d7}
+.decompReasonDisclosure[open]>summary::before{content:"▾ "}
+.decompReasonTable{width:100%;border-collapse:collapse;font-size:11px}
+.decompReasonTable th,.decompReasonTable td{padding:6px 9px;border-bottom:1px solid #25384e}
+.decompReasonTable th{text-align:left;color:#8eacca;font-weight:600}
+.decompReasonTable td:not(:first-child),.decompReasonTable th:not(:first-child){
+ text-align:right;font-variant-numeric:tabular-nums}
+.decompReasonTable .decompLoss td{color:#ef9eaa}
+.decompReasonTable .decompPositive td{color:#98d9ba}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -1995,12 +2008,37 @@ function renderHandDecomposition(){
    tr.append(el('td','',value));
   }
   body.append(tr);
+  // Each primary group owns a detailed account of how the pot was won/lost.
+  const reasons=Array.isArray(x.reasons)?x.reasons:[];
+  if(reasons.length){
+   const detailRow=el('tr','decompReasonRow'),cell=el('td');
+   cell.colSpan=decompColumns.length;
+   const details=el('details','decompReasonDisclosure');
+   details.append(el('summary','','Как именно · '+reasons.length+' сценариев'));
+   const sub=el('table','decompReasonTable'),head=el('thead'),hdr=el('tr');
+   for(const label of ['Механизм исхода','Случаев','Доля внутри группы','Средний BB','Вклад в EV, BB']){
+    hdr.append(el('th','',label));
+   }
+   head.append(hdr);sub.append(head);
+   const subbody=el('tbody');
+   for(const reason of reasons){
+    const sr=el('tr',reason.contribution_bb<0?'decompLoss':reason.contribution_bb>0?'decompPositive':'');
+    for(const value of [reason.label,String(reason.count),
+                        Number(reason.within_group_pct).toFixed(1)+'%',
+                        decompFormat(reason.avg_bb),decompFormat(reason.contribution_bb)]){
+     sr.append(el('td','',value));
+    }
+    subbody.append(sr);
+   }
+   sub.append(subbody);details.append(sub);cell.append(details);
+   detailRow.append(cell);body.append(detailRow);
+  }
  }
  tbl.append(body);root.append(tbl);
  renderDominationMatchups(data);
  root.append(el('p','small','Каждая симуляция в одном исходе. Сумма вкладов = итоговому EV '
   +decompFormat(data.ev_bb)+' BB (с учётом округления). Красный — отрицательный вклад, зелёный — положительный. '
-  +'Группы с доминированием определяются по стартовым картам; ничья показывается отдельно только при наличии. Заголовки сортируют таблицу.'));
+  +'Раскрой «Как именно»: там фактические сочетания комбинаций, кикеры и улицы фолдов. Доминирование стартовых рук выделено отдельно. Вложенные строки не нужно повторно суммировать с итогами.'));
 }
 function renderDominationMatchups(data){
  const root=$('handDecompMatchups');if(!root)return;
