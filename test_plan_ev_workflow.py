@@ -125,18 +125,20 @@ class PlanEVWorkflowTests(unittest.TestCase):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         for needle in (
             "let decompReportMode='bdr';",
-            "1 · БДР", "3 · Баланс EV",
+            'id="handDecompReportMode" class="handDecompFormatValue">БДР</span>',
             "function renderBdrLedger(root,data){",
             "function renderBalanceLedger(root,data){",
-            "function renderCompareBdrLedger(root,a,b){",
+            "function renderCompareBdrLedger(root,a,b,compare=true){",
             "function renderCompareBalanceLedger(root,a,b){",
             "const a=left.data,b=right.data;",
-            "if(decompReportMode==='bdr')renderCompareBdrLedger(root,a,b);",
-            "renderCompareBalanceLedger(root,a,b);",
+            "renderCompareBdrLedger(root,a,b,compare);",
+            "function abBdrTable(compare){",
             "abDelta(a,b,ea,eb)",
             "function selectedAbBreakdown(side,selection){",
             "ledgerControls(root);",
-            "decompReportMode==='bdr'",
+            "const abOpenSections=new Set(['gain','loss']);",
+            "const abOpenReasons=new Set();",
+            "button.setAttribute('aria-expanded',String(disclosure.open));",
             'id="handDecompOpponentCount"',
             'id="handDecompStratumInfo"',
             "handDecompByOpponents=Array.isArray(output.decomposition_by_opponents)",
@@ -163,6 +165,24 @@ class PlanEVWorkflowTests(unittest.TestCase):
             self.assertIn('id="'+number+'"',page)
         self.assertIn("populateDecompSelectors();",page)
         self.assertIn("const hand=side==='a'?selected:",page)
+        self.assertIn("if(side==='b'&&$('handDecompHandB').value==='-')return null;",page)
+        self.assertIn("if(!settings)continue;",page)
+        self.assertIn("const compare=$('handDecompHandB').value!=='-';",page)
+        self.assertIn("if(side==='b'&&!decompSideRequest('b'))",page)
+        self.assertIn("for(const metric of ['N','%','Ср. BB','EV, BB'])",page)
+        self.assertIn("group.colSpan=compare?2:1",page)
+        self.assertIn("abVisibleBdrCells(a,b,counts,contributions,compare)",page)
+        self.assertIn("const ledger=abBdrTable(compare)",page)
+        self.assertIn("if(!sectionOpen)continue;",page)
+        self.assertIn("if(!open)continue;",page)
+        self.assertIn("row.children[i].classList.add(compare?",page)
+        self.assertIn('class="handDecompBigHandSelect"',page)
+        self.assertIn('class="handDecompBigHand"',page)
+        self.assertIn('class="handDecompMatchCard isA"',page)
+        self.assertIn('class="handDecompMatchCard isB"',page)
+        self.assertNotIn('<select id="handDecompHandA"',page)
+        self.assertNotIn('<select id="handDecompProfileA"',page)
+        self.assertNotIn('<select id="handDecompReportMode"',page)
         self.assertIn("settings.hero_postflop===$('heroPostflop').value",page)
         self.assertIn("if(side==='b'&&handDecompResult?.hand===hand",page)
         self.assertNotIn("if(decompReportMode==='bdr')renderBdrLedger(root,data)",page)
