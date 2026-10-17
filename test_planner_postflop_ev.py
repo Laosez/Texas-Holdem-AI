@@ -105,6 +105,53 @@ class PostflopEVTests(unittest.TestCase):
         self.assertEqual(dead.act(SimpleNamespace(to_call=2)).type, "fold")
         self.assertEqual(dead.act(SimpleNamespace(to_call=0)).type, "check")
 
+    def test_paired_same_policy_shares_deals_and_has_zero_delta(self):
+        raw = setup(hero="gto3",profile="tag",hand="AQs",trials=50)
+        raw["hero_postflop_b"] = "gto3"
+        with patch("planner_postflop_ev._draw_case",wraps=post._draw_case) as draw:
+            result = post.calculate_parallel(raw,workers=1)
+        self.assertEqual(draw.call_count, 50)
+        self.assertEqual(result["model"], "postflop_paired_v1")
+        self.assertEqual(result["comparison"]["samples"], 50)
+        self.assertEqual(result["comparison"]["delta_ev_bb"], 0)
+        self.assertEqual(result["comparison"]["delta_ci95_bb"], 0)
+        self.assertEqual(result["a"]["ev_bb"],result["b"]["ev_bb"])
+        self.assertEqual(result["a"]["decomposition"],result["b"]["decomposition"])
+        self.assertEqual(sum(x["samples"] for x in result["comparison"]["by_opponents"]),50)
+        unpaired=post.calculate({k:v for k,v in raw.items()
+                                 if k!="hero_postflop_b"})
+        self.assertEqual(result["a"]["ev_bb"],unpaired["ev_bb"])
+        self.assertEqual(result["a"]["equity"],unpaired["equity"])
+
+    def test_paired_different_policies_delta_and_conditional_strata(self):
+        raw = setup(hero="gto3",profile="tag",hand="T6s",trials=50)
+        raw["hero_postflop_b"] = "tag"
+        result = post.calculate_parallel(raw,workers=2)
+        pair = result["comparison"]
+        self.assertEqual(pair["method"],"paired_common_deals_v1")
+        self.assertEqual(pair["samples"],50)
+        self.assertAlmostEqual(pair["delta_ev_bb"],
+            result["b"]["ev_bb"]["T6s"]-result["a"]["ev_bb"]["T6s"],
+            places=3)
+        self.assertGreaterEqual(pair["delta_ci95_bb"],0)
+        weighted=sum((x["delta_ev_bb"] or 0)*x["samples"]
+                     for x in pair["by_opponents"])/50
+        self.assertAlmostEqual(weighted,pair["delta_ev_bb"],places=3)
+        self.assertEqual(result["a"]["entry_n_samples"],
+                         result["b"]["entry_n_samples"])
+        self.assertEqual(result["a"]["equity"],result["b"]["equity"])
+
+    def test_paired_request_rejects_invalid_shapes(self):
+        raw=setup()
+        raw["hero_postflop_b"]="gto3"
+        raw["hand"]=None
+        with self.assertRaises(ValueError):
+            post.validate_request(raw)
+        raw["hand"]="AQs"
+        raw["hero_postflop_b"]="none"
+        with self.assertRaises(ValueError):
+            post.validate_request(raw)
+
     def test_replay_ev_converges_to_legal_chip_range_and_equity(self):
         out=post.calculate(setup(hand="AA",trials=50))
         self.assertGreater(out["equity"]["AA"],30)

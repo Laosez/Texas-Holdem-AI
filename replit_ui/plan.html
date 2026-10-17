@@ -795,6 +795,10 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompRows .handDecompTable td.abRelative,.handDecompRows .handDecompTable td.abDelta{font-weight:400!important}
 .handDecompRows .handDecompTable td{font-variant-numeric:tabular-nums}
 @media(max-width:580px){.handDecompCombinedChart{padding:10px 6px}.handDecompCombinedChart .handDecompChartTitle{flex-wrap:wrap}}
+
+.handDecompPairedStatus{margin:11px 0 0;padding:9px 12px;border:1px solid rgba(113,150,185,.25);border-radius:8px;background:rgba(30,48,71,.42);color:#c1d4e9;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums}
+.handDecompPairedStatus.isPositive{color:#a4dfb8;border-color:rgba(95,186,135,.3)}
+.handDecompPairedStatus.isNegative{color:#f0b0b6;border-color:rgba(202,101,115,.32)}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -995,6 +999,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <div id="handDecompChartAB" class="handDecompChartCanvas" role="img" aria-label="Сравнение EV A/B в разрезе числа соперников">Ожидается расчёт…</div>
    <div class="handDecompChartNote">1 / 2 / 3 / 4+ соперников · EV, BB на раздачу · N в подсказке к точке · интервалы 95% при наличии данных</div>
   </div>
+  <div id="handDecompPairedStatus" class="handDecompPairedStatus" role="status"></div>
  </div>
  <p id="handDecompStratumInfo" class="note" role="status">A/B: общий стек, состав и диапазоны соперников. Число соперников фильтруется без повторного расчёта.</p>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Бухгалтерский отчёт A/B появится после Monte Carlo.</p></div>
@@ -1441,7 +1446,7 @@ function removeOpponent(index){
  $('viewOpponent').value=String(nextIndex);
  invalidateEquity();loadVillain();
 }
-function invalidateEquity(){handDecompResult=null;handDecompByOpponents=null;handDecompSignature='';handDecompBResult=null;handDecompBByOpponents=null;handDecompBSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};matrixContextKey='';handWritebacks.clear();drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
+function invalidateEquity(){handDecompResult=null;handDecompByOpponents=null;handDecompSignature='';handDecompBResult=null;handDecompBByOpponents=null;handDecompBSignature='';handDecompPairedComparison=null;handDecompPairedSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};matrixContextKey='';handWritebacks.clear();drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -2406,6 +2411,7 @@ function renderPerOpponent(){
 // The main matrix (169 classes) keeps its own independent result.
 let handDecompResult=null,handDecompByOpponents=null,handDecompSignature='',computingHandDecomp=false;
 let handDecompBResult=null,handDecompBByOpponents=null,handDecompBSignature='';
+let handDecompPairedComparison=null,handDecompPairedSignature='';
 let autoDecompKey='',autoDecompTimer=null,autoDecompPending=false;
 let activeDecompGroup=null, activeDecompSignature='';
 const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
@@ -3088,6 +3094,32 @@ function renderHandDecomposition(){
   (x.samples===null?'ожидается расчёт':x.samples.toLocaleString('ru-RU')+' раздач'+
    (selection!=='all'?' ('+(x.proportion??0).toFixed(2)+'%)':'')+
    (Number.isFinite(x.ci95)?' · 95% ±'+x.ci95.toFixed(3)+' BB':''));
+ const pairedResult=compare&&selected===bHand&&
+  handDecompPairedSignature===decompRequestSignature()
+  ?handDecompPairedComparison:null;
+ const pairedView=$('handDecompPairedStatus');
+ if(!compare){pairedView.textContent='';pairedView.className='handDecompPairedStatus hidden';}
+ else if(pairedResult){
+  const item=selection==='all'?pairedResult:
+   pairedResult.by_opponents?.find(x=>x.opponents===Number(selection));
+  if(item?.samples){
+   const delta=item.delta_ev_bb,ci=item.delta_ci95_bb;
+   pairedView.textContent='Парный A/B · ΔEV (B−A): '+decompFormat(delta)+' BB'+
+    (Number.isFinite(ci)?' · 95% ±'+ci.toFixed(3)+' BB':' · недостаточно данных для ДИ')+
+    ' · N='+item.samples.toLocaleString('ru-RU')+' · одинаковые карты и борд';
+   pairedView.className='handDecompPairedStatus'+
+    (Number.isFinite(ci)&&Math.abs(delta)>ci
+      ?(delta>0?' isPositive':' isNegative'):'');
+  }else{
+   pairedView.textContent='Парный A/B · нет наблюдений в выбранной группе соперников';
+   pairedView.className='handDecompPairedStatus';
+  }
+ }else{
+  pairedView.textContent=selected===bHand
+   ?'Парный A/B · подготовка или расчёт общей выборки…'
+   :'Сравниваются разные руки: парный доверительный интервал недоступен.';
+  pairedView.className='handDecompPairedStatus';
+ }
  $('handDecompStratumInfo').textContent=(compare
   ?(selected===bHand?'Одна рука, две стратегии':'Разные стартовые руки и стратегии')
   :'Одна выбранная рука')+' · '+
@@ -3130,6 +3162,43 @@ async function calculateHandDecomposition(){
  const epoch=calcEpoch,requestSignature=decompRequestSignature();
  computingHandDecomp=true;
  try{
+  const aSettings=decompSideRequest('a'),bSettings=decompSideRequest('b');
+  if(bSettings&&aSettings.hand===bSettings.hand){
+   if(handDecompPairedSignature===requestSignature &&
+      handDecompPairedComparison&&handDecompResult&&handDecompBResult){
+    renderHandDecomposition();
+    return;
+   }
+   const pairedSettings={...aSettings,hero_postflop_b:bSettings.hero_postflop};
+   $('handDecompStatus').textContent='Парный Monte Carlo A/B · '+aSettings.hand+
+    ' · общая выборка '+aSettings.trials.toLocaleString('ru-RU')+' прогонов…';
+   const output=await pollPostflop(pairedSettings,epoch,task=>{
+    if(requestSignature!==decompRequestSignature())return;
+    const total=Number(task.total)||aSettings.trials,done=Number(task.done)||0;
+    $('handDecompStatus').textContent='Парный Monte Carlo · '+
+     (task.status==='queued'?'очередь':done.toLocaleString('ru-RU')+
+      ' / '+total.toLocaleString('ru-RU'))+' · A и B';
+   });
+   if(!output||epoch!==calcEpoch||requestSignature!==decompRequestSignature())return;
+   if(!output.a||!output.b||!output.comparison)
+    throw Error('Парный результат Monte Carlo неполный');
+   handDecompResult=output.a.decomposition||null;
+   handDecompByOpponents=output.a.decomposition_by_opponents||null;
+   handDecompSignature=JSON.stringify(aSettings);
+   handDecompBResult=output.b.decomposition||null;
+   handDecompBByOpponents=output.b.decomposition_by_opponents||null;
+   handDecompBSignature=JSON.stringify(bSettings);
+   handDecompPairedComparison=output.comparison;
+   handDecompPairedSignature=requestSignature;
+   acceptSingleHandMatrixResult(aSettings.hand,output.a,aSettings);
+   $('handDecompStatus').textContent='Готово · парный A/B · '+aSettings.hand+
+    ' · '+aSettings.trials.toLocaleString('ru-RU')+' прогонов · '+
+    postflopName(aSettings.hero_postflop)+' / '+postflopName(bSettings.hero_postflop);
+   renderHandDecomposition();
+   return;
+  }
+  handDecompPairedComparison=null;
+  handDecompPairedSignature='';
   for(const side of ['a','b']){
    if(epoch!==calcEpoch||requestSignature!==decompRequestSignature())return;
    const settings=decompSideRequest(side);

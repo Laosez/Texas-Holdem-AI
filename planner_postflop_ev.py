@@ -79,6 +79,14 @@ def validate_request(raw):
     if hand is not None and hand not in core.HANDS:
         raise ValueError("Некорректная стартовая рука")
     base["hand"] = hand
+    if "hero_postflop_b" in raw:
+        second = legal_profile(raw["hero_postflop_b"])
+        if not hand or second == "none" or base["hero_postflop"] == "none":
+            raise ValueError("Парный A/B требует одну выбранную руку и две постфлоп-стратегии")
+        if any(p["postflop"] == "none" and p["entry_mode"] != "never"
+               for p in base["opponents"]):
+            raise ValueError("Парный A/B требует постфлоп-стратегии всех входящих соперников")
+        base["hero_postflop_b"] = second
     return base
 
 
@@ -620,6 +628,208 @@ def _single_parallel(raw, progress, workers, batch_size=256):
     return result
 
 
+
+def _paired_batch(cases, profile_a, profile_b, hero_position, stack_bb):
+    """Two complete policy rollouts from exactly the same physical deal.
+
+    The deal is materialized once per case and shared in the child process;
+    no list of all N deals is retained in memory.
+    """
+    out = []
+    uncontested = _uncontested_net_bb(hero_position)
+    for picked, board, seed in cases:
+        if len(picked) == 1:
+            result = (uncontested, False, 1.5,
+                      ("uncontested", None, None, "pre_win", None,
+                       ("pre_uncontested", "Все соперники не вошли в банк")))
+            out.append((None, result, result))
+            continue
+        share = _showdown_share(picked, board)
+        a = _play_case(picked, board, profile_a, hero_position, stack_bb,
+                       seed, detail=True, metrics=True)
+        b = (a if profile_a == profile_b else
+             _play_case(picked, board, profile_b, hero_position, stack_bb,
+                        seed, detail=True, metrics=True))
+        if a[-1] is None or b[-1] is None:
+            raise RuntimeError("Final pot telemetry missing in paired A/B")
+        # _play_case produces (net, showdown, classification, final_pot)
+        out.append((share,
+                    (a[0], a[1], a[3], a[2]),
+                    (b[0], b[1], b[3], b[2])))
+    return out
+
+
+class _PairedSide:
+    """Sufficient statistics for one policy, same shape as single-hand EV."""
+    def __init__(self, payload, provenance):
+        from planner_ev_decomposition import EVDecomposition
+        self.hand = payload["hand"]
+        self.n = payload["trials"] * payload["cycles"]
+        self.provenance = provenance
+        self.counts = [0] * (len(payload["opponents"]) + 1)
+        self.pots = [0.] * len(self.counts)
+        self.sums = [0.] * len(self.counts)
+        self.squares = [0.] * len(self.counts)
+        self.decomp = EVDecomposition(self.hand)
+        self.by_n = [EVDecomposition(self.hand) for _ in self.counts]
+        self.total = self.total_sq = self.showdowns = self.fold_wins = 0.
+        self.eq_total = self.accepted = 0
+
+    def add(self, entrants, share, outcome):
+        net, showdown, pot, classified = outcome
+        self.counts[entrants] += 1
+        self.pots[entrants] += pot
+        self.sums[entrants] += net
+        self.squares[entrants] += net * net
+        self.total += net
+        self.total_sq += net * net
+        if entrants > 0:
+            self.eq_total += share
+            self.accepted += 1
+            self.showdowns += bool(showdown)
+            self.fold_wins += bool(not showdown and net > 0)
+        else:
+            self.fold_wins += 1
+        event, risk, flush, group, matchup, reason = classified
+        options = dict(risk=risk, flush=flush, group=group,
+                       matchup=matchup, reason=reason)
+        self.decomp.add(net, event, **options)
+        self.by_n[entrants].add(net, event, **options)
+
+    def result(self):
+        n, hand = self.n, self.hand
+        ci = None
+        if n > 1:
+            variance = max(0., (self.total_sq - self.total**2/n)/(n-1))
+            ci = round(1.96 * math.sqrt(variance/n), 4)
+        return {
+            "model": "postflop_line_rollout_v1",
+            "equity": {hand: round(100*self.eq_total/self.accepted, 3)
+                       if self.accepted else None},
+            "ev_bb": {hand: round(self.total/n, 4)},
+            "showdown_pct": {hand: round(100*self.showdowns/n, 2)},
+            "fold_win_pct": {hand: round(100*self.fold_wins/n, 2)},
+            "simulations_per_hand": n,
+            "behavioral_ev_enabled": True,
+            "note": "Парный Monte Carlo: одни физические карты и начальные события для обеих политик.",
+            "opponents": self.provenance,
+            "decomposition": self.decomp.result(),
+            "decomposition_by_opponents": _breakdowns_by_entrants(
+                hand, self.by_n, self.counts, self.sums, self.squares),
+            "ev_ci95_bb": {hand: ci} if ci is not None else {},
+            "entry_n_samples": self.counts,
+            "entry_counts_pct": [round(100*x/n, 2) for x in self.counts],
+            "entry_pot_bb": [round(self.pots[i]/x, 3) if x else None
+                             for i,x in enumerate(self.counts)],
+            "entry_ev_sd_bb": [
+                round(math.sqrt(max(0.,(self.squares[i]-
+                     self.sums[i]**2/x)/(x-1))), 5) if x>1 else None
+                for i,x in enumerate(self.counts)],
+            "entry_stats_note": "Парная выборка для двух постфлоп-стратегий."
+        }
+
+
+def calculate_paired(raw, progress=None, *, workers=1, batch_size=128):
+    """True paired common-deal Monte Carlo with CI for each B-A difference.
+
+    The two strategies share Hero/villain cards, sampled entrant masks, board
+    and the per-rollout RNG seed. The difference is accumulated per *deal*,
+    not inferred from independent strategy confidence intervals.
+    """
+    payload = validate_request(raw)
+    if "hero_postflop_b" not in payload:
+        raise ValueError("Отсутствует вторая стратегия для парного A/B")
+    if type(workers) is not int or not 1 <= workers <= 8:
+        raise ValueError("Число процессов Monte Carlo: 1–8")
+    ranges, provenance = eq.build_ranges(payload["opponents"], "selected")
+    deal_only = {
+        "opponents": [{k:v for k,v in item.items() if k!="postflop"}
+                      for item in payload["opponents"]],
+        "trials": payload["trials"], "cycles": payload["cycles"]
+    }
+    salt = hashlib.sha256(json.dumps(deal_only,ensure_ascii=False,
+                         sort_keys=True).encode()).digest()
+    seed = int.from_bytes(hashlib.sha256(
+        salt+payload["hand"].encode()).digest()[:8], "big")
+    rng = random.Random(seed)
+    policy_rng = random.Random(seed ^ 0x6C616773)
+    n = payload["trials"] * payload["cycles"]
+    a_side = _PairedSide(payload, provenance)
+    b_side = _PairedSide(payload, provenance)
+    diffs = [dict(count=0, total=0., squares=0.) for _ in range(len(ranges)+1)]
+    total_diff = total_sq = 0.
+    processed = 0
+
+    def add_batch(outcomes, cases):
+        nonlocal processed, total_diff, total_sq
+        for (picked, _, _), (share, outcome_a, outcome_b) in zip(cases, outcomes):
+            entrants = len(picked)-1
+            a_side.add(entrants, share, outcome_a)
+            b_side.add(entrants, share, outcome_b)
+            difference = outcome_b[0]-outcome_a[0]
+            total_diff += difference
+            total_sq += difference*difference
+            group = diffs[entrants]
+            group["count"] += 1
+            group["total"] += difference
+            group["squares"] += difference*difference
+            processed += 1
+        if progress:
+            progress(processed,n)
+
+    def next_cases(amount):
+        batch = []
+        for _ in range(amount):
+            picked,board = _draw_case(payload["hand"],ranges,payload["opponents"],rng)
+            rnd_seed = policy_rng.randrange(1 << 50) if len(picked)>1 else 0
+            batch.append((picked,board,rnd_seed))
+        return batch
+
+    args = (payload["hero_postflop"], payload["hero_postflop_b"],
+            payload["hero_position"], payload["hero_stack_bb"])
+    if workers <= 1 or n < 2000:
+        while processed < n:
+            batch = next_cases(min(batch_size, n-processed))
+            add_batch(_paired_batch(batch,*args), batch)
+    else:
+        # Only a bounded number of ready-made deals live in process memory.
+        inflight = []
+        produced = 0
+        with ProcessPoolExecutor(max_workers=workers,
+                   mp_context=multiprocessing.get_context("spawn")) as pool:
+            while produced < n or inflight:
+                while produced < n and len(inflight)<max(2,2*workers):
+                    batch = next_cases(min(batch_size,n-produced))
+                    inflight.append((batch,pool.submit(_paired_batch,batch,*args)))
+                    produced += len(batch)
+                batch, task = inflight.pop(0)
+                add_batch(task.result(),batch)
+
+    def report_delta(count,total,squares):
+        if not count:
+            return {"samples":0,"delta_ev_bb":None,"delta_ci95_bb":None}
+        ci = None
+        if count>1:
+            var = max(0.,(squares-total*total/count)/(count-1))
+            ci = round(1.96*math.sqrt(var/count),4)
+        return {"samples":count,"delta_ev_bb":round(total/count,4),
+                "delta_ci95_bb":ci}
+
+    compared = report_delta(n,total_diff,total_sq)
+    compared.update({
+        "method":"paired_common_deals_v1",
+        "hand":payload["hand"],
+        "hero_postflop_a":payload["hero_postflop"],
+        "hero_postflop_b":payload["hero_postflop_b"],
+        "by_opponents":[dict(opponents=k,**report_delta(
+                item["count"],item["total"],item["squares"]))
+             for k,item in enumerate(diffs)]
+    })
+    return {"model":"postflop_paired_v1","a":a_side.result(),
+            "b":b_side.result(),"comparison":compared}
+
+
+
 _MATRIX_RANGES = None
 
 
@@ -641,6 +851,8 @@ def calculate_parallel(raw, progress=None, workers=1, chunk_size=8):
     Spawn rather than fork: this is called within a live HTTP server thread.
     """
     payload = validate_request(raw)
+    if "hero_postflop_b" in payload:
+        return calculate_paired(payload,progress=progress,workers=workers)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError("Число процессов Monte Carlo: 1–8")
     if payload["hand"]:

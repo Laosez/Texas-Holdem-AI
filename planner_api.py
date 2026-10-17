@@ -211,9 +211,10 @@ def start_postflop_ev(raw,busy=False):
                  "core/engine.py"):
         digest.update((core.ROOT/name).read_bytes())
     key={
-        "type":"postflop_line_rollout_v1",
+        "type":"postflop_paired_v1" if "hero_postflop_b" in payload else "postflop_line_rollout_v1",
         "ranges":_query_identity(payload),
         "hero":payload["hero_postflop"],
+        "hero_b":payload.get("hero_postflop_b"),
         "position":payload["hero_position"],
         "stack":payload["hero_stack_bb"],
         "villains":[p["postflop"] for p in payload["opponents"]],
