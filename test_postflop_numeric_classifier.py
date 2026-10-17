@@ -26,8 +26,8 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             # P0: combinations where the formerly generic class lost vital draw equity.
             ("9s 8s", "7s-6s-2", "F-FDOESD"),
             ("14s 13s", "12s-11s-2", "F-FDGS"),
-            ("9s 8s", "9z-7s-6s", "F-PFDOESD"),
-            ("10s 7s", "10z-9s-6s", "F-PFDGS"),
+            ("9s 8s", "9-7s-6s", "F-PFDOESD"),
+            ("10s 7s", "10-9s-6s", "F-PFDGS"),
             ("9 8", "9-7-6", "F-TPOESD"),
             ("8 7", "9-8-6", "F-POESD"),
             ("10 7", "10-9-6", "F-PGS"),
