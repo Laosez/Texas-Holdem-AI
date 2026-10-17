@@ -1277,6 +1277,13 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError):
             self.reply(400, {"error": "Некорректный JSON"})
             return
+        if path == "/api/postflop/compare":
+            from postflop_strategy_compare import compare_request
+            try:
+                self.reply(200, compare_request(payload))
+            except ValueError as e:
+                self.reply(400, {"error": str(e)})
+            return
         if path == "/api/postflop/classify":
             from postflop_numeric_classifier import classify_request
             try:
