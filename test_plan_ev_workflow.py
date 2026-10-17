@@ -161,7 +161,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
         for control in ("handDecompHandA","handDecompHandB","handDecompProfileA",
                         "handDecompProfileB","handDecompReportMode","handDecompOpponentCount"):
             self.assertIn('id="'+control+'"',page)
-        for number in ("handDecompEVB","handDecompDelta","handDecompCostB","handDecompSamplesB"):
+        for number in ("handDecompEVB","handDecompCostB","handDecompSamplesB"):
             self.assertIn('id="'+number+'"',page)
         self.assertIn('id="handDecompChartA"',page)
         self.assertIn('id="handDecompChartB"',page)
@@ -198,6 +198,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn("renderOpponentEvChart('a',fullA);",page)
         self.assertIn("renderOpponentEvChart('b',fullB);",page)
         self.assertIn("const overallA=fullA?.data||null,overallB=fullB?.data||null;",page)
+        self.assertNotIn('id="handDecompDelta"',page)
         self.assertIn("handDecompSampleBWrap",page)
         self.assertIn("top.colSpan=compare?3:1",page)
         self.assertIn("compare?['A','B','Δ%']:['A']",page)
