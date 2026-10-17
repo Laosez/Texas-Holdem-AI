@@ -323,6 +323,8 @@ def _make_kind(hole, board, ranks, counts, street):
                 return "pair_gutshot"
         return kind
     if four_suited:
+        if street == "river":
+            return "missed_flush_draw"
         if draw in ("oesd", "double_gutshot"):
             return "flush_oesd"
         if draw == "gutshot":
