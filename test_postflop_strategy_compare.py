@@ -128,7 +128,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
                 with urllib.request.urlopen(authorized,timeout=25) as r:
                     self.assertEqual(r.status,200)
                     data=json.load(r)
-                    self.assertEqual(data["rows"][0]["scenario"]["id"],"F-TP")
+                    self.assertEqual(data["rows"][0]["scenario"]["id"],"F-TPHK")
                 original=urllib.request.Request(base+"/api/s100",headers={"X-Runner-Key":"compare_secret"})
                 with urllib.request.urlopen(original,timeout=20) as r:
                     self.assertEqual(len(json.load(r)["scenarios"]),100)
