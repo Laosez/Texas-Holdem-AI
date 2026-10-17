@@ -37,7 +37,7 @@ class PlannerLayoutRecoveryTests(unittest.TestCase):
         workspace = page.index('<div class="plannerWorkspace">')
         self.assertLess(first, second)
         self.assertLess(second, workspace)
-        self.assertIn('Моя стратегия', page[first:second])
+        self.assertIn('Версии стратегии', page[first:second])
         self.assertNotIn('id="opponents"', page[first:second])
         self.assertIn('id="opponents"', page[second:workspace])
         self.assertIn('id="computeAll"', page[second:workspace])
@@ -46,7 +46,7 @@ class PlannerLayoutRecoveryTests(unittest.TestCase):
         self.assertIn('<option value="selected" selected>', page)
         self.assertNotIn('<option value="any_two">', page)
         self.assertNotIn('<option value="gto_heuristic">', page)
-        self.assertIn('main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:start}', page)
+        self.assertIn('main.plannerMain{grid-template-columns:minmax(275px,1fr) minmax(0,3fr);align-items:start}', page)
         self.assertIn('.plannerMain>.plannerWorkspace{grid-column:1/-1;min-width:0}', page)
         self.assertNotIn('plannerEquityPanel', page)
 
