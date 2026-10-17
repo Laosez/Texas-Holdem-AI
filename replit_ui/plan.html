@@ -589,6 +589,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  .decompReasonsTable td,.decompReasonsTable th{padding:5px}
 }
 
+.decompSortControls,.decompReasonHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.decompSortControls{justify-content:flex-end;min-height:23px}
+.decompReasonHead .decompOneTitle{margin:0!important}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -2110,12 +2113,20 @@ function renderHandDecomposition(){
  }
  const entries=sortDecompRows((data.outcome_groups||[])
     .filter(g=>g.key!=='showdown_split'||g.count>0),decompSort);
+ const controls=el('div','decompSortControls');
+ const influence=el('button','decompSortReset',
+   decompSort.key==='abs_ev'?'|EV| '+(decompSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
+ influence.type='button';
+ influence.title='Самые влиятельные источники EV независимо от знака';
+ influence.onclick=()=>setDecompSort('abs_ev');
+ controls.append(influence);
  if(decompSort.key!=='fixed'){
   const restore=el('button','decompSortReset','↺ По этапам');
   restore.type='button';
   restore.onclick=()=>{decompSort={key:'fixed',direction:'desc'};renderHandDecomposition();};
-  root.append(restore);
+  controls.append(restore);
  }
+ root.append(controls);
  const table=el('table','handDecompTable decompCompactTable');
  const head=el('thead'),trHead=el('tr');
  for(const [label,key] of [['Исход','label'],['N','count'],['%','frequency_pct'],
@@ -2150,8 +2161,13 @@ function renderHandDecomposition(){
  const selectedGroup=entries.find(g=>g.key===activeDecompGroup);
  if(selectedGroup && Array.isArray(selectedGroup.reasons)){
   const panel=el('div','decompOneDetail');panel.id='decompOneDetail';
-  panel.append(el('strong','decompOneTitle',
-                   DECOMP_LABELS[selectedGroup.key]||selectedGroup.label));
+  const detailHeader=el('div','decompReasonHead');
+  detailHeader.append(el('strong','decompOneTitle',DECOMP_LABELS[selectedGroup.key]||selectedGroup.label));
+  const impact=el('button','decompSortReset',
+    decompReasonSort.key==='abs_ev'?'|EV| '+(decompReasonSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
+  impact.type='button';impact.title='Сначала самые сильные причины EV';
+  impact.onclick=()=>setDecompSort('abs_ev',true);
+  detailHeader.append(impact);panel.append(detailHeader);
   const reasons=sortDecompRows(selectedGroup.reasons,decompReasonSort);
   if(!reasons.length){
    panel.append(el('p','small','В этой категории нет случаев.'));
