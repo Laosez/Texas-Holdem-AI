@@ -692,18 +692,21 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompEntrantsPicker select{width:100%;font-size:12px;font-weight:700}
 #handDecompStratumInfo{margin:11px 0;color:#acc7df}
 @media(max-width:700px){.handDecompControls{align-items:stretch}.handDecompControls .small{text-align:left}.handDecompEntrantsPicker{max-width:none}}
+.plannerOpponentsPanel .simStackControl{display:flex;align-items:center;gap:8px;font-size:11px;color:#b9d0e5;font-weight:650;white-space:nowrap}
+.plannerOpponentsPanel .simStackControl select{width:108px;min-width:108px;font-size:12px;font-weight:750;padding:6px 8px}
+@media(max-width:550px){.plannerOpponentsPanel .simStackControl{width:100%;justify-content:space-between}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
 <main class="plannerMain">
 <section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">01 / </span>Мои соперники</h2><span class="badge">9-max · Hero + 8 мест</span></div>
-<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">8 мест + Hero</span><button id="addOpponent" class="btn sm hidden" type="button" aria-label="Добавить соперника" disabled>+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
+<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><label class="simStackControl" for="simStack">Стек всех игроков <select id="simStack" aria-label="Общий стек всех игроков для симуляции"><option value="10">10 BB</option><option value="15">15 BB</option><option value="20" selected>20 BB</option><option value="30">30 BB</option><option value="40">40 BB</option><option value="60">60 BB</option><option value="80">80 BB</option><option value="100">100 BB</option><option value="150">150 BB</option><option value="200">200 BB</option></select></label><span id="opponentCountLabel" class="small">8 мест + Hero</span><button id="addOpponent" class="btn sm hidden" type="button" aria-label="Добавить соперника" disabled>+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>Позиция №</span><span>Диапазон</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span></div><div id="opponents"></div></div>
 <details id="opponentEntrySummary" class="oppEntryDistribution">
 <summary>Диагностика поля · число соперников и размер банка</summary>
 <p class="note">Справочная статистика модели, не дополнительная настройка: сколько соперников участвовало, каков средний банк и погрешность EV. N берётся из основного селектора симуляций.</p>
 <div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></details>
-<p class="note">9 позиций = Hero + 8 соперников. «Ширина диапазона» определяет вероятность входа по комбинациям с учётом блокеров; «0%» исключает место. Модель не рассчитывает дерево префлоп-торговли и не учитывает зависимость решений соперников.</p></div>
+<p class="note">9 позиций = Hero + 8 соперников. «Ширина диапазона» определяет вероятность входа по комбинациям с учётом блокеров; «0%» исключает место. «Стек всех игроков» задаёт одинаковую глубину для HERO и каждого вошедшего соперника в симуляции EV; не изменяет префлоп-пресеты. Модель не рассчитывает дерево префлоп-торговли и не учитывает зависимость решений соперников.</p></div>
 <div class="equityInsideOpponents">
 <div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
 <select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
@@ -1388,7 +1391,7 @@ function groupWeightedAllInEV(b){
  const eq=equityResults.actual?.equity;
  if(!eq)return null;
  const pots=equityResults.actual?.pot_multiple;
- const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
+ const stack=simulationStackBb(),dead=Number($('allInDead').value),n=currentPeople().length;
  let mass=0,sum=0;
  for(const h of HANDS){
   if(hero.boxes[h]!==b)continue;
@@ -1538,7 +1541,7 @@ function setMetricLegend(){
  const metric=$('cellMetric').value;
  $('evControls').classList.add('hidden');
  $('allInControls').classList.toggle('hidden',metric!=='evAllIn');
- const stack=Number($('stack').value),dead=Number($('allInDead').value),n=currentPeople().length;
+ const stack=simulationStackBb(),dead=Number($('allInDead').value),n=currentPeople().length;
  $('allInStatus').textContent='Модель: '+stack+' BB эффективный стек, до '+n+' оппонентов, мёртвые деньги '+dead+
  ' BB. EV учитывает случайное число вошедших игроков; без ICM, фолд-эквити и будущих ставок.';
  $('metricLegendText').textContent=metric==='evStrategy'
@@ -1658,7 +1661,7 @@ function renderRangeEV(){
  const summary=isPostflop
   ?strategyRangeEvBreakdown(hero,equityResults.filter?.ev_bb)
   :rangeEvBreakdown(hero,equityResults.actual?.equity,
-    Number($('stack').value),Number($('allInDead').value),
+    simulationStackBb(),Number($('allInDead').value),
     currentPeople().length,equityResults.actual?.pot_multiple);
  const fmt=v=>Number.isFinite(v)?(v>0?'+':'')+v.toFixed(3)+' BB':'—';
  $('rangeEvPlayed').textContent=fmt(summary?.played);
@@ -1711,7 +1714,7 @@ function handMetricsRows(hand,doc){
   const pot=Number($('evPot').value),call=Number($('evCost').value);
   const chip=Number.isFinite(filterEq)?modelCallEv(filterEq,pot,call):null;
   pair('EV колла all-in',Number.isFinite(chip)?'≈'+chip.toFixed(1)+' BB':'—');
-  const allIn=Number.isFinite(multiEq)?modelConditionalAllInEv(multiEq,equityResults.actual?.pot_multiple?.[hand],Number($('stack').value),Number($('allInDead').value),currentPeople().length):null;
+  const allIn=Number.isFinite(multiEq)?modelConditionalAllInEv(multiEq,equityResults.actual?.pot_multiple?.[hand],simulationStackBb(),Number($('allInDead').value),currentPeople().length):null;
   pair('EV выставления',Number.isFinite(allIn)?'≈'+allIn.toFixed(1)+' BB':'—');
   perOpponentData.forEach((item,i)=>{
    const hu=item.handEq?.equity?.[hand];
@@ -1720,7 +1723,7 @@ function handMetricsRows(hand,doc){
  }else{
   const reverse=selectedReverseResult()?.equity?.[hand];
   pair('Equity соперника vs меня · HU',f(reverse));
-  const ev=Number.isFinite(reverse)?modelAllInEv(reverse,Number($('stack').value),Number($('allInDead').value),1):null;
+  const ev=Number.isFinite(reverse)?modelAllInEv(reverse,simulationStackBb(),Number($('allInDead').value),1):null;
   pair('EV выставления соперника vs меня',Number.isFinite(ev)?(ev>=0?'+':'')+ev.toFixed(2)+' BB':'—');
  }
  return rows;
@@ -1815,7 +1818,7 @@ function cellMetricValue(doc,h,metric){
    selectedVillain?selectedReverseResult()?.equity?.[h]:null;
   const opponents=ours?currentPeople().length:1; // Reverse view is HU vs hero only.
   const multiple=ours?equityResults.actual?.pot_multiple?.[h]:selectedVillain?selectedReverseResult()?.pot_multiple?.[h]:null;
-  value=Number.isFinite(actual)?modelConditionalAllInEv(actual,multiple,Number($('stack').value),Number($('allInDead').value),opponents):null;
+  value=Number.isFinite(actual)?modelConditionalAllInEv(actual,multiple,simulationStackBb(),Number($('allInDead').value),opponents):null;
   display=value===null?'—':(value>0?'+':'')+value.toFixed(1);
  }else if(metric==='action'){display=action==='none'?'—':ACTIONS[action]||action}
  return {value,display};
@@ -2561,10 +2564,12 @@ async function calculateHandDecomposition(){
   }
  }
 }
+// Separate Monte Carlo effective stack from saved preflop strategy context.
+function simulationStackBb(){return Number($('simStack').value)}
 function postflopRequest(overrides={}){
  return {model:'selected',trials:Number($('trials').value),cycles:Number($('cycles').value),
   opponents:currentPeople(),hero_postflop:$('heroPostflop').value,
-  hero_position:hero.position,hero_stack_bb:Number($('stack').value),...overrides};
+  hero_position:hero.position,hero_stack_bb:simulationStackBb(),...overrides};
 }
 // Detailed selected-hand Monte Carlo replaces the corresponding matrix cell.
 // Excluding trials preserves the other 168 classes when only N changes.
@@ -2769,6 +2774,8 @@ async function connect(){
   if(POSTFLOP_OPTIONS.some(x=>x.value===storedLine))$('heroPostflop').value=storedLine;
   else $('heroPostflop').value='gto2'; // V2 stays default; prior choices persist.
   refreshHeroPostflopChoice();
+  const previousStack=localStorage.getItem('skachkov_plan_sim_stack_bb');
+  if([...$('simStack').options].some(o=>o.value===previousStack))$('simStack').value=previousStack;
   const lastPlan=localStorage.getItem('skachkov_last_plan_profile');
   const selectable=profileOptions();
   refill($('heroProfile'),selectable,selectable.some(x=>x.value===lastPlan)?lastPlan:'builtin:a17_v5');
@@ -2800,6 +2807,11 @@ $('heroPosition').onchange=()=>{useBbDefenseWhenRfi();renderOpponents();invalida
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
+$('simStack').onchange=()=>{
+ localStorage.setItem('skachkov_plan_sim_stack_bb',$('simStack').value);
+ invalidateEquity();
+ msg('Стек симуляции: '+simulationStackBb()+' BB для HERO и всех соперников. Префлоп-диапазоны не изменены.');
+};
 $('strategyName').oninput=()=>{if(hero){hero.name=$('strategyName').value;noteDirty()}};
 $('oppCount').onchange=updateOppCount;
 $('addOpponent').onclick=addOpponent;
