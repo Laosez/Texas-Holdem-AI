@@ -161,6 +161,11 @@ class PostflopEVTests(unittest.TestCase):
             first=api._schedule(identity,lambda progress:result,3000,
                                 executor=ImmediateExecutor())
             self.assertEqual(first["status"],"completed")
+            hot=api._schedule(identity,
+                 lambda progress: self.fail("Unexpected duplicate Monte Carlo"),
+                 3000,executor=ImmediateExecutor())
+            self.assertTrue(hot["cached"])
+            self.assertEqual(hot["done"],3000)
             api.EQUITY_TASKS.clear()  # simulate a new server instance
             cached=api._schedule(identity,
                  lambda progress: self.fail("Unexpected repeat Monte Carlo"),

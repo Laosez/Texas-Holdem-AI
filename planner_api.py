@@ -190,6 +190,14 @@ def _cached_task(identity):
     return None
 
 
+def _existing_task_response(job):
+    response=public_task(job)
+    # Reusing a completed in-memory result is a cache hit, just like disk.
+    if response["status"]=="completed":
+        response["cached"]=True
+    return response
+
+
 def _schedule(identity,compute,total,executor=None):
     # In-memory task metadata is bounded; no unbounded thread spawning.
     CACHE_PATH.mkdir(parents=True,exist_ok=True)
@@ -197,12 +205,12 @@ def _schedule(identity,compute,total,executor=None):
     # parsing its JSON file. The second check under LOCK still prevents races.
     with LOCK:
         current=EQUITY_TASKS.get(identity)
-        if current:return public_task(current)
+        if current:return _existing_task_response(current)
     cached=_cached_task(identity)
     if cached:return cached
     with LOCK:
         current=EQUITY_TASKS.get(identity)
-        if current:return public_task(current)
+        if current:return _existing_task_response(current)
         pending=sum(t["status"] in ("queued","running") for t in EQUITY_TASKS.values())
         if pending>=MAX_EQUITY_PENDING:
             raise RuntimeError("Очередь Monte Carlo заполнена (8 циклов/расчётов). Дождись свободного слота.")
