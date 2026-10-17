@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import secrets
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import planner_core as core
@@ -224,8 +225,13 @@ def start_postflop_ev(raw,busy=False):
     matrix_workers,hand_workers=postflop_cpu_budgets(max_safe_workers())
     selected=bool(payload["hand"])
     workers=hand_workers if selected else matrix_workers
-    return _schedule(identity,lambda progress:calculate_parallel(
-                         payload,progress=progress,workers=workers),
+    def compute(progress):
+        start=time.perf_counter()
+        result=calculate_parallel(payload,progress=progress,workers=workers)
+        result["compute_seconds"]=round(time.perf_counter()-start,3)
+        result["cpu_workers"]=workers
+        return result
+    return _schedule(identity,compute,
                      payload["trials"]*payload["cycles"] if selected else len(core.HANDS),
                      executor=POSTFLOP_HAND_EXECUTOR if selected else POSTFLOP_MATRIX_EXECUTOR)
 
