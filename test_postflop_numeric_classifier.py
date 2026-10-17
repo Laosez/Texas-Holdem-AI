@@ -1,5 +1,6 @@
 """Regression suite for the independent numeric postflop classification sheet."""
 import json
+import random
 import threading
 import unittest
 import urllib.error
@@ -14,19 +15,39 @@ import replit_simulator as app
 class NumericPostflopClassifierTests(unittest.TestCase):
     def test_each_deal_yields_exactly_one_street_scenario(self):
         examples = [
+            # Existing fundamental postflop classes remain deterministic.
             ("14 12", "14-7-2", "F-TP"),
             ("14s 12s", "14-10s-7s", "F-TPFD"),
             ("9 8", "7-6-2", "F-OESD"),
             ("10 7", "9-6-2", "F-GS"),
             ("77", "14-7-2", "F-SET"),
-            ("14s 12s", "10s-7s-2", "F-FD"),
+            ("9s 4s", "10s-7s-2", "F-FD"),
             ("14s 12s", "10s-7s-2s", "F-FL"),
+            # P0: combinations where the formerly generic class lost vital draw equity.
+            ("9s 8s", "7s-6s-2", "F-FDOESD"),
+            ("14s 13s", "12s-11s-2", "F-FDGS"),
+            ("9s 8s", "9z-7s-6s", "F-PFDOESD"),
+            ("10s 7s", "10z-9s-6s", "F-PFDGS"),
+            ("9 8", "9-7-6", "F-TPOESD"),
+            ("8 7", "9-8-6", "F-POESD"),
+            ("10 7", "10-9-6", "F-PGS"),
+            ("14s 13s", "10s-7s-2", "F-OCFD"),
+            ("14s 12", "10s-7s-2s", "F-1CFD"),
+            ("14 13", "12-11-2", "F-OCGS"),
+            ("6 12", "8-9-10", "F-DGS"),
+            # P1: weaker situations kept separate only where semantics differ.
+            ("14 4", "10-7-2", "F-1OC"),
+            ("14 12", "7-7-2", "F-PBOC"),
+            ("10 10", "14-7-2", "F-PMID"),
+            ("33", "14-7-4", "F-UP"),
+            ("9s 4s", "14s-7-2", "F-BFD"),
+            ("8 3", "14-10-2", "F-AIR"),
+            # Pre-existing turn/river results should not regress.
             ("14 10", "14-7-7-2", "T-2SH"),
             ("10 6", "13-7-7-10", "T-2SL"),
             ("14 7", "14-7-2-2", "T-2OWN"),
-            ("14s 10s", "7s-4s-2-9", "T-FD"),
+            ("9s 4s", "14s-7s-2-3", "R-MFD"),
             ("14 10", "7-7-4-4-2", "R-2BD"),
-            ("14s 10s", "7s-4s-2-9-3", "R-MFD"),
             ("88", "5s-7s-5z-3z-14z", "R-2PK"),
             ("77", "7-14-14-4-2", "R-FH"),
             ("77", "7-7-14-4-2", "R-4K"),
@@ -48,10 +69,28 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             ("14 12", "7-2"),
             ("14 12", "7-2-1"),
             ("14h 12h", "7-4-2"),
+            ("14s 12", "14-7-2"), # Single suit annotation is forbidden
         ]:
             with self.subTest(hand=hand, board=board):
                 with self.assertRaises(ValueError):
                     classify_numeric(hand, board)
+
+    def test_4000_random_flops_are_total_and_independent_of_real_suit_names(self):
+        """Every genuine 5-card flop is accepted in the minimal repeat-only notation."""
+        rng = random.Random(17026)
+        deck = [(rank, suit) for rank in range(2, 15) for suit in "cdhs"]
+        for iteration in range(4000):
+            sample = rng.sample(deck, 5)
+            counts = {s: sum(x[1] == s for x in sample) for s in "cdhs"}
+            recurring = [s for _, s in sample if counts[s] >= 2]
+            recurring = list(dict.fromkeys(recurring))
+            self.assertLessEqual(len(recurring), 2)
+            name = {s: "szy"[i] for i, s in enumerate(recurring)}
+            tokens = [str(rank) + name.get(suit, "") for rank, suit in sample]
+            result = classify_numeric(" ".join(tokens[:2]), "-".join(tokens[2:]))
+            self.assertTrue(result["scenario"]["id"].startswith("F-"))
+            self.assertTrue(result["scenario"]["name"])
+            self.assertEqual(len(result["scenario"]), 3)
 
     def test_original_s100_unchanged_and_numeric_api_authenticated(self):
         with patch.object(app, "TOKEN", "numeric_classifier_test_key"):
