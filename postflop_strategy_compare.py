@@ -113,8 +113,8 @@ def compare_request(data):
             or any(not isinstance(s, str) or s not in POLICIES for s in strategies)
             or len(set(strategies)) != len(strategies)):
         raise ValueError("Выберите от одной до пяти разных зарегистрированных постфлоп-стратегий")
-    if not isinstance(rows, list) or not 1 <= len(rows) <= 100:
-        raise ValueError("Укажите от 1 до 100 сценариев")
+    if not isinstance(rows, list) or not 1 <= len(rows) <= 125:
+        raise ValueError("Укажите от 1 до 125 сценариев")
     if not isinstance(raw_context, dict):
         raise ValueError("Некорректные настройки розыгрыша")
     context = {
