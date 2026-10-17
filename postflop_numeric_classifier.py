@@ -12,6 +12,20 @@ _PAIR = re.compile(r"(1[0-4]|[2-9])\1\Z")
 _STREETS = {3: "flop", 4: "turn", 5: "river"}
 _PREFIX = {"flop": "F", "turn": "T", "river": "R"}
 _NAMES = {
+    "flush_oesd": ("FDOESD", "Флеш-дро + OESD"),
+    "flush_gutshot": ("FDGS", "Флеш-дро + гатшот"),
+    "pair_flush_oesd": ("PFDOESD", "Пара + флеш-дро + OESD"),
+    "pair_flush_gutshot": ("PFDGS", "Пара + флеш-дро + гатшот"),
+    "top_pair_oesd": ("TPOESD", "Топ-пара + OESD"),
+    "pair_oesd": ("POESD", "Пара + OESD"),
+    "pair_gutshot": ("PGS", "Пара + гатшот"),
+    "overcards_flush": ("OCFD", "Две оверкарты + флеш-дро"),
+    "one_card_flush": ("1CFD", "Однокарточное флеш-дро"),
+    "overcards_gutshot": ("OCGS", "Две оверкарты + гатшот"),
+    "one_overcard": ("1OC", "Одна оверкарта"),
+    "board_pair_overcards": ("PBOC", "Пара борда + две оверкарты"),
+    "pocket_middle": ("PMID", "Карманная пара между картами борда"),
+    "double_gutshot": ("DGS", "Двойной гатшот"),
     "air": ("AIR", "Воздух"),
     "overcards": ("OC", "Две оверкарты"),
     "backdoor_flush": ("BFD", "Бэкдор-флеш"),
@@ -71,21 +85,28 @@ def _straight_high(ranks):
 
 
 def _draw_type(hole, board):
+    """Recognize one-card straight draws: OESD vs double-gutshot vs gutshot."""
     if len(board) == 5 or _straight_high([r for r, _ in hole + board]):
         return None
-    ranks = [r for r, _ in hole + board]
-    before = _straight_high(ranks)
-    outs = []
-    for rank in range(2, 15):
-        if rank not in ranks and not before and _straight_high(ranks + [rank]):
-            # The hero's hole cards must contribute; a board-only draw is not ours.
-            if _straight_high([r for r, _ in board] + [rank]) == 0:
-                outs.append(rank)
+    ranks = {r for r, _ in hole + board}
+    board_ranks = {r for r, _ in board}
+    outs = [
+        r for r in range(2, 15)
+        if r not in ranks
+        and _straight_high(ranks | {r})
+        and not _straight_high(board_ranks | {r})
+    ]
     if len(outs) >= 2:
-        return "oesd"
-    if len(outs) == 1:
-        return "gutshot"
-    return None
+        ordered = ranks | ({1} if 14 in ranks else set())
+        for low in range(1, 11):
+            if set(range(low, low + 4)).issubset(ordered):
+                left, right = low - 1, low + 4
+                if left == 1:
+                    left = 14
+                if left in outs and right in outs:
+                    return "oesd"
+        return "double_gutshot"
+    return "gutshot" if outs else None
 
 
 def _suit_status(hole, board):
@@ -96,9 +117,10 @@ def _suit_status(hole, board):
                        if count >= 5 and s in owned), None)
     sf = flush_suit is not None and bool(_straight_high(
         [r for r, s in all_cards if s == flush_suit]))
-    four = any(suits[s] == 4 for s in owned)
-    three = len(board) == 3 and any(suits[s] == 3 for s in owned)
-    return sf, flush_suit is not None, four, three
+    draw_suit = next((s for s in owned if suits[s] == 4), None)
+    draw_hole_cards = sum(s == draw_suit for _, s in hole) if draw_suit else 0
+    backdoor = len(board) == 3 and any(suits[s] == 3 for s in owned)
+    return sf, flush_suit is not None, draw_suit is not None, draw_hole_cards, backdoor
 
 
 def _pair_class(hole, board, ranks, counts):
@@ -125,9 +147,13 @@ def _pair_class(hole, board, ranks, counts):
         return "two_pair_board"
     pair = pairs[0]
     if hole_ranks[0] == hole_ranks[1]:
-        return "overpair" if pair > max(r for r, _ in board) else "underpair"
+        board_ranks = [r for r, _ in board]
+        if pair > max(board_ranks):
+            return "overpair"
+        return "pocket_middle" if pair > min(board_ranks) else "underpair"
     if board_counts[pair] >= 2:
-        return "board_pair"
+        return ("board_pair_overcards" if all(r > max(board_counts) for r in hole_ranks)
+                else "board_pair")
     ranks_on_board = sorted(set(r for r, _ in board))
     if pair == ranks_on_board[-1]:
         return "top_pair"
@@ -158,10 +184,15 @@ def classify_numeric(hole_text, board_text):
     # A rank can appear in a given suit only once; generic tokens are
     # unconstrained except for the four-card rank limit above.
     street = _STREETS[len(board)]
-    sf, flush, four_suited, three_suited = _suit_status(hole, board)
+    if any(count == 1 for count in suits.values()):
+        raise ValueError("Буква масти ставится только для повторяющейся группы карт")
+    sf, flush, four_suited, flush_hole_count, three_suited = _suit_status(hole, board)
     triples = sorted((r for r, n in counts.items() if n >= 3), reverse=True)
     pairs = sorted((r for r, n in counts.items() if n >= 2), reverse=True)
     board_ranks = [r for r, _ in board]
+    straight_draw = _draw_type(hole, board)
+    two_overcards = all(r > max(board_ranks) for r, _ in hole)
+    one_overcard = sum(r > max(board_ranks) for r, _ in hole) == 1
     if sf:
         kind = "straight_flush"
     elif 4 in counts.values():
@@ -181,17 +212,40 @@ def classify_numeric(hole_text, board_text):
         kind = "set" if hc == 2 and bc >= 1 else "trips" if hc else "board_trips"
     elif pairs:
         kind = _pair_class(hole, board, ranks, counts)
-        if four_suited and kind in ("top_pair", "middle_pair", "bottom_pair"):
-            kind = "top_pair_flush_draw" if kind == "top_pair" else "pair_flush_draw"
-    else:
-        if four_suited:
-            kind = "missed_flush_draw" if street == "river" else "flush_draw"
-        elif three_suited:
-            kind = "backdoor_flush"
+        if kind in ("top_pair", "middle_pair", "bottom_pair"):
+            if four_suited and straight_draw in ("oesd", "double_gutshot"):
+                kind = "pair_flush_oesd"
+            elif four_suited and straight_draw == "gutshot":
+                kind = "pair_flush_gutshot"
+            elif four_suited:
+                kind = "top_pair_flush_draw" if kind == "top_pair" else "pair_flush_draw"
+            elif straight_draw in ("oesd", "double_gutshot"):
+                kind = "top_pair_oesd" if kind == "top_pair" else "pair_oesd"
+            elif straight_draw == "gutshot":
+                kind = "pair_gutshot"
+    elif four_suited:
+        if straight_draw in ("oesd", "double_gutshot"):
+            kind = "flush_oesd"
+        elif straight_draw == "gutshot":
+            kind = "flush_gutshot"
+        elif street == "river":
+            kind = "missed_flush_draw"
+        elif two_overcards:
+            kind = "overcards_flush"
+        elif flush_hole_count == 1:
+            kind = "one_card_flush"
         else:
-            kind = _draw_type(hole, board) or (
-                "overcards" if sum(r > max(board_ranks) for r, _ in hole) == 2
-                else "air")
+            kind = "flush_draw"
+    elif straight_draw == "double_gutshot":
+        kind = "double_gutshot"
+    elif straight_draw == "oesd":
+        kind = "oesd"
+    elif straight_draw == "gutshot":
+        kind = "overcards_gutshot" if two_overcards else "gutshot"
+    elif three_suited:
+        kind = "backdoor_flush"
+    else:
+        kind = "overcards" if two_overcards else "one_overcard" if one_overcard else "air"
     abbreviation, name = _NAMES[kind]
     return {
         "scenario": {
