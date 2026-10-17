@@ -140,7 +140,8 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("equityResults.filter?.ev_bb?.[h]",page)
         self.assertIn("if(metric==='showdownRate'){",page)
         self.assertIn("equityResults.filter?.showdown_pct?.[h]",page)
-        self.assertIn("equityResults.filter=matrix;equityResults.actual=matrix",page)
+        self.assertIn("equityResults.filter=merged;equityResults.actual=merged;",page)
+        self.assertIn("acceptCompleteMatrixResult(matrix,startedAt,context)",page)
     def test_a17_hand_lists_drag_to_pool_reorder_undo_and_save(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
         for css in (".boxHandList{",".boxHandChip{",".boxCard{",".boxPool{"):
