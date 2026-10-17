@@ -895,6 +895,11 @@ function renderEntryDistribution(){
  const root=$('entryDistribution');if(!root)return;
  root.replaceChildren();
  const data=equityResults.actual||equityResults.filter,prob=data?.entry_counts_pct;
+ if(data?.matrix_partial){
+  root.textContent='Для общей статистики поля рассчитай всю матрицу 169 рук.';
+  $('entryDistributionNote').textContent='Точечный расчёт обновляет только выбранную руку.';
+  return;
+ }
  if(!Array.isArray(prob)){
   root.textContent='После Monte Carlo появятся частоты, средний финальный банк и погрешности EV.';
   $('entryDistributionNote').textContent='Точность можно оценить только по разбросу фактических net BB, а не по размеру банка.';
@@ -1397,6 +1402,8 @@ function handMetricsRows(hand,doc){
   const showdown=equityResults.filter?.showdown_pct?.[hand];
   const foldWin=equityResults.filter?.fold_win_pct?.[hand];
   pair('Postflop EV розыгрыша',Number.isFinite(postEV)?(postEV>0?'+':'')+postEV.toFixed(3)+' BB':'—');
+  const handN=equityResults.filter?.hand_samples?.[hand];
+  if(Number.isFinite(handN))pair('N · обновлено для руки',handN.toLocaleString('ru-RU'));
   pair('Дошли до вскрытия',f(showdown));
   pair('Выигрыш без вскрытия',f(foldWin));
   if(Number.isFinite(anyEq))pair('Equity · Any Two',f(anyEq));
@@ -2245,9 +2252,17 @@ function drawEquityStats(){
  $('handActual').textContent=pct(actual?.[selected]);$('handAny').textContent=pct(any?.[selected]);
  $('handShowdown').textContent=pct(equityResults.filter?.showdown_pct?.[selected]);
  const eq=equityResults.filter;
- $('equityStatus').textContent=eq?('Готово · '+eq.simulations_per_hand+' раздач/руку · '+eq.note):
-  'Выбери постфлоп-профили и рассчитай Equity + EV выбранных диапазонов.';
- if(eq)$('equityFill').style.width='100%';drawBoxes();renderEntryDistribution();
+ const known=eq?Object.keys(eq.equity||{}).length:0;
+ const touched=eq?Object.keys(eq.hand_samples||{}).length:0;
+ if(!computingAll){
+  $('equityStatus').textContent=eq
+   ?(known===169?'Матрица 169 рук':'Рассчитано '+known+' / 169 рук')
+     +' · N матрицы '+(eq.simulations_per_hand||'—')
+     +(touched?' · обновлено отдельно '+touched:'')
+   :'Выбери постфлоп-профили и рассчитай Equity + EV выбранных диапазонов.';
+  if(eq)$('equityFill').style.width=(100*known/169).toFixed(1)+'%';
+ }
+ drawBoxes();renderEntryDistribution();
  $('handDetail').textContent='Моя: '+handTooltip(selected,hero);renderPerOpponent();scheduleSingleHandComparison();
 }
 async function startCalculation(slot,model,people){
