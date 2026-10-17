@@ -95,6 +95,25 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn("if(field==='profile')loadVillain();",page)
         self.assertIn(".plannerOpponentsPanel .oppBulkRow{",page)
 
+    def test_eight_fixed_opponent_seats_with_zero_inactive_modes(self):
+        import planner_postflop_ev as post
+        positions=["9","8","7","6","5","4","SB","BB"]
+        opponents=[
+            {"profile":"builtin:a17_v5","position":seat,
+             "scenario":"vs_open" if seat=="BB" else "rfi","players":9,
+             "selector":"active","entry_mode":"range" if i<3 else "never",
+             "entry_pct":100 if i<3 else 0,"postflop":"gto2"}
+            for i,seat in enumerate(positions)
+        ]
+        payload={"model":"selected","hand":"AKs","trials":50,"cycles":1,
+                 "hero_postflop":"gto2","hero_position":"3","hero_stack_bb":20,
+                 "opponents":opponents}
+        result=post.calculate(payload)
+        self.assertEqual(len(result["entry_n_samples"]),9)
+        self.assertEqual(sum(result["entry_n_samples"]),50)
+        self.assertEqual(sum(result["entry_n_samples"][4:]),0)
+        self.assertIn("AKs",result["ev_bb"])
+
     def test_accounting_report_variants_and_fixed_seat_grid(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         for needle in (
