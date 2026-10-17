@@ -401,7 +401,8 @@ def _single_batch(cases, hero_profile, hero_position, stack_bb, disabled):
     for picked, board, seed in cases:
         if len(picked) == 1:
             out.append((None, uncontested if not disabled else None,
-                        False, 1.5, ("uncontested", None, None, "pre_win", None)))
+                        False, 1.5, ("uncontested", None, None, "pre_win", None,
+                         ("pre_uncontested", "Все соперники не вошли в банк"))))
             continue
         share = _showdown_share(picked, board)
         if disabled:
