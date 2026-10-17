@@ -15,6 +15,7 @@
     "gto_postflop_v2",
     "gto_postflop_v3",
     "gto_postflop_v4",
+    "s100_postflop_v1",
     "lag_postflop_v1",
     "tag_punisher",
     "wide_defender",
