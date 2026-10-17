@@ -23,7 +23,7 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             ("10 7", "9-6-2", "F-GS"),
             ("77", "14-7-2", "F-SET"),
             ("9s 4s", "10s-7s-2", "F-FD"),
-            ("14s 12s", "10s-7s-2s", "F-FL"),
+            ("14s 12s", "10s-7s-2s", "F-FL2"),
             # P0: combinations where the formerly generic class lost vital draw equity.
             ("9s 8s", "7s-6s-2", "F-FDOESD"),
             ("14s 13s", "12s-11s-2", "F-FDGS"),
@@ -136,7 +136,7 @@ class NumericPostflopClassifierTests(unittest.TestCase):
                 with post("/api/postflop/classify") as response:
                     self.assertEqual(response.status, 200)
                     parsed = json.load(response)
-                    self.assertEqual(parsed["scenario"]["id"], "F-TP")
+                    self.assertEqual(parsed["scenario"]["id"], "F-TPHK")
                 with urllib.request.urlopen(urllib.request.Request(
                         url + "/api/s100",
                         headers={"X-Runner-Key": "numeric_classifier_test_key"}),
