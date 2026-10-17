@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import secrets
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import planner_core as core
@@ -22,8 +23,20 @@ EQUITY_TASKS = {}
 MAX_EQUITY_WORKERS = 2
 MAX_EQUITY_PENDING = 8
 EQUITY_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_EQUITY_WORKERS,thread_name_prefix="poker-mc")
-# One full-matrix multicore computation at once, to keep CPU/RAM bounded.
-POSTFLOP_EXECUTOR = ThreadPoolExecutor(max_workers=1,thread_name_prefix="poker-postflop")
+# Separate queues: selected-hand analysis must not wait behind the full
+# matrix. Concurrent pools receive disjoint CPU budgets (8 CPU -> 5 + 3).
+POSTFLOP_MATRIX_EXECUTOR = ThreadPoolExecutor(
+    max_workers=1,thread_name_prefix="poker-matrix")
+POSTFLOP_HAND_EXECUTOR = ThreadPoolExecutor(
+    max_workers=1,thread_name_prefix="poker-hand")
+
+
+def postflop_cpu_budgets(total):
+    total=max(1,min(8,int(total)))
+    if total==1:return 1,1
+    hand=min(3,max(1,total//2))
+    return total-hand,hand
+
 CACHE_PATH = core.DATA_ROOT / "plan_equity_cache"
 
 
@@ -209,11 +222,18 @@ def start_postflop_ev(raw,busy=False):
     }
     identity=hashlib.sha256(json.dumps(key,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
     from replit_simulator import max_safe_workers
-    workers=max_safe_workers() if not payload["hand"] else 1
-    return _schedule(identity,lambda progress:calculate_parallel(
-                         payload,progress=progress,workers=workers),
-                     1 if payload["hand"] else len(core.HANDS),
-                     executor=POSTFLOP_EXECUTOR)
+    matrix_workers,hand_workers=postflop_cpu_budgets(max_safe_workers())
+    selected=bool(payload["hand"])
+    workers=hand_workers if selected else matrix_workers
+    def compute(progress):
+        start=time.perf_counter()
+        result=calculate_parallel(payload,progress=progress,workers=workers)
+        result["compute_seconds"]=round(time.perf_counter()-start,3)
+        result["cpu_workers"]=workers
+        return result
+    return _schedule(identity,compute,
+                     payload["trials"]*payload["cycles"] if selected else len(core.HANDS),
+                     executor=POSTFLOP_HAND_EXECUTOR if selected else POSTFLOP_MATRIX_EXECUTOR)
 
 
 def start_equity(raw,busy=False):

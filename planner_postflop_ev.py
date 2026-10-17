@@ -248,9 +248,11 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
     return (chip_ev, showdown, pot_state["bb"]) if metrics else (chip_ev, showdown)
 
 
-def calculate(raw, progress=None, *, _hands=None, _return_raw=False):
+def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
+              _prepared=None):
     payload = validate_request(raw)
-    src, provenance = eq.build_ranges(payload["opponents"], "selected")
+    src, provenance = (_prepared if _prepared is not None
+                       else eq.build_ranges(payload["opponents"], "selected"))
     disabled = payload["hero_postflop"] == "none" or any(
         spec["postflop"] == "none" and spec["entry_mode"] != "never"
         for spec in payload["opponents"]
@@ -386,12 +388,167 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False):
     return result
 
 
+def _single_batch(cases, hero_profile, hero_position, stack_bb, disabled):
+    """Evaluate ready-made deterministic deals in a child process.
+
+    All deals and policy seeds are generated in the parent, in the exact
+    serial order. Results are returned in input order for identical EV,
+    CI and single-hand decomposition independently of worker scheduling.
+    """
+    out = []
+    uncontested = _uncontested_net_bb(hero_position)
+    for picked, board, seed in cases:
+        if len(picked) == 1:
+            out.append((None, uncontested if not disabled else None,
+                        False, 1.5, ("uncontested", None, None)))
+            continue
+        share = _showdown_share(picked, board)
+        if disabled:
+            out.append((share, None, False, None, None))
+            continue
+        net, showdown, classification, pot = _play_case(
+            picked, board, hero_profile, hero_position, stack_bb,
+            seed, detail=True, metrics=True)
+        if pot is None:
+            raise RuntimeError("Final pot telemetry missing")
+        out.append((share, net, showdown, pot, classification))
+    return out
+
+
+def _single_parallel(raw, progress, workers, batch_size=256):
+    """Multi-core one-hand EV with unchanged cards, seeds and attribution."""
+    payload = validate_request(raw)
+    if not payload["hand"]:
+        raise ValueError("Для пакетного расчёта требуется одна рука")
+    src, provenance = eq.build_ranges(payload["opponents"], "selected")
+    disabled = payload["hero_postflop"] == "none" or any(
+        spec["postflop"] == "none" and spec["entry_mode"] != "never"
+        for spec in payload["opponents"])
+    deal_only = {
+        "opponents": [{k: v for k, v in item.items() if k != "postflop"}
+                      for item in payload["opponents"]],
+        "trials": payload["trials"], "cycles": payload["cycles"],
+    }
+    salt = hashlib.sha256(json.dumps(
+        deal_only, ensure_ascii=False, sort_keys=True).encode()).digest()
+    seed = int.from_bytes(hashlib.sha256(
+        salt + payload["hand"].encode()).digest()[:8], "big")
+    rng = random.Random(seed)
+    policy_rng = random.Random(seed ^ 0x6C616773)
+    n = payload["trials"] * payload["cycles"]
+    entry_counts = [0] * (len(src) + 1)
+    entry_pots = [0.] * len(entry_counts)
+    entry_ev_sum = [0.] * len(entry_counts)
+    entry_ev_sq = [0.] * len(entry_counts)
+    from planner_ev_decomposition import EVDecomposition
+    decomposition = EVDecomposition(payload["hand"]) if not disabled else None
+    ev_total = ev_squared = eq_total = 0.
+    accepted = showdown_total = fold_win_total = completed = 0
+    result = {
+        "model": "postflop_line_rollout_v1",
+        "equity": {}, "ev_bb": {}, "showdown_pct": {}, "fold_win_pct": {},
+        "simulations_per_hand": n, "behavioral_ev_enabled": not disabled,
+        "note": ("EV не рассчитывается: для каждого активного игрока выбери постфлоп-стратегию"
+                 if disabled else
+                 "Chip EV в BB при выбранных диапазонах, принудительном входе и стандартном hero open; без ICM и оптимизации префлопа"),
+        "opponents": provenance,
+    }
+    # Bound in-flight input data: each future carries at most batch_size deals.
+    max_inflight = max(2, 2 * workers)
+    pending = []
+    produced = 0
+    with ProcessPoolExecutor(
+            max_workers=workers,
+            mp_context=multiprocessing.get_context("spawn")) as pool:
+        while produced < n or pending:
+            while produced < n and len(pending) < max_inflight:
+                batch = []
+                for _ in range(min(batch_size, n - produced)):
+                    picked, board = _draw_case(
+                        payload["hand"], src, payload["opponents"], rng)
+                    # Match the serial PRNG: a policy seed is consumed only
+                    # when the hero faces a real opponent and EV is enabled.
+                    policy_seed = (policy_rng.randrange(1 << 50)
+                                   if len(picked) > 1 and not disabled else 0)
+                    batch.append((picked, board, policy_seed))
+                pending.append((batch, pool.submit(
+                    _single_batch, batch, payload["hero_postflop"],
+                    payload["hero_position"], payload["hero_stack_bb"],
+                    disabled)))
+                produced += len(batch)
+            batch, task = pending.pop(0)
+            outcomes = task.result()
+            for (picked, _, _), (share, net, showdown, pot, classified) in zip(batch, outcomes):
+                entrants = len(picked) - 1
+                entry_counts[entrants] += 1
+                if entrants:
+                    eq_total += share
+                    accepted += 1
+                if entrants == 0:
+                    entry_pots[0] += 1.5
+                if not disabled:
+                    ev_total += net
+                    ev_squared += net ** 2
+                    if entrants:
+                        entry_pots[entrants] += pot
+                    entry_ev_sum[entrants] += net
+                    entry_ev_sq[entrants] += net ** 2
+                    if entrants == 0:
+                        fold_win_total += 1
+                    else:
+                        showdown_total += showdown
+                        fold_win_total += bool(not showdown and net > 0)
+                    event, risk, flush = classified
+                    decomposition.add(net, event, risk=risk, flush=flush)
+                completed += 1
+            if progress:
+                progress(completed, n)
+    hand = payload["hand"]
+    result["equity"][hand] = round(100. * eq_total / accepted, 3) if accepted else None
+    result["ev_bb"][hand] = round(ev_total / n, 4) if not disabled else None
+    result["showdown_pct"][hand] = round(100 * showdown_total / n, 2) if not disabled else None
+    result["fold_win_pct"][hand] = round(100 * fold_win_total / n, 2) if not disabled else None
+    result["decomposition"] = decomposition.result() if decomposition else None
+    result["ev_ci95_bb"] = (
+        {hand: round(1.96 * math.sqrt(max(
+            0., (ev_squared - ev_total**2 / n) / (n - 1)) / n), 4)}
+        if not disabled and n > 1 else {})
+    total = sum(entry_counts)
+    result["entry_n_samples"] = entry_counts
+    result["entry_counts_pct"] = [round(100 * x / total, 2)
+                                  for x in entry_counts]
+    result["entry_pot_bb"] = [
+        round(entry_pots[k] / v, 3) if v and (not disabled or k == 0)
+        else None for k, v in enumerate(entry_counts)]
+    result["entry_ev_sd_bb"] = [
+        round(math.sqrt(max(0., (entry_ev_sq[k] - entry_ev_sum[k]**2 / v)
+                           / (v - 1))), 5) if v > 1 and not disabled
+        else None for k, v in enumerate(entry_counts)]
+    result["entry_stats_note"] = (
+        "Средний банк = фактический финальный банк (все ставки), BB. "
+        "σ EV оценивается по фактическим net BB; прогноз ±95% для N прогонов "
+        "использует ожидаемое N × P(числа активных соперников) и "
+        "является приближением для одной руки. "
+        "Для полной матрицы σ объединяет разные классы рук.")
+    return result
+
+
+_MATRIX_RANGES = None
+
+
+def _init_matrix_worker(raw):
+    """Build immutable opponent distributions only once per worker."""
+    global _MATRIX_RANGES
+    _MATRIX_RANGES = eq.build_ranges(raw["opponents"], "selected")
+
+
 def _compute_chunk(raw, hands):
     """Spawn-safe worker; each hand uses its original deterministic seed."""
-    return calculate(raw, _hands=hands, _return_raw=True)
+    return calculate(raw, _hands=hands, _return_raw=True,
+                     _prepared=_MATRIX_RANGES)
 
 
-def calculate_parallel(raw, progress=None, workers=1, chunk_size=4):
+def calculate_parallel(raw, progress=None, workers=1, chunk_size=8):
     """True multi-core 169-hand rollout; single-hand results stay unchanged.
 
     Spawn rather than fork: this is called within a live HTTP server thread.
@@ -399,7 +556,11 @@ def calculate_parallel(raw, progress=None, workers=1, chunk_size=4):
     payload = validate_request(raw)
     if type(workers) is not int or not 1 <= workers <= 8:
         raise ValueError("Число процессов Monte Carlo: 1–8")
-    if payload["hand"] or workers == 1:
+    if payload["hand"]:
+        return (_single_parallel(payload, progress, workers)
+                if workers > 1 and payload["trials"] * payload["cycles"] >= 2000
+                else calculate(payload, progress=progress))
+    if workers == 1:
         return calculate(payload, progress=progress)
     chunks = [list(core.HANDS[i:i + chunk_size])
               for i in range(0, len(core.HANDS), chunk_size)]
@@ -407,7 +568,9 @@ def calculate_parallel(raw, progress=None, workers=1, chunk_size=4):
     totals = None
     done = 0
     with ProcessPoolExecutor(max_workers=workers,
-                             mp_context=multiprocessing.get_context("spawn")) as pool:
+                             mp_context=multiprocessing.get_context("spawn"),
+                             initializer=_init_matrix_worker,
+                             initargs=(payload,)) as pool:
         jobs = {pool.submit(_compute_chunk, payload, chunk): len(chunk)
                 for chunk in chunks}
         for job in as_completed(jobs):

@@ -73,6 +73,34 @@ class ParallelPlanMCTests(unittest.TestCase):
             self.assertTrue(cached["cached"])
             self.assertEqual(job["result"], cached["result"])
 
+    def test_deep_selected_hand_parallel_is_bitwise_equivalent(self):
+        request={**sample(),"hand":"K4s","trials":2500}
+        request["opponents"][0]["entry_pct"]=65
+        baseline=post.calculate(request)
+        increments=[]
+        multi=post.calculate_parallel(
+            request, workers=3, progress=lambda done,total:increments.append((done,total)))
+        self.assertEqual(baseline, multi)
+        self.assertEqual(multi["decomposition"]["samples"],2500)
+        self.assertEqual(increments[-1],(2500,2500))
+        self.assertEqual([n for n,_ in increments],sorted(n for n,_ in increments))
+
+    def test_single_hand_equity_only_parallel(self):
+        request={**sample(),"hand":"AA","trials":2500,
+                 "hero_postflop":"none"}
+        request["opponents"][0]["postflop"]="none"
+        a=post.calculate(request)
+        b=post.calculate_parallel(request,workers=2)
+        self.assertEqual(a,b)
+        self.assertIsNone(b["ev_bb"]["AA"])
+
+    def test_background_cpu_budgets_never_overallocate(self):
+        import planner_api as api
+        self.assertEqual(api.postflop_cpu_budgets(8),(5,3))
+        self.assertEqual(api.postflop_cpu_budgets(4),(2,2))
+        self.assertEqual(api.postflop_cpu_budgets(2),(1,1))
+        self.assertEqual(api.postflop_cpu_budgets(1),(1,1))
+
     def test_invalid_parallel_worker_count(self):
         with self.assertRaisesRegex(ValueError,"1–8"):
             post.calculate_parallel(sample(),workers=9)
