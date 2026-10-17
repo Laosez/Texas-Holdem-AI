@@ -214,9 +214,9 @@ class EVDecomposition:
         self.loss=defaultdict(lambda:{"count":0,"gross_loss":0.0})
         self.flush=defaultdict(lambda:{"count":0,"net":0.0})
         self.ev_total=0.0
-        self.groups=defaultdict(lambda:{"count":0,"net":0.0})
+        self.groups=defaultdict(lambda:{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,"positive_count":0,"negative_count":0,"neutral_count":0})
         self.matchups=defaultdict(lambda:{"count":0,"wins":0,"net":0.0})
-        self.reasons=defaultdict(lambda:{"count":0,"net":0.0,"label":""})
+        self.reasons=defaultdict(lambda:{"count":0,"net":0.0,"label":"",**{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,"positive_count":0,"negative_count":0,"neutral_count":0}})
 
     def add(self,net_bb, event, *, risk=None, flush=None, group=None, matchup=None, reason=None):
         self.n+=1
@@ -231,6 +231,13 @@ class EVDecomposition:
         reason_key,reason_label=reason if reason is not None else reason_for_event(event)
         r=self.reasons[(group,reason_key)]
         r["count"]+=1;r["net"]+=net_bb;r["label"]=reason_label
+        for record in (bucket,r):
+            if net_bb>0:
+                record["positive_net"]+=net_bb;record["positive_count"]+=1
+            elif net_bb<0:
+                record["negative_net"]+=net_bb;record["negative_count"]+=1
+            else:
+                record["neutral_count"]+=1
         if matchup:
             relation,hero_rank,rival_rank=matchup
             entry=self.matchups[(relation,hero_rank,rival_rank)]
@@ -269,6 +276,13 @@ class EVDecomposition:
                 "contribution_bb":round(v["net"]/n,5)}
                for key,v in self.flush.items()]
         flush.sort(key=lambda x:-x["count"])
+        def report_numbers(record):
+            return {
+                "positive_ev_bb":round(record["positive_net"]/n,5),
+                "negative_ev_bb":round(record["negative_net"]/n,5),
+                "positive_count":record["positive_count"],
+                "negative_count":record["negative_count"],
+                "neutral_count":record["neutral_count"]}
         grouped=[]
         for key,label in OUTCOME_GROUPS:
             group=self.groups[key]
@@ -277,16 +291,20 @@ class EVDecomposition:
                       "frequency_pct":round(100*stat["count"]/n,2),
                       "within_group_pct":round(100*stat["count"]/group["count"],2),
                       "avg_bb":round(stat["net"]/stat["count"],4),
-                      "contribution_bb":round(stat["net"]/n,5)}
+                      "contribution_bb":round(stat["net"]/n,5),
+                      **report_numbers(stat)}
                      for (category,code),stat in self.reasons.items()
                      if category==key and stat["count"]]
-            reasons.sort(key=lambda r:(-r["count"],r["label"]))
+            reasons.sort(key=lambda row:(-row["count"],row["label"]))
             assert sum(v["count"] for v in reasons)==group["count"]
+            assert sum(v["positive_count"]+v["negative_count"]+v["neutral_count"]
+                       for v in reasons)==group["count"]
             grouped.append({
                 "key":key,"label":label,"count":group["count"],
                 "frequency_pct":round(100*group["count"]/n,2),
                 "avg_bb":round(group["net"]/group["count"],4) if group["count"] else 0.,
                 "contribution_bb":round(group["net"]/n,5),
+                **report_numbers(group),
                 "reasons":reasons})
         matchups=[{"relation":rel,"hero":hero,"villain":villain,
                    "count":stats["count"],"wins":stats["wins"],
