@@ -83,6 +83,34 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertGreaterEqual(pot[0][0],3)
         self.assertEqual(sum(payouts.values()),0)
 
+    def test_all_opponents_row_zero_independent_bulk_controls(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("target.append(opponentBulkRow());",page)
+        self.assertIn("row.append(el('span','num','0'));",page)
+        self.assertIn("makeSelect(profileOptions(),'Диапазон → всем','profile')",page)
+        self.assertIn("makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop')",page)
+        self.assertIn("for(const opponent of opponents)opponent[field]=value;",page)
+        self.assertIn("if(!['profile','postflop'].includes(field)",page)
+        self.assertIn("invalidateEquity();renderOpponents();",page)
+        self.assertIn("if(field==='profile')loadVillain();",page)
+        self.assertIn(".plannerOpponentsPanel .oppBulkRow{",page)
+
+    def test_decomposition_two_sortable_tables_keep_compact_parent(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("function sortDecompRows(rows,order){",page)
+        self.assertIn("function setDecompSort(key,detail=false){",page)
+        self.assertIn("function decompSortHeader(label,key,detail=false){",page)
+        self.assertIn("state.direction==='asc'?'ascending':'descending'",page)
+        self.assertIn("['EV','contribution_bb']",page)
+        self.assertIn("['BB','avg_bb']",page)
+        self.assertIn("['N','count']",page)
+        self.assertIn("['% группы','within_group_pct']",page)
+        self.assertIn("sortDecompRows(selectedGroup.reasons,decompReasonSort)",page)
+        self.assertIn("const table=el('table','decompReasonsTable');",page)
+        self.assertIn("const restore=el('button','decompSortReset','↺ По этапам');",page)
+        self.assertIn("Малая выборка: менее 30 случаев",page)
+        self.assertNotIn("decompReasonDisclosure",page)
+
     def test_plan_no_metric_cycles_brush_toolbar_and_auto_selected_rows(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('<select id="cellMetric" class="hidden"',page)
