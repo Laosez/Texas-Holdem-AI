@@ -31,7 +31,8 @@ class ScreenTwoVisualRecoveryTests(unittest.TestCase):
         self.assertIn("min-width:802px;align-items:start;width:100%",css)
         self.assertIn(".plannerOpponentsPanel .oppRow select{width:100%",css)
         self.assertIn(".plannerOpponentsPanel .oppTable .oppHead{overflow:visible}",css)
-        self.assertIn("<span>Диапазон</span><span>Позиция</span>",self.page)
+        self.assertIn("<span>Позиция №</span><span>Диапазон</span>",self.page)
+        self.assertIn("min-width:860px;column-gap:8px;align-items:center",css)
         self.assertIn("<span>Постфлоп</span><span>Вероятность входа</span>",self.page)
 
     def test_sliders_match_four_action_stripe_colors(self):

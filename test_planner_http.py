@@ -222,9 +222,10 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn(".plannerOpponentsPanel .filterTop{grid-template-columns:",page)
         self.assertIn("@media(max-width:1050px)",page)
         self.assertIn(".plannerMain>.plannerStrategyPanel,.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerWorkspace{grid-column:1/-1}",page)
-        first=page.index('01 / </span>Версии стратегии')
-        second=page.index('02 / </span>Мои соперники')
+        first=page.index('01 / </span>Мои соперники')
+        second=page.index('02 / </span>Версии стратегии')
         third=page.index('03 / </span>Матрицы стартовых рук')
+        self.assertIn('main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}',page)
         self.assertTrue(first<second<third)
 
     def test_strategy_studio_dense_layout_and_group_brush_editor(self):
@@ -359,7 +360,8 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];",page)
         self.assertIn("const heroSeat=normalizeFixedSeats();",page)
         self.assertIn("row.setAttribute('aria-label','Hero · моя стратегия');",page)
-        self.assertIn("remove.disabled=true;remove.classList.add('hidden');",page)
+        self.assertNotIn("remove.disabled=true;remove.classList.add('hidden');",page)
+        self.assertIn("row.append(heroSeatPositionPicker(opp.position,false));",page)
         self.assertIn("entry_mode:i<3?'range':'never'",page)
         self.assertIn("function opponentBulkRow(){",page)
 
