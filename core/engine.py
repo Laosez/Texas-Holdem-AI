@@ -432,6 +432,13 @@ class Table:
             preflop_start=(ring.index(bb_idx)+1)%len(ring)
             postflop_start=(1 if dealer_index in ring else 0) % len(ring)
 
+        virtual_seats=[]
+        if blind_seats is not None and len(ring)>2:
+            if dealer_index not in ring:
+                virtual_seats.append((dealer_index,"DEAD_BTN"))
+            if sb_idx is None:
+                virtual_seats.append(((bb_idx-1)%len(seats),"DEAD_SB"))
+
         # Initialize per-player contributions (for current street)
         contrib = defaultdict(int, {s.player_id: 0 for s in seats if not s.is_sitting_out})
 
@@ -486,10 +493,14 @@ class Table:
         folded_pids: set = set()
 
         streets = [
-            ("preflop", self._betting_round, {"start_idx": preflop_start, "folded_pids": folded_pids}),
-            ("flop",    self._deal_flop_then_bet,  {"start_idx": postflop_start, "folded_pids": folded_pids}),
-            ("turn",    self._deal_turn_then_bet,   {"start_idx": postflop_start, "folded_pids": folded_pids}),
-            ("river",   self._deal_river_then_bet,  {"start_idx": postflop_start, "folded_pids": folded_pids}),
+            ("preflop", self._betting_round, {"start_idx": preflop_start, "folded_pids": folded_pids,
+                                         "virtual_seats":virtual_seats,"button_index":dealer_index}),
+            ("flop",    self._deal_flop_then_bet,  {"start_idx": postflop_start, "folded_pids": folded_pids,
+                                                   "virtual_seats":virtual_seats,"button_index":dealer_index}),
+            ("turn",    self._deal_turn_then_bet,   {"start_idx": postflop_start, "folded_pids": folded_pids,
+                                                   "virtual_seats":virtual_seats,"button_index":dealer_index}),
+            ("river",   self._deal_river_then_bet,  {"start_idx": postflop_start, "folded_pids": folded_pids,
+                                                   "virtual_seats":virtual_seats,"button_index":dealer_index}),
         ]
 
         # --- main street loop ---
@@ -615,7 +626,8 @@ class Table:
         self, street, seats, ring, pos_by_pid, hole, board, contrib, pot, bb,
         bot_for, history, on_event, logger, start_idx: int = 0,
         folded_pids: set = None, hand_id: Optional[int] = None,
-        blind_increase_every: Optional[int] = None
+        blind_increase_every: Optional[int] = None,
+        virtual_seats=None, button_index=None
     ):
         # print(f"\n=== BETTING ROUND START: {street} ===")
         # print(f"Pot before street: {pot}")
@@ -793,8 +805,17 @@ class Table:
                 pv_min_raise = max(0, (current_bet + last_raise_size) - contrib[pid])
                 pv_max_raise = seat.chips
 
-            stacks_view = {seats[i].player_id: seats[i].chips for i in ring}
-            seat_indices = {seats[i].player_id: i for i in ring}
+            if virtual_seats:
+                # Bot view includes physically dead BTN/SB, preserving 8/9-max
+                # position labels. Ghosts have no actions and no pot rights.
+                view_order=[(i,seats[i].player_id,seats[i].chips) for i in ring]
+                view_order.extend((index,pid,0) for index,pid in virtual_seats)
+                view_order.sort(key=lambda item:(item[0]-button_index)%len(seats))
+                stacks_view={pid:chips for _,pid,chips in view_order}
+                seat_indices={pid:index for index,pid,_ in view_order}
+            else:
+                stacks_view = {seats[i].player_id: seats[i].chips for i in ring}
+                seat_indices = {seats[i].player_id: i for i in ring}
             opponents = [
                 seats[i].player_id for i in ring
                 if seats[i].player_id != pid

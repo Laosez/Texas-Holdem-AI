@@ -58,8 +58,10 @@ class TournamentLogicAuditTests(unittest.TestCase):
 
     def test_dead_button_engine_can_play_without_small_blind(self):
         from core.bot_api import Action
+        observed_views=[]
         class FoldBot:
             def act(self,view):
+                observed_views.append((view.position,dict(view.stacks)))
                 return Action("fold") if view.to_call else Action("check")
         seats=[Seat(pid,100) for pid in "ABCDE"]
         # Physical BTN B and SB C are busted; BB D must still post.
@@ -76,6 +78,10 @@ class TournamentLogicAuditTests(unittest.TestCase):
         self.assertEqual(observed[0][1],3)
         self.assertEqual(observed[0][0]["D"],"BB")
         self.assertNotIn("SB",observed[0][0].values())
+        self.assertTrue(observed_views)
+        self.assertTrue(all(len(stacks)==5 for _,stacks in observed_views))
+        self.assertTrue(all(stacks["DEAD_BTN"]==stacks["DEAD_SB"]==0
+                            for _,stacks in observed_views))
 
     def test_dead_button_tournament_advances_bb_through_elimination(self):
         from core.engine import Table as LegacyTable
