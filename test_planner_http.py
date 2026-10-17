@@ -271,7 +271,7 @@ class PlanHttpTests(unittest.TestCase):
             "if(!preserveEdits()){if(hero)setHeroFields(hero);return}",
             "const prior=selectedValue===undefined?control.value:selectedValue;"):
             self.assertIn(literal,page)
-        self.assertIn("useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})",page)
+        self.assertIn("useBbDefenseWhenRfi();renderOpponents();invalidateEquity();loadHero({contextChange:true});loadVillain()",page)
         self.assertIn("BB против открытия: используется GTO Fixed",page)
         self.assertIn("На BB нет RFI",page)
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
@@ -319,7 +319,7 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("{value:'always',label:'100% · входит в банк'}",page)
         self.assertIn("opponents[i].entry_mode=mode.value",page)
         self.assertIn("opponents[i].entry_pct=mode.value==='never'?0:100",page)
-        self.assertIn("entry_mode:'range',entry_pct:100",page)
+        self.assertIn("entry_mode:i<3?'range':'never'",page)
         self.assertIn("entry_counts_pct",page)
         self.assertIn("renderEntryDistribution()",page)
         self.assertIn("function modelConditionalAllInEv(",page)
@@ -352,24 +352,17 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn("if(Number.isInteger(b)&&b>0){",page)
         self.assertIn("tag.style.setProperty('--group-color',groupPaletteColor(b))",page)
         self.assertIn('value="evStrategy"',page)
-    def test_opponent_add_remove_controls_and_max_eight(self):
+    def test_fixed_nine_positions_and_hidden_legacy_add_remove(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('id="addOpponent"',page)
-        self.assertIn('id="oppCount" class="hidden"',page)
-        self.assertIn('id="opponentCountLabel"',page)
-        self.assertIn("opponents=Array.from({length:3}",page)
-        self.assertIn("function addOpponent(){",page)
-        self.assertIn("if(opponents.length>=8)return",page)
-        self.assertIn("function removeOpponent(index){",page)
-        self.assertIn("if(opponents.length<=1",page)
-        self.assertIn("opponents.splice(index,1)",page)
-        self.assertIn("const nextIndex=selectedIndex===index?",page)
-        self.assertIn("remove.onclick=()=>removeOpponent(i)",page)
-        self.assertIn("$('addOpponent').onclick=addOpponent",page)
-        self.assertIn("{value:'range',label:'Ширина диапазона'}",page)
-        self.assertIn("{value:'always',label:'100% · входит в банк'}",page)
-        self.assertIn("{value:'never',label:'0% · не участвует'}",page)
-        self.assertNotIn("chance.type='number'",page)
+        self.assertIn('id="addOpponent" class="btn sm hidden"',page)
+        self.assertIn("opponents=Array.from({length:8}",page)
+        self.assertIn("const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];",page)
+        self.assertIn("const heroSeat=normalizeFixedSeats();",page)
+        self.assertIn("row.append(el('span','oppHeroBadge','HERO · моя стратегия'));",page)
+        self.assertIn("remove.disabled=true;remove.classList.add('hidden');",page)
+        self.assertIn("entry_mode:i<3?'range':'never'",page)
+        self.assertIn("function opponentBulkRow(){",page)
+
 
     def test_box_click_white_frame_and_group_all_in_ev(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")

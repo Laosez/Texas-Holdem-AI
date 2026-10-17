@@ -592,6 +592,45 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .decompSortControls,.decompReasonHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .decompSortControls{justify-content:flex-end;min-height:23px}
 .decompReasonHead .decompOneTitle{margin:0!important}
+
+/* Nine fixed seats, including one Hero: never duplicate a 9-max position. */
+.plannerOpponentsPanel .oppFixedSeat{display:flex;align-items:center;min-height:33px;
+ font-weight:750;font-size:11px;color:#d6e9fc;white-space:nowrap}
+.plannerOpponentsPanel .oppHeroSeat{padding:8px 4px;background:rgba(74,112,148,.16);
+ border-top:1px solid #385775;border-bottom:1px solid #385775;border-radius:4px}
+.plannerOpponentsPanel .oppHeroSeat .oppHeroBadge{font-weight:800;color:#badfff;
+ font-size:11px;align-self:center}
+.plannerOpponentsPanel .oppHeroSeat .num{color:#7bc9fb}
+.plannerOpponentsPanel .oppHeroSeat .oppHeroEmpty{height:2px}
+
+/* Financial-report alternatives: naturally expanded, no nested disclosure. */
+.evLedgerToolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:4px 0 12px}
+.evLedgerMode{border:1px solid #3d607d;border-radius:5px;background:#152d45;
+ color:#a8c9e6;padding:7px 11px;cursor:pointer;font-size:12px;font-weight:700}
+.evLedgerMode.isActive{background:#355c7d;border-color:#89b7db;color:#fff}
+.evLedgerSort{margin-left:auto;max-width:190px;font-size:11px}
+.evLedgerTable{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto}
+.evLedgerTable th,.evLedgerTable td{border-bottom:1px solid #2a4058;padding:7px 9px;
+ font-variant-numeric:tabular-nums}
+.evLedgerTable th:first-child,.evLedgerTable td:first-child{text-align:left;min-width:230px}
+.evLedgerTable th:not(:first-child),.evLedgerTable td:not(:first-child){text-align:right;white-space:nowrap}
+.evLedgerSection{background:rgba(60,91,120,.22);font-weight:800}
+.evLedgerSub{font-weight:700}
+.evLedgerDetail{font-size:11px;color:#9fbad4}
+.evLedgerLevel1 .evLedgerArticle{padding-left:23px}
+.evLedgerLevel2 .evLedgerArticle{padding-left:43px}
+.evLedgerGain td:last-child{color:#9cdcc5}
+.evLedgerLoss td:last-child{color:#f3a2ac}
+.evLedgerTotal{border-top:2px solid #7a9ebc;font-weight:900;background:#284663}
+.evLedgerTotal td:last-child{font-size:14px;color:#f6f9fc}
+.evLedgerSubheading{margin:16px 0 8px;font-size:12px;color:#b9d1e8;letter-spacing:.05em}
+.evLedgerFootnote{margin:10px 0 2px;color:#849cb3;font-size:10px}
+@media(max-width:950px){
+ .handDecompRows{overflow-x:auto}
+ .evLedgerTable{min-width:610px}
+ .evLedgerSort{margin-left:0}
+}
+.plannerOpponentsPanel .oppBulkPosition{display:flex;align-items:center;font-size:10px;font-weight:700;color:#b4d8f2;min-height:32px;white-space:nowrap}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -620,14 +659,14 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <p id="heroStrategyComposition" class="heroStrategyComposition" role="status" aria-live="polite">Сборка: префлоп-диапазон + GTO V2 (постфлоп)</p>
 <p id="activeContext" class="note">Контекст расчёта: 9-max · 20 BB (из сохранённой стратегии).</p><p class="note hidden" id="bbRfiInfo" role="status">На BB нет RFI: это защита против открытия соперника. Сейчас применяется единый GTO Fixed, а не отдельные PC GTO-чарты.</p><div class="buttons" style="margin-top:12px"><button class="btn primary sm" id="save">Сохранить</button><button class="btn sm" id="saveCopy">Сохранить как новую</button><button class="btn sm danger" id="delete" disabled>Удалить</button><button class="btn sm ghost" id="cleanupStrategies" type="button">Очистить остальные</button></div><p id="dirty" class="note">Выберите пресет для редактирования.</p></div>
 </section>
-<section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">До 8 диапазонов · Multiway</span></div>
-<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
+<section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">9-max · Hero + 8 мест</span></div>
+<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">8 мест + Hero</span><button id="addOpponent" class="btn sm hidden" type="button" aria-label="Добавить соперника" disabled>+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
 <details id="opponentEntrySummary" class="oppEntryDistribution">
 <summary>Диагностика поля · число соперников и размер банка</summary>
 <p class="note">Справочная статистика модели, не дополнительная настройка: сколько соперников участвовало, каков средний банк и погрешность EV. N берётся из основного селектора симуляций.</p>
 <div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></details>
-<p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div>
+<p class="note">9 позиций = Hero + 8 соперников. «Ширина диапазона» определяет вероятность входа по комбинациям с учётом блокеров; «0%» исключает место. Модель не рассчитывает дерево префлоп-торговли и не учитывает зависимость решений соперников.</p></div>
 <div class="equityInsideOpponents">
 <div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
 <select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
@@ -861,7 +900,8 @@ async function loadHero({contextChange=false}={}){
   try{
    const stored=findSaved(profile);
    if(stored){
-    $('players').value=String(stored.players);
+    $('players').value='9';
+    // Nine fixed seats always use 9-max saved strategy contexts.
     renderPositions($('heroPosition'),stored.position);
     $('heroScenario').value=stored.scenario;
    }
@@ -870,7 +910,7 @@ async function loadHero({contextChange=false}={}){
                              Number($('players').value),Number($('stack').value));
    hero=doc;hero.contexts=hero.contexts||{};
    dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';
-   invalidateEquity();setHeroFields(doc);paintEditor();renderAll();msg(heroContextMessage(doc));
+   invalidateEquity();setHeroFields(doc);renderOpponents();paintEditor();renderAll();msg(heroContextMessage(doc));
   }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
   finally{loadingSource=false}
   return;
@@ -898,7 +938,7 @@ async function loadHero({contextChange=false}={}){
   hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
         hands:copy(slot.hands),range_origin:origin};
   undos=[];bulkSelected.clear();selectedBoxes.clear();brushMode='inspect';
-  invalidateEquity();setHeroFields(hero);paintEditor();renderAll();
+  invalidateEquity();setHeroFields(hero);renderOpponents();paintEditor();renderAll();
   msg(heroContextMessage(hero)+(dirty?' · Есть изменения в других позициях.':''));
  }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
  finally{loadingSource=false}
@@ -975,10 +1015,41 @@ function renderEntryDistribution(){
   +'σ оценивается по прошлой выборке; при анализе всей матрицы включает различия между руками. '
   +'Редкие строки скрыты при <30 наблюдениях или ожидаемых случаях.';
 }
+const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];
+const FIXED_SEAT_NAMES={'9':'UTG','8':'UTG+1','7':'MP','6':'LJ','5':'HJ',
+                        '4':'CO','3':'BTN','SB':'SB','BB':'BB'};
+function fixedSeatCaption(position){return FIXED_SEAT_NAMES[position]||position}
+function fixedSeatPositions(){
+ const heroPos=$('heroPosition').value||hero?.position||'3';
+ return FIXED_TABLE_POSITIONS.filter(pos=>pos!==heroPos);
+}
+function normalizeFixedSeats(){
+ const existing=new Map(opponents.map(o=>[String(o.position),o]));
+ const heroPos=$('heroPosition').value||hero?.position||'3';
+ opponents=fixedSeatPositions().map((position,i)=>{
+  const previous=existing.get(position);
+  const defaultMode=i<3?'range':'never';
+  return {profile:'builtin:a17_v5',position,
+   scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
+   postflop:'gto',entry_mode:defaultMode,
+   entry_pct:defaultMode==='never'?0:100,
+   ...(previous||{}),position,players:9,
+   scenario:position==='BB'?'vs_open':(previous?.scenario||'rfi')};
+ });
+ return heroPos;
+}
+function heroPositionSeatRow(position){
+ const row=el('div','oppRow oppHeroSeat');
+ row.append(el('span','num','H'));
+ row.append(el('span','oppHeroBadge','HERO · моя стратегия'));
+ row.append(el('span','oppFixedSeat',fixedSeatCaption(position)));
+ for(let i=0;i<5;i++)row.append(el('span','oppHeroEmpty',''));
+ return row;
+}
 function updateOpponentButtons(){
  $('oppCount').value=String(opponents.length);
- $('opponentCountLabel').textContent=opponents.length+' из 8';
- $('addOpponent').disabled=opponents.length>=8;
+ $('opponentCountLabel').textContent='8 мест + Hero';
+ $('addOpponent').disabled=true;
 }
 function bulkChangeOpponent(field,value){
  if(!['profile','postflop'].includes(field)||!value||!opponents.length)return false;
@@ -1005,24 +1076,30 @@ function opponentBulkRow(){
   return select;
  };
  row.append(makeSelect(profileOptions(),'Диапазон → всем','profile'));
- for(let i=0;i<3;i++)row.append(el('span','oppBulkBlank',''));
+ row.append(el('span','oppBulkPosition','9-max · фикс.'));
+ for(let i=0;i<2;i++)row.append(el('span','oppBulkBlank',''));
  row.append(makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop'));
  row.append(el('span','oppBulkBlank',''));
  row.append(el('span','oppBulkBlank',''));
  return row;
 }
 function renderOpponents(){
+ const heroSeat=normalizeFixedSeats();
  updateOpponentButtons();
  const count=opponents.length;
  const target=$('opponents');target.replaceChildren();
  target.append(opponentBulkRow());
+ const heroRank=FIXED_TABLE_POSITIONS.indexOf(heroSeat);
  opponents.slice(0,count).forEach((opp,i)=>{
+  if(heroRank<FIXED_TABLE_POSITIONS.indexOf(opp.position) &&
+     (i===0||FIXED_TABLE_POSITIONS.indexOf(opponents[i-1].position)<heroRank))
+   target.append(heroPositionSeatRow(heroSeat));
   const row=el('div','oppRow');row.append(el('div','num','#'+(i+1)));
   const p=el('select');refill(p,profileOptions(),opp.profile);p.onchange=()=>{
-   opponents[i].profile=p.value;const saved=findSaved(p.value);if(saved){Object.assign(opponents[i],{position:saved.position,scenario:saved.scenario,players:saved.players})}
+   opponents[i].profile=p.value; // Changing range must not move a fixed position.
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const pos=el('select');refill(pos,positionOptions(opp.players),opp.position);pos.disabled=false;pos.onchange=()=>{opponents[i].position=pos.value;invalidateEquity();loadVillain()};row.append(pos);
+  const pos=el('span','oppFixedSeat',fixedSeatCaption(opp.position));row.append(pos);
   const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
@@ -1048,16 +1125,19 @@ function renderOpponents(){
   const remove=el('button','oppRemove','×');
   remove.type='button';remove.title='Убрать соперника #'+(i+1);
   remove.setAttribute('aria-label','Убрать соперника #'+(i+1));
-  remove.disabled=opponents.length<=1;
+  remove.disabled=true;remove.classList.add('hidden');
   remove.onclick=()=>removeOpponent(i);
   row.append(remove);target.append(row);
  });
+ if(heroRank===FIXED_TABLE_POSITIONS.length-1)target.append(heroPositionSeatRow(heroSeat));
  refill($('viewOpponent'),opponents.slice(0,count).map((o,i)=>({value:String(i),label:'#'+(i+1)+' · '+profileName(o.profile)})),$('viewOpponent').value||'0');
  refreshEntryHints();renderEntryDistribution();
 }
 function profileName(ref){return meta.builtins.find(x=>x.ref===ref)?.name||findSaved(ref)?.name||ref}
 function opponentsSelected(){return opponents.map(o=>({...o}))}
 function addOpponent(){
+ // All eight opponent positions are fixed. Set entry_mode='never' for zero.
+ return;
  if(opponents.length>=8)return;
  const fallback=['9','8','7','6','5','4','3','SB'][opponents.length];
  opponents.push({profile:'builtin:a17_v5',position:fallback,scenario:'rfi',
@@ -1065,6 +1145,8 @@ function addOpponent(){
  renderOpponents();invalidateEquity();loadVillain();
 }
 function removeOpponent(index){
+ // Hide a seat with entry_mode='never', do not remove it from the nine-seat grid.
+ return;
  if(opponents.length<=1||index<0||index>=opponents.length)return;
  const selectedIndex=Number($('viewOpponent').value||0);
  opponents.splice(index,1);
@@ -2090,14 +2172,155 @@ function decompSortHeader(label,key,detail=false){
  th.append(button);
  return th;
 }
+
+let decompReportMode='bdr';
+let decompDetailOrder='count';
+function decompRow(tableBody,label,values,cls='',level=0){
+ const tr=el('tr','evLedgerRow '+cls+' evLedgerLevel'+level);
+ const title=el('td','evLedgerArticle',label);tr.append(title);
+ for(const value of values){
+  tr.append(el('td','',value==null?'—':String(value)));
+ }
+ tableBody.append(tr);return tr;
+}
+function evLedgerFormat(value){
+ const n=Number(value)||0;
+ return (n>0?'+':'')+n.toFixed(3);
+}
+function ledgerReasonOrder(reasons){
+ const items=[...reasons];
+ if(decompDetailOrder==='abs_ev')
+  items.sort((a,b)=>Math.abs(b.contribution_bb)-Math.abs(a.contribution_bb));
+ else if(decompDetailOrder==='ev')
+  items.sort((a,b)=>a.contribution_bb-b.contribution_bb);
+ else if(decompDetailOrder==='count')
+  items.sort((a,b)=>b.count-a.count);
+ return items;
+}
+function makeEvLedger(columns){
+ const table=el('table','handDecompTable evLedgerTable');
+ const head=el('thead'),row=el('tr');
+ for(const label of columns){const th=el('th','',label);th.scope='col';row.append(th)}
+ head.append(row);table.append(head);
+ const body=el('tbody');table.append(body);
+ return {table,body};
+}
+function ledgerControls(root){
+ const bar=el('div','evLedgerToolbar');
+ const title=el('span','small','Формат отчёта');
+ bar.append(title);
+ for(const [value,label] of [['bdr','1 · БДР'],['balance','3 · Баланс EV']]){
+  const button=el('button','evLedgerMode'+(decompReportMode===value?' isActive':''),label);
+  button.type='button';button.setAttribute('aria-pressed',String(decompReportMode===value));
+  button.onclick=()=>{decompReportMode=value;renderHandDecomposition()};
+  bar.append(button);
+ }
+ const sort=el('select','evLedgerSort');
+ sort.setAttribute('aria-label','Сортировка причин внутри бухгалтерского отчёта');
+ refill(sort,[{value:'count',label:'Детали: по частоте'},
+              {value:'abs_ev',label:'Детали: по |EV|'},
+              {value:'ev',label:'Детали: по потерям'},
+              {value:'fixed',label:'Детали: по порядку'}],decompDetailOrder);
+ sort.onchange=()=>{decompDetailOrder=sort.value;renderHandDecomposition()};
+ bar.append(sort);root.append(bar);
+}
+function ledgerSamplePct(count,total){return total?(100*count/total).toFixed(1):'0.0'}
+function renderBdrLedger(root,data){
+ const {table,body}=makeEvLedger(['Статья','N','%','Ср. BB','EV, BB']);
+ const groups=data.outcome_groups||[],n=data.samples;
+ // Gross accounting uses signed payouts, NOT the net sign of group averages.
+ // One group can contain both positive and negative individual payouts.
+ for(const [section,positive,label] of [['profit',true,'01 · ПРИБЫЛЬ'],['loss',false,'02 · УБЫТКИ']]){
+  const countKey=positive?'positive_count':'negative_count';
+  const evKey=positive?'positive_ev_bb':'negative_ev_bb';
+  const count=groups.reduce((s,g)=>s+(g[countKey]||0),0);
+  const contribution=groups.reduce((s,g)=>s+(g[evKey]||0),0);
+  decompRow(body,label,[count,ledgerSamplePct(count,n),
+      count?evLedgerFormat(contribution*n/count):'—',evLedgerFormat(contribution)],
+      'evLedgerSection '+(positive?'evLedgerGain':'evLedgerLoss'));
+  for(const g of groups){
+   if(!g[countKey])continue;
+   const itemCount=g[countKey],itemEV=g[evKey];
+   decompRow(body,DECOMP_LABELS[g.key]||g.label,
+      [itemCount,ledgerSamplePct(itemCount,n),
+       evLedgerFormat(itemEV*n/itemCount),evLedgerFormat(itemEV)],
+      'evLedgerSub '+(positive?'evLedgerGain':'evLedgerLoss'),1);
+   for(const r of ledgerReasonOrder(g.reasons||[])){
+    if(!r[countKey])continue;
+    const count=r[countKey],ev=r[evKey];
+    decompRow(body,r.label,
+       [count,ledgerSamplePct(count,n),evLedgerFormat(ev*n/count),
+        evLedgerFormat(ev)],'evLedgerDetail',2);
+   }
+  }
+ }
+ const neutral=groups.reduce((s,g)=>s+(g.neutral_count||0),0);
+ if(neutral)decompRow(body,'03 · БЕЗ ИЗМЕНЕНИЯ',
+      [neutral,ledgerSamplePct(neutral,n),'0.000','0.000'],'evLedgerSection');
+ decompRow(body,'ЧИСТЫЙ EV',[n,'100.0','—',evLedgerFormat(data.ev_bb)],
+          'evLedgerTotal');
+ root.append(table);
+}
+const BALANCE_SECTIONS=[
+ {label:'01 · ДО ВСКРЫТИЯ',keys:['pre_win','pre_loss']},
+ {label:'02 · РАЗНЫЕ КОМБИНАЦИИ',keys:['showdown_win','showdown_loss']},
+ {label:'03 · ДОМИНИРОВАНИЕ',keys:['showdown_win_dominates','showdown_loss_dominated']},
+ {label:'04 · РАЗДЕЛ БАНКА',keys:['showdown_split']}
+];
+function balanceSection(groups,keys){
+ const data=groups.filter(g=>keys.includes(g.key));
+ return {data,count:data.reduce((s,g)=>s+g.count,0),
+         win:data.reduce((s,g)=>s+(g.positive_count||0),0),
+         loss:data.reduce((s,g)=>s+(g.negative_count||0),0),
+         positive:data.reduce((s,g)=>s+(g.positive_ev_bb||0),0),
+         negative:data.reduce((s,g)=>s+(g.negative_ev_bb||0),0)};
+}
+function renderBalanceLedger(root,data){
+ const groups=data.outcome_groups||[],n=data.samples;
+ root.append(el('h4','evLedgerSubheading','Баланс'));
+ const top=makeEvLedger(['Механизм','N','N +','N −','EV +','EV −','ΔEV']);
+ const totals={count:0,win:0,loss:0,positive:0,negative:0};
+ for(const part of BALANCE_SECTIONS){
+  const g=balanceSection(groups,part.keys);
+  for(const key of Object.keys(totals))totals[key]+=g[key];
+  decompRow(top.body,part.label,[g.count,g.win,g.loss,
+     evLedgerFormat(g.positive),evLedgerFormat(g.negative),
+     evLedgerFormat(g.positive+g.negative)],'evLedgerSection');
+ }
+ decompRow(top.body,'ИТОГО',[totals.count,totals.win,totals.loss,
+     evLedgerFormat(totals.positive),evLedgerFormat(totals.negative),
+     evLedgerFormat(data.ev_bb)],'evLedgerTotal');
+ root.append(top.table);
+ root.append(el('h4','evLedgerSubheading','Реестр механизмов'));
+ const registry=makeEvLedger(['Статья','N','%','EV +','EV −','ΔEV']);
+ for(const part of BALANCE_SECTIONS){
+  const g=balanceSection(groups,part.keys);
+  decompRow(registry.body,part.label,[g.count,ledgerSamplePct(g.count,n),
+     evLedgerFormat(g.positive),evLedgerFormat(g.negative),
+     evLedgerFormat(g.positive+g.negative)],'evLedgerSection');
+  for(const group of g.data){
+   if(!group.count)continue;
+   decompRow(registry.body,DECOMP_LABELS[group.key]||group.label,
+     [group.count,ledgerSamplePct(group.count,n),
+      evLedgerFormat(group.positive_ev_bb),evLedgerFormat(group.negative_ev_bb),
+      evLedgerFormat(group.contribution_bb)],'evLedgerSub',1);
+   for(const reason of ledgerReasonOrder(group.reasons||[])){
+    decompRow(registry.body,reason.label,
+      [reason.count,ledgerSamplePct(reason.count,n),
+       evLedgerFormat(reason.positive_ev_bb),evLedgerFormat(reason.negative_ev_bb),
+       evLedgerFormat(reason.contribution_bb)],'evLedgerDetail',2);
+   }
+  }
+ }
+ decompRow(registry.body,'ЧИСТЫЙ EV',[n,'100.0',
+   evLedgerFormat(totals.positive),evLedgerFormat(totals.negative),
+   evLedgerFormat(data.ev_bb)],'evLedgerTotal');
+ root.append(registry.table);
+}
 function renderHandDecomposition(){
  if(!hero)return;
  $('handDecompName').textContent=selected;
  const signature=decompRequestSignature();
- if(signature!==activeDecompSignature){
-  activeDecompGroup=null;
-  activeDecompSignature=signature;
- }
  const valid=handDecompResult?.hand===selected && handDecompSignature===signature;
  const data=valid?handDecompResult:null;
  $('handDecompTag').textContent=selected+(data?' · '+data.samples+' раздач':' · расчёт');
@@ -2107,97 +2330,16 @@ function renderHandDecomposition(){
  $('handDecompCostLabel').textContent=worst?worst.label:'Убыток, BB/раздачу';
  $('handDecompSamples').textContent=data?data.samples.toLocaleString('ru-RU'):'—';
  const root=$('handDecompRows');root.replaceChildren();
+ ledgerControls(root);
  if(!data){
   root.append(el('p','handDecompEmpty','Расчёт выбранной руки…'));
   return;
  }
- const entries=sortDecompRows((data.outcome_groups||[])
-    .filter(g=>g.key!=='showdown_split'||g.count>0),decompSort);
- const controls=el('div','decompSortControls');
- const influence=el('button','decompSortReset',
-   decompSort.key==='abs_ev'?'|EV| '+(decompSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
- influence.type='button';
- influence.title='Самые влиятельные источники EV независимо от знака';
- influence.onclick=()=>setDecompSort('abs_ev');
- controls.append(influence);
- if(decompSort.key!=='fixed'){
-  const restore=el('button','decompSortReset','↺ По этапам');
-  restore.type='button';
-  restore.onclick=()=>{decompSort={key:'fixed',direction:'desc'};renderHandDecomposition();};
-  controls.append(restore);
- }
- root.append(controls);
- const table=el('table','handDecompTable decompCompactTable');
- const head=el('thead'),trHead=el('tr');
- for(const [label,key] of [['Исход','label'],['N','count'],['%','frequency_pct'],
-                            ['BB','avg_bb'],['EV','contribution_bb']]){
-  trHead.append(decompSortHeader(label,key));
- }
- head.append(trHead);table.append(head);
- const body=el('tbody');
- for(const group of entries){
-  const opened=activeDecompGroup===group.key;
-  const tr=el('tr',
-   (group.contribution_bb<0?'decompLoss':group.contribution_bb>0?'decompPositive':'')
-   +(opened?' isDecompActive':''));
-  const title=el('td');
-  const button=el('button','decompGroupButton',
-    (opened?'▾ ':'▸ ')+(DECOMP_LABELS[group.key]||group.label));
-  button.type='button';
-  button.setAttribute('aria-expanded',String(opened));
-  button.setAttribute('aria-controls','decompOneDetail');
-  button.onclick=()=>{
-   activeDecompGroup=opened?null:group.key;
-   renderHandDecomposition();
-  };
-  title.append(button);tr.append(title);
-  for(const v of [String(group.count),Number(group.frequency_pct).toFixed(1),
-                  decompFormat(group.avg_bb),decompFormat(group.contribution_bb)]){
-   tr.append(el('td','',v));
-  }
-  body.append(tr);
- }
- table.append(body);root.append(table);
- const selectedGroup=entries.find(g=>g.key===activeDecompGroup);
- if(selectedGroup && Array.isArray(selectedGroup.reasons)){
-  const panel=el('div','decompOneDetail');panel.id='decompOneDetail';
-  const detailHeader=el('div','decompReasonHead');
-  detailHeader.append(el('strong','decompOneTitle',DECOMP_LABELS[selectedGroup.key]||selectedGroup.label));
-  const impact=el('button','decompSortReset',
-    decompReasonSort.key==='abs_ev'?'|EV| '+(decompReasonSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
-  impact.type='button';impact.title='Сначала самые сильные причины EV';
-  impact.onclick=()=>setDecompSort('abs_ev',true);
-  detailHeader.append(impact);panel.append(detailHeader);
-  const reasons=sortDecompRows(selectedGroup.reasons,decompReasonSort);
-  if(!reasons.length){
-   panel.append(el('p','small','В этой категории нет случаев.'));
-  }else{
-   const table=el('table','decompReasonsTable');
-   const heading=el('thead'),tr=el('tr');
-   for(const [label,key] of [['Механизм','label'],['N','count'],
-                              ['% группы','within_group_pct'],
-                              ['BB','avg_bb'],['EV','contribution_bb']]){
-    tr.append(decompSortHeader(label,key,true));
-   }
-   heading.append(tr);table.append(heading);
-   const body=el('tbody');
-   for(const reason of reasons){
-    const tr=el('tr',
-      reason.contribution_bb<0?'decompLoss':
-      reason.contribution_bb>0?'decompPositive':'');
-    if(reason.count<30)tr.title='Малая выборка: менее 30 случаев';
-    for(const v of [reason.label,String(reason.count),
-                    Number(reason.within_group_pct).toFixed(1),
-                    decompFormat(reason.avg_bb),
-                    decompFormat(reason.contribution_bb)]){
-     tr.append(el('td','',v));
-    }
-    body.append(tr);
-   }
-   table.append(body);panel.append(table);
-  }
-  root.append(panel);
- }
+ if(decompReportMode==='bdr')renderBdrLedger(root,data);
+ else renderBalanceLedger(root,data);
+ const note=el('p','evLedgerFootnote','Все строки раскрыты · N = '+data.samples+
+   ' · EV учитывает исходы раздач, не ICM. Группы и детали не складываются повторно.');
+ root.append(note);
 }
 function scheduleHandDecomposition(){
  if(!hero)return;
@@ -2470,11 +2612,11 @@ async function connect(){
   refill($('players'),Array.from({length:8},(_,i)=>({value:String(i+2),label:(i+2)+'-max'})),'9');
   refill($('heroScenario'),Object.entries(SCENARIOS).map(([value,label])=>({value,label})),'rfi');
   renderPositions($('heroPosition'),'3');
-  $('oppCount').value='3';opponents=Array.from({length:3},(_,i)=>({
+  $('oppCount').value='8';opponents=Array.from({length:8},(_,i)=>({
    profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two',
             'builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two'][i],
-   position:['9','8','7','6','5','4','3','SB'][i],scenario:'rfi',players:9,selector:'active',
-   postflop:'gto',entry_mode:'range',entry_pct:100}));
+   position:['9','8','7','6','5','4','SB','BB'][i],scenario:i===7?'vs_open':'rfi',players:9,selector:'active',
+   postflop:'gto',entry_mode:i<3?'range':'never',entry_pct:i<3?100:0}));
   renderOpponents();$('viewOpponent').value='0';
   sessionStorage.setItem('skachkov_key',token());
   await loadHero();await loadVillain();
@@ -2490,7 +2632,7 @@ $('heroPostflop').onchange=()=>{
  refreshHeroPostflopChoice();
  invalidateEquity();
 };
-$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();invalidateEquity();loadHero({contextChange:true})};
+$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();renderOpponents();invalidateEquity();loadHero({contextChange:true});loadVillain()};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};

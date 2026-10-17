@@ -125,6 +125,40 @@ class EVDecompositionTests(unittest.TestCase):
             [("A","s"),("A","d")],[ [("K","s"),("Q","s")] ],board,True)
         self.assertEqual(category,"showdown_win")
 
+    def test_bdr_gross_income_loss_ledger_reconciles_without_double_count(self):
+        d=EVDecomposition("AKo")
+        for value,group,reason in [
+            (8,"showdown_win","pair"),
+            (-3,"showdown_win","side_pot_loss"),
+            (7,"pre_win","opponents_fold"),
+            (-2,"pre_loss","fold_flop"),
+            (0,"showdown_split","split"),
+            (-5,"showdown_loss","opponent_straight"),
+            (4,"showdown_loss","side_pot_win"),
+        ]:
+            d.add(value,"win_without_showdown",group=group,reason=(reason,reason))
+        v=d.result()
+        groups=v["outcome_groups"]
+        n=v["samples"]
+        self.assertEqual(n,7)
+        self.assertEqual(sum(g["count"] for g in groups),n)
+        self.assertEqual(sum(g["positive_count"]+g["negative_count"]+
+                             g["neutral_count"] for g in groups),n)
+        positive=sum(g["positive_ev_bb"] for g in groups)
+        negative=sum(g["negative_ev_bb"] for g in groups)
+        self.assertAlmostEqual(positive,19/7,places=4)
+        self.assertAlmostEqual(negative,-10/7,places=4)
+        self.assertAlmostEqual(positive+negative,v["ev_bb"],places=4)
+        for g in groups:
+            self.assertEqual(sum(r["positive_count"] for r in g["reasons"]),
+                             g["positive_count"])
+            self.assertEqual(sum(r["negative_count"] for r in g["reasons"]),
+                             g["negative_count"])
+            self.assertAlmostEqual(sum(r["positive_ev_bb"] for r in g["reasons"]),
+                                   g["positive_ev_bb"],places=4)
+            self.assertAlmostEqual(sum(r["negative_ev_bb"] for r in g["reasons"]),
+                                   g["negative_ev_bb"],places=4)
+
     def test_six_primary_groups_plus_ties_reconcile(self):
         d=EVDecomposition("AKo")
         cases=[
@@ -261,10 +295,10 @@ class EVDecompositionTests(unittest.TestCase):
                       __import__("inspect").getsource(ev.calculate))
         self.assertIn("const output=await pollPostflop(settings,epoch",s)
         self.assertIn("function renderHandDecomposition(){",s)
-        self.assertIn("decompCompactTable",s)
-        self.assertIn("activeDecompGroup",s)
-        self.assertIn("decompOneDetail",s)
-        self.assertIn("reason.within_group_pct",s)
+        self.assertIn("evLedgerTable",s)
+        self.assertIn("let decompReportMode='bdr';",s)
+        self.assertIn("function renderBdrLedger(root,data)",s)
+        self.assertIn("function renderBalanceLedger(root,data)",s)
         self.assertNotIn("renderDominationMatchups(",s)
         self.assertIn("renderHandDecomposition();",s)
 
