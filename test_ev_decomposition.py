@@ -2,7 +2,7 @@
 import math
 import unittest
 
-from planner_ev_decomposition import EVDecomposition,classify_showdown
+from planner_ev_decomposition import EVDecomposition,classify_showdown,preflop_domination,showdown_group
 import planner_postflop_ev as ev
 import replit_simulator as app
 
@@ -26,6 +26,51 @@ class EVDecompositionTests(unittest.TestCase):
         hero=[("K","s"),("2","s")]
         self.assertEqual(classify_showdown(hero,[[("K","h"),("Q","s")]],board,hero_won=False)[1],"better_kicker")
         self.assertEqual(classify_showdown(hero,[[("A","h"),("A","s")]],board,hero_won=False)[1],"higher_pair")
+
+    def test_preflop_domination_only_same_high_card_or_pocket_pair(self):
+        self.assertEqual(preflop_domination(
+            [("A","s"),("K","d")],[("A","d"),("Q","h")])[0],"hero")
+        self.assertEqual(preflop_domination(
+            [("K","s"),("4","d")],[("K","d"),("Q","h")])[0],"villain")
+        self.assertEqual(preflop_domination(
+            [("Q","s"),("Q","d")],[("9","d"),("9","h")])[0],"hero")
+        self.assertIsNone(preflop_domination(
+            [("A","s"),("K","d")],[("Q","d"),("J","h")])[0])
+
+    def test_showdown_domination_categories_and_board_ties(self):
+        board=[("2","c"),("6","s"),("9","h"),("J","c"),("3","d")]
+        group,matchup=showdown_group(
+            [("A","s"),("K","d")],[[("A","d"),("Q","h")]],board,True)
+        self.assertEqual(group,"showdown_win_dominates")
+        self.assertEqual(matchup,("hero","AK","AQ"))
+        group,matchup=showdown_group(
+            [("K","s"),("4","d")],[[("K","d"),("Q","h")]],board,False)
+        self.assertEqual(group,"showdown_loss_dominated")
+        self.assertEqual(matchup,("villain","K4","KQ"))
+        tied=[("A","c"),("K","c"),("Q","c"),("J","c"),("T","c")]
+        group,_=showdown_group(
+            [("4","s"),("3","d")],[[("8","d"),("7","h")]],tied,True)
+        self.assertEqual(group,"showdown_split")
+
+    def test_six_primary_groups_plus_ties_reconcile(self):
+        d=EVDecomposition("AKo")
+        cases=[
+            (2,"uncontested","pre_win",None),
+            (-3,"fold_flop","pre_loss",None),
+            (6,"showdown_1_win","showdown_win_dominates",("hero","AK","AQ")),
+            (4,"showdown_1_win","showdown_win",("villain","AK","AA")),
+            (-5,"showdown_1_loss","showdown_loss_dominated",("villain","AK","AQ")),
+            (-2,"showdown_1_loss","showdown_loss",None),
+            (0,"showdown_0_win","showdown_split",None),
+        ]
+        for net,event,group,matchup in cases:
+            d.add(net,event,group=group,matchup=matchup)
+        r=d.result()
+        self.assertEqual(sum(x["count"] for x in r["outcome_groups"]),7)
+        self.assertEqual([x["count"] for x in r["outcome_groups"]],[1]*7)
+        self.assertAlmostEqual(sum(x["contribution_bb"] for x in r["outcome_groups"]),
+                               r["ev_bb"],places=4)
+        self.assertEqual(len(r["domination_matchups"]),3)
 
     def test_mutually_exclusive_ev_and_gross_negative_cost(self):
         d=EVDecomposition("K4s")
@@ -54,6 +99,7 @@ class EVDecompositionTests(unittest.TestCase):
         result=ev.calculate(q)
         d=result["decomposition"]
         self.assertEqual(d["samples"],75)
+        self.assertEqual(sum(x["count"] for x in d["outcome_groups"]),75)
         self.assertEqual(d["hand"],"K4s")
         self.assertEqual(sum(row["count"] for row in d["events"]),75)
         self.assertLess(abs(sum(row["contribution_bb"] for row in d["events"])-result["ev_bb"]["K4s"]),.0003)
