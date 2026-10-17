@@ -153,8 +153,8 @@ def classify_numeric(hole_text, board_text):
     if len(tagged) != len(set(tagged)):
         raise ValueError("Одна физическая карта указана дважды")
     suits = Counter(s for _, s in tagged)
-    if any(v > 4 for v in suits.values()):
-        raise ValueError("Одна масть не может содержать одинаковые номиналы или более четырёх карт в этом шаблоне")
+    # One suit may contain five or more cards: that is how a flush is made.
+    # The physical-card uniqueness check above prevents duplicate rank+suit.
     # A rank can appear in a given suit only once; generic tokens are
     # unconstrained except for the four-card rank limit above.
     street = _STREETS[len(board)]
