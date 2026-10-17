@@ -602,6 +602,34 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  font-size:11px;align-self:center}
 .plannerOpponentsPanel .oppHeroSeat .num{color:#7bc9fb}
 .plannerOpponentsPanel .oppHeroSeat .oppHeroEmpty{height:2px}
+
+/* Financial-report alternatives: naturally expanded, no nested disclosure. */
+.evLedgerToolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:4px 0 12px}
+.evLedgerMode{border:1px solid #3d607d;border-radius:5px;background:#152d45;
+ color:#a8c9e6;padding:7px 11px;cursor:pointer;font-size:12px;font-weight:700}
+.evLedgerMode.isActive{background:#355c7d;border-color:#89b7db;color:#fff}
+.evLedgerSort{margin-left:auto;max-width:190px;font-size:11px}
+.evLedgerTable{width:100%;border-collapse:collapse;font-size:12px;table-layout:auto}
+.evLedgerTable th,.evLedgerTable td{border-bottom:1px solid #2a4058;padding:7px 9px;
+ font-variant-numeric:tabular-nums}
+.evLedgerTable th:first-child,.evLedgerTable td:first-child{text-align:left;min-width:230px}
+.evLedgerTable th:not(:first-child),.evLedgerTable td:not(:first-child){text-align:right;white-space:nowrap}
+.evLedgerSection{background:rgba(60,91,120,.22);font-weight:800}
+.evLedgerSub{font-weight:700}
+.evLedgerDetail{font-size:11px;color:#9fbad4}
+.evLedgerLevel1 .evLedgerArticle{padding-left:23px}
+.evLedgerLevel2 .evLedgerArticle{padding-left:43px}
+.evLedgerGain td:last-child{color:#9cdcc5}
+.evLedgerLoss td:last-child{color:#f3a2ac}
+.evLedgerTotal{border-top:2px solid #7a9ebc;font-weight:900;background:#284663}
+.evLedgerTotal td:last-child{font-size:14px;color:#f6f9fc}
+.evLedgerSubheading{margin:16px 0 8px;font-size:12px;color:#b9d1e8;letter-spacing:.05em}
+.evLedgerFootnote{margin:10px 0 2px;color:#849cb3;font-size:10px}
+@media(max-width:950px){
+ .handDecompRows{overflow-x:auto}
+ .evLedgerTable{min-width:610px}
+ .evLedgerSort{margin-left:0}
+}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -2138,14 +2166,155 @@ function decompSortHeader(label,key,detail=false){
  th.append(button);
  return th;
 }
+
+let decompReportMode='bdr';
+let decompDetailOrder='count';
+function decompRow(tableBody,label,values,cls='',level=0){
+ const tr=el('tr','evLedgerRow '+cls+' evLedgerLevel'+level);
+ const title=el('td','evLedgerArticle',label);tr.append(title);
+ for(const value of values){
+  tr.append(el('td','',value==null?'—':String(value)));
+ }
+ tableBody.append(tr);return tr;
+}
+function evLedgerFormat(value){
+ const n=Number(value)||0;
+ return (n>0?'+':'')+n.toFixed(3);
+}
+function ledgerReasonOrder(reasons){
+ const items=[...reasons];
+ if(decompDetailOrder==='abs_ev')
+  items.sort((a,b)=>Math.abs(b.contribution_bb)-Math.abs(a.contribution_bb));
+ else if(decompDetailOrder==='ev')
+  items.sort((a,b)=>a.contribution_bb-b.contribution_bb);
+ else if(decompDetailOrder==='count')
+  items.sort((a,b)=>b.count-a.count);
+ return items;
+}
+function makeEvLedger(columns){
+ const table=el('table','handDecompTable evLedgerTable');
+ const head=el('thead'),row=el('tr');
+ for(const label of columns){const th=el('th','',label);th.scope='col';row.append(th)}
+ head.append(row);table.append(head);
+ const body=el('tbody');table.append(body);
+ return {table,body};
+}
+function ledgerControls(root){
+ const bar=el('div','evLedgerToolbar');
+ const title=el('span','small','Формат отчёта');
+ bar.append(title);
+ for(const [value,label] of [['bdr','1 · БДР'],['balance','3 · Баланс EV']]){
+  const button=el('button','evLedgerMode'+(decompReportMode===value?' isActive':''),label);
+  button.type='button';button.setAttribute('aria-pressed',String(decompReportMode===value));
+  button.onclick=()=>{decompReportMode=value;renderHandDecomposition()};
+  bar.append(button);
+ }
+ const sort=el('select','evLedgerSort');
+ sort.setAttribute('aria-label','Сортировка причин внутри бухгалтерского отчёта');
+ refill(sort,[{value:'count',label:'Детали: по частоте'},
+              {value:'abs_ev',label:'Детали: по |EV|'},
+              {value:'ev',label:'Детали: по потерям'},
+              {value:'fixed',label:'Детали: по порядку'}],decompDetailOrder);
+ sort.onchange=()=>{decompDetailOrder=sort.value;renderHandDecomposition()};
+ bar.append(sort);root.append(bar);
+}
+function ledgerSamplePct(count,total){return total?(100*count/total).toFixed(1):'0.0'}
+function renderBdrLedger(root,data){
+ const {table,body}=makeEvLedger(['Статья','N','%','Ср. BB','EV, BB']);
+ const groups=data.outcome_groups||[],n=data.samples;
+ // Gross accounting uses signed payouts, NOT the net sign of group averages.
+ // One group can contain both positive and negative individual payouts.
+ for(const [section,positive,label] of [['profit',true,'01 · ПРИБЫЛЬ'],['loss',false,'02 · УБЫТКИ']]){
+  const countKey=positive?'positive_count':'negative_count';
+  const evKey=positive?'positive_ev_bb':'negative_ev_bb';
+  const count=groups.reduce((s,g)=>s+(g[countKey]||0),0);
+  const contribution=groups.reduce((s,g)=>s+(g[evKey]||0),0);
+  decompRow(body,label,[count,ledgerSamplePct(count,n),
+      count?evLedgerFormat(contribution*n/count):'—',evLedgerFormat(contribution)],
+      'evLedgerSection '+(positive?'evLedgerGain':'evLedgerLoss'));
+  for(const g of groups){
+   if(!g[countKey])continue;
+   const itemCount=g[countKey],itemEV=g[evKey];
+   decompRow(body,DECOMP_LABELS[g.key]||g.label,
+      [itemCount,ledgerSamplePct(itemCount,n),
+       evLedgerFormat(itemEV*n/itemCount),evLedgerFormat(itemEV)],
+      'evLedgerSub '+(positive?'evLedgerGain':'evLedgerLoss'),1);
+   for(const r of ledgerReasonOrder(g.reasons||[])){
+    if(!r[countKey])continue;
+    const count=r[countKey],ev=r[evKey];
+    decompRow(body,r.label,
+       [count,ledgerSamplePct(count,n),evLedgerFormat(ev*n/count),
+        evLedgerFormat(ev)],'evLedgerDetail',2);
+   }
+  }
+ }
+ const neutral=groups.reduce((s,g)=>s+(g.neutral_count||0),0);
+ if(neutral)decompRow(body,'03 · БЕЗ ИЗМЕНЕНИЯ',
+      [neutral,ledgerSamplePct(neutral,n),'0.000','0.000'],'evLedgerSection');
+ decompRow(body,'ЧИСТЫЙ EV',[n,'100.0','—',evLedgerFormat(data.ev_bb)],
+          'evLedgerTotal');
+ root.append(table);
+}
+const BALANCE_SECTIONS=[
+ {label:'01 · ДО ВСКРЫТИЯ',keys:['pre_win','pre_loss']},
+ {label:'02 · РАЗНЫЕ КОМБИНАЦИИ',keys:['showdown_win','showdown_loss']},
+ {label:'03 · ДОМИНИРОВАНИЕ',keys:['showdown_win_dominates','showdown_loss_dominated']},
+ {label:'04 · РАЗДЕЛ БАНКА',keys:['showdown_split']}
+];
+function balanceSection(groups,keys){
+ const data=groups.filter(g=>keys.includes(g.key));
+ return {data,count:data.reduce((s,g)=>s+g.count,0),
+         win:data.reduce((s,g)=>s+(g.positive_count||0),0),
+         loss:data.reduce((s,g)=>s+(g.negative_count||0),0),
+         positive:data.reduce((s,g)=>s+(g.positive_ev_bb||0),0),
+         negative:data.reduce((s,g)=>s+(g.negative_ev_bb||0),0)};
+}
+function renderBalanceLedger(root,data){
+ const groups=data.outcome_groups||[],n=data.samples;
+ root.append(el('h4','evLedgerSubheading','Баланс'));
+ const top=makeEvLedger(['Механизм','N','Побед','Потерь','EV +','EV −','ΔEV']);
+ const totals={count:0,win:0,loss:0,positive:0,negative:0};
+ for(const part of BALANCE_SECTIONS){
+  const g=balanceSection(groups,part.keys);
+  for(const key of Object.keys(totals))totals[key]+=g[key];
+  decompRow(top.body,part.label,[g.count,g.win,g.loss,
+     evLedgerFormat(g.positive),evLedgerFormat(g.negative),
+     evLedgerFormat(g.positive+g.negative)],'evLedgerSection');
+ }
+ decompRow(top.body,'ИТОГО',[totals.count,totals.win,totals.loss,
+     evLedgerFormat(totals.positive),evLedgerFormat(totals.negative),
+     evLedgerFormat(data.ev_bb)],'evLedgerTotal');
+ root.append(top.table);
+ root.append(el('h4','evLedgerSubheading','Реестр механизмов'));
+ const registry=makeEvLedger(['Статья','N','%','EV +','EV −','ΔEV']);
+ for(const part of BALANCE_SECTIONS){
+  const g=balanceSection(groups,part.keys);
+  decompRow(registry.body,part.label,[g.count,ledgerSamplePct(g.count,n),
+     evLedgerFormat(g.positive),evLedgerFormat(g.negative),
+     evLedgerFormat(g.positive+g.negative)],'evLedgerSection');
+  for(const group of g.data){
+   if(!group.count)continue;
+   decompRow(registry.body,DECOMP_LABELS[group.key]||group.label,
+     [group.count,ledgerSamplePct(group.count,n),
+      evLedgerFormat(group.positive_ev_bb),evLedgerFormat(group.negative_ev_bb),
+      evLedgerFormat(group.contribution_bb)],'evLedgerSub',1);
+   for(const reason of ledgerReasonOrder(group.reasons||[])){
+    decompRow(registry.body,reason.label,
+      [reason.count,ledgerSamplePct(reason.count,n),
+       evLedgerFormat(reason.positive_ev_bb),evLedgerFormat(reason.negative_ev_bb),
+       evLedgerFormat(reason.contribution_bb)],'evLedgerDetail',2);
+   }
+  }
+ }
+ decompRow(registry.body,'ЧИСТЫЙ EV',[n,'100.0',
+   evLedgerFormat(totals.positive),evLedgerFormat(totals.negative),
+   evLedgerFormat(data.ev_bb)],'evLedgerTotal');
+ root.append(registry.table);
+}
 function renderHandDecomposition(){
  if(!hero)return;
  $('handDecompName').textContent=selected;
  const signature=decompRequestSignature();
- if(signature!==activeDecompSignature){
-  activeDecompGroup=null;
-  activeDecompSignature=signature;
- }
  const valid=handDecompResult?.hand===selected && handDecompSignature===signature;
  const data=valid?handDecompResult:null;
  $('handDecompTag').textContent=selected+(data?' · '+data.samples+' раздач':' · расчёт');
@@ -2155,97 +2324,16 @@ function renderHandDecomposition(){
  $('handDecompCostLabel').textContent=worst?worst.label:'Убыток, BB/раздачу';
  $('handDecompSamples').textContent=data?data.samples.toLocaleString('ru-RU'):'—';
  const root=$('handDecompRows');root.replaceChildren();
+ ledgerControls(root);
  if(!data){
   root.append(el('p','handDecompEmpty','Расчёт выбранной руки…'));
   return;
  }
- const entries=sortDecompRows((data.outcome_groups||[])
-    .filter(g=>g.key!=='showdown_split'||g.count>0),decompSort);
- const controls=el('div','decompSortControls');
- const influence=el('button','decompSortReset',
-   decompSort.key==='abs_ev'?'|EV| '+(decompSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
- influence.type='button';
- influence.title='Самые влиятельные источники EV независимо от знака';
- influence.onclick=()=>setDecompSort('abs_ev');
- controls.append(influence);
- if(decompSort.key!=='fixed'){
-  const restore=el('button','decompSortReset','↺ По этапам');
-  restore.type='button';
-  restore.onclick=()=>{decompSort={key:'fixed',direction:'desc'};renderHandDecomposition();};
-  controls.append(restore);
- }
- root.append(controls);
- const table=el('table','handDecompTable decompCompactTable');
- const head=el('thead'),trHead=el('tr');
- for(const [label,key] of [['Исход','label'],['N','count'],['%','frequency_pct'],
-                            ['BB','avg_bb'],['EV','contribution_bb']]){
-  trHead.append(decompSortHeader(label,key));
- }
- head.append(trHead);table.append(head);
- const body=el('tbody');
- for(const group of entries){
-  const opened=activeDecompGroup===group.key;
-  const tr=el('tr',
-   (group.contribution_bb<0?'decompLoss':group.contribution_bb>0?'decompPositive':'')
-   +(opened?' isDecompActive':''));
-  const title=el('td');
-  const button=el('button','decompGroupButton',
-    (opened?'▾ ':'▸ ')+(DECOMP_LABELS[group.key]||group.label));
-  button.type='button';
-  button.setAttribute('aria-expanded',String(opened));
-  button.setAttribute('aria-controls','decompOneDetail');
-  button.onclick=()=>{
-   activeDecompGroup=opened?null:group.key;
-   renderHandDecomposition();
-  };
-  title.append(button);tr.append(title);
-  for(const v of [String(group.count),Number(group.frequency_pct).toFixed(1),
-                  decompFormat(group.avg_bb),decompFormat(group.contribution_bb)]){
-   tr.append(el('td','',v));
-  }
-  body.append(tr);
- }
- table.append(body);root.append(table);
- const selectedGroup=entries.find(g=>g.key===activeDecompGroup);
- if(selectedGroup && Array.isArray(selectedGroup.reasons)){
-  const panel=el('div','decompOneDetail');panel.id='decompOneDetail';
-  const detailHeader=el('div','decompReasonHead');
-  detailHeader.append(el('strong','decompOneTitle',DECOMP_LABELS[selectedGroup.key]||selectedGroup.label));
-  const impact=el('button','decompSortReset',
-    decompReasonSort.key==='abs_ev'?'|EV| '+(decompReasonSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
-  impact.type='button';impact.title='Сначала самые сильные причины EV';
-  impact.onclick=()=>setDecompSort('abs_ev',true);
-  detailHeader.append(impact);panel.append(detailHeader);
-  const reasons=sortDecompRows(selectedGroup.reasons,decompReasonSort);
-  if(!reasons.length){
-   panel.append(el('p','small','В этой категории нет случаев.'));
-  }else{
-   const table=el('table','decompReasonsTable');
-   const heading=el('thead'),tr=el('tr');
-   for(const [label,key] of [['Механизм','label'],['N','count'],
-                              ['% группы','within_group_pct'],
-                              ['BB','avg_bb'],['EV','contribution_bb']]){
-    tr.append(decompSortHeader(label,key,true));
-   }
-   heading.append(tr);table.append(heading);
-   const body=el('tbody');
-   for(const reason of reasons){
-    const tr=el('tr',
-      reason.contribution_bb<0?'decompLoss':
-      reason.contribution_bb>0?'decompPositive':'');
-    if(reason.count<30)tr.title='Малая выборка: менее 30 случаев';
-    for(const v of [reason.label,String(reason.count),
-                    Number(reason.within_group_pct).toFixed(1),
-                    decompFormat(reason.avg_bb),
-                    decompFormat(reason.contribution_bb)]){
-     tr.append(el('td','',v));
-    }
-    body.append(tr);
-   }
-   table.append(body);panel.append(table);
-  }
-  root.append(panel);
- }
+ if(decompReportMode==='bdr')renderBdrLedger(root,data);
+ else renderBalanceLedger(root,data);
+ const note=el('p','evLedgerFootnote','Все строки раскрыты · N = '+data.samples+
+   ' · EV учитывает исходы раздач, не ICM. Группы и детали не складываются повторно.');
+ root.append(note);
 }
 function scheduleHandDecomposition(){
  if(!hero)return;
