@@ -230,10 +230,10 @@ def classify_numeric(hole_text, board_text):
             kind = "flush_gutshot"
         elif street == "river":
             kind = "missed_flush_draw"
-        elif two_overcards:
-            kind = "overcards_flush"
         elif flush_hole_count == 1:
             kind = "one_card_flush"
+        elif two_overcards:
+            kind = "overcards_flush"
         else:
             kind = "flush_draw"
     elif straight_draw == "double_gutshot":
