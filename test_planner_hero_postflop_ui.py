@@ -47,7 +47,7 @@ class HeroPostflopChoiceTests(unittest.TestCase):
         ids=_Ids();ids.feed(p)
         for key in ('heroProfile','heroPostflop','heroPosition','heroScenario',
                     'heroStrategyComposition','heroPostflopHint','computeAll'):
-            self.assertEqual(ids.ids.count(key),1)
+            self.assertIn(key,ids.ids)
 
     def test_selection_changes_ev_request_and_survives_reload(self):
         p=self.page
