@@ -70,7 +70,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_v2", "gto_postflop_v3", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_v2", "gto_postflop_v3", "gto_postflop_v4", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -228,6 +228,12 @@ def strategy_catalog():
                     "label": "GTO Postflop V1 (GTO-inspired, не solver)",
                     "model": "heuristic",
                     "features": ["value", "C-bet", "draw", "semi-bluff", "check-raise", "river blockers", "multiway", "SPR"]
+                },
+                "gto_postflop_v4": {
+                    "label": "GTO Postflop V4 · настоящие старшие две пары (эксперимент, не solver)",
+                    "model": "heuristic",
+                    "features": ["V3 baseline", "preserve both hole-card top pairs on paired boards",
+                                 "no change to shared-pair protection", "multiway", "kicker", "draw"]
                 },
                 "gto_postflop_v3": {
                     "label": "GTO Postflop V3 · эксперимент Kxs/кикер/дро (не solver)",
