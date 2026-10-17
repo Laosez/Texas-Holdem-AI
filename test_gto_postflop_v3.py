@@ -75,7 +75,7 @@ class GTOV3Tests(unittest.TestCase):
         split=create_bot("split:pc_gto_80bb:gto_postflop_v3")
         self.assertEqual(split.postflop_bot.profile,"gto_postflop_v3")
         catalog=app.strategy_catalog()
-        self.assertEqual(len(catalog["postflop_strategies"]),9)
+        self.assertEqual(len(catalog["postflop_strategies"]),10)
         self.assertIn("random",catalog["postflop_strategies"])
         self.assertIn("gto_postflop_v3",catalog["postflop_strategies"])
         self.assertNotIn("gto_postflop_v3",catalog["preflop_strategies"])

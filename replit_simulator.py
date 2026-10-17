@@ -70,7 +70,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_v2", "gto_postflop_v3", "gto_postflop_v4", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_v2", "gto_postflop_v3", "gto_postflop_v4", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -228,6 +228,12 @@ def strategy_catalog():
                     "label": "GTO Postflop V1 (GTO-inspired, не solver)",
                     "model": "heuristic",
                     "features": ["value", "C-bet", "draw", "semi-bluff", "check-raise", "river blockers", "multiway", "SPR"]
+                },
+                "s100_postflop_v1": {
+                    "label": "SKACHKOV S100 · общий справочник человека и бота (эксперимент)",
+                    "model": "scenario_policy",
+                    "features": ["100 unique states", "same JSON catalog human+bot",
+                                 "hand/board classifier", "pot odds", "IP/OOP context", "multiway"]
                 },
                 "gto_postflop_v4": {
                     "label": "GTO Postflop V4 · настоящие старшие две пары (эксперимент, не solver)",
@@ -1105,8 +1111,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path in ("/", "/plan"):
-            html = (PLAN_UI if path == "/plan" else UI).read_bytes()
+        if path in ("/", "/plan", "/s100"):
+            html = ((ROOT / "replit_ui" / "s100.html") if path == "/s100"
+                    else PLAN_UI if path == "/plan" else UI).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(html)))
@@ -1123,6 +1130,10 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed():
             return
         if planner_api.get_route(self,path):
+            return
+        if path == "/api/s100":
+            from bots.s100_postflop import CATALOG
+            self.reply(200, CATALOG)
             return
         if path == "/api/catalog":
             self.reply(200, strategy_catalog())
@@ -1260,6 +1271,13 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(size))
         except (ValueError, json.JSONDecodeError):
             self.reply(400, {"error": "Некорректный JSON"})
+            return
+        if path == "/api/s100/inspect":
+            from bots.s100_postflop import inspect_request
+            try:
+                self.reply(200, inspect_request(payload))
+            except ValueError as e:
+                self.reply(400, {"error": str(e)})
             return
         if path.startswith("/api/plan/"):
             with MUTEX:

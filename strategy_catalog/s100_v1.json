@@ -1,0 +1,1907 @@
+{
+  "format": "SKACHKOV_S100_V1",
+  "version": "1.0.0",
+  "description": "Exactly 100 mutually exclusive postflop scenarios: ten hand families × five family-specific variants × HU/Multiway. Board features and opponent/range context are separate metadata. One catalog drives human reference and bot policy. Experimental heuristics, NOT Nash GTO.",
+  "scenarios": [
+    {
+      "id": "S001",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "missed",
+      "variant_name": "Недоехавшее дро на ривере",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Без пары · Недоехавшее дро на ривере · Heads-up",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.14,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S002",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "missed",
+      "variant_name": "Недоехавшее дро на ривере",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Без пары · Недоехавшее дро на ривере · Multiway",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.106,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S003",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "blocker",
+      "variant_name": "Блокер сильной комбинации",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Без пары · Блокер сильной комбинации · Heads-up",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.19,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S004",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "blocker",
+      "variant_name": "Блокер сильной комбинации",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Без пары · Блокер сильной комбинации · Multiway",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.144,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S005",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "two_over",
+      "variant_name": "Две оверкарты",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Без пары · Две оверкарты · Heads-up",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.19,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S006",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "two_over",
+      "variant_name": "Две оверкарты",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Без пары · Две оверкарты · Multiway",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.144,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S007",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "one_over",
+      "variant_name": "Одна оверкарта",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Без пары · Одна оверкарта · Heads-up",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.14,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S008",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "one_over",
+      "variant_name": "Одна оверкарта",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Без пары · Одна оверкарта · Multiway",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.106,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S009",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "nothing",
+      "variant_name": "Полный воздух",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Без пары · Полный воздух · Heads-up",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.04,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S010",
+      "family": "air",
+      "family_name": "Без пары",
+      "definition": "Нет готовой пары и прямого дро",
+      "variant": "nothing",
+      "variant_name": "Полный воздух",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Без пары · Полный воздух · Multiway",
+      "learning_rule": "Не платить за воздух; избирательный блеф с блокерами",
+      "risk_note": "Не платить за воздух; избирательный блеф с блокерами",
+      "policy": {
+        "bet_frequency": 0.03,
+        "raise_frequency": 0,
+        "call_odds_max": 0,
+        "bet_size_pot": 0.28
+      }
+    },
+    {
+      "id": "S011",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "combo",
+      "variant_name": "Комбинированное дро",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Дро без пары · Комбинированное дро · Heads-up",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.55,
+        "raise_frequency": 0.13,
+        "call_odds_max": 0.181,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S012",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "combo",
+      "variant_name": "Комбинированное дро",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Дро без пары · Комбинированное дро · Multiway",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.418,
+        "raise_frequency": 0.099,
+        "call_odds_max": 0.163,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S013",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "flush",
+      "variant_name": "Флеш-дро",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Дро без пары · Флеш-дро · Heads-up",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.44,
+        "raise_frequency": 0.075,
+        "call_odds_max": 0.159,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S014",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "flush",
+      "variant_name": "Флеш-дро",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Дро без пары · Флеш-дро · Multiway",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.334,
+        "raise_frequency": 0.057,
+        "call_odds_max": 0.143,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S015",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "oesd",
+      "variant_name": "Двустороннее стрит-дро",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Дро без пары · Двустороннее стрит-дро · Heads-up",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.41,
+        "raise_frequency": 0.06,
+        "call_odds_max": 0.153,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S016",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "oesd",
+      "variant_name": "Двустороннее стрит-дро",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Дро без пары · Двустороннее стрит-дро · Multiway",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.312,
+        "raise_frequency": 0.046,
+        "call_odds_max": 0.138,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S017",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "gutshot",
+      "variant_name": "Гатшот",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Дро без пары · Гатшот · Heads-up",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.28,
+        "raise_frequency": 0,
+        "call_odds_max": 0.127,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S018",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "gutshot",
+      "variant_name": "Гатшот",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Дро без пары · Гатшот · Multiway",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.213,
+        "raise_frequency": 0,
+        "call_odds_max": 0.114,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S019",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "backdoor",
+      "variant_name": "Только бэкдор",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Дро без пары · Только бэкдор · Heads-up",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.14,
+        "raise_frequency": 0,
+        "call_odds_max": 0.099,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S020",
+      "family": "draw",
+      "family_name": "Дро без пары",
+      "definition": "Незакрытое прямое дро без готовой пары",
+      "variant": "backdoor",
+      "variant_name": "Только бэкдор",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Дро без пары · Только бэкдор · Multiway",
+      "learning_rule": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "risk_note": "Сравнить цену колла с приблизительными аутами; полублеф",
+      "policy": {
+        "bet_frequency": 0.106,
+        "raise_frequency": 0,
+        "call_odds_max": 0.089,
+        "bet_size_pot": 0.45
+      }
+    },
+    {
+      "id": "S021",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "pair_draw",
+      "variant_name": "Пара плюс сильное дро",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Слабая/средняя пара · Пара плюс сильное дро · Heads-up",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0.26,
+        "raise_frequency": 0.1,
+        "call_odds_max": 0.175,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S022",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "pair_draw",
+      "variant_name": "Пара плюс сильное дро",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Слабая/средняя пара · Пара плюс сильное дро · Multiway",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0.198,
+        "raise_frequency": 0.076,
+        "call_odds_max": 0.158,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S023",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "underpair",
+      "variant_name": "Андерпара",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Слабая/средняя пара · Андерпара · Heads-up",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0,
+        "raise_frequency": 0,
+        "call_odds_max": 0.117,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S024",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "underpair",
+      "variant_name": "Андерпара",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Слабая/средняя пара · Андерпара · Multiway",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0,
+        "raise_frequency": 0,
+        "call_odds_max": 0.105,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S025",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "bottom",
+      "variant_name": "Нижняя пара",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Слабая/средняя пара · Нижняя пара · Heads-up",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0,
+        "raise_frequency": 0,
+        "call_odds_max": 0.121,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S026",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "bottom",
+      "variant_name": "Нижняя пара",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Слабая/средняя пара · Нижняя пара · Multiway",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0,
+        "raise_frequency": 0,
+        "call_odds_max": 0.109,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S027",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "middle",
+      "variant_name": "Средняя пара",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Слабая/средняя пара · Средняя пара · Heads-up",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0.08,
+        "raise_frequency": 0.01,
+        "call_odds_max": 0.139,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S028",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "middle",
+      "variant_name": "Средняя пара",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Слабая/средняя пара · Средняя пара · Multiway",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0.061,
+        "raise_frequency": 0.008,
+        "call_odds_max": 0.125,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S029",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "board_pair",
+      "variant_name": "Пара борда / пограничная",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Слабая/средняя пара · Пара борда / пограничная · Heads-up",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0,
+        "raise_frequency": 0,
+        "call_odds_max": 0.111,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S030",
+      "family": "weak_pair",
+      "family_name": "Слабая/средняя пара",
+      "definition": "Нижняя, средняя пара либо андерпара",
+      "variant": "board_pair",
+      "variant_name": "Пара борда / пограничная",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Слабая/средняя пара · Пара борда / пограничная · Multiway",
+      "learning_rule": "Контроль банка и осторожный bluff-catch",
+      "risk_note": "Контроль банка и осторожный bluff-catch",
+      "policy": {
+        "bet_frequency": 0,
+        "raise_frequency": 0,
+        "call_odds_max": 0.1,
+        "bet_size_pot": 0.35
+      }
+    },
+    {
+      "id": "S031",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "pair_draw",
+      "variant_name": "Топ-пара плюс дро",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Топ-пара · Топ-пара плюс дро · Heads-up",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.62,
+        "raise_frequency": 0.07,
+        "call_odds_max": 0.273,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S032",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "pair_draw",
+      "variant_name": "Топ-пара плюс дро",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Топ-пара · Топ-пара плюс дро · Multiway",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.471,
+        "raise_frequency": 0.053,
+        "call_odds_max": 0.246,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S033",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "danger",
+      "variant_name": "Топ-пара на опасном борде",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Топ-пара · Топ-пара на опасном борде · Heads-up",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.36,
+        "raise_frequency": 0,
+        "call_odds_max": 0.221,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S034",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "danger",
+      "variant_name": "Топ-пара на опасном борде",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Топ-пара · Топ-пара на опасном борде · Multiway",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.274,
+        "raise_frequency": 0,
+        "call_odds_max": 0.199,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S035",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "high_kicker",
+      "variant_name": "Сильный кикер",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Топ-пара · Сильный кикер · Heads-up",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.6,
+        "raise_frequency": 0.06,
+        "call_odds_max": 0.269,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S036",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "high_kicker",
+      "variant_name": "Сильный кикер",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Топ-пара · Сильный кикер · Multiway",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.456,
+        "raise_frequency": 0.046,
+        "call_odds_max": 0.242,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S037",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "mid_kicker",
+      "variant_name": "Средний кикер",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Топ-пара · Средний кикер · Heads-up",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.48,
+        "raise_frequency": 0,
+        "call_odds_max": 0.245,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S038",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "mid_kicker",
+      "variant_name": "Средний кикер",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Топ-пара · Средний кикер · Multiway",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.365,
+        "raise_frequency": 0,
+        "call_odds_max": 0.221,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S039",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "low_kicker",
+      "variant_name": "Слабый кикер",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Топ-пара · Слабый кикер · Heads-up",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.29,
+        "raise_frequency": 0,
+        "call_odds_max": 0.207,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S040",
+      "family": "top_pair",
+      "family_name": "Топ-пара",
+      "definition": "Топ-пара: кикер учитывается отдельно",
+      "variant": "low_kicker",
+      "variant_name": "Слабый кикер",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Топ-пара · Слабый кикер · Multiway",
+      "learning_rule": "Вэлью против худших пар; избегать дорогого доминирования",
+      "risk_note": "Вэлью против худших пар; избегать дорогого доминирования",
+      "policy": {
+        "bet_frequency": 0.22,
+        "raise_frequency": 0,
+        "call_odds_max": 0.186,
+        "bet_size_pot": 0.53
+      }
+    },
+    {
+      "id": "S041",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "pair_draw",
+      "variant_name": "Оверпара плюс дро",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Оверпара · Оверпара плюс дро · Heads-up",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.73,
+        "raise_frequency": 0.15,
+        "call_odds_max": 0.329,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S042",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "pair_draw",
+      "variant_name": "Оверпара плюс дро",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Оверпара · Оверпара плюс дро · Multiway",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.555,
+        "raise_frequency": 0.114,
+        "call_odds_max": 0.296,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S043",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "flop_dry",
+      "variant_name": "Сухой флоп",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Оверпара · Сухой флоп · Heads-up",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.71,
+        "raise_frequency": 0.14,
+        "call_odds_max": 0.325,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S044",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "flop_dry",
+      "variant_name": "Сухой флоп",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Оверпара · Сухой флоп · Multiway",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.54,
+        "raise_frequency": 0.106,
+        "call_odds_max": 0.293,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S045",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "flop_wet",
+      "variant_name": "Опасный флоп",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Оверпара · Опасный флоп · Heads-up",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.49,
+        "raise_frequency": 0.03,
+        "call_odds_max": 0.281,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S046",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "flop_wet",
+      "variant_name": "Опасный флоп",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Оверпара · Опасный флоп · Multiway",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.372,
+        "raise_frequency": 0.023,
+        "call_odds_max": 0.253,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S047",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "turn",
+      "variant_name": "Тёрн",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Оверпара · Тёрн · Heads-up",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.61,
+        "raise_frequency": 0.09,
+        "call_odds_max": 0.305,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S048",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "turn",
+      "variant_name": "Тёрн",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Оверпара · Тёрн · Multiway",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.464,
+        "raise_frequency": 0.068,
+        "call_odds_max": 0.275,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S049",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "river",
+      "variant_name": "Ривер",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Оверпара · Ривер · Heads-up",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.58,
+        "raise_frequency": 0.075,
+        "call_odds_max": 0.299,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S050",
+      "family": "overpair",
+      "family_name": "Оверпара",
+      "definition": "Карманная пара выше любой карты борда",
+      "variant": "river",
+      "variant_name": "Ривер",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Оверпара · Ривер · Multiway",
+      "learning_rule": "Вэлью + защита; учитывать текстуру и multiway",
+      "risk_note": "Вэлью + защита; учитывать текстуру и multiway",
+      "policy": {
+        "bet_frequency": 0.441,
+        "raise_frequency": 0.057,
+        "call_odds_max": 0.269,
+        "bet_size_pot": 0.61
+      }
+    },
+    {
+      "id": "S051",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "board_only",
+      "variant_name": "Две пары целиком на борде",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две пары с общей парой · Две пары целиком на борде · Heads-up",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.03,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S052",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "board_only",
+      "variant_name": "Две пары целиком на борде",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две пары с общей парой · Две пары целиком на борде · Multiway",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.023,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S053",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "pocket_board",
+      "variant_name": "Карманная пара + пара борда",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две пары с общей парой · Карманная пара + пара борда · Heads-up",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.26,
+        "raise_frequency": 0,
+        "call_odds_max": 0.213,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S054",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "pocket_board",
+      "variant_name": "Карманная пара + пара борда",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две пары с общей парой · Карманная пара + пара борда · Multiway",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.198,
+        "raise_frequency": 0,
+        "call_odds_max": 0.192,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S055",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "above_shared",
+      "variant_name": "Своя пара старше общей",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две пары с общей парой · Своя пара старше общей · Heads-up",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.49,
+        "raise_frequency": 0.09,
+        "call_odds_max": 0.259,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S056",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "above_shared",
+      "variant_name": "Своя пара старше общей",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две пары с общей парой · Своя пара старше общей · Multiway",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.372,
+        "raise_frequency": 0.068,
+        "call_odds_max": 0.233,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S057",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "below_shared",
+      "variant_name": "Своя пара младше общей",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две пары с общей парой · Своя пара младше общей · Heads-up",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.2,
+        "raise_frequency": 0,
+        "call_odds_max": 0.201,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S058",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "below_shared",
+      "variant_name": "Своя пара младше общей",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две пары с общей парой · Своя пара младше общей · Multiway",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.152,
+        "raise_frequency": 0,
+        "call_odds_max": 0.181,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S059",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "other_shared",
+      "variant_name": "Две пары с общей частью",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две пары с общей парой · Две пары с общей частью · Heads-up",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.3,
+        "raise_frequency": 0,
+        "call_odds_max": 0.221,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S060",
+      "family": "shared_two_pair",
+      "family_name": "Две пары с общей парой",
+      "definition": "Одна из двух пар общая с бордом",
+      "variant": "other_shared",
+      "variant_name": "Две пары с общей частью",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две пары с общей парой · Две пары с общей частью · Multiway",
+      "learning_rule": "Не путать AA77 и TT77; оценить собственную пару",
+      "risk_note": "Не путать AA77 и TT77; оценить собственную пару",
+      "policy": {
+        "bet_frequency": 0.228,
+        "raise_frequency": 0,
+        "call_odds_max": 0.199,
+        "bet_size_pot": 0.5
+      }
+    },
+    {
+      "id": "S061",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "paired",
+      "variant_name": "Две собственные пары + пара борда",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две собственные пары · Две собственные пары + пара борда · Heads-up",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.56,
+        "raise_frequency": 0.25,
+        "call_odds_max": 0.339,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S062",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "paired",
+      "variant_name": "Две собственные пары + пара борда",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две собственные пары · Две собственные пары + пара борда · Multiway",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.426,
+        "raise_frequency": 0.19,
+        "call_odds_max": 0.305,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S063",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "flush_danger",
+      "variant_name": "Флеш-опасная доска",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две собственные пары · Флеш-опасная доска · Heads-up",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.52,
+        "raise_frequency": 0.23,
+        "call_odds_max": 0.331,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S064",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "flush_danger",
+      "variant_name": "Флеш-опасная доска",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две собственные пары · Флеш-опасная доска · Multiway",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.395,
+        "raise_frequency": 0.175,
+        "call_odds_max": 0.298,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S065",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "straight_danger",
+      "variant_name": "Стрит-опасная доска",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две собственные пары · Стрит-опасная доска · Heads-up",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.54,
+        "raise_frequency": 0.24,
+        "call_odds_max": 0.335,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S066",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "straight_danger",
+      "variant_name": "Стрит-опасная доска",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две собственные пары · Стрит-опасная доска · Multiway",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.41,
+        "raise_frequency": 0.182,
+        "call_odds_max": 0.302,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S067",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "flop_dry",
+      "variant_name": "Две пары на сухом флопе",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две собственные пары · Две пары на сухом флопе · Heads-up",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.74,
+        "raise_frequency": 0.34,
+        "call_odds_max": 0.375,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S068",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "flop_dry",
+      "variant_name": "Две пары на сухом флопе",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две собственные пары · Две пары на сухом флопе · Multiway",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.562,
+        "raise_frequency": 0.258,
+        "call_odds_max": 0.338,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S069",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "later_dry",
+      "variant_name": "Две пары на тёрне/ривере",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Две собственные пары · Две пары на тёрне/ривере · Heads-up",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.64,
+        "raise_frequency": 0.29,
+        "call_odds_max": 0.355,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S070",
+      "family": "true_two_pair",
+      "family_name": "Две собственные пары",
+      "definition": "Обе карманные карты формируют две лучшие пары",
+      "variant": "later_dry",
+      "variant_name": "Две пары на тёрне/ривере",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Две собственные пары · Две пары на тёрне/ривере · Multiway",
+      "learning_rule": "Сильное вэлью; снижать давление на опасных бордах",
+      "risk_note": "Сильное вэлью; снижать давление на опасных бордах",
+      "policy": {
+        "bet_frequency": 0.486,
+        "raise_frequency": 0.22,
+        "call_odds_max": 0.32,
+        "bet_size_pot": 0.66
+      }
+    },
+    {
+      "id": "S071",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "board_only",
+      "variant_name": "Тройка целиком на борде",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Сет / трипс · Тройка целиком на борде · Heads-up",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.03,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S072",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "board_only",
+      "variant_name": "Тройка целиком на борде",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Сет / трипс · Тройка целиком на борде · Multiway",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.023,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S073",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "set_dry",
+      "variant_name": "Сет на сухой доске",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Сет / трипс · Сет на сухой доске · Heads-up",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.74,
+        "raise_frequency": 0.385,
+        "call_odds_max": 0.403,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S074",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "set_dry",
+      "variant_name": "Сет на сухой доске",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Сет / трипс · Сет на сухой доске · Multiway",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.562,
+        "raise_frequency": 0.293,
+        "call_odds_max": 0.363,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S075",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "set_wet",
+      "variant_name": "Сет на опасной доске",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Сет / трипс · Сет на опасной доске · Heads-up",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.59,
+        "raise_frequency": 0.31,
+        "call_odds_max": 0.373,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S076",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "set_wet",
+      "variant_name": "Сет на опасной доске",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Сет / трипс · Сет на опасной доске · Multiway",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.448,
+        "raise_frequency": 0.236,
+        "call_odds_max": 0.336,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S077",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "own_trips",
+      "variant_name": "Собственный трипс",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Сет / трипс · Собственный трипс · Heads-up",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.67,
+        "raise_frequency": 0.35,
+        "call_odds_max": 0.389,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S078",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "own_trips",
+      "variant_name": "Собственный трипс",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Сет / трипс · Собственный трипс · Multiway",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.509,
+        "raise_frequency": 0.266,
+        "call_odds_max": 0.35,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S079",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "board_kicker",
+      "variant_name": "Общая тройка + кикер",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Сет / трипс · Общая тройка + кикер · Heads-up",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.53,
+        "raise_frequency": 0.28,
+        "call_odds_max": 0.361,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S080",
+      "family": "trips_set",
+      "family_name": "Сет / трипс",
+      "definition": "Собственный сет, трипс или общая тройка",
+      "variant": "board_kicker",
+      "variant_name": "Общая тройка + кикер",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Сет / трипс · Общая тройка + кикер · Multiway",
+      "learning_rule": "Вэлью; происхождение тройки критически важно",
+      "risk_note": "Вэлью; происхождение тройки критически важно",
+      "policy": {
+        "bet_frequency": 0.403,
+        "raise_frequency": 0.213,
+        "call_odds_max": 0.325,
+        "bet_size_pot": 0.68
+      }
+    },
+    {
+      "id": "S081",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "board_only",
+      "variant_name": "Стрит/флеш целиком на борде",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Стрит / флеш · Стрит/флеш целиком на борде · Heads-up",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.03,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S082",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "board_only",
+      "variant_name": "Стрит/флеш целиком на борде",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Стрит / флеш · Стрит/флеш целиком на борде · Multiway",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.023,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S083",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "nut_flush",
+      "variant_name": "Натсовый флеш",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Стрит / флеш · Натсовый флеш · Heads-up",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.77,
+        "raise_frequency": 0.435,
+        "call_odds_max": 0.451,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S084",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "nut_flush",
+      "variant_name": "Натсовый флеш",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Стрит / флеш · Натсовый флеш · Multiway",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.585,
+        "raise_frequency": 0.331,
+        "call_odds_max": 0.406,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S085",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "other_flush",
+      "variant_name": "Ненатсовый флеш",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Стрит / флеш · Ненатсовый флеш · Heads-up",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.57,
+        "raise_frequency": 0.335,
+        "call_odds_max": 0.411,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S086",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "other_flush",
+      "variant_name": "Ненатсовый флеш",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Стрит / флеш · Ненатсовый флеш · Multiway",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.433,
+        "raise_frequency": 0.255,
+        "call_odds_max": 0.37,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S087",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "high_straight",
+      "variant_name": "Старший стрит",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Стрит / флеш · Старший стрит · Heads-up",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.68,
+        "raise_frequency": 0.39,
+        "call_odds_max": 0.433,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S088",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "high_straight",
+      "variant_name": "Старший стрит",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Стрит / флеш · Старший стрит · Multiway",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.517,
+        "raise_frequency": 0.296,
+        "call_odds_max": 0.39,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S089",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "low_straight",
+      "variant_name": "Младший стрит",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Стрит / флеш · Младший стрит · Heads-up",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.54,
+        "raise_frequency": 0.32,
+        "call_odds_max": 0.405,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S090",
+      "family": "straight_flush",
+      "family_name": "Стрит / флеш",
+      "definition": "Готовый стрит или флеш",
+      "variant": "low_straight",
+      "variant_name": "Младший стрит",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Стрит / флеш · Младший стрит · Multiway",
+      "learning_rule": "Проверить натсовость, блокеры и возможности усиления борда",
+      "risk_note": "Проверить натсовость, блокеры и возможности усиления борда",
+      "policy": {
+        "bet_frequency": 0.41,
+        "raise_frequency": 0.243,
+        "call_odds_max": 0.365,
+        "bet_size_pot": 0.71
+      }
+    },
+    {
+      "id": "S091",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "board_only",
+      "variant_name": "Сильная комбинация целиком на борде",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Фулл-хаус+ · Сильная комбинация целиком на борде · Heads-up",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.03,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S092",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "board_only",
+      "variant_name": "Сильная комбинация целиком на борде",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Фулл-хаус+ · Сильная комбинация целиком на борде · Multiway",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.023,
+        "raise_frequency": 0,
+        "call_odds_max": 0.13,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S093",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "straight_flush",
+      "variant_name": "Стрит-флеш",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Фулл-хаус+ · Стрит-флеш · Heads-up",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.82,
+        "raise_frequency": 0.605,
+        "call_odds_max": 0.615,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S094",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "straight_flush",
+      "variant_name": "Стрит-флеш",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Фулл-хаус+ · Стрит-флеш · Multiway",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.623,
+        "raise_frequency": 0.46,
+        "call_odds_max": 0.554,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S095",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "quads",
+      "variant_name": "Каре",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Фулл-хаус+ · Каре · Heads-up",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.82,
+        "raise_frequency": 0.605,
+        "call_odds_max": 0.615,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S096",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "quads",
+      "variant_name": "Каре",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Фулл-хаус+ · Каре · Multiway",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.623,
+        "raise_frequency": 0.46,
+        "call_odds_max": 0.554,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S097",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "full_high",
+      "variant_name": "Старший фулл-хаус",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Фулл-хаус+ · Старший фулл-хаус · Heads-up",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.71,
+        "raise_frequency": 0.55,
+        "call_odds_max": 0.593,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S098",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "full_high",
+      "variant_name": "Старший фулл-хаус",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Фулл-хаус+ · Старший фулл-хаус · Multiway",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.54,
+        "raise_frequency": 0.418,
+        "call_odds_max": 0.534,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S099",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "full_other",
+      "variant_name": "Ненатсовый фулл-хаус",
+      "table_mode": "hu",
+      "table_label": "Heads-up",
+      "name": "Фулл-хаус+ · Ненатсовый фулл-хаус · Heads-up",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.57,
+        "raise_frequency": 0.48,
+        "call_odds_max": 0.565,
+        "bet_size_pot": 0.74
+      }
+    },
+    {
+      "id": "S100",
+      "family": "premium",
+      "family_name": "Фулл-хаус+",
+      "definition": "Фулл-хаус, каре либо стрит-флеш",
+      "variant": "full_other",
+      "variant_name": "Ненатсовый фулл-хаус",
+      "table_mode": "multi",
+      "table_label": "Multiway",
+      "name": "Фулл-хаус+ · Ненатсовый фулл-хаус · Multiway",
+      "learning_rule": "Максимизировать вэлью с учётом доминации",
+      "risk_note": "Максимизировать вэлью с учётом доминации",
+      "policy": {
+        "bet_frequency": 0.433,
+        "raise_frequency": 0.365,
+        "call_odds_max": 0.508,
+        "bet_size_pot": 0.74
+      }
+    }
+  ]
+}

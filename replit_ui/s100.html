@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SKACHKOV S100 · Постфлоп-справочник</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1828;--panel:#142840;--line:#35536b;--ink:#eff5ff;--muted:#abc0d3;--accent:#79b8ee}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#173552 0,#0c1828 58%);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}
+main{max-width:1480px;margin:auto;padding:30px 24px 70px}a{color:var(--accent)}.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
+h1{font-size:27px;letter-spacing:.03em;margin:0}h2{font-size:18px;margin:0 0 14px}h3{font-size:14px;margin:0}
+.sub{color:var(--muted);margin:6px 0 0}.intro{max-width:1000px;margin:18px 0 24px}
+.panel{border:1px solid var(--line);border-radius:13px;background:linear-gradient(135deg,#152b42,#112135);padding:20px;margin:18px 0}
+.badge{display:inline-block;border:1px solid var(--line);border-radius:15px;color:#bad7ee;padding:3px 10px;font-size:11px;font-weight:700}
+.controls{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:10px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}.field label{font-size:11px;font-weight:750;color:var(--muted)}
+input,select,button{font:inherit;min-width:0;color:var(--ink);background:#0b1d2d;border:1px solid #45627b;border-radius:7px;padding:9px 11px}
+button{background:#235a88;cursor:pointer;border-color:#4a8bb9;font-weight:700}button:hover{background:#3273a7}button.secondary{background:#142f48}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.prob{background:#091d2d;border:1px solid #294861;border-radius:8px;padding:12px}
+.prob strong{font-size:17px}.prob span{color:var(--muted);font-size:11px}
+#inspectorResults{min-height:65px} .pill{font-weight:800;color:#a9d9ff;font-size:20px;margin-bottom:5px}
+.statline{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;color:var(--muted)}
+#message{min-height:21px;color:#ffd2a4;margin:12px 0 0}
+.tablewrap{overflow:auto;max-height:72vh;border:1px solid #35536b;border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:920px;background:#13273c}th{font-size:11px;color:#b9ccdc;position:sticky;top:0;background:#1c344d;text-align:left;z-index:1}
+td,th{padding:11px 10px;border-bottom:1px solid #2b455d;vertical-align:top}td{font-size:12px}tr:hover td{background:#1b3c58}
+.group{font-size:11px;color:#84bce7;font-weight:700}.act{font-weight:800;color:#aed9fa}
+.note{font-size:12px;color:var(--muted)}.filterbar{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:9px;margin-bottom:12px}
+.summary{font-size:12px;color:var(--muted);margin:10px 0 0}#exampleButtons{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+@media(max-width:930px){.controls{grid-template-columns:repeat(3,minmax(100px,1fr))}.grid2{grid-template-columns:1fr}.filterbar{grid-template-columns:1fr 1fr}}
+@media(max-width:580px){main{padding:18px 12px}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.filterbar{grid-template-columns:1fr}h1{font-size:22px}}
+</style></head><body><main>
+<header class="top"><div><h1>SKACHKOV / S100</h1><p class="sub">Единые постфлоп-сценарии для человека и бота · версия 1.0</p></div>
+<div><span class="badge">100 сценариев</span> &nbsp; <a href="/plan">← Лист «П»</a></div></header>
+<p class="intro">10 семейств силы руки × 5 осмысленных подтипов × Heads-up/Multiway = <b>100 распознаваемых ситуаций</b>. В справочнике и в боте используется <b>один и тот же набор параметров</b>. Частоты пока экспериментальные: это не solver GTO и не доказанно прибыльная стратегия.</p>
+<section class="panel">
+<h2>Проверить раздачу: какой сценарий увидит бот?</h2>
+<div id="exampleButtons">
+<button class="secondary" type="button" data-example="aqtrue">AQ · A-Q-7-7</button>
+<button class="secondary" type="button" data-example="aqshared">AQ · A-7-7-2</button>
+<button class="secondary" type="button" data-example="t6weak">T6 · K-7-7-T</button>
+<button class="secondary" type="button" data-example="top">KQ · K-9-4</button>
+</div>
+<div class="controls">
+<div class="field"><label for="hole">HERO · две карты</label><input id="hole" value="As Qs" placeholder="As Qs"></div>
+<div class="field"><label for="board">Борд · 3–5 карт</label><input id="board" value="Ad Qd 7c 7h" placeholder="Ad Qd 7c 7h"></div>
+<div class="field"><label for="opponents">Активных соперников</label><select id="opponents"><option value="1">1 · HU</option><option value="2">2 · MW</option><option value="3">3 · MW</option><option value="4">4 · MW</option><option value="5">5 · MW</option><option value="6">6 · MW</option><option value="7">7 · MW</option><option value="8">8 · MW</option></select></div>
+<div class="field"><label for="pot">Банк, BB (со ставкой)</label><input id="pot" type="number" min="1" step="0.5" value="24"></div>
+<div class="field"><label for="call">Цена Call, BB</label><input id="call" type="number" min="0" step="0.5" value="8"></div>
+<div class="field"><label for="stack">Стек HERO, BB</label><input id="stack" type="number" min="0" step="1" value="80"></div>
+</div>
+<div class="top" style="margin-top:14px"><div class="field" style="width:min(290px,100%)"><label for="key">Ключ приложения (если не подставлен)</label><input id="key" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY"></div>
+<button type="button" id="inspect">Распознать и показать решение</button></div>
+<p id="message" role="status"></p>
+<div id="inspectorResults" aria-live="polite"></div>
+</section>
+<section class="panel">
+<div class="top"><h2>Справочник сценариев S001–S100</h2><span id="count" class="badge">Загрузка…</span></div>
+<div class="filterbar">
+<div class="field"><label for="query">Поиск</label><input id="query" placeholder="Например, две пары или S061"></div>
+<div class="field"><label for="family">Сила руки</label><select id="family"><option value="">Все 10 семейств</option></select></div>
+<div class="field"><label for="mode">Тип банка</label><select id="mode"><option value="">HU + Multiway</option><option value="hu">Heads-up</option><option value="multi">Multiway</option></select></div>
+<button type="button" class="secondary" id="reset">Сбросить фильтры</button>
+</div>
+<div class="tablewrap"><table><thead><tr><th>Код</th><th>Тип руки</th><th>Подтип сценария</th><th>Соперники</th><th>Нет ставки</th><th>Против ставки</th><th>Принцип</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="summary">Частоты в таблице — базовые настройки сценария. При проверке конкретных карт бот дополнительно учитывает размер ставки, дро, угрозы на борде, SPR и возможность легального рейза. Правило «лучший EV» появится только после статистической проверки.</p>
+</section>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const state={all:[]};
+$('key').value=sessionStorage.getItem('skachkov_key')||'';
+const auth=()=>({'X-Runner-Key':$('key').value.trim()});
+const pct=n=>(100*n).toFixed(0)+'%';
+const td=(tr,value,className='')=>{const el=document.createElement('td');el.textContent=value;if(className)el.className=className;tr.append(el)};
+async function getCatalog(){
+ const r=await fetch('/api/s100',{headers:auth(),cache:'no-store'});
+ const x=await r.json();if(!r.ok)throw Error(x.error||'Ошибка каталога');
+ state.all=x.scenarios;if(state.all.length!==100)throw Error('Неполный каталог');
+ const families=[...new Map(state.all.map(s=>[s.family,s.family_name])).entries()];
+ for(const [key,name] of families){const op=document.createElement('option');op.value=key;op.textContent=name;$('family').append(op)}
+ renderTable();
+}
+function renderTable(){
+ const q=$('query').value.trim().toLowerCase(),family=$('family').value,mode=$('mode').value;
+ const rows=state.all.filter(s=>(!family||s.family===family)&&(!mode||s.table_mode===mode)&&(!q||[s.id,s.name,s.learning_rule].join(' ').toLowerCase().includes(q)));
+ const fragment=document.createDocumentFragment();
+ for(const s of rows){const tr=document.createElement('tr');const p=s.policy;
+ td(tr,s.id,'act');td(tr,s.family_name,'group');td(tr,s.variant_name);td(tr,s.table_label);
+ td(tr,'Bet '+pct(p.bet_frequency)+' · '+pct(p.bet_size_pot)+' pot');
+ td(tr,'Raise '+pct(p.raise_frequency)+' · цена Call ≤ '+pct(p.call_odds_max));
+ td(tr,s.learning_rule);fragment.append(tr)}
+ $('rows').replaceChildren(fragment);$('count').textContent=rows.length+' / 100';
+}
+for(const key of ['query','family','mode'])$(key).addEventListener('input',renderTable);
+$('reset').addEventListener('click',()=>{$('query').value='';$('family').value='';$('mode').value='';renderTable()});
+const examples={
+ aqtrue:{hole:'As Qs',board:'Ad Qd 7c 7h'},
+ aqshared:{hole:'As Qs',board:'Ad 7c 7h 2d'},
+ t6weak:{hole:'Ts 6s',board:'Kd 7c 7h Td'},
+ top:{hole:'Ks Qs',board:'Kd 9h 4c'}
+};
+for(const b of document.querySelectorAll('[data-example]'))b.addEventListener('click',()=>{
+ const s=examples[b.dataset.example];$('hole').value=s.hole;$('board').value=s.board;
+});
+$('inspect').addEventListener('click',async()=>{
+ $('message').textContent='';$('inspectorResults').replaceChildren();
+ const cards=id=>$(id).value.trim().split(/\s+/).filter(Boolean);
+ const payload={hole:cards('hole'),board:cards('board'),opponents:Number($('opponents').value),pot:Number($('pot').value),to_call:Number($('call').value),stack:Number($('stack').value)};
+ try{
+  const r=await fetch('/api/s100/inspect',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const x=await r.json();if(!r.ok)throw Error(x.error||'Ошибка распознавания');
+  const result=$('inspectorResults'),title=document.createElement('div');title.className='pill';title.textContent=x.scenario.id+' · '+x.scenario.name;result.append(title);
+  const meta=document.createElement('p');meta.className='note';meta.textContent='Улица: '+x.features.street+' · борд: '+x.features.board_texture+' · тип комбинации: '+x.features.category+' · дро: '+x.features.draw_outs+' аутов · pot odds '+pct(x.pot_odds);result.append(meta);
+  const section=document.createElement('div');section.className='grid2';for(const [action,prob] of Object.entries(x.actions)){const div=document.createElement('div');div.className='prob';const h=document.createElement('strong');h.textContent=action.toUpperCase()+' · '+pct(prob);div.append(h);section.append(div)}result.append(section);
+  const tip=document.createElement('p');tip.className='note';tip.textContent='Общий принцип: '+x.scenario.learning_rule+' · ставка '+pct(x.scenario.policy.bet_size_pot)+' банка. '+(x.call_threshold===null?'Сейчас нет ставки для колла.':'Порог pot odds для Call: '+pct(x.call_threshold)+'.');result.append(tip);
+ }catch(e){$('message').textContent=e.message}
+});
+getCatalog().catch(e=>{$('message').textContent=e.message;$('count').textContent='Нет данных'});
+</script></body></html>
