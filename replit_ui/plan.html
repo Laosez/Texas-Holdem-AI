@@ -900,7 +900,8 @@ async function loadHero({contextChange=false}={}){
   try{
    const stored=findSaved(profile);
    if(stored){
-    $('players').value=String(stored.players);
+    $('players').value='9';
+    // Nine fixed seats always use 9-max saved strategy contexts.
     renderPositions($('heroPosition'),stored.position);
     $('heroScenario').value=stored.scenario;
    }
@@ -1015,6 +1016,9 @@ function renderEntryDistribution(){
   +'Редкие строки скрыты при <30 наблюдениях или ожидаемых случаях.';
 }
 const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];
+const FIXED_SEAT_NAMES={'9':'UTG','8':'UTG+1','7':'MP','6':'LJ','5':'HJ',
+                        '4':'CO','3':'BTN','SB':'SB','BB':'BB'};
+function fixedSeatCaption(position){return FIXED_SEAT_NAMES[position]||position}
 function fixedSeatPositions(){
  const heroPos=$('heroPosition').value||hero?.position||'3';
  return FIXED_TABLE_POSITIONS.filter(pos=>pos!==heroPos);
@@ -1038,7 +1042,7 @@ function heroPositionSeatRow(position){
  const row=el('div','oppRow oppHeroSeat');
  row.append(el('span','num','H'));
  row.append(el('span','oppHeroBadge','HERO · моя стратегия'));
- row.append(el('span','oppFixedSeat',positionCaption(position)));
+ row.append(el('span','oppFixedSeat',fixedSeatCaption(position)));
  for(let i=0;i<5;i++)row.append(el('span','oppHeroEmpty',''));
  return row;
 }
@@ -1095,7 +1099,7 @@ function renderOpponents(){
    opponents[i].profile=p.value; // Changing range must not move a fixed position.
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const pos=el('span','oppFixedSeat',positionCaption(opp.position));row.append(pos);
+  const pos=el('span','oppFixedSeat',fixedSeatCaption(opp.position));row.append(pos);
   const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
