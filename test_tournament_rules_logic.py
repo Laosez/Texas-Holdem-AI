@@ -75,7 +75,7 @@ class TournamentLogicAuditTests(unittest.TestCase):
             blind_seats=(None,3),
             bot_for={pid:FoldBot() for pid in "ADE"})
         self.assertEqual(sum(net.values()),0)
-        self.assertEqual(observed[0][1],3)
+        self.assertEqual(observed[0][1],5)
         self.assertEqual(observed[0][0]["D"],"BB")
         self.assertNotIn("SB",observed[0][0].values())
         self.assertTrue(observed_views)

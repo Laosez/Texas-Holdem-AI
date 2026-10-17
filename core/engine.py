@@ -482,7 +482,7 @@ class Table:
         # No effect on cards, betting, or bots unless a collector installs it.
         on_deal = getattr(self, "on_deal", None)
         if callable(on_deal):
-            on_deal(hand_id, hole, pos_by_pid, len(ring))
+            on_deal(hand_id, hole, pos_by_pid, len(ring)+len(virtual_seats))
 
         # Dealer-first ring: index 0 is the button (also SB in heads-up).
         # Preflop action starts at index 3 for 3+ players, index 0 for HU.

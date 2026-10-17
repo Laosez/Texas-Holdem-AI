@@ -81,6 +81,7 @@ def run_silent_tournament(args_tuple):
     bots = {pid: create_bot(btype) for pid, btype, _ in player_specs}
 
     seats = [Seat(player_id=pid, chips=chips) for pid, _, _ in player_specs]
+    initial_chip_total=sum(s.chips for s in seats)
     table_rng = random.Random(seed) if seed is not None else random.Random()
     button_policy=os.environ.get("POKER_BUTTON_POLICY","moving")
     if button_policy not in ("moving","dead_button"):
@@ -122,6 +123,12 @@ def run_silent_tournament(args_tuple):
                 on_event=None,
                 **({"blind_seats":dead_state[1:]} if button_policy=="dead_button" else {}),
             )
+            # Detect silent payout/side-pot bugs BEFORE aggregating results.
+            if (any(seat.chips<0 for seat in seats)
+                    or sum(seat.chips for seat in seats)!=initial_chip_total):
+                raise RuntimeError(
+                    f"Hand {hand_count}: tournament chips not conserved "
+                    f"(expected {initial_chip_total}, got {sum(x.chips for x in seats)})")
             # Record only hands successfully played. Derive levels from actual
             # blind values returned by escalate_blinds, not a predicted formula.
             if not blind_stages or (blind_stages[-1]['sb'], blind_stages[-1]['bb']) != (sb, bb):
