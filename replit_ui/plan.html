@@ -748,6 +748,37 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompRows .evLedgerABTag.isA{color:#abd3f4}
 .handDecompRows .evLedgerABTag.isB{color:#d6c2f5}
 @media(max-width:700px){.handDecompMatchCards{grid-template-columns:1fr}.handDecompBigHand,.handDecompBigHandSelect{font-size:28px!important}.handDecompGlobalControls #handDecompStatus{flex-basis:100%}}
+
+/* Two independent hand dashboards: samples next to report selector, mini-chart per hand */
+.handDecompGlobalControls .handDecompSampleTop{min-width:180px;max-width:250px}
+.handDecompSampleValues{display:flex;gap:12px;align-items:center;min-height:36px;white-space:nowrap}
+.handDecompSampleValues>span{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums;font-size:14px}
+.handDecompSampleValues .sampleA strong{color:#c2ddfb}.handDecompSampleValues .sampleB strong{color:#e0cafa}
+.handDecompSampleValues .sampleMark{font-size:10px;font-weight:800;opacity:.8}
+.handDecompMatchCard .handDecompSideMetrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
+.handDecompSideMetric{display:flex;flex-direction:column;gap:5px;background:rgba(10,25,43,.45);border:1px solid rgba(146,183,213,.17);border-radius:8px;padding:11px;min-width:0}
+.handDecompSideMetric>span{color:#b5cadb;font-size:11px;font-weight:750}
+.handDecompSideMetric>strong{font-size:21px;font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.45px;color:#edf6ff;line-height:1.1}
+.handDecompSideMetric>small{font-size:10px;color:#9baec4;min-height:14px;line-height:1.3}
+.handDecompChart{margin-top:10px;border-radius:9px;border:1px solid rgba(146,183,213,.14);background:rgba(7,18,32,.29);padding:11px 11px 5px;min-width:0}
+.handDecompChartTitle{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:#c4d7e8;font-weight:780}
+.handDecompChartTitle span{color:#a9bbcd;font-size:10px}
+.handDecompChartCanvas{min-height:160px;color:#9fb4c9;font-size:11px}
+.handDecompChartCanvas svg{display:block;width:100%;height:auto;max-height:190px}
+.handDecompChartCanvas .chartEmpty{padding:42px 8px;text-align:center;color:#8fa6bd}
+@media(max-width:470px){.handDecompMatchCard .handDecompSideMetrics{grid-template-columns:1fr}.handDecompChartTitle{flex-wrap:wrap}}
+
+/* Collapse accounting metric groups without discarding underlying Monte Carlo */
+.handDecompRows .abColumnToggles{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.handDecompRows .abColumnToggles .small{margin-right:5px}
+.handDecompRows .abColumnToggle{background:#203145;color:#a2b3c5;border:1px solid #455870;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer}
+.handDecompRows .abColumnToggle.isOpen{background:#274761;border-color:#5783a9;color:#d7ebfa}
+.handDecompRows .abColumnToggle:hover,.handDecompRows .abHeaderCollapse:hover{filter:brightness(1.2)}
+.handDecompRows .abHeaderCollapse{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:780;padding:3px 5px;cursor:pointer}
+.handDecompRows .evLedgerToolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.handDecompRows .evLedgerToolbar>.small{margin-left:auto}
+.handDecompRows .handDecompTable{min-width:0!important;width:100%}
+.handDecompRows{overflow-x:auto}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -904,6 +935,12 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
     </select>
    </div>
    <div class="field handDecompFormat"><span class="simFieldLabel">Форма отчёта</span><span id="handDecompReportMode" class="handDecompFormatValue">БДР</span></div>
+   <div class="field handDecompSampleTop"><span class="simFieldLabel">Выборка · A / B</span>
+    <div class="handDecompSampleValues">
+     <span class="sampleA"><span class="sampleMark">A</span><strong id="handDecompSamples">—</strong></span>
+     <span id="handDecompSampleBWrap" class="sampleB"><span class="sampleMark">B</span><strong id="handDecompSamplesB">—</strong></span>
+    </div>
+   </div>
    <span id="handDecompStatus" class="small" role="status">Нажми на руку в матрице — расчёт начнётся автоматически.</span>
   </div>
   <div class="handDecompMatchCards">
@@ -914,6 +951,14 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
      <span id="handDecompProfileA" class="handDecompFixedStrategy">GTO V2</span>
     </div>
     <span class="handDecompHint">Выбрана в матрице · стратегия из настроек HERO</span>
+    <div class="handDecompSideMetrics">
+     <div class="handDecompSideMetric"><span>Самая дорогая ошибка</span><strong id="handDecompCost">—</strong>
+      <small id="handDecompCostLabel">Самая дорогая категория потерь</small></div>
+     <div class="handDecompSideMetric"><span>Общий EV</span><strong id="handDecompEV">—</strong><small>BB на раздачу</small></div>
+    </div>
+    <div class="handDecompChart"><div class="handDecompChartTitle">EV по числу соперников <span>1 · 2 · 3 · 4+</span></div>
+     <div id="handDecompChartA" class="handDecompChartCanvas" role="img" aria-label="EV руки A по числу вошедших соперников">Ожидается расчёт…</div>
+    </div>
    </div>
    <div class="handDecompMatchCard isB" id="handDecompCardB">
     <span class="handDecompMatchTitle">РУКА B · СРАВНЕНИЕ</span>
@@ -922,22 +967,19 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
      <select id="handDecompProfileB" aria-label="Постфлоп-стратегия B"></select>
     </div>
     <span id="handDecompBHint" class="handDecompHint">«—» — только отчёт по руке A · «=» — та же рука, другая стратегия</span>
+    <div class="handDecompSideMetrics">
+     <div class="handDecompSideMetric"><span>Самая дорогая ошибка</span><strong id="handDecompCostB">—</strong><small id="handDecompCostLabelB">Самая дорогая категория потерь</small></div>
+     <div class="handDecompSideMetric"><span>Общий EV</span><strong id="handDecompEVB">—</strong><small>BB на раздачу</small></div>
+    </div>
+    <div class="handDecompChart"><div class="handDecompChartTitle">EV по числу соперников <span>1 · 2 · 3 · 4+</span></div>
+     <div id="handDecompChartB" class="handDecompChartCanvas" role="img" aria-label="EV руки B по числу вошедших соперников">Выбери руку B</div>
+    </div>
    </div>
   </div>
  </div>
- <div class="matrixMetrics handDecompStats">
-  <div class="matrixMetric"><span>EV · A / B / Δ(B−A)</span>
-   <div class="decompPairHeadline"><strong id="handDecompEV">—</strong><strong id="handDecompEVB">—</strong><strong id="handDecompDelta">—</strong></div><small>BB/раздачу · значения по выбранному N соперников</small></div>
-  <div class="matrixMetric decompWorstLoss"><span>Самая дорогая потеря · A / B</span>
-   <div class="decompPairHeadline"><strong id="handDecompCost">—</strong><strong id="handDecompCostB">—</strong></div>
-   <small id="handDecompCostLabel">Отдельная причина потерь для A и B</small></div>
-  <div class="matrixMetric"><span>Выборка · A / B</span>
-   <div class="decompPairHeadline"><strong id="handDecompSamples">—</strong><strong id="handDecompSamplesB">—</strong></div>
-   <small>N из общего числа прогонов каждой линии</small></div>
- </div>
  <p id="handDecompStratumInfo" class="note" role="status">A/B: общий стек, состав и диапазоны соперников. Число соперников фильтруется без повторного расчёта.</p>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Бухгалтерский отчёт A/B появится после Monte Carlo.</p></div>
- <p class="note handDecompCaveat">Рука A и стратегия A задаются матрицей и HERO. Для руки B «—» отключает сравнение, «=» повторяет руку A. Δ% = (B − A) / |A| × 100, при A = 0 не определяется; цвет «лучше/хуже» применяется только к BB и EV, а не к частотам. При фильтре N EV условный. Проценты не отражают статистическую значимость; при разных руках ΔEV не изолирует эффект стратегии. Не ICM и не GTO-солвер.</p>
+ <p class="note handDecompCaveat">Рука A и стратегия A задаются матрицей и HERO. Для руки B «—» отключает сравнение, «=» повторяет руку A. Графики показывают условный EV в группах 1, 2, 3 и 4+ вошедших соперников; 4+ — взвешенное среднее по числу исходов. «Самая дорогая ошибка» означает наблюдаемую категорию потерь, а не доказанную ошибку стратегии. Δ% = (B − A) / |A| × 100, при A = 0 не определяется. Цвет показывает изменение EV, не статистическую значимость. Не ICM и не GTO-солвер.</p>
 </section>
 
 </main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
@@ -2451,8 +2493,32 @@ function makeEvLedger(columns){
  const body=el('tbody');table.append(body);
  return {table,body};
 }
+const abOpenColumns=new Set(['n','pct','avg','ev','diff']);
+const AB_COLUMN_GROUPS=[
+ {key:'n',label:'N',first:0},
+ {key:'pct',label:'%',first:3},
+ {key:'avg',label:'Ср. BB',first:6},
+ {key:'ev',label:'EV, BB',first:9},
+ {key:'diff',label:'ΔEV',first:12}
+];
+function toggleAbColumn(key){
+ if(abOpenColumns.has(key))abOpenColumns.delete(key);else abOpenColumns.add(key);
+ renderHandDecomposition();
+}
 function ledgerControls(root){
  const bar=el('div','evLedgerToolbar');
+ const toggles=el('div','abColumnToggles');
+ toggles.append(el('span','small','Столбцы'));
+ for(const {key,label} of AB_COLUMN_GROUPS){
+  if(key==='diff'&&$('handDecompHandB').value==='-')continue;
+  const opened=abOpenColumns.has(key);
+  const btn=el('button','abColumnToggle'+(opened?' isOpen':''),label+(opened?' ▾':' ▸'));
+  btn.type='button';btn.setAttribute('aria-pressed',String(opened));
+  btn.setAttribute('aria-label',(opened?'Свернуть ':'Развернуть ')+'столбец '+label);
+  btn.onclick=()=>toggleAbColumn(key);
+  toggles.append(btn);
+ }
+ bar.append(toggles);
  bar.append(el('span','small','Порядок причин'));
  const sort=el('select','evLedgerSort');
  sort.setAttribute('aria-label','Сортировка причин внутри бухгалтерского отчёта');
@@ -2603,29 +2669,46 @@ function abBdrCells(a,b,counts,contributions){
 // Preserve disclosure state through changes of the opponent filter and report sort.
 const abOpenSections=new Set(['gain','loss']);
 const abOpenReasons=new Set();
+
+function abDisplayedColumns(compare){
+ const cols=[];
+ for(const group of AB_COLUMN_GROUPS){
+  if(!abOpenColumns.has(group.key))continue;
+  if(group.key==='diff'){
+   if(compare)cols.push({index:12,key:'diff',side:'delta'});
+   continue;
+  }
+  cols.push({index:group.first,key:group.key,side:'a'});
+  if(compare){
+   cols.push({index:group.first+1,key:group.key,side:'b'});
+   cols.push({index:group.first+2,key:group.key,side:'relative'});
+  }
+ }
+ return cols;
+}
 function abVisibleBdrCells(a,b,counts,contributions,compare){
  const all=abBdrCells(a,b,counts,contributions);
- return compare?all:[all[0],all[3],all[6],all[9]];
+ return abDisplayedColumns(compare).map(col=>all[col.index]);
 }
 function abLedgerRow(body,label,values,css='',level=0,compare=false,disclosure=null){
  const row=decompRow(body,label,values,css,level);
- const semanticClass=(text)=>{
+ const cols=abDisplayedColumns(compare);
+ const semanticClass=text=>{
   if(text==='—'||text==='0.0%'||text==='+0.0%'||text==='-0.0%'||text==='0.000')return '';
   if(text.startsWith('+'))return 'abMetricGood';
   if(text.startsWith('-'))return 'abMetricBad';
   return '';
  };
  for(let i=1;i<row.children.length;i++){
-  const cell=row.children[i];
-  const relative=compare&&(i===3||i===6||i===9||i===12);
-  const isAbsolute=compare&&i===13;
-  const side=compare?(isAbsolute?'abDelta':relative?'abRelative':
-    ((i-1)%3===0?'abValueA':'abValueB')):'abValueA';
-  cell.classList.add(side);
-  if(relative)cell.classList.add('abDeltaPercent');
-  if(relative&&(i===9||i===12)||isAbsolute){
-   const cls=semanticClass(String(values[i-1]));
-   if(cls)cell.classList.add(cls);
+  const cell=row.children[i],meta=cols[i-1];
+  if(!meta)throw Error('Неверное число колонок бухгалтерского отчёта');
+  cell.classList.add(meta.side==='a'?'abValueA':meta.side==='b'?'abValueB':
+    meta.side==='relative'?'abRelative':'abDelta');
+  if(meta.side==='relative')cell.classList.add('abDeltaPercent');
+  if((meta.side==='relative'&&(meta.key==='avg'||meta.key==='ev'))||
+     meta.side==='delta'){
+   const status=semanticClass(String(values[i-1]));
+   if(status)cell.classList.add(status);
   }
  }
  if(disclosure){
@@ -2649,15 +2732,27 @@ function abBdrTable(compare){
  const thead=el('thead'),first=el('tr'),second=el('tr');
  const title=el('th','','Статья');
  title.scope='col';title.rowSpan=2;first.append(title);
- for(const metric of ['N','%','Ср. BB','EV, BB']){
-  const group=el('th','abGroupHeader'+(!compare?' abGroupSolo':''),metric);
-  group.scope='colgroup';group.colSpan=compare?3:1;first.append(group);
+ for(const group of AB_COLUMN_GROUPS){
+  if(!abOpenColumns.has(group.key))continue;
+  if(group.key==='diff'){
+   if(compare){
+    const delta=el('th','abDelta','ΔEV');delta.rowSpan=2;delta.scope='col';
+    first.append(delta);
+   }
+   continue;
+  }
+  const top=el('th','abGroupHeader'+(!compare?' abGroupSolo':''),group.label);
+  top.scope='colgroup';top.colSpan=compare?3:1;
+  top.title='Нажми, чтобы свернуть столбец '+group.label;
+  const btn=el('button','abHeaderCollapse',group.label+' ▾');
+  btn.type='button';btn.setAttribute('aria-label','Свернуть столбец '+group.label);
+  btn.onclick=()=>toggleAbColumn(group.key);
+  top.replaceChildren(btn);first.append(top);
   for(const side of (compare?['A','B','Δ%']:['A'])){
    const child=el('th','abSubHeader '+(side==='A'?'abValueA':side==='B'?'abValueB':'abRelative'),side);
    child.scope='col';second.append(child);
   }
  }
- if(compare){const delta=el('th','abDelta','ΔEV');delta.rowSpan=2;delta.scope='col';first.append(delta)}
  thead.append(first,second);ledger.append(thead);
  const tbody=el('tbody');ledger.append(tbody);
  return {table:ledger,body:tbody};
@@ -2705,12 +2800,13 @@ function renderCompareBdrLedger(root,a,b,compare=true){
   abVisibleBdrCells(a,b,[neutralA,neutralB],[0,0],compare),'evLedgerSection',0,compare);
  const totalA=a?.ev_bb||0,totalB=b?.ev_bb||0;
  const totalCountA=a?.samples||0,totalCountB=b?.samples||0;
- const totals=compare
-  ?[abNumber(a,totalCountA),abNumber(b,totalCountB),abRelativePct(a,b,totalCountA,totalCountB),
-    a?'100.0':'—',b?'100.0':'—',abRelativePct(a,b,100,100),
-    '—','—','—',abEv(a,totalA),abEv(b,totalB),abRelativePct(a,b,totalA,totalB),
-    abDelta(a,b,totalA,totalB)]
-  :[abNumber(a,totalCountA),a?'100.0':'—','—',abEv(a,totalA)];
+ const totalsAll=[
+  abNumber(a,totalCountA),abNumber(b,totalCountB),abRelativePct(a,b,totalCountA,totalCountB),
+  a?'100.0':'—',b?'100.0':'—',abRelativePct(a,b,100,100),
+  '—','—','—',abEv(a,totalA),abEv(b,totalB),abRelativePct(a,b,totalA,totalB),
+  abDelta(a,b,totalA,totalB)
+ ];
+ const totals=abDisplayedColumns(compare).map(col=>totalsAll[col.index]);
  abLedgerRow(ledger.body,'ЧИСТЫЙ EV',totals,'evLedgerTotal',0,compare);
  root.append(ledger.table);
 }
@@ -2789,6 +2885,104 @@ function selectedAbBreakdown(side,selection){
   proportion:group?.frequency_pct??null,
   ci95:group?.ev_ci95_bb??null};
 }
+
+function handDecompFullReport(side){
+ const req=decompSideRequest(side);
+ if(!req)return null;
+ const signature=JSON.stringify(req);
+ const data=side==='a'?handDecompResult:handDecompBResult;
+ const saved=side==='a'?handDecompSignature:handDecompBSignature;
+ const buckets=side==='a'?handDecompByOpponents:handDecompBByOpponents;
+ if(!data||saved!==signature||data.hand!==req.hand)return null;
+ return {data,buckets:Array.isArray(buckets)?buckets:[]};
+}
+function opponentEvChartPoints(buckets){
+ const points=[];
+ for(const n of [1,2,3,4]){
+  const group=buckets.filter(x=>n===4?x.opponents>=4:x.opponents===n);
+  const count=group.reduce((t,x)=>t+(Number(x.samples)||0),0);
+  const total=group.reduce((t,x)=>t+(Number(x.samples)||0)*
+   (Number.isFinite(x.ev_bb)?x.ev_bb:0),0);
+  points.push({label:n===4?'4+':String(n),samples:count,
+   ev:count?total/count:null});
+ }
+ return points;
+}
+function renderOpponentEvChart(side,report){
+ const root=$('handDecompChart'+side.toUpperCase());
+ root.replaceChildren();
+ if(!report){
+  root.append(el('div','chartEmpty',side==='b'&&!decompSideRequest('b')
+   ?'Включи сравнение — выбери = или руку B.':'Ожидается расчёт EV…'));
+  root.setAttribute('aria-label','График EV: нет данных');
+  return;
+ }
+ const points=opponentEvChartPoints(report.buckets);
+ const actual=points.filter(p=>Number.isFinite(p.ev));
+ if(!actual.length){
+  root.append(el('div','chartEmpty','Нет исходов с 1 и более соперниками.'));
+  root.setAttribute('aria-label','График EV: нет раздач с вошедшими соперниками');
+  return;
+ }
+ const colored=side==='a'?'#8dc5f4':'#cfb3f2';
+ const nfmt=n=>n.toLocaleString('ru-RU');
+ const evfmt=n=>(n>0?'+':'')+n.toFixed(3);
+ root.setAttribute('aria-label','Условный EV по числу соперников: '+
+   points.map(p=>p.label+': '+(p.ev===null?'нет исходов':evfmt(p.ev)+
+    ' BB, '+nfmt(p.samples)+' раздач')).join('; '));
+ const ns='http://www.w3.org/2000/svg';
+ const svg=document.createElementNS(ns,'svg');
+ svg.setAttribute('viewBox','0 0 412 170');
+ svg.setAttribute('role','img');
+ const title=document.createElementNS(ns,'title');title.textContent='Условный EV по числу вошедших соперников';
+ svg.append(title);
+ const values=[...actual.map(p=>p.ev),0];
+ const low=Math.min(...values),high=Math.max(...values);
+ const pad=Math.max(.13,(high-low)*.16);
+ const min=low-pad,max=high+pad;
+ const x=i=>59+i*111;
+ const y=v=>132-(v-min)/(max-min)*105;
+ const element=(tag,attrs={},content)=>{
+  const node=document.createElementNS(ns,tag);
+  for(const [k,v] of Object.entries(attrs))node.setAttribute(k,String(v));
+  if(content!==undefined)node.textContent=content;
+  svg.append(node);return node;
+ };
+ const txt=(x0,y0,value,size=10,fill='#a8bed2',anchor='middle')=>
+  element('text',{x:x0,y:y0,'font-size':size,fill,'text-anchor':anchor,
+   'font-family':'Inter,system-ui,sans-serif'},value);
+ element('line',{x1:36,y1:y(0),x2:400,y2:y(0),
+  stroke:'#8e9eae','stroke-opacity':.46,'stroke-dasharray':'3 4'});
+ txt(33,y(0)+3,'0',10,'#a5bacd','end');
+ // One connected segment per run of observed groups; never connect over missing samples.
+ let segment=[];
+ const flush=()=>{
+  if(segment.length>1)element('polyline',{points:segment.join(' '),
+   fill:'none',stroke:colored,'stroke-width':2.4,'stroke-linejoin':'round'});
+  segment=[];
+ };
+ for(let i=0;i<points.length;i++){
+  const p=points[i];
+  if(p.ev===null){flush();continue}
+  segment.push(x(i)+','+y(p.ev));
+ }
+ flush();
+ points.forEach((p,i)=>{
+  txt(x(i),160,p.label,12,'#c0d2e4');
+  if(p.ev===null){
+   txt(x(i),81,'—',14,'#788ba0');return;
+  }
+  const circle=element('circle',{cx:x(i),cy:y(p.ev),r:4.4,
+   fill:colored,stroke:'#14263c','stroke-width':1.4});
+  const tooltip=document.createElementNS(ns,'title');
+  tooltip.textContent=p.label+' соп. · '+evfmt(p.ev)+' BB · N='+nfmt(p.samples);
+  circle.append(tooltip);
+  const labelY=y(p.ev)-10<16?y(p.ev)+18:y(p.ev)-10;
+  txt(x(i),labelY,evfmt(p.ev),10,colored);
+  txt(x(i),145,'N '+nfmt(p.samples),9,'#8fa5bd');
+ });
+ root.append(svg);
+}
 function renderHandDecomposition(){
  if(!hero)return;
  const compare=$('handDecompHandB').value!=='-';
@@ -2809,18 +3003,21 @@ function renderHandDecomposition(){
  $('handDecompTag').textContent=compare
   ?selected+' / '+bHand+' · A/B'+(left.valid&&right.valid?' · готово':' · расчёт')
   :selected+' · БДР'+(left.valid?' · готово':' · расчёт');
- $('handDecompEV').textContent=a?decompFormat(a.ev_bb)+' BB':'—';
- $('handDecompEVB').textContent=b?decompFormat(b.ev_bb)+' BB':'—';
- $('handDecompDelta').textContent=a&&b?decompFormat(b.ev_bb-a.ev_bb)+' BB':'—';
- for(const id of ['handDecompEVB','handDecompDelta','handDecompCostB','handDecompSamplesB'])
-  $(id).classList.toggle('hidden',!compare);
- const worstA=a?.loss_exposures?.[0],worstB=b?.loss_exposures?.[0];
+ const fullA=handDecompFullReport('a');
+ const fullB=compare?handDecompFullReport('b'):null;
+ const overallA=fullA?.data||null,overallB=fullB?.data||null;
+ $('handDecompEV').textContent=overallA?decompFormat(overallA.ev_bb)+' BB':'—';
+ $('handDecompEVB').textContent=overallB?decompFormat(overallB.ev_bb)+' BB':'—';
+ const worstA=overallA?.loss_exposures?.[0],worstB=overallB?.loss_exposures?.[0];
  $('handDecompCost').textContent=worstA?decompFormat(-worstA.cost_bb)+' BB':'—';
  $('handDecompCostB').textContent=worstB?decompFormat(-worstB.cost_bb)+' BB':'—';
- $('handDecompCostLabel').textContent='A: '+(worstA?.label||'нет потерь')+
-  (compare?' · B: '+(worstB?.label||'нет потерь'):'');
+ $('handDecompCostLabel').textContent=worstA?.label||'Наибольшая категория потерь';
+ $('handDecompCostLabelB').textContent=worstB?.label||'Наибольшая категория потерь';
  $('handDecompSamples').textContent=left.samples!==null?left.samples.toLocaleString('ru-RU'):'—';
  $('handDecompSamplesB').textContent=right.samples!==null?right.samples.toLocaleString('ru-RU'):'—';
+ $('handDecompSampleBWrap').classList.toggle('hidden',!compare);
+ renderOpponentEvChart('a',fullA);
+ renderOpponentEvChart('b',fullB);
  const formatStratum=(x,tag)=>tag+': '+
   (x.samples===null?'ожидается расчёт':x.samples.toLocaleString('ru-RU')+' раздач'+
    (selection!=='all'?' ('+(x.proportion??0).toFixed(2)+'%)':'')+
