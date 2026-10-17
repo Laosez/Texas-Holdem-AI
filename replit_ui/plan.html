@@ -663,11 +663,55 @@ main.plannerMain{grid-template-columns:minmax(275px,1fr) minmax(0,3fr);align-ite
  font-weight:800;line-height:1.2;color:#b3daf7}
 .plannerOpponentsPanel .oppHeroSeat .oppHeroEmpty{height:1px}
 
+
+/* Screen 2: full-width participants first, compact version storage below. */
+main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
+.plannerMain>.plannerOpponentsPanel,.plannerMain>.plannerStrategyPanel{grid-column:1;min-width:0}
+.plannerMain>.plannerWorkspace{grid-column:1;min-width:0}
+.plannerOpponentsPanel .oppTable .oppHead,
+.plannerOpponentsPanel .oppTable .oppRow{
+ grid-template-columns:minmax(110px,125px) minmax(175px,1.1fr) minmax(100px,110px) minmax(95px,105px) minmax(135px,1fr) minmax(185px,1.15fr);
+ min-width:860px;column-gap:8px;align-items:center
+}
+@media(min-width:1600px){
+ .plannerOpponentsPanel .oppTable .oppHead,
+ .plannerOpponentsPanel .oppTable .oppRow{
+  grid-template-columns:minmax(120px,145px) minmax(185px,1.15fr) minmax(110px,130px) minmax(110px,120px) minmax(150px,1fr) minmax(195px,1.2fr);
+ }
+}
+.plannerOpponentsPanel .oppFixedSeat{white-space:normal}
+.plannerOpponentsPanel .heroSeatPicker{align-items:center;gap:7px}
+.plannerOpponentsPanel .oppHeroSeat .heroSeatPicker{min-width:0}
+.plannerStrategyPanel .heroVersionPanel{display:grid;grid-template-columns:minmax(230px,1.1fr) minmax(200px,1fr);column-gap:16px;align-items:start}
+.plannerStrategyPanel .heroVersionPanel #heroControlDock{display:none!important}
+.plannerStrategyPanel .heroVersionPanel .heroVersionActions{grid-column:1/-1}
+.plannerStrategyPanel .heroVersionPanel #dirty{grid-column:1/-1}
+@media(max-width:730px){.plannerStrategyPanel .heroVersionPanel{grid-template-columns:minmax(0,1fr)}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
 <main class="plannerMain">
-<section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">01 / </span>Версии стратегии</h2><span class="badge">Сохранение · A17</span></div>
+<section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">01 / </span>Мои соперники</h2><span class="badge">9-max · Hero + 8 мест</span></div>
+<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">8 мест + Hero</span><button id="addOpponent" class="btn sm hidden" type="button" aria-label="Добавить соперника" disabled>+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
+<div class="oppTable"><div class="oppHead"><span>Позиция №</span><span>Диапазон</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span></div><div id="opponents"></div></div>
+<details id="opponentEntrySummary" class="oppEntryDistribution">
+<summary>Диагностика поля · число соперников и размер банка</summary>
+<p class="note">Справочная статистика модели, не дополнительная настройка: сколько соперников участвовало, каков средний банк и погрешность EV. N берётся из основного селектора симуляций.</p>
+<div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></details>
+<p class="note">9 позиций = Hero + 8 соперников. «Ширина диапазона» определяет вероятность входа по комбинациям с учётом блокеров; «0%» исключает место. Модель не рассчитывает дерево префлоп-торговли и не учитывает зависимость решений соперников.</p></div>
+<div class="equityInsideOpponents">
+<div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
+<select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
+<div class="filterTop"><div class="field"><label for="trials">Количество симуляций / руку</label><select id="trials">
+<option value="250">250 · обзор</option><option value="500">500</option><option value="1000" selected>1 000 · стандарт</option><option value="2000">2 000</option><option value="4000">4 000</option>
+<option value="8000">8 000</option><option value="16000">16 000 · точный расчёт</option><option value="32000">32 000 · длительный</option><option value="64000">64 000 · максимальная точность</option>
+</select></div><input id="cycles" type="hidden" value="1"><button class="btn primary" id="computeAll" type="button">Рассчитать Equity + Postflop EV</button></div><p class="small">Вся матрица 169 рук доступна при N = 250–64 000 на руку. Для больших N используются параллельные CPU-процессы по доступным ресурсам Railway. N × 169 — общее число раздач; N ≥ 16 000 создаёт высокую вычислительную нагрузку. Подробный анализ выбранной руки рассчитывается отдельно. Циклов нет.</p>
+<div class="progress" style="margin-top:9px"><div id="equityFill"></div></div>
+<p id="equityStatus" class="note">Equity и EV рассчитываются против указанных диапазонов и постфлоп-стратегий. «Не учитывать» оставляет только showdown equity.</p>
+</div>
+<div class="statusLine" role="status" id="feedback"></div>
+</section>
+<section class="panel plannerStrategyPanel"><div class="heading"><h2><span class="index">02 / </span>Версии стратегии</h2><span class="badge">Сохранение · A17</span></div>
  <div class="profile heroVersionPanel">
   <div class="field"><label for="strategyName">Название стратегии</label><input id="strategyName" maxlength="80" placeholder="Моя стратегия"></div>
   <div id="heroControlDock" class="hidden" aria-hidden="true">
@@ -694,26 +738,6 @@ main.plannerMain{grid-template-columns:minmax(275px,1fr) minmax(0,3fr);align-ite
   <p id="dirty" class="note">Выберите пресет для редактирования.</p>
  </div>
  </section>
-<section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">9-max · Hero + 8 мест</span></div>
-<div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">8 мест + Hero</span><button id="addOpponent" class="btn sm hidden" type="button" aria-label="Добавить соперника" disabled>+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
-<div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
-<details id="opponentEntrySummary" class="oppEntryDistribution">
-<summary>Диагностика поля · число соперников и размер банка</summary>
-<p class="note">Справочная статистика модели, не дополнительная настройка: сколько соперников участвовало, каков средний банк и погрешность EV. N берётся из основного селектора симуляций.</p>
-<div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></details>
-<p class="note">9 позиций = Hero + 8 соперников. «Ширина диапазона» определяет вероятность входа по комбинациям с учётом блокеров; «0%» исключает место. Модель не рассчитывает дерево префлоп-торговли и не учитывает зависимость решений соперников.</p></div>
-<div class="equityInsideOpponents">
-<div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
-<select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
-<div class="filterTop"><div class="field"><label for="trials">Количество симуляций / руку</label><select id="trials">
-<option value="250">250 · обзор</option><option value="500">500</option><option value="1000" selected>1 000 · стандарт</option><option value="2000">2 000</option><option value="4000">4 000</option>
-<option value="8000">8 000</option><option value="16000">16 000 · точный расчёт</option><option value="32000">32 000 · длительный</option><option value="64000">64 000 · максимальная точность</option>
-</select></div><input id="cycles" type="hidden" value="1"><button class="btn primary" id="computeAll" type="button">Рассчитать Equity + Postflop EV</button></div><p class="small">Вся матрица 169 рук доступна при N = 250–64 000 на руку. Для больших N используются параллельные CPU-процессы по доступным ресурсам Railway. N × 169 — общее число раздач; N ≥ 16 000 создаёт высокую вычислительную нагрузку. Подробный анализ выбранной руки рассчитывается отдельно. Циклов нет.</p>
-<div class="progress" style="margin-top:9px"><div id="equityFill"></div></div>
-<p id="equityStatus" class="note">Equity и EV рассчитываются против указанных диапазонов и постфлоп-стратегий. «Не учитывать» оставляет только showdown equity.</p>
-</div>
-<div class="statusLine" role="status" id="feedback"></div>
-</section>
 <div class="plannerWorkspace">
 <section class="panel"><div class="heading"><h2><span class="index">03 / </span>Матрицы стартовых рук</h2><span class="small">Синий — входит в диапазон · серый — не входит</span></div>
 <select id="cellMetric" class="hidden" aria-label="Показатель матрицы зафиксирован"><option value="evStrategy" selected>EV розыгрыша · BB</option></select>
@@ -1054,17 +1078,25 @@ function renderEntryDistribution(){
 const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];
 const FIXED_SEAT_NAMES={'9':'UTG','8':'UTG+1','7':'MP','6':'LJ','5':'HJ',
                         '4':'CO','3':'BTN','SB':'SB','BB':'BB'};
-function fixedSeatCaption(position){return FIXED_SEAT_NAMES[position]||position}
+function fixedSeatCaption(position){
+ const name=FIXED_SEAT_NAMES[position]||position;
+ return position==='SB'||position==='BB'?name:position+' ('+name+')';
+}
 function fixedSeatPositions(){
  const heroPos=$('heroPosition').value||hero?.position||'3';
  return FIXED_TABLE_POSITIONS.filter(pos=>pos!==heroPos);
 }
+// Retain all nine seat configurations, even while a seat temporarily holds Hero.
+const fixedSeatOpponentHistory=new Map();
 function normalizeFixedSeats(){
- const existing=new Map(opponents.map(o=>[String(o.position),o]));
+ for(const opponent of opponents){
+  if(FIXED_TABLE_POSITIONS.includes(String(opponent.position)))
+   fixedSeatOpponentHistory.set(String(opponent.position),{...opponent});
+ }
  const heroPos=$('heroPosition').value||hero?.position||'3';
- opponents=fixedSeatPositions().map((position,i)=>{
-  const previous=existing.get(position);
-  const defaultMode=i<3?'range':'never';
+ opponents=fixedSeatPositions().map((position)=>{
+  const previous=fixedSeatOpponentHistory.get(position);
+  const defaultMode=FIXED_TABLE_POSITIONS.indexOf(position)<3?'range':'never';
   return {profile:'builtin:a17_v5',position,
    scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
    postflop:'gto',entry_mode:defaultMode,
@@ -1096,17 +1128,16 @@ function heroSeatPositionPicker(position,isHero){
 function heroPositionSeatRow(position,controls){
  const row=el('div','oppRow oppHeroSeat');
  row.setAttribute('aria-label','Hero · моя стратегия');
- const heroMarker=el('span','num','H');heroMarker.title='Hero · моя стратегия';row.append(heroMarker);
  const profile=controls.profile;
  profile.setAttribute('aria-label','Hero · префлоп-диапазон');
  profile.title='Моя стратегия · префлоп / пресет';
- row.append(profile);
  const pos=controls.position;
  pos.setAttribute('aria-label','Hero · позиция');
  const seatPicker=heroSeatPositionPicker(position,true);
  pos.classList.add('hidden');
  seatPicker.append(pos);
  row.append(seatPicker);
+ row.append(profile);
  const scenario=controls.scenario;
  scenario.setAttribute('aria-label','Hero · ситуация');
  row.append(scenario);
@@ -1121,7 +1152,6 @@ function heroPositionSeatRow(position,controls){
  const entry=el('span','oppHeroEntry','Hero · выбранная рука');
  entry.title='Monte Carlo разыгрывает выбранную руку Hero условно; ширина диапазона задаётся его стратегией';
  row.append(entry);
- row.append(el('span','oppHeroEmpty',''));
  return row;
 }
 function updateOpponentButtons(){
@@ -1154,7 +1184,7 @@ function bulkChangeOpponent(field,value){
 }
 function opponentBulkRow(){
  const row=el('div','oppRow oppBulkRow');
- row.append(el('span','num','0'));
+ row.append(el('span','oppBulkPosition','0 · все позиции'));
  const makeSelect=(options,placeholder,field)=>{
   const select=el('select','oppBulkSelect');
   select.setAttribute('aria-label',placeholder);
@@ -1164,7 +1194,6 @@ function opponentBulkRow(){
   return select;
  };
  row.append(makeSelect(profileOptions(),'Диапазон → всем','profile'));
- row.append(el('span','oppBulkPosition','9-max · фикс.'));
  for(let i=0;i<2;i++)row.append(el('span','oppBulkBlank',''));
  row.append(makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop'));
  const bulkEntry=el('div','entryControl');
@@ -1177,7 +1206,6 @@ function opponentBulkRow(){
  entrySelect.setAttribute('aria-label','Вероятность входа → всем соперникам');
  entrySelect.onchange=()=>{if(entrySelect.value)bulkChangeOpponent('entry_mode',entrySelect.value)};
  bulkEntry.append(entrySelect);row.append(bulkEntry);
- row.append(el('span','oppBulkBlank',''));
  return row;
 }
 function renderOpponents(){
@@ -1197,12 +1225,11 @@ function renderOpponents(){
   if(heroRank<FIXED_TABLE_POSITIONS.indexOf(opp.position) &&
      (i===0||FIXED_TABLE_POSITIONS.indexOf(opponents[i-1].position)<heroRank))
    target.append(heroPositionSeatRow(heroSeat,heroControls));
-  const row=el('div','oppRow');row.append(el('div','num','#'+(i+1)));
+  const row=el('div','oppRow');row.append(heroSeatPositionPicker(opp.position,false));
   const p=el('select');refill(p,profileOptions(),opp.profile);p.onchange=()=>{
    opponents[i].profile=p.value; // Changing range must not move a fixed position.
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  row.append(heroSeatPositionPicker(opp.position,false));
   const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
@@ -1224,13 +1251,7 @@ function renderOpponents(){
   };
   entry.append(mode);
   const hint=el('span','entryHint');hint.id='opEntryHint'+i;entry.append(hint);
-  row.append(entry);
-  const remove=el('button','oppRemove','×');
-  remove.type='button';remove.title='Убрать соперника #'+(i+1);
-  remove.setAttribute('aria-label','Убрать соперника #'+(i+1));
-  remove.disabled=true;remove.classList.add('hidden');
-  remove.onclick=()=>removeOpponent(i);
-  row.append(remove);target.append(row);
+  row.append(entry);target.append(row);
  });
  if(heroRank===FIXED_TABLE_POSITIONS.length-1)target.append(heroPositionSeatRow(heroSeat,heroControls));
  refill($('viewOpponent'),opponents.slice(0,count).map((o,i)=>({value:String(i),label:'#'+(i+1)+' · '+profileName(o.profile)})),$('viewOpponent').value||'0');
@@ -2715,6 +2736,7 @@ async function connect(){
   refill($('players'),Array.from({length:8},(_,i)=>({value:String(i+2),label:(i+2)+'-max'})),'9');
   refill($('heroScenario'),Object.entries(SCENARIOS).map(([value,label])=>({value,label})),'rfi');
   renderPositions($('heroPosition'),'3');
+  fixedSeatOpponentHistory.clear();
   $('oppCount').value='8';opponents=Array.from({length:8},(_,i)=>({
    profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two',
             'builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two'][i],

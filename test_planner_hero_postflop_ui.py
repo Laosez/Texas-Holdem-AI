@@ -23,10 +23,12 @@ class HeroPostflopChoiceTests(unittest.TestCase):
 
     def test_hero_controls_are_one_canonical_set_mounted_in_fixed_seat(self):
         p=self.page
-        heading=p.index('<section class="panel plannerStrategyPanel">')
         opponent=p.index('<section class="panel plannerOpponentsPanel">')
-        own=p[heading:opponent]
-        self.assertIn('01 / </span>Версии стратегии',own)
+        heading=p.index('<section class="panel plannerStrategyPanel">')
+        workspace=p.index('<div class="plannerWorkspace">')
+        self.assertLess(opponent,heading)
+        own=p[heading:workspace]
+        self.assertIn('02 / </span>Версии стратегии',own)
         self.assertIn('id="heroControlDock" class="hidden"',own)
         self.assertIn('id="strategyName"',own)
         self.assertIn('id="save"',own)

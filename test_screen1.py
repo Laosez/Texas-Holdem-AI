@@ -418,6 +418,8 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn('class="column topColumn journalColumn"',page)
         self.assertIn('class="panel resultsPanel"',page)
         self.assertIn('main.simulatorLayout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))',page)
+        self.assertIn('main.simulatorLayout{grid-template-columns:minmax(0,1fr)}',page)
+        self.assertIn('.simulatorLayout .parametersColumn,.simulatorLayout .strategiesColumn{grid-column:1/-1}',page)
         self.assertIn('.simulatorLayout .journalColumn{grid-column:1/-1;height:auto;overflow:visible',page)
         self.assertIn('.simulatorLayout .journalColumn pre{height:290px',page)
         self.assertIn('.simulatorLayout .resultsPanel{grid-column:1/-1',page)

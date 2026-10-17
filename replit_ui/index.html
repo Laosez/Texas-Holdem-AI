@@ -52,6 +52,12 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 .coverageAudit .coverageTable th,.coverageAudit .coverageTable td{text-align:left;position:static;white-space:normal;line-height:1.38;padding:7px 5px;background:#142a41;border-bottom:1px solid #304861;vertical-align:top;min-width:0}
 .coverageAudit .coverageTable thead th{background:#23405b;color:#d4e8fa}
 .coverageAudit .coverageTable td:first-child{font-weight:750;color:#b9d4ee;width:29%}
+
+/* Screen 1: tournament parameters (01) above player strategies (02).
+   Keep strategy controls, tournament semantics and presets unchanged. */
+main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
+.simulatorLayout .topColumn{height:auto;max-height:none;overflow:visible;overscroll-behavior:auto}
+.simulatorLayout .parametersColumn,.simulatorLayout .strategiesColumn{grid-column:1/-1}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><span id="connection" class="badge">Нет соединения</span></header>
 <div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>

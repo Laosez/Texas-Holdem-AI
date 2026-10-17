@@ -86,7 +86,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
     def test_all_opponents_row_zero_independent_bulk_controls(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn("target.append(opponentBulkRow());",page)
-        self.assertIn("row.append(el('span','num','0'));",page)
+        self.assertIn("row.append(el('span','oppBulkPosition','0 · все позиции'));",page)
         self.assertIn("makeSelect(profileOptions(),'Диапазон → всем','profile')",page)
         self.assertIn("makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop')",page)
         self.assertIn("for(const opponent of opponents)opponent[field]=value;",page)
@@ -95,6 +95,12 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn("invalidateEquity();renderOpponents();",page)
         self.assertIn("if(field==='profile')loadVillain();",page)
         self.assertIn(".plannerOpponentsPanel .oppBulkRow{",page)
+        self.assertIn('<span>Позиция №</span><span>Диапазон</span>',page)
+        self.assertNotIn('<div class="oppHead"><span>№</span>',page)
+        self.assertIn('const fixedSeatOpponentHistory=new Map();',page)
+        self.assertIn("fixedSeatOpponentHistory.set(String(opponent.position),{...opponent});",page)
+        self.assertIn('const previous=fixedSeatOpponentHistory.get(position);',page)
+        self.assertIn('fixedSeatOpponentHistory.clear();',page)
 
     def test_eight_fixed_opponent_seats_with_zero_inactive_modes(self):
         import planner_postflop_ev as post
