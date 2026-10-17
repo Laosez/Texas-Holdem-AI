@@ -27,11 +27,11 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             # P0: combinations where the formerly generic class lost vital draw equity.
             ("9s 8s", "7s-6s-2", "F-FDOESD"),
             ("14s 13s", "12s-11s-2", "F-FDGS"),
-            ("9s 8s", "9-7s-6s", "F-PFDOESD"),
-            ("10s 7s", "10-9s-6s", "F-PFDGS"),
+            ("9s 8s", "9-7s-6s", "F-TPFDOESD"),
+            ("10s 7s", "10-9s-6s", "F-TPFDGS"),
             ("9 8", "9-7-6", "F-TPOESD"),
-            ("8 7", "9-8-6", "F-POESD"),
-            ("10 7", "10-9-6", "F-PGS"),
+            ("8 7", "9-8-6", "F-MPOESD"),
+            ("10 7", "10-9-6", "F-TPGS"),
             ("14s 13s", "10s-7s-2", "F-OCFD"),
             ("14s 12", "10s-7s-2s", "F-1CFD"),
             ("14 13", "12-11-2", "F-OCGS"),
@@ -124,7 +124,7 @@ class NumericPostflopClassifierTests(unittest.TestCase):
         start = html.index("const rows=[") + len("const rows=[")
         end = html.index("\n];", start)
         entries = ast.literal_eval("[" + html[start:end] + "]")
-        self.assertGreaterEqual(len(entries), 80)
+        self.assertGreaterEqual(len(entries), 100)
         streets = {"Флоп": 0, "Тёрн": 0, "Ривер": 0}
         seen = set()
         for street, hole, board, title, expected in entries:
@@ -135,7 +135,7 @@ class NumericPostflopClassifierTests(unittest.TestCase):
                 self.assertNotIn((street, expected), seen)
                 seen.add((street, expected))
                 streets[street] += 1
-        self.assertGreaterEqual(streets["Флоп"], 40)
+        self.assertGreaterEqual(streets["Флоп"], 60)
         self.assertGreaterEqual(streets["Тёрн"], 15)
         self.assertGreaterEqual(streets["Ривер"], 15)
 
