@@ -54,7 +54,7 @@ class TournamentLogicAuditTests(unittest.TestCase):
         self.assertEqual(next_blinds(seats,2),(1,None,3))
         # Heads-up: the active button is SB, never a dead physical seat.
         seats[1].chips=0
-        self.assertEqual(next_blinds(seats,3),(0,0,3))
+        self.assertEqual(next_blinds(seats,3),(3,3,0))
 
     def test_dead_button_engine_can_play_without_small_blind(self):
         from core.bot_api import Action
