@@ -799,6 +799,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompPairedStatus{margin:11px 0 0;padding:9px 12px;border:1px solid rgba(113,150,185,.25);border-radius:8px;background:rgba(30,48,71,.42);color:#c1d4e9;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums}
 .handDecompPairedStatus.isPositive{color:#a4dfb8;border-color:rgba(95,186,135,.3)}
 .handDecompPairedStatus.isNegative{color:#f0b0b6;border-color:rgba(202,101,115,.32)}
+
+.handDecompPreflopInfo{font-size:12px;line-height:1.5;color:#a9bed2;margin-top:6px}
+.handDecompPreflopInfo.isWarning{color:#efc58d}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>100 сценариев S100</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -1002,6 +1005,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <div class="handDecompChartNote">1 / 2 / 3 / 4+ соперников · EV, BB на раздачу · N в подсказке к точке · интервалы 95% при наличии данных</div>
   </div>
   <div id="handDecompPairedStatus" class="handDecompPairedStatus" role="status"></div>
+  <div id="handDecompPreflopInfo" class="handDecompPreflopInfo" role="status"></div>
  </div>
  <p id="handDecompStratumInfo" class="note" role="status">A/B: общий стек, состав и диапазоны соперников. Число соперников фильтруется без повторного расчёта.</p>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Бухгалтерский отчёт A/B появится после Monte Carlo.</p></div>
@@ -2415,6 +2419,7 @@ function renderPerOpponent(){
 let handDecompResult=null,handDecompByOpponents=null,handDecompSignature='',computingHandDecomp=false;
 let handDecompBResult=null,handDecompBByOpponents=null,handDecompBSignature='';
 let handDecompPairedComparison=null,handDecompPairedSignature='';
+let handDecompPreflopStats=null;
 let autoDecompKey='',autoDecompTimer=null,autoDecompPending=false;
 let activeDecompGroup=null, activeDecompSignature='';
 const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
@@ -3100,6 +3105,18 @@ function renderHandDecomposition(){
  const pairedResult=compare&&selected===bHand&&
   handDecompPairedSignature===decompRequestSignature()
   ?handDecompPairedComparison:null;
+ const line=handDecompPreflopStats;
+ const lineInfo=$('handDecompPreflopInfo');
+ if(line){
+  const total=Object.values(line).reduce((x,y)=>x+Number(y||0),0);
+  const iso=Number(line.isolation_raise)||0;
+  const pct=total?100*iso/total:0;
+  lineInfo.textContent='Префлоп: RFI '+(line.hero_rfi||0).toLocaleString('ru-RU')+
+   ' · ISO после лимпов '+iso.toLocaleString('ru-RU')+
+   ' ('+pct.toFixed(1)+'%) · BB walk '+(line.walk||0).toLocaleString('ru-RU')+
+   '. Ранние участники входят до рейза HERO: это не чистый RFI.';
+  lineInfo.classList.toggle('isWarning',iso>0);
+ }else lineInfo.textContent='';
  const pairedView=$('handDecompPairedStatus');
  if(!compare){pairedView.textContent='';pairedView.className='handDecompPairedStatus hidden';}
  else if(pairedResult){
@@ -3193,6 +3210,7 @@ async function calculateHandDecomposition(){
    handDecompBSignature=JSON.stringify(bSettings);
    handDecompPairedComparison=output.comparison;
    handDecompPairedSignature=requestSignature;
+   handDecompPreflopStats=output.a.preflop_line_counts||null;
    acceptSingleHandMatrixResult(aSettings.hand,output.a,aSettings);
    $('handDecompStatus').textContent='Готово · парный A/B · '+aSettings.hand+
     ' · '+aSettings.trials.toLocaleString('ru-RU')+' прогонов · '+
@@ -3235,6 +3253,7 @@ async function calculateHandDecomposition(){
     handDecompByOpponents=Array.isArray(output.decomposition_by_opponents)
      ?output.decomposition_by_opponents:null;
     handDecompSignature=signature;
+    handDecompPreflopStats=output.preflop_line_counts||null;
     // Only the selected hand with the primary HERO policy belongs in the
     // primary 169-hand matrix. Alternate A/B strategies stay isolated.
     if(hand===selected&&settings.hero_postflop===$('heroPostflop').value)

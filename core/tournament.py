@@ -11,10 +11,12 @@ from bots import escalate_blinds
 from core.engine import Seat, Table
 from core.engine_factory import make_table
 from core.table_order import advance_dealer_seat_index, normalize_dealer_seat_index
+from core.tournament_rules import append_eliminations
+from core.dead_button import initial_blinds, next_blinds
 from run_tournament_stats import finalize_finish_order
 
 
-DealerRotation = Literal["full_table", "active_circle"]
+DealerRotation = Literal["full_table", "active_circle", "dead_button"]
 WinnerResolution = Literal["finish_order", "chip_count_on_max_hands"]
 TournamentEvent = dict[str, Any]
 TournamentCallback = Callable[[TournamentEvent], None]
@@ -86,7 +88,7 @@ def run_tournament(
     shrinking active circle.
     """
     seats = _coerce_seats(seats, chips)
-    if dealer_rotation not in ("full_table", "active_circle"):
+    if dealer_rotation not in ("full_table", "active_circle", "dead_button"):
         raise ValueError(f"unknown dealer_rotation: {dealer_rotation!r}")
     if winner_resolution not in ("finish_order", "chip_count_on_max_hands"):
         raise ValueError(f"unknown winner_resolution: {winner_resolution!r}")
@@ -95,7 +97,16 @@ def run_tournament(
 
     # An explicitly-passed table wins; otherwise select the engine
     # implementation ("pe" by default since P6, or "legacy" / THAI_ENGINE_IMPL).
-    table = table or make_table(rng=rng, engine_impl=engine_impl)
+    table = table or make_table(
+        rng=rng,
+        engine_impl=("legacy" if dealer_rotation=="dead_button" and engine_impl is None
+                     else engine_impl))
+    if dealer_rotation=="dead_button":
+        # The PE adapter cannot represent a physically empty SB/BTN.
+        from core.engine import Table as LegacyTable
+        if not isinstance(table,LegacyTable):
+            raise ValueError("Dead-button mode requires the legacy table engine")
+        dead_state=initial_blinds(seats,dealer_index)
     dealer = dealer_index
     hand_count = 0
     total_players = len(seats)
@@ -158,19 +169,24 @@ def run_tournament(
                 "seats": seats,
             })
 
-            if dealer_rotation == "full_table":
+            if dealer_rotation in ("full_table","dead_button"):
                 hand_seats = seats
                 hand_bots = {s.player_id: bot_for[s.player_id] for s in active}
-                normalized_dealer = normalize_dealer_seat_index(seats, dealer)
-                if normalized_dealer is None:
-                    break
-                hand_dealer = normalized_dealer
-                dealer = normalized_dealer
+                if dealer_rotation=="dead_button":
+                    if dead_state is None:break
+                    hand_dealer=dead_state[0]
+                else:
+                    normalized_dealer = normalize_dealer_seat_index(seats, dealer)
+                    if normalized_dealer is None:
+                        break
+                    hand_dealer = normalized_dealer
+                    dealer = normalized_dealer
             else:
                 hand_seats = active
                 hand_bots = {s.player_id: bot_for[s.player_id] for s in hand_seats}
                 hand_dealer = dealer % len(hand_seats)
 
+            pre_hand_stacks={seat.player_id:seat.chips for seat in seats}
             table.play_hand(
                 seats=hand_seats,
                 small_blind=sb,
@@ -181,29 +197,35 @@ def run_tournament(
                 log_decisions=log_decisions,
                 ante=hand_ante,
                 blind_increase_every=blind_increase_every,
+                **({"blind_seats":dead_state[1:]}
+                   if dealer_rotation=="dead_button" else {}),
             )
 
-            if dealer_rotation == "full_table":
+            if dealer_rotation=="dead_button":
+                dead_state=next_blinds(seats,dead_state[2])
+            elif dealer_rotation == "full_table":
                 next_dealer = advance_dealer_seat_index(seats, dealer)
                 if next_dealer is not None:
                     dealer = next_dealer
             else:
-                next_active_count = len(_active_seats(seats))
-                dealer = (dealer + 1) % max(next_active_count, 1)
+                # hand_dealer indexes the OLD active circle. Never reuse that
+                # index in the shrunken circle: this skips positions on a bust.
+                old_ring=[seat.player_id for seat in hand_seats]
+                new_ring=[seat.player_id for seat in _active_seats(seats)]
+                successor=next((
+                    old_ring[(hand_dealer+step)%len(old_ring)]
+                    for step in range(1,len(old_ring)+1)
+                    if old_ring[(hand_dealer+step)%len(old_ring)] in new_ring
+                ),None)
+                dealer=new_ring.index(successor) if successor is not None else 0
 
             snapshot = {"hand": hand_count}
             for seat in seats:
                 snapshot[seat.player_id] = seat.chips
             chip_history.append(snapshot)
 
-            eliminated_events = []
-            for seat in seats:
-                already_ranked = any(e[0] == seat.player_id for e in finish_order)
-                if seat.chips <= 0 and not already_ranked:
-                    pos = total_players - len(finish_order)
-                    entry = (seat.player_id, pos, hand_count, 0)
-                    finish_order.append(entry)
-                    eliminated_events.append(entry)
+            eliminated_events=append_eliminations(
+                seats,finish_order,pre_hand_stacks,hand_count,total_players)
 
             _emit(on_event, {
                 "type": "hand_end",
@@ -228,15 +250,17 @@ def run_tournament(
             if hand_delay is not None:
                 hand_delay()
 
+    survivors=_active_seats(seats)
+    naturally_complete=len(survivors)==1
     finalize_finish_order(seats, finish_order, total_players, hand_count)
     final_chips = {seat.player_id: seat.chips for seat in seats}
-    winner = _winner_from_finish_order(finish_order)
-    if (
-        winner is None
-        and winner_resolution == "chip_count_on_max_hands"
-        and final_chips
-    ):
-        winner = max(final_chips, key=lambda pid: final_chips[pid])
+    # Provisional chip ranks in finish_order are NOT natural winners.
+    winner=(survivors[0].player_id if naturally_complete else None)
+    winner_source="natural" if naturally_complete else None
+    if (winner is None and winner_resolution=="chip_count_on_max_hands"
+            and len(survivors)>1):
+        winner=max((s.player_id for s in survivors),key=lambda pid:final_chips[pid])
+        winner_source="chip_count_cap"
 
     chip_swing = None
     if total_players == 2 and winner:
@@ -252,6 +276,8 @@ def run_tournament(
         "chip_swing": chip_swing,
         "chip_history": chip_history,
         "cancelled": False,
+        "completed": naturally_complete,
+        "winner_source": winner_source,
     }
     _emit(on_event, {
         "type": "finish",

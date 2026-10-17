@@ -365,7 +365,8 @@ class Table:
                   log_decisions: bool = False,
                   logger: Optional[DecisionLogger] = None,
                   ante: int = 0,
-                  blind_increase_every: Optional[int] = None) -> Dict[str, int]:
+                  blind_increase_every: Optional[int] = None,
+                  blind_seats: Optional[Tuple[Optional[int], int]] = None) -> Dict[str, int]:
 
         # An externally provided logger spans multiple hands (one session
         # file per tournament — required for ML training memory features);
@@ -394,9 +395,42 @@ class Table:
         order.rotate(-dealer_index)
         ring = [i for i in order if seats[i].chips > 0 and not seats[i].is_sitting_out]
 
-        # Assign positions
-        positions = self._positions(len(ring))
-        pos_by_pid = {seats[idx].player_id: pos for pos, idx in zip(positions, ring)}
+        # Explicit physical blinds allow dead-button tournaments: BTN and/or
+        # SB can occupy a busted seat, but BB is always a live seat.
+        if blind_seats is None:
+            positions=self._positions(len(ring))
+            pos_by_pid={seats[idx].player_id:pos
+                        for pos,idx in zip(positions,ring)}
+            preflop_start=3 if len(ring)>2 else 0
+            postflop_start=1
+            sb_idx,bb_idx=(ring[0],ring[1]) if len(ring)==2 else (ring[1],ring[2])
+        else:
+            sb_idx,bb_idx=blind_seats
+            if (bb_idx not in ring or
+                    (sb_idx is not None and (sb_idx not in ring or sb_idx==bb_idx))):
+                raise ValueError("Invalid physical SB/BB assignment")
+            if len(ring)==2:
+                if sb_idx is None:
+                    raise ValueError("Heads-up must have a live SB/button")
+                position_by_index={sb_idx:"SB",bb_idx:"BB"}
+            else:
+                position_by_index={bb_idx:"BB"}
+                if dealer_index in ring:
+                    position_by_index[dealer_index]="3"
+                if sb_idx is not None:
+                    position_by_index[sb_idx]="SB"
+                effective=len(ring)+int(dealer_index not in ring)+int(sb_idx is None)
+                if effective>10:
+                    raise ValueError("Dead-button position scheme exceeds 10 seats")
+                numeric=iter(str(rank) for rank in range(effective,3,-1))
+                bb_offset=ring.index(bb_idx)
+                for offset in range(1,len(ring)+1):
+                    index=ring[(bb_offset+offset)%len(ring)]
+                    if index not in position_by_index:
+                        position_by_index[index]=next(numeric)
+            pos_by_pid={seats[idx].player_id:position_by_index[idx] for idx in ring}
+            preflop_start=(ring.index(bb_idx)+1)%len(ring)
+            postflop_start=(1 if dealer_index in ring else 0) % len(ring)
 
         # Initialize per-player contributions (for current street)
         contrib = defaultdict(int, {s.player_id: 0 for s in seats if not s.is_sitting_out})
@@ -424,12 +458,9 @@ class Table:
             seat.chips -= amt
             contrib[seat.player_id] += amt
 
-        # Post blinds
-        if len(ring) == 2:
-            sb_idx, bb_idx = ring[0], ring[1]
-        else:
-            sb_idx, bb_idx = ring[1], ring[2 % len(ring)]
-        post_blind("SB", sb_idx, small_blind)
+        # Dead-button mode may legitimately have no small blind.
+        if sb_idx is not None:
+            post_blind("SB", sb_idx, small_blind)
         post_blind("BB", bb_idx, big_blind)
 
         # Shuffle and deal
@@ -448,16 +479,17 @@ class Table:
 
         # Dealer-first ring: index 0 is the button (also SB in heads-up).
         # Preflop action starts at index 3 for 3+ players, index 0 for HU.
-        preflop_start = 3 if len(ring) > 2 else 0
+        # In dead-button hands action still begins immediately after BB.
+        # The physical BTN or SB can be empty, unlike dealer-first live ring.
 
         # folded_pids persists across all streets so a preflop fold stays folded
         folded_pids: set = set()
 
         streets = [
             ("preflop", self._betting_round, {"start_idx": preflop_start, "folded_pids": folded_pids}),
-            ("flop",    self._deal_flop_then_bet,  {"start_idx": 1, "folded_pids": folded_pids}),
-            ("turn",    self._deal_turn_then_bet,   {"start_idx": 1, "folded_pids": folded_pids}),
-            ("river",   self._deal_river_then_bet,  {"start_idx": 1, "folded_pids": folded_pids}),
+            ("flop",    self._deal_flop_then_bet,  {"start_idx": postflop_start, "folded_pids": folded_pids}),
+            ("turn",    self._deal_turn_then_bet,   {"start_idx": postflop_start, "folded_pids": folded_pids}),
+            ("river",   self._deal_river_then_bet,  {"start_idx": postflop_start, "folded_pids": folded_pids}),
         ]
 
         # --- main street loop ---
@@ -526,7 +558,8 @@ class Table:
             total_contrib[pid] += c
 
         # Distribute pot using side pots
-        share_net = self._showdown_and_settle(hole, board, total_contrib)
+        share_net = self._showdown_and_settle(hole, board, total_contrib,
+                                             [seats[i].player_id for i in ring])
 
         # Optional final-pot telemetry; side pots still sum to total chips
         # invested. This hook has no effect on dealing/actions/payouts.
@@ -945,7 +978,7 @@ class Table:
         return None
 
 
-    def _showdown_and_settle(self, hole, board, total_contrib):
+    def _showdown_and_settle(self, hole, board, total_contrib, ring=None):
         """Distribute winnings using side pots so all-in players only
         compete for the portion of the pot they contributed to."""
         net = {pid: 0 for pid in hole}
@@ -975,6 +1008,12 @@ class Table:
             n_winners = len(winners)
             base_share = pot["amount"] // n_winners
             remainder = pot["amount"] % n_winners
+            # Tournament TDA: the odd chip goes to the first winning seat
+            # clockwise left of the button. ring is button-first, not the
+            # contribution insertion order. Each side pot is split separately.
+            if ring is not None:
+                clockwise=ring[1:]+ring[:1]
+                winners.sort(key=lambda pid:clockwise.index(pid))
             for i, w in enumerate(winners):
                 net[w] += base_share + (1 if i < remainder else 0)
 
@@ -1024,7 +1063,7 @@ class TournamentManager:
             blind_increase_every=0,
             max_hands=None,
             dealer_index=dealer_index,
-            dealer_rotation="active_circle",
+            dealer_rotation="dead_button",
             winner_resolution="finish_order",
             ante=ante,
             table=self.table,

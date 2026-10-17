@@ -382,8 +382,12 @@ def validate_config(data: dict) -> dict:
     preflop_protocol = data.get("preflop_protocol", "legacy")
     if preflop_protocol not in ("legacy", "standard_v1"):
         raise ValueError("preflop_protocol: legacy или standard_v1")
+    button_policy=data.get("button_policy","dead_button")
+    if button_policy not in ("dead_button","moving"):
+        raise ValueError("Режим баттона: dead_button или moving")
     config = {
         "players": bots, "bots": rows,
+        "button_policy":button_policy,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
         "parallel": bounded_int(data.get("parallel", 1), "Потоки", 1, 8),
         "seed": bounded_int(data.get("seed", 2042), "Seed", 0, 2_147_483_647),
@@ -582,6 +586,7 @@ def worker(job: dict) -> None:
         "--blind-increase-every", str(config["blind_increase_every"]),
         "--max-hands", str(config["max_hands"]),
         "--seat-mode", config["seat_mode"],
+        "--button-policy",config["button_policy"],
         "--out", str(output),
         "--checkpoint-dir", str(output / "_checkpoints"),
     ]

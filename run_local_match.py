@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from core.engine import Table, Seat
 from core.engine_factory import make_table
 from core.table_order import advance_dealer_seat_index, normalize_dealer_seat_index
+from core.tournament_rules import append_eliminations
 from bots import parse_players, escalate_blinds
 
 
@@ -59,6 +60,7 @@ def run_tournament_until_winner(seats, bots, base_sb, base_bb,
             break
 
         hand_count += 1
+        pre_hand_stacks={seat.player_id:seat.chips for seat in seats}
         sb, bb = escalate_blinds(hand_count, base_sb, base_bb, blind_increase_every)
 
         active_seats = [s for s in seats if s.chips > 0]
@@ -82,12 +84,13 @@ def run_tournament_until_winner(seats, bots, base_sb, base_bb,
             dealer_index = next_dealer
         chip_history.append({s.player_id: s.chips for s in seats})
 
-        # Check for new eliminations
-        for s in seats:
-            if s.chips <= 0 and not any(e[0] == s.player_id for e in eliminations):
-                pos = total_players - len(eliminations)
-                eliminations.append((s.player_id, pos, hand_count))
-                print(f"  [OUT] {s.player_id} eliminated at hand #{hand_count} (position {pos})")
+        # The shared helper ranks same-hand busts by pre-hand stack.
+        ranked=[(pid,pos,hand,0) for pid,pos,hand in eliminations]
+        recent=append_eliminations(seats,ranked,pre_hand_stacks,
+                                   hand_count,total_players)
+        for pid,pos,hand,_ in recent:
+            eliminations.append((pid,pos,hand))
+            print(f"  [OUT] {pid} eliminated at hand #{hand} (position {pos})")
 
         # Print stacks every 50 hands or if someone was eliminated this hand
         if hand_count % 50 == 0:

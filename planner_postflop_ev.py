@@ -216,6 +216,29 @@ def _uncontested_net_bb(hero_position):
     return 1.5      # Neither blind belongs to Hero.
 
 
+def _uncontested_pot_bb(hero_position, stack_bb):
+    """Actual final pot on an uncontested hand, incl. Hero's wager."""
+    if str(hero_position)=="BB":
+        return 1.5
+    opening=min(5,2*int(stack_bb))
+    dead_blinds=2 if str(hero_position)=="SB" else 3
+    return (opening+dead_blinds)/2.
+
+
+_PREFLOP_ACTION_ORDER=("9","8","7","6","5","4","3","SB","BB")
+
+
+def _preflop_line(picked, hero_position):
+    """Earlier entrants limp before Hero; such a raise is isolation, not RFI."""
+    if len(picked)==1 and str(hero_position)=="BB":
+        return "walk"
+    hero_index=_PREFLOP_ACTION_ORDER.index(str(hero_position))
+    if any(_PREFLOP_ACTION_ORDER.index(str(spec["position"]))<hero_index
+           for _,_,spec in picked[1:]):
+        return "isolation_raise"
+    return "hero_rfi"
+
+
 def _showdown_share(picked, board):
     own = eq.score_seven_fast((*picked[0][1], *board))
     others = [eq.score_seven_fast((*p[1], *board)) for p in picked[1:]]
@@ -375,6 +398,7 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
     # Track the second moment as well as the mean; pot size alone cannot
     # determine Monte Carlo EV precision.
     hand_ev_squared = {}
+    preflop_lines={"hero_rfi":0,"isolation_raise":0,"walk":0}
     for index, hand in enumerate(selected_hands):
         seed = int.from_bytes(hashlib.sha256(salt + hand.encode()).digest()[:8], "big")
         rng = random.Random(seed)
@@ -388,6 +412,7 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
         while samples < n:
             picked, board = _draw_case(hand, src, payload["opponents"], rng)
             entrants = len(picked) - 1
+            preflop_lines[_preflop_line(picked,payload["hero_position"])]+=1
             entry_counts[entrants] += 1
             if len(picked) <= 1:
                 # Net winnings exclude Hero's own blind (SB/BB).
@@ -401,7 +426,8 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                     if decomposition:
                         decomposition.add(uncontested,"uncontested")
                         per_entrant_decomp[0].add(uncontested,"uncontested")
-                entry_pots[0] += 1.5  # SB 0.5 + BB 1.0
+                entry_pots[0] += _uncontested_pot_bb(
+                    payload["hero_position"],payload["hero_stack_bb"])
                 samples += 1
                 continue
             result["equity"].setdefault(hand, 0.)
@@ -464,6 +490,10 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
         for k,v in enumerate(entry_counts)
     ]
     result["ev_ci95_bb"] = hand_ev_squared if not disabled else {}
+    if payload["hand"]:
+        result["preflop_line_counts"]=preflop_lines
+        result["preflop_line_note"]=(
+            "RFI когда ранее все сбросили, иначе изолирующий рейз после лимпов.")
     result["entry_stats_note"] = (
         "Средний банк = фактический финальный банк (все ставки), BB. "
         "σ EV оценивается по фактическим net BB; прогноз ±95% для N прогонов "
@@ -494,7 +524,7 @@ def _single_batch(cases, hero_profile, hero_position, stack_bb, disabled):
     for picked, board, seed in cases:
         if len(picked) == 1:
             out.append((None, uncontested if not disabled else None,
-                        False, 1.5, ("uncontested", None, None, "pre_win", None,
+                        False, _uncontested_pot_bb(hero_position,stack_bb), ("uncontested", None, None, "pre_win", None,
                          ("pre_uncontested", "Все соперники не вошли в банк"))))
             continue
         share = _showdown_share(picked, board)
@@ -540,6 +570,7 @@ def _single_parallel(raw, progress, workers, batch_size=256):
     per_entrant_decomp = ([EVDecomposition(payload["hand"]) for _ in range(len(src) + 1)]
                           if decomposition is not None else None)
     ev_total = ev_squared = eq_total = 0.
+    preflop_lines={"hero_rfi":0,"isolation_raise":0,"walk":0}
     accepted = showdown_total = fold_win_total = completed = 0
     result = {
         "model": "postflop_line_rollout_v1",
@@ -577,12 +608,13 @@ def _single_parallel(raw, progress, workers, batch_size=256):
             outcomes = task.result()
             for (picked, _, _), (share, net, showdown, pot, classified) in zip(batch, outcomes):
                 entrants = len(picked) - 1
+                preflop_lines[_preflop_line(picked,payload["hero_position"])]+=1
                 entry_counts[entrants] += 1
                 if entrants:
                     eq_total += share
                     accepted += 1
                 if entrants == 0:
-                    entry_pots[0] += 1.5
+                    entry_pots[0] += pot
                 if not disabled:
                     ev_total += net
                     ev_squared += net ** 2
@@ -629,6 +661,11 @@ def _single_parallel(raw, progress, workers, batch_size=256):
         round(math.sqrt(max(0., (entry_ev_sq[k] - entry_ev_sum[k]**2 / v)
                            / (v - 1))), 5) if v > 1 and not disabled
         else None for k, v in enumerate(entry_counts)]
+    result["preflop_line_counts"]=preflop_lines
+    result["preflop_line_note"]=(
+        "hero_rfi: все позиции до HERO сбросили; isolation_raise: "
+        "до HERO вошли лимпом и он сделал изолирующий рейз; "
+        "walk: BB получает блайнды без рейза.")
     result["entry_stats_note"] = (
         "Средний банк = фактический финальный банк (все ставки), BB. "
         "σ EV оценивается по фактическим net BB; прогноз ±95% для N прогонов "
@@ -649,7 +686,8 @@ def _paired_batch(cases, profile_a, profile_b, hero_position, stack_bb):
     uncontested = _uncontested_net_bb(hero_position)
     for picked, board, seed in cases:
         if len(picked) == 1:
-            result = (uncontested, False, 1.5,
+            result = (uncontested, False,
+                      _uncontested_pot_bb(hero_position,stack_bb),
                       ("uncontested", None, None, "pre_win", None,
                        ("pre_uncontested", "Все соперники не вошли в банк")))
             out.append((None, result, result))
@@ -684,10 +722,12 @@ class _PairedSide:
         self.decomp = EVDecomposition(self.hand)
         self.by_n = [EVDecomposition(self.hand) for _ in self.counts]
         self.total = self.total_sq = self.showdowns = self.fold_wins = 0.
+        self.preflop_lines={"hero_rfi":0,"isolation_raise":0,"walk":0}
         self.eq_total = self.accepted = 0
 
-    def add(self, entrants, share, outcome):
+    def add(self, entrants, share, outcome, line):
         net, showdown, pot, classified = outcome
+        self.preflop_lines[line]+=1
         self.counts[entrants] += 1
         self.pots[entrants] += pot
         self.sums[entrants] += net
@@ -736,6 +776,8 @@ class _PairedSide:
                 round(math.sqrt(max(0.,(self.squares[i]-
                      self.sums[i]**2/x)/(x-1))), 5) if x>1 else None
                 for i,x in enumerate(self.counts)],
+            "preflop_line_counts":self.preflop_lines,
+            "preflop_line_note":"RFI только если до HERO никто не вошёл; иначе isolation_raise.",
             "entry_stats_note": "Парная выборка для двух постфлоп-стратегий."
         }
 
@@ -775,8 +817,9 @@ def calculate_paired(raw, progress=None, *, workers=1, batch_size=128):
         nonlocal processed, total_diff, total_sq
         for (picked, _, _), (share, outcome_a, outcome_b) in zip(cases, outcomes):
             entrants = len(picked)-1
-            a_side.add(entrants, share, outcome_a)
-            b_side.add(entrants, share, outcome_b)
+            line=_preflop_line(picked,payload["hero_position"])
+            a_side.add(entrants, share, outcome_a,line)
+            b_side.add(entrants, share, outcome_b,line)
             difference = outcome_b[0]-outcome_a[0]
             total_diff += difference
             total_sq += difference*difference

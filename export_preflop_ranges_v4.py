@@ -364,7 +364,11 @@ def tournament_report(tournament_results, names, requested, chips, sb, bb,
             all_wins += 1
             if winner not in ids or positions[winner][0] != 1:
                 raise RuntimeError(f'Tournament {tournament_id}: invalid winner or first place')
-            if sorted(pos for pos, _, _ in positions.values()) != list(range(1, len(names)+1)):
+            # Equal pre-hand stacks busted together share a rank; gaps in
+            # competition ranks are legal (e.g. 1,2,2,4).
+            places=sorted(pos for pos,_,_ in positions.values())
+            if (places[0] != 1 or places[-1]>len(names)
+                    or places.count(1)!=1 or any(pos<1 for pos in places)):
                 raise RuntimeError(f'Tournament {tournament_id}: invalid finishing positions')
         elif winner is not None:
             raise RuntimeError(f'Tournament {tournament_id}: unfinished tournament claims a winner')
@@ -458,6 +462,7 @@ def tournament_report(tournament_results, names, requested, chips, sb, bb,
         'blind_increase_every_hands': blind_increase_every,
         'max_hands_per_tournament': max_hands,
         'seat_mode': seat_mode,
+        'button_policy':os.environ.get("POKER_BUTTON_POLICY","moving"),
         'leaderboard': leaderboard,
         'blind_summary': blind_summary,
         'notes': [
@@ -638,9 +643,12 @@ def main():
     p.add_argument('--max-hands',type=int,default=10000)
     p.add_argument('--out',default='ranges_200_v4_numeric')
     p.add_argument('--checkpoint-dir',default='',help='Durable per-tournament JSON/GZIP checkpoints for safe resume')
+    p.add_argument('--button-policy',choices=['dead_button','moving'],
+                   default='dead_button',help='Tournament BTN/SB/BB policy')
     p.add_argument('--seat-mode',choices=['rotate','fixed'],default='rotate',
                    help='Rotate starting seats each tournament (default), or retain historical fixed seating')
     a=p.parse_args()
+    os.environ["POKER_BUTTON_POLICY"]=a.button_policy
     if os.environ.get('THAI_ENGINE_IMPL', '').lower() != 'legacy':
         p.error('v4 requires THAI_ENGINE_IMPL=legacy: only legacy supports on_deal observation.')
     names=[n.strip() for n in a.players.split(',') if n.strip()]
@@ -819,6 +827,7 @@ def main():
     write_json(output/'performance.json', performance)
     (output/'metadata.json').write_text(json.dumps({
         'version':4,'source':'export_preflop_ranges_v4.py','position_scheme':'numeric','seat_mode':a.seat_mode,
+        'button_policy':a.button_policy,
         'seating':{'method':'cyclic_shift','cycle':len(names),'fixed_seat_mode_supported':True},
         'tournaments':a.tournaments,
         'total_hands':total_hands,'seed':a.seed,'players':names,'scopes':scopes,

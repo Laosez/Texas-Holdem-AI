@@ -13,6 +13,8 @@ from multiprocessing import Pool
 from core.engine import Table, Seat
 from core.engine_factory import make_table
 from core.table_order import advance_dealer_seat_index, normalize_dealer_seat_index
+from core.tournament_rules import append_eliminations
+from core.dead_button import initial_blinds, next_blinds
 from bots import parse_players, escalate_blinds, create_bot
 
 
@@ -80,8 +82,13 @@ def run_silent_tournament(args_tuple):
 
     seats = [Seat(player_id=pid, chips=chips) for pid, _, _ in player_specs]
     table_rng = random.Random(seed) if seed is not None else random.Random()
-    table = make_table(rng=table_rng)
+    button_policy=os.environ.get("POKER_BUTTON_POLICY","moving")
+    if button_policy not in ("moving","dead_button"):
+        raise ValueError("Unknown tournament button policy")
+    table = make_table(rng=table_rng,
+                       engine_impl="legacy" if button_policy=="dead_button" else None)
     dealer_index = 0
+    dead_state=initial_blinds(seats,dealer_index) if button_policy=="dead_button" else None
     hand_count = 0
     total_players = len(seats)
     finish_order: list[tuple[str, int, int, int]] = []  # (pid, pos, hand#, chips_at_elim)
@@ -95,19 +102,25 @@ def run_silent_tournament(args_tuple):
 
             active_seats = [s for s in seats if s.chips > 0]
             active_bots = {s.player_id: bots[s.player_id] for s in active_seats}
-            dealer_index = normalize_dealer_seat_index(seats, dealer_index)
-            if dealer_index is None:
-                break
+            if button_policy=="dead_button":
+                if dead_state is None:break
+                hand_dealer=dead_state[0]
+            else:
+                dealer_index = normalize_dealer_seat_index(seats, dealer_index)
+                if dealer_index is None:break
+                hand_dealer=dealer_index
 
             hand_count += 1
+            pre_hand_stacks={seat.player_id:seat.chips for seat in seats}
             sb, bb = escalate_blinds(hand_count, base_sb, base_bb, blind_increase_every)
             table.play_hand(
                 seats=seats,
                 small_blind=sb,
                 big_blind=bb,
-                dealer_index=dealer_index,
+                dealer_index=hand_dealer,
                 bot_for=active_bots,
                 on_event=None,
+                **({"blind_seats":dead_state[1:]} if button_policy=="dead_button" else {}),
             )
             # Record only hands successfully played. Derive levels from actual
             # blind values returned by escalate_blinds, not a predicted formula.
@@ -120,15 +133,16 @@ def run_silent_tournament(args_tuple):
             else:
                 blind_stages[-1]['end_hand'] = hand_count
                 blind_stages[-1]['hands'] += 1
-            next_dealer = advance_dealer_seat_index(seats, dealer_index)
-            if next_dealer is not None:
-                dealer_index = next_dealer
+            if button_policy=="dead_button":
+                dead_state=next_blinds(seats,dead_state[2])
+            else:
+                next_dealer = advance_dealer_seat_index(seats, dealer_index)
+                if next_dealer is not None:
+                    dealer_index = next_dealer
 
-            # Track eliminations
-            for s in seats:
-                if s.chips <= 0 and not any(e[0] == s.player_id for e in finish_order):
-                    pos = total_players - len(finish_order)
-                    finish_order.append((s.player_id, pos, hand_count, 0))
+            # Starting stacks, not seat iteration order, break simultaneous busts.
+            append_eliminations(seats,finish_order,pre_hand_stacks,
+                                hand_count,total_players)
 
             if hand_count >= max_hands:
                 break

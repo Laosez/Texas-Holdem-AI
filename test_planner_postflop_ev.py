@@ -185,6 +185,26 @@ class PostflopEVTests(unittest.TestCase):
                 '{"equity":{"AQs":50.0},"simulations_per_hand":2500}',encoding="utf-8")
             self.assertEqual(api.get_task(basic)["done"],2500)
 
+    def test_preflop_rfi_vs_isolation_semantics(self):
+        specs=lambda pos:{"position":pos}
+        before=[("HERO", (1,2), None),("V1",(3,4),specs("9"))]
+        after=[("HERO", (1,2), None),("V1",(3,4),specs("BB"))]
+        self.assertEqual(post._preflop_line(before,"3"),"isolation_raise")
+        self.assertEqual(post._preflop_line(after,"9"),"hero_rfi")
+        self.assertEqual(post._preflop_line([("HERO",(1,2),None)],"BB"),"walk")
+
+    def test_uncontested_final_pot_counts_hero_raise(self):
+        self.assertEqual(post._uncontested_pot_bb("9",100),4.0)
+        self.assertEqual(post._uncontested_pot_bb("3",100),4.0)
+        self.assertEqual(post._uncontested_pot_bb("SB",100),3.5)
+        self.assertEqual(post._uncontested_pot_bb("BB",100),1.5)
+        raw=setup(hero="gto3",hand="AQs",entry="never",trials=50)
+        result=post.calculate_parallel(raw,workers=1)
+        self.assertEqual(result["preflop_line_counts"]["hero_rfi"],50)
+        self.assertEqual(result["entry_pot_bb"][0],
+                         post._uncontested_pot_bb(raw["hero_position"],
+                                                  raw.get("hero_stack_bb",100)))
+
     def test_paired_same_policy_shares_deals_and_has_zero_delta(self):
         raw = setup(hero="gto3",profile="tag",hand="AQs",trials=50)
         raw["hero_postflop_b"] = "gto3"
