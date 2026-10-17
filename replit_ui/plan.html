@@ -724,7 +724,12 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompStats .decompPairHeadline strong:nth-child(2){color:#dbcafc}
 .handDecompStats .decompPairHeadline strong:nth-child(3){color:#a2d9ba}
 .handDecompRows .handDecompTable{min-width:720px;width:100%}
-.handDecompRows .handDecompTable.isCompare{min-width:900px}
+.handDecompRows .handDecompTable.isCompare{min-width:1160px}
+.handDecompRows .handDecompTable .abRelative{background:rgba(126,137,155,.10);color:#aabccc;font-size:10px;letter-spacing:-.15px}
+.handDecompRows .handDecompTable .abRelative.abDeltaPercent{font-variant-numeric:tabular-nums}
+.handDecompRows .handDecompTable .abMetricGood{color:#95e0ab!important;background:rgba(45,142,87,.15)!important;font-weight:800}
+.handDecompRows .handDecompTable .abMetricBad{color:#ff9c9f!important;background:rgba(178,66,79,.13)!important;font-weight:800}
+.handDecompRows .handDecompTable .abSubHeader.abRelative{font-size:10px}
 .handDecompRows .handDecompTable th,.handDecompRows .handDecompTable td{white-space:nowrap}
 .handDecompRows .handDecompTable .abValueA{background:rgba(56,111,160,.17);color:#d9ecfd}
 .handDecompRows .handDecompTable .abValueB{background:rgba(117,85,156,.18);color:#ede0ff}
@@ -916,7 +921,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
     <div class="handDecompProfileBlock"><label for="handDecompProfileB" class="simFieldLabel">Стратегия B</label>
      <select id="handDecompProfileB" aria-label="Постфлоп-стратегия B"></select>
     </div>
-    <span class="handDecompHint">«—» — только отчёт по руке A</span>
+    <span id="handDecompBHint" class="handDecompHint">«—» — только отчёт по руке A · «=» — та же рука, другая стратегия</span>
    </div>
   </div>
  </div>
@@ -932,7 +937,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
  </div>
  <p id="handDecompStratumInfo" class="note" role="status">A/B: общий стек, состав и диапазоны соперников. Число соперников фильтруется без повторного расчёта.</p>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Бухгалтерский отчёт A/B появится после Monte Carlo.</p></div>
- <p class="note handDecompCaveat">Рука A и стратегия A определяются выбранной матрицей и настройками HERO. Рука B «—» отключает сравнение. При фильтре N EV условный: среди раздач с ровно N вошедшими соперниками. ΔEV = B − A; при разных руках он не изолирует эффект стратегии. Не ICM и не GTO-солвер.</p>
+ <p class="note handDecompCaveat">Рука A и стратегия A задаются матрицей и HERO. Для руки B «—» отключает сравнение, «=» повторяет руку A. Δ% = (B − A) / |A| × 100, при A = 0 не определяется; цвет «лучше/хуже» применяется только к BB и EV, а не к частотам. При фильтре N EV условный. Проценты не отражают статистическую значимость; при разных руках ΔEV не изолирует эффект стратегии. Не ICM и не GTO-солвер.</p>
 </section>
 
 </main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
@@ -2344,7 +2349,8 @@ let activeDecompGroup=null, activeDecompSignature='';
 const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
 function decompSideRequest(side){
  if(side==='b'&&$('handDecompHandB').value==='-')return null;
- const hand=side==='a'?selected:$('handDecompHandB').value;
+ const hand=side==='a'||$('handDecompHandB').value==='='
+  ?selected:$('handDecompHandB').value;
  const profile=side==='a' ? $('heroPostflop').value : $('handDecompProfileB').value;
  return postflopRequest({hand,hero_postflop:profile});
 }
@@ -2360,6 +2366,7 @@ function populateDecompSelectors(){
  $('handDecompHandA').textContent=selected;
  $('handDecompProfileA').textContent=postflopName($('heroPostflop').value);
  refill($('handDecompHandB'),[{value:'-',label:'— · без сравнения'},
+  {value:'=',label:'= · та же рука A'},
   ...HANDS.map(hand=>({value:hand,label:hand}))],'-');
  const profiles=POSTFLOP_OPTIONS.filter(profile=>profile.value!=='none');
  const current=profiles.some(p=>p.value===$('heroPostflop').value)?$('heroPostflop').value:'gto2';
@@ -2572,13 +2579,25 @@ function abReasonRows(gA,gB){
  if(decompDetailOrder==='ev')all.sort((a,b)=>rank(a.key,'contribution_bb')-rank(b.key,'contribution_bb'));
  return all;
 }
+
+function abRelativePct(a,b,base,other){
+ if(!a||!b||!Number.isFinite(base)||!Number.isFinite(other))return '—';
+ if(Math.abs(base)<1e-9)return '—';
+ const relative=100*(other-base)/Math.abs(base);
+ return (relative>0?'+':'')+relative.toFixed(1)+'%';
+}
 function abBdrCells(a,b,counts,contributions){
  const [ca,cb]=counts,[ea,eb]=contributions;
+ const pctA=a?.samples?100*ca/a.samples:0;
+ const pctB=b?.samples?100*cb/b.samples:0;
+ const avgA=ca&&a?ea*a.samples/ca:null;
+ const avgB=cb&&b?eb*b.samples/cb:null;
  return [
-  abNumber(a,ca),abNumber(b,cb),
-  abPercent(a,ca),abPercent(b,cb),
-  abAvg(a,ca,ea),abAvg(b,cb,eb),
-  abEv(a,ea),abEv(b,eb),abDelta(a,b,ea,eb)
+  abNumber(a,ca),abNumber(b,cb),abRelativePct(a,b,ca,cb),
+  abPercent(a,ca),abPercent(b,cb),abRelativePct(a,b,pctA,pctB),
+  abAvg(a,ca,ea),abAvg(b,cb,eb),abRelativePct(a,b,avgA,avgB),
+  abEv(a,ea),abEv(b,eb),abRelativePct(a,b,ea,eb),
+  abDelta(a,b,ea,eb)
  ];
 }
 // Preserve disclosure state through changes of the opponent filter and report sort.
@@ -2586,12 +2605,28 @@ const abOpenSections=new Set(['gain','loss']);
 const abOpenReasons=new Set();
 function abVisibleBdrCells(a,b,counts,contributions,compare){
  const all=abBdrCells(a,b,counts,contributions);
- return compare?all:[all[0],all[2],all[4],all[6]];
+ return compare?all:[all[0],all[3],all[6],all[9]];
 }
 function abLedgerRow(body,label,values,css='',level=0,compare=false,disclosure=null){
  const row=decompRow(body,label,values,css,level);
+ const semanticClass=(text)=>{
+  if(text==='—'||text==='0.0%'||text==='+0.0%'||text==='-0.0%'||text==='0.000')return '';
+  if(text.startsWith('+'))return 'abMetricGood';
+  if(text.startsWith('-'))return 'abMetricBad';
+  return '';
+ };
  for(let i=1;i<row.children.length;i++){
-  row.children[i].classList.add(compare?(i===9?'abDelta':i%2===1?'abValueA':'abValueB'):'abValueA');
+  const cell=row.children[i];
+  const relative=compare&&(i===3||i===6||i===9||i===12);
+  const isAbsolute=compare&&i===13;
+  const side=compare?(isAbsolute?'abDelta':relative?'abRelative':
+    ((i-1)%3===0?'abValueA':'abValueB')):'abValueA';
+  cell.classList.add(side);
+  if(relative)cell.classList.add('abDeltaPercent');
+  if(relative&&(i===9||i===12)||isAbsolute){
+   const cls=semanticClass(String(values[i-1]));
+   if(cls)cell.classList.add(cls);
+  }
  }
  if(disclosure){
   const cell=row.children[0],button=el('button','abDisclosure');
@@ -2616,9 +2651,9 @@ function abBdrTable(compare){
  title.scope='col';title.rowSpan=2;first.append(title);
  for(const metric of ['N','%','Ср. BB','EV, BB']){
   const group=el('th','abGroupHeader'+(!compare?' abGroupSolo':''),metric);
-  group.scope='colgroup';group.colSpan=compare?2:1;first.append(group);
-  for(const side of (compare?['A','B']:['A'])){
-   const child=el('th','abSubHeader '+(side==='A'?'abValueA':'abValueB'),side);
+  group.scope='colgroup';group.colSpan=compare?3:1;first.append(group);
+  for(const side of (compare?['A','B','Δ%']:['A'])){
+   const child=el('th','abSubHeader '+(side==='A'?'abValueA':side==='B'?'abValueB':'abRelative'),side);
    child.scope='col';second.append(child);
   }
  }
@@ -2671,9 +2706,10 @@ function renderCompareBdrLedger(root,a,b,compare=true){
  const totalA=a?.ev_bb||0,totalB=b?.ev_bb||0;
  const totalCountA=a?.samples||0,totalCountB=b?.samples||0;
  const totals=compare
-  ?[abNumber(a,totalCountA),abNumber(b,totalCountB),
-    a?'100.0':'—',b?'100.0':'—','—','—',
-    abEv(a,totalA),abEv(b,totalB),abDelta(a,b,totalA,totalB)]
+  ?[abNumber(a,totalCountA),abNumber(b,totalCountB),abRelativePct(a,b,totalCountA,totalCountB),
+    a?'100.0':'—',b?'100.0':'—',abRelativePct(a,b,100,100),
+    '—','—','—',abEv(a,totalA),abEv(b,totalB),abRelativePct(a,b,totalA,totalB),
+    abDelta(a,b,totalA,totalB)]
   :[abNumber(a,totalCountA),a?'100.0':'—','—',abEv(a,totalA)];
  abLedgerRow(ledger.body,'ЧИСТЫЙ EV',totals,'evLedgerTotal',0,compare);
  root.append(ledger.table);
@@ -2764,7 +2800,12 @@ function renderHandDecomposition(){
  const left=selectedAbBreakdown('a',selection);
  const right=compare?selectedAbBreakdown('b',selection):{valid:false,data:null,samples:null,ci95:null,proportion:null};
  const a=left.data,b=right.data;
- const bHand=compare?$('handDecompHandB').value:'—';
+ const bChoice=$('handDecompHandB').value;
+ const bHand=compare?(bChoice==='='?selected:bChoice):'—';
+ $('handDecompBHint').textContent=bChoice==='='
+  ?'Рука B = '+selected+' · сравнение стратегий на одной руке'
+  :compare?'Другая рука: '+bHand+' · те же соперники и стек'
+  :'«—» — только отчёт по руке A · «=» — та же рука, другая стратегия';
  $('handDecompTag').textContent=compare
   ?selected+' / '+bHand+' · A/B'+(left.valid&&right.valid?' · готово':' · расчёт')
   :selected+' · БДР'+(left.valid?' · готово':' · расчёт');
@@ -2805,7 +2846,7 @@ function renderHandDecomposition(){
  renderCompareBdrLedger(root,a,b,compare);
  root.append(el('p','evLedgerFootnote',
   'Группы прибыли и убытков раскрываются по нажатию. В каждой категории можно раскрыть причины. '+
-  (compare?'ΔEV = B − A. ':'')+
+  (compare?'ΔEV = B − A; Δ% = (B − A) / |A| × 100. Зелёный = больше EV, красный = меньше EV. ':'')+
   (selection==='all'?'':'Показан условный EV при '+selection+' соперниках. ')+
   'При разных руках ΔEV не изолирует эффект стратегии. Без ICM.'));
 }
@@ -2875,7 +2916,8 @@ async function calculateHandDecomposition(){
    $('handDecompStatus').textContent='Готово · '+selected+' / '+
     postflopName($('heroPostflop').value)+
     ($('handDecompHandB').value==='-'?' · один отчёт'
-     :' · B: '+$('handDecompHandB').value+' / '+postflopName($('handDecompProfileB').value))+
+     :' · B: '+($('handDecompHandB').value==='='?selected:$('handDecompHandB').value)+
+      ' / '+postflopName($('handDecompProfileB').value))+
     ' · '+Number($('trials').value).toLocaleString('ru-RU')+' прогонов на вариант';
  }catch(e){
   if(requestSignature===decompRequestSignature())
