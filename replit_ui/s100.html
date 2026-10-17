@@ -88,6 +88,17 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 .strategyLedger td.cardNotation{white-space:nowrap;font-size:12px;letter-spacing:.2px}
 .strategyLedger td.rowNumber{font-weight:800}
 .strategyLedger .actionSelect{max-width:178px;font-size:12px;padding:7px;background:#0c1f32}
+
+.comparisonControls{display:grid;grid-template-columns:repeat(7,minmax(95px,1fr));gap:9px;margin-top:14px}
+.strategyLedger{min-width:1050px}
+.strategyColumnHeader{display:flex;align-items:center;gap:4px;min-width:158px}
+.strategyColumnHeader select{font-size:12px;font-weight:700;min-width:120px}
+.removeStrategy{font-size:18px;padding:0 7px;border:0;background:transparent;color:#b8cde1;cursor:pointer}
+.removeStrategy:hover{color:#fff}
+.strategyLedger .strategyActionCell{min-width:166px;text-align:left;font-size:11px;line-height:1.7;white-space:normal}
+.mainAction{font-weight:750;color:#c3e0fb}.minorAction{color:#98afc8}
+@media(max-width:1100px){.comparisonControls{grid-template-columns:repeat(4,minmax(95px,1fr))}}
+@media(max-width:650px){.comparisonControls{grid-template-columns:repeat(2,minmax(90px,1fr))}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect" type="button">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -112,14 +123,29 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 </section>
 <section class="panel" id="scenarioLedger">
  <div class="heading"><h2><span class="index">01 / </span>Сценарии и действия стратегий</h2><span class="badge" id="count">—</span></div>
- <p class="panelIntro">Флоп → тёрн → ривер. Нажмите строку, чтобы проверить её в классификаторе. Столбцы действий редактируемые — это <strong>черновик стратегий</strong>, не автоматические решения ботов.</p>
+ <p class="panelIntro">Флоп → тёрн → ривер. Выбираем от 1 до 5 реальных постфлоп-ботов и сравниваем их частоты действий при <strong>одинаковом игровом контексте</strong>. В таблице показаны результаты повторного вызова действующих политик, не выдуманные действия и не solver GTO.</p>
+ <div class="comparisonControls">
+  <div class="field"><label for="contextOpponents">Соперники</label><select id="contextOpponents"><option value="1">1 · HU</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
+  <div class="field"><label for="contextPosition">Позиция HERO</label><select id="contextPosition"><option value="IP">IP · BTN</option><option value="OOP">OOP · BB</option></select></div>
+  <div class="field"><label for="contextInitiative">Префлоп-инициатива</label><select id="contextInitiative"><option value="1">HERO · рейзер</option><option value="0">Нет</option></select></div>
+  <div class="field"><label for="contextFacing">Постфлоп</label><select id="contextFacing"><option value="0">Нет ставки</option><option value="8">Против ставки</option></select></div>
+  <div class="field"><label for="contextPot">Банк, BB</label><input id="contextPot" type="number" min="1" max="10000" value="24" step="1"></div>
+  <div class="field"><label for="contextStack">Стек, BB</label><input id="contextStack" type="number" min="1" max="10000" value="80" step="1"></div>
+  <div class="field"><label for="contextCall">Call, BB</label><input id="contextCall" type="number" min="0" max="10000" value="8" step="1" disabled></div>
+ </div>
+ <div class="actionsRow">
+  <span class="note" style="margin:0;flex:1">Частоты оценены на 96 вызовах каждого бота с совместимыми вариантами мастей. При неполной нотации это модельные представители класса.</span>
+  <button class="btn" type="button" id="addComparison">+ Стратегия</button>
+  <button class="btn primary" type="button" id="refreshComparison">Сравнить стратегии</button>
+ </div>
+ <p class="statusLine" id="strategyMessage" role="status">Выберите стратегии для сравнения.</p>
  <div class="tablewrap" style="margin-top:14px;max-height:none">
   <table class="strategyLedger"><thead>
-   <tr><th rowspan="2" scope="col">№</th><th rowspan="2" scope="col">HERO</th><th rowspan="2" scope="col">Борд</th><th rowspan="2" scope="col">Название</th><th scope="col">Стратегия 1</th><th scope="col">Стратегия 2</th></tr>
-   <tr><th scope="col">Действие</th><th scope="col">Действие</th></tr>
+   <tr id="strategyHeadings"><th rowspan="2" scope="col">№</th><th rowspan="2" scope="col">HERO</th><th rowspan="2" scope="col">Борд</th><th rowspan="2" scope="col">Название</th></tr>
+   <tr id="strategySubheadings"></tr>
   </thead><tbody id="classExamples"></tbody></table>
  </div>
- <p class="summary">Выбранные действия сохраняются локально в этом браузере и <strong>не изменяют турнирных ботов</strong>. При отсутствии позиции, ставок и числа соперников это предварительные решения, а не рассчитанный GTO.</p>
+ <p class="summary"><strong>GTO V1–V4 — названия экспериментальных эвристик, не солверное равновесие.</strong> Частоты зависят от числа соперников, банка, ставки, SPR, позиции и префлоп-инициативы. Таблица оценивает один общий контекст и не изменяет алгоритмы турниров.</p>
 </section>
 </main>
 
@@ -176,23 +202,66 @@ const rows=[
  ['Ривер','14s 10s','9s-7s-4s-2-3','Флеш','R-FL'],
  ['Ривер','9 8','7-6-5-2-14','Стрит','R-STR'],
 ];
-const allMoves=['—','Check','Bet','Call','Raise','Fold','All-in'];
-const storageKey='skachkov_postflop_actions_draft_v1';
-let drafts={};
-try{const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))drafts=saved}catch(e){}
-function actionSelect(scenario,number){
- const select=document.createElement('select');
- select.className='actionSelect';
- select.setAttribute('aria-label',scenario+' · действие стратегии '+number);
- for(const move of allMoves){const option=document.createElement('option');option.value=move;option.textContent=move;select.append(option)}
- const key=scenario+'|'+number;
- select.value=allMoves.includes(drafts[key])?drafts[key]:'—';
- select.addEventListener('click',e=>e.stopPropagation());
- select.addEventListener('change',()=>{
-  if(select.value==='—')delete drafts[key];else drafts[key]=select.value;
-  try{localStorage.setItem(storageKey,JSON.stringify(drafts))}catch(e){}
+const strategiesAvailable=[
+ ['gto_postflop_v1','GTO V1'],['gto_postflop_v2','GTO V2'],
+ ['gto_postflop_v3','GTO V3'],['gto_postflop_v4','GTO V4'],
+ ['lag_postflop_v1','LAG V1'],['tag_postflop_v1','TAG V1'],
+ ['chaser_postflop_v1','Chaser V1'],['trapper_postflop_v1','Trapper V1'],
+ ['s100_postflop_v1','S100 V1'],
+];
+const strategySelectionKey='skachkov_postflop_selected_strategies_v1';
+let chosen=['gto_postflop_v1','lag_postflop_v1'];
+try{
+ const saved=JSON.parse(localStorage.getItem(strategySelectionKey)||'null');
+ if(Array.isArray(saved)&&saved.length>=1&&saved.length<=5&&new Set(saved).size===saved.length&&
+    saved.every(x=>strategiesAvailable.some(o=>o[0]===x)))chosen=saved;
+}catch(e){}
+function saveSelected(){
+ try{localStorage.setItem(strategySelectionKey,JSON.stringify(chosen))}catch(e){}
+}
+function redrawStrategyColumns(){
+ const h=$('strategyHeadings'),sub=$('strategySubheadings');
+ h.querySelectorAll('.strategyHeading').forEach(x=>x.remove());
+ sub.replaceChildren();
+ chosen.forEach((selected,i)=>{
+  const th=document.createElement('th');th.className='strategyHeading';
+  const head=document.createElement('div');head.className='strategyColumnHeader';
+  const select=document.createElement('select');
+  select.setAttribute('aria-label','Сравниваемая стратегия '+(i+1));
+  strategiesAvailable.forEach(([id,label])=>{
+   const option=document.createElement('option');option.value=id;option.textContent=label;
+   select.append(option);
+  });
+  select.value=selected;
+  select.addEventListener('change',()=>{
+   if(chosen.includes(select.value)){
+    select.value=chosen[i];$('strategyMessage').textContent='Каждую стратегию можно выбрать только в одной колонке';return;
+   }
+   chosen[i]=select.value;saveSelected();redrawStrategyColumns();refreshComparison();
+  });
+  head.append(select);
+  if(chosen.length>1){
+   const remove=document.createElement('button');
+   remove.type='button';remove.className='removeStrategy';
+   remove.textContent='×';remove.title='Убрать колонку';
+   remove.setAttribute('aria-label','Убрать сравниваемую стратегию '+(i+1));
+   remove.addEventListener('click',()=>{
+    chosen.splice(i,1);saveSelected();redrawStrategyColumns();refreshComparison();
+   });
+   head.append(remove);
+  }
+  th.append(head);h.append(th);
+  const act=document.createElement('th');act.scope='col';act.textContent='Действие · частота';sub.append(act);
  });
- return select;
+ for(const t of document.querySelectorAll('.streetHeader td'))t.colSpan=4+chosen.length;
+ for(const tr of document.querySelectorAll('.scenarioRow')){
+  tr.querySelectorAll('.strategyActionCell').forEach(t=>t.remove());
+  chosen.forEach(()=>{
+   const td=document.createElement('td');td.className='strategyActionCell';
+   td.textContent='—';tr.append(td);
+  });
+ }
+ $('addComparison').disabled=chosen.length>=5;
 }
 let currentStreet='',index=0;
 for(const item of rows){
@@ -200,14 +269,14 @@ for(const item of rows){
  if(street!==currentStreet){
   currentStreet=street;index=0;
   const header=document.createElement('tr'),cell=document.createElement('td');
-  header.className='streetHeader';cell.colSpan=6;cell.textContent=street;
+  header.className='streetHeader';cell.colSpan=4+chosen.length;cell.textContent=street;
   header.append(cell);$('classExamples').append(header);
  }
  index++;
  const tr=document.createElement('tr');
  tr.className='scenarioRow';tr.dataset.scenario=scenario;
  tr.title='Нажмите для классификации';
- const items=[street==='Флоп'?'F':street==='Тёрн'?'T':'R'+String(index).padStart(2,'0'),hole,board,name];
+ const items=['',hole,board,name];
  // Use the street prefix with an index for a stable, human-readable row number.
  items[0]=(street==='Флоп'?'F':street==='Тёрн'?'T':'R')+String(index).padStart(2,'0');
  for(let i=0;i<items.length;i++){
@@ -215,13 +284,88 @@ for(const item of rows){
   if(i===0)cell.className='rowNumber';if(i===1||i===2)cell.classList.add('cardNotation');
   tr.append(cell);
  }
- for(let n=1;n<=2;n++){const cell=document.createElement('td');cell.append(actionSelect(scenario,n));tr.append(cell)}
  tr.tabIndex=0;tr.setAttribute('aria-label',scenario+' · '+name);
  const choose=()=>{$('classHole').value=hole;$('classBoard').value=board;classifyNumeric();};
  tr.addEventListener('click',e=>{if(e.target.closest('select'))return;choose()});
  tr.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target===tr){e.preventDefault();choose()}});
  $('classExamples').append(tr);
 }
+redrawStrategyColumns();
+let pendingCompare=0,compareController=null,compareTimer=null;
+const labelForAction={bet:'Bet',check:'Check',raise:'Raise',call:'Call',fold:'Fold',all_in:'All-in'};
+function renderActions(data){
+ const trs=[...document.querySelectorAll('.scenarioRow')];
+ for(const item of data.rows){
+  const tr=trs[item.index];if(!tr)continue;
+  chosen.forEach((id,i)=>{
+   const td=tr.querySelectorAll('.strategyActionCell')[i],entries=Object.entries(item.actions[id]||{});
+   if(!td)return;
+   entries.sort((a,b)=>b[1]-a[1]);
+   td.replaceChildren();
+   td.title=entries.map(([kind,p])=>labelForAction[kind]+' '+(p*100).toFixed(1)+'%').join(' · ');
+   const best=entries.slice(0,3);
+   best.forEach(([kind,p],j)=>{
+    if(j)td.append(document.createTextNode(' · '));
+    const span=document.createElement('span');span.className=j?'minorAction':'mainAction';
+    span.textContent=labelForAction[kind]+' '+(p*100).toFixed(0)+'%';
+    td.append(span);
+   });
+  });
+ }
+}
+async function refreshComparison(){
+ if(compareController)compareController.abort();
+ const serial=++pendingCompare;
+ compareController=new AbortController();
+ if(!token()){$('strategyMessage').textContent='Введите ключ доступа в шапке для расчёта действий ботов';return}
+ const context={
+  opponents:Number($('contextOpponents').value),
+  position:$('contextPosition').value,
+  preflop_aggressor:$('contextInitiative').value==='1',
+  pot:Number($('contextPot').value),
+  stack:Number($('contextStack').value),
+  to_call:$('contextFacing').value==='0'?0:Number($('contextCall').value)
+ };
+ if(context.to_call>context.stack||context.to_call>context.pot||
+    Object.values(context).some(v=>typeof v==='number'&&(!Number.isInteger(v)||v<0))){
+  $('strategyMessage').textContent='Проверьте значения банка, ставки и стека';return;
+ }
+ $('strategyMessage').textContent='Сравнение действующих политик...';
+ document.querySelectorAll('.strategyActionCell').forEach(td=>td.textContent='…');
+ const payload={
+  strategies:[...chosen],context,
+  rows:rows.map((r)=>({hole:r[1],board:r[2]}))
+ };
+ try{
+  const r=await fetch('/api/postflop/compare',{
+   method:'POST',headers:{...auth(),'Content-Type':'application/json'},
+   body:JSON.stringify(payload),signal:compareController.signal
+  });
+  const data=await r.json();if(serial!==pendingCompare)return;
+  if(!r.ok)throw Error(data.error||'Ошибка сравнения');
+  renderActions(data);
+  $('strategyMessage').textContent='Сравнено '+data.rows.length+' ситуаций × '+data.profiles.length+
+   ' стратегий · '+data.samples_per_strategy+' розыгрышей политики на ячейку · одинаковый контекст';
+ }catch(e){
+  if(serial!==pendingCompare||e.name==='AbortError')return;
+  $('strategyMessage').textContent=e.message;
+  document.querySelectorAll('.strategyActionCell').forEach(td=>td.textContent='—');
+ }
+}
+function queueCompare(){if(compareTimer)clearTimeout(compareTimer);compareTimer=setTimeout(refreshComparison,250)}
+$('addComparison').addEventListener('click',()=>{
+ if(chosen.length>=5)return;
+ const next=strategiesAvailable.find(s=>!chosen.includes(s[0]));if(!next)return;
+ chosen.push(next[0]);saveSelected();redrawStrategyColumns();refreshComparison();
+});
+$('refreshComparison').addEventListener('click',refreshComparison);
+for(const id of ['contextOpponents','contextPosition','contextInitiative','contextFacing']){
+ $(id).addEventListener('change',()=>{
+  if(id==='contextFacing')$('contextCall').disabled=$('contextFacing').value==='0';
+  queueCompare();
+ });
+}
+for(const id of ['contextPot','contextStack','contextCall'])$(id).addEventListener('input',queueCompare);
 $('count').textContent=rows.length+' примеров · Ф '+rows.filter(r=>r[0]==='Флоп').length+' / Т '+rows.filter(r=>r[0]==='Тёрн').length+' / Р '+rows.filter(r=>r[0]==='Ривер').length;
 async function classifyNumeric(){
  $('classMessage').textContent='';$('classResult').textContent='Проверка...';
@@ -255,9 +399,9 @@ async function classifyNumeric(){
 }
 $('classify').addEventListener('click',classifyNumeric);
 $('connect').addEventListener('click',()=>{
- if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}classifyNumeric()}
+ if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}classifyNumeric();refreshComparison()}
  else $('classMessage').textContent='Введите ключ доступа.';
 });
 $('key').addEventListener('keydown',e=>{if(e.key==='Enter')$('connect').click()});
-if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';}
+if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';refreshComparison();}
 </script></body></html>
