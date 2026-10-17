@@ -120,7 +120,12 @@ def preflop_domination(hero,villain):
 
 
 def showdown_group(hero_hole,villain_holes,board,hero_won):
-    """Compare against the strongest remaining showdown rival."""
+    """Domination = same final five-card HAND CATEGORY, stronger rank/kicker.
+
+    Example: pair vs pair, flush vs flush. AK vs AQ on the preflop is
+    irrelevant to the primary showdown classification. The standalone
+    legacy preflop matchup is retained only as optional diagnostic data.
+    """
     if not villain_holes:
         return ("showdown_win" if hero_won else "showdown_loss"),None
     hero_score=eval_hand(list(hero_hole),list(board))
@@ -130,9 +135,16 @@ def showdown_group(hero_hole,villain_holes,board,hero_won):
         return "showdown_split",None
     relation,hero_rank,rival_rank=preflop_domination(hero_hole,best)
     matchup=(relation,hero_rank,rival_rank) if relation else None
+    same_category=(hero_score >> 24)==(best_score >> 24)
     if hero_won:
-        return ("showdown_win_dominates" if relation=="hero" else "showdown_win"),matchup
-    return ("showdown_loss_dominated" if relation=="villain" else "showdown_loss"),matchup
+        # Avoid false domination in side-pot situations where a payout winner
+        # does not outrank the strongest remaining rival.
+        dominated_same_category=same_category and hero_score>best_score
+        return ("showdown_win_dominates" if dominated_same_category
+                else "showdown_win"),matchup
+    dominated_same_category=same_category and hero_score<best_score
+    return ("showdown_loss_dominated" if dominated_same_category
+            else "showdown_loss"),matchup
 
 
 def showdown_mechanism(hero_hole,villain_holes,board):
@@ -163,15 +175,15 @@ def showdown_mechanism(hero_hole,villain_holes,board):
     elif h_cat==0:
         reason="Старшая карта / кикер"
     elif h_cat==2:
-        reason="Старшие две пары / кикер"
+        reason="Две пары / кикер"
     elif h_cat==3:
         reason="Старшая тройка / кикер"
     elif h_cat==4:
-        reason="Более высокий стрит"
+        reason="Старший стрит"
     elif h_cat==5:
-        reason="Более высокий флеш"
+        reason="Старший флеш"
     elif h_cat==6:
-        reason="Более высокий фулл-хаус"
+        reason="Старший фулл-хаус"
     elif h_cat==7:
         reason="Более высокое каре / кикер"
     else:
@@ -291,9 +303,9 @@ class EVDecomposition:
                 "note":("Стоимость потерь = сумма фактических отрицательных net BB / все симулированные раздачи. "
                         "Это НЕ стоимость ошибки решения: для неё нужно сравнение альтернативных действий. "
                         "Категории исходов взаимно исключают друг друга и суммируются в EV. "
-                        "Доминирование: одинаковый старший ранг с лучшим кикером или старшая карманная пара. "
-                         "Сравнение проводится с сильнейшим соперником на вскрытии. "
-                         "Дополнительные срезы доминирования нельзя суммировать с категориями исходов. "
+                        "Доминирование на вскрытии: одинаковый тип итоговой комбинации, но старший ранг или кикер. "
+                         "Сравнение со старшей рукой оставшегося соперника; в мультивее сайд-поты могут влиять на выплату. "
+                         "Префлоп-доминирование отдельно и не влияет на группы. "
                         "Флоп/тёрн/ривер в текущем движке могут завершиться без вскрытия, "
                         "поэтому для фолдов нельзя утверждать, какую комбинацию держал бы соперник на ривере.")}
 
