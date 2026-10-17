@@ -42,6 +42,33 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertLess(abs(result["decomposition"]["ev_bb"]-result["ev_bb"]["K4s"]),.00015)
         self.assertIn("разброс",result["entry_stats_note"] if "разброс" in result["entry_stats_note"] else "разброс net BB")
 
+    def test_single_hand_mc_updates_matrix_and_records_its_own_n(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        # The separate hand result must be accepted, not only displayed
+        # in the decomposition block as in the earlier implementation.
+        self.assertIn("acceptSingleHandMatrixResult(hand,output,settings);",page)
+        self.assertIn("result[metric]={...(result[metric]||{}),[hand]:incoming[hand]};",page)
+        self.assertIn("const HAND_RESULT_METRICS=['equity','ev_bb','showdown_pct','fold_win_pct','ev_ci95_bb'];",page)
+        self.assertIn("result.hand_samples={...(result.hand_samples||{}),",page)
+        self.assertIn("N · обновлено для руки",page)
+        self.assertIn("matrix_partial=Object.keys(result.equity||{}).length<169",page)
+        self.assertIn("if(data?.matrix_partial){",page)
+        # A different N may refine a single hand without invalidating the
+        # whole 169-hand EV matrix.
+        self.assertIn("const {hand,trials,cycles,...context}=settings;",page)
+        self.assertIn("const context=postflopMatrixContext(settings);",page)
+        self.assertIn("if(context!==postflopMatrixContext())return false;",page)
+
+    def test_single_hand_and_full_matrix_concurrent_results_are_not_lost(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        self.assertIn("const startedAt=handWriteSeq,context=postflopMatrixContext();",page)
+        self.assertIn("acceptCompleteMatrixResult(matrix,startedAt,context)",page)
+        self.assertIn("entry.context===context && entry.seq>startedAt",page)
+        self.assertIn("merged=replaceMatrixHand(merged,hand,entry.output);",page)
+        self.assertIn("handWritebacks.clear();",page)
+        self.assertIn("matrixContextKey='';handWritebacks.clear();",page)
+        self.assertIn("if(!computingAll){",page)
+
     def test_direct_engine_pot_callback_is_exact(self):
         from core.engine import Table,Seat
         from bots import create_bot
