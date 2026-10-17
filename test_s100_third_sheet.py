@@ -19,11 +19,11 @@ class S100ThirdSheetTests(unittest.TestCase):
 
         for page in (main, plan):
             self.assertIn('<a class="tab" href="/s100"><b>03</b>', page)
-            self.assertIn("Постфлоп · План</strong><small>100 сценариев S100", page)
+            self.assertIn("Постфлоп · План</strong><small>Классификатор ситуаций", page)
         self.assertIn('<a class="tab" href="/"><b>01</b>', check)
         self.assertIn('<a class="tab" href="/plan"><b>02</b>', check)
         self.assertIn('<a class="tab current" href="/s100" aria-current="page">', check)
-        self.assertIn("Постфлоп · План S100", check)
+        self.assertIn("Постфлоп · План", check)
         self.assertEqual(check.count('id="key"'), 1)
         self.assertEqual(check.count('id="connect"'), 1)
         self.assertIn("sessionStorage.getItem('skachkov_key')", check)
@@ -38,11 +38,22 @@ class S100ThirdSheetTests(unittest.TestCase):
             with self.subTest(token=token):
                 self.assertIn(token, plan)
                 self.assertIn(token, check)
-        self.assertIn('id="rows"', check)
-        self.assertIn('id="inspectorResults"', check)
+        self.assertIn('id="scenarioLedger"', check)
+        self.assertIn('id="classExamples"', check)
+        self.assertIn('id="classHole"', check)
+        self.assertIn('id="classBoard"', check)
+        self.assertIn('id="classify"', check)
+        self.assertIn('id="classResult"', check)
+        self.assertNotIn('id="rows"', check)
+        self.assertNotIn('id="inspectorResults"', check)
+        self.assertNotIn('S001–S100', check)
+        self.assertIn('Стратегия 1</th>', check)
+        self.assertIn('Стратегия 2</th>', check)
+        self.assertIn("const storageKey='skachkov_postflop_actions_draft_v1';", check)
+        self.assertIn("select.addEventListener('change'", check)
         self.assertIn('id="count"', check)
         self.assertIn("const auth=()=>({'X-Runner-Key':token()});", check)
-        self.assertIn("if(token())connect();else", check)
+        self.assertIn("if(token())", check)
 
     def test_third_sheet_and_catalog_http_are_functional(self):
         with patch.object(app, "TOKEN", "s100_test_secret"):
