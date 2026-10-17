@@ -74,19 +74,19 @@ class ParallelPlanMCTests(unittest.TestCase):
             self.assertEqual(job["result"], cached["result"])
 
     def test_deep_selected_hand_parallel_is_bitwise_equivalent(self):
-        request={**sample(),"hand":"K4s","trials":750}
+        request={**sample(),"hand":"K4s","trials":2500}
         request["opponents"][0]["entry_pct"]=65
         baseline=post.calculate(request)
         increments=[]
         multi=post.calculate_parallel(
             request, workers=3, progress=lambda done,total:increments.append((done,total)))
         self.assertEqual(baseline, multi)
-        self.assertEqual(multi["decomposition"]["samples"],750)
-        self.assertEqual(increments[-1],(750,750))
+        self.assertEqual(multi["decomposition"]["samples"],2500)
+        self.assertEqual(increments[-1],(2500,2500))
         self.assertEqual([n for n,_ in increments],sorted(n for n,_ in increments))
 
     def test_single_hand_equity_only_parallel(self):
-        request={**sample(),"hand":"AA","trials":750,
+        request={**sample(),"hand":"AA","trials":2500,
                  "hero_postflop":"none"}
         request["opponents"][0]["postflop"]="none"
         a=post.calculate(request)
