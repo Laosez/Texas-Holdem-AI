@@ -812,6 +812,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <select id="heroPostflop">
     <option value="gto2" selected>GTO V2 · исправленные мелкие пары</option>
     <option value="gto3">GTO V3 · эксперимент Kxs/кикер/дро</option>
+    <option value="gto4">GTO V4 · исправление сильных двух пар</option>
     <option value="gto">GTO V1 · контрольная версия</option>
     <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
     <option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
@@ -991,13 +992,14 @@ const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против отк
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
  {value:'gto',label:'GTO V1'}, {value:'gto2',label:'GTO V2'},
- {value:'gto3',label:'GTO V3 · эксперимент'}, {value:'tag',label:'TAG V1'},
+ {value:'gto3',label:'GTO V3 · эксперимент'}, {value:'gto4',label:'GTO V4 · эксперимент'}, {value:'tag',label:'TAG V1'},
  {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
  {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
  {value:'none',label:'Не учитывать'}
 ];
 const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||'Не учитывать';
 const HERO_LINE_DESCRIPTIONS={
+ gto4:'Эксперимент GTO V4: сохраняет старшие две пары из обеих карманных карт на спаренном борде (AQ на A-Q-7-7), сохраняя осторожность V3 с общей парой. Не solver; сравни EV на одинаковых раздачах.',
  gto3:'Эксперимент GTO V3: кикер, пара + дро, спаренный борд. Предварительный A/B: против LAG EV может снизиться; сравни EV, исходное showdown Equity останется прежним.',
  gto2:'GTO V2: корректная оценка 22–66 на спаренном борде. Используется для расчёта EV.',
  gto:'GTO V1: исходная постфлоп-эвристика, сохранена для сравнения с V2.',
