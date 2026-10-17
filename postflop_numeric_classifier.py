@@ -76,7 +76,7 @@ _NAMES = {
     "two_pair_board": ("2BD", "Две пары на борде"),
     "two_pair_pocket_board": ("2PK", "Карманная + общая пара"),
     "set": ("SET", "Сет"),
-    "trips": ("TRP", "Трипс"),
+    "trips": ("TRP", "Трипс от пары борда"),
     "board_trips": ("BTR", "Тройка на борде"),
     "straight": ("STR", "Стрит"),
     "board_straight": ("BSTR", "Стрит на борде"),
