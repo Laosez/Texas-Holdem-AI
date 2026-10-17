@@ -504,6 +504,29 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 .handDecompTable th button:hover{text-decoration:underline}
 .handDecompTable tr.decompLoss td{color:#ef9eaa}
 .handDecompTable tr.decompPositive td{color:#98d9ba}
+
+/* Clean collapsible A17 groups: keep only the colored strip, not nested frames. */
+#groupEditor.groupEditor{border:0;background:transparent;padding:0;margin:12px 0}
+#groupEditor.groupEditor>summary{display:flex!important;align-items:center;gap:12px;
+ padding:11px 13px!important;border:1px solid #304b66;border-radius:8px;
+ background:#12273b;color:#d8e9fa;cursor:pointer;list-style:none}
+#groupEditor.groupEditor>summary::-webkit-details-marker{display:none}
+#groupEditor.groupEditor>summary .groupDisclosureHint{margin-left:auto;font-size:10px;color:#91adc9;font-weight:500}
+#groupEditor.groupEditor>summary::after{content:"▾";color:#8fb7dd}
+#groupEditor.groupEditor[open]>summary::after{content:"▴"}
+#groupEditor.groupEditor>.a17Workbench{border:0;background:none;padding:9px 0 0}
+#groupEditor .unifiedGroupList{border-top:0;padding-top:0;margin-top:0}
+#groupEditor #boxes .boxCard{border:0;border-left:4px solid var(--group-color,#8494a6);
+ border-radius:5px;background:#12263a}
+#groupEditor #boxes .boxCard.active{outline:1px solid #d4e6fa;outline-offset:-1px}
+#opponentEntrySummary.oppEntryDistribution{padding:0;border:0;background:transparent}
+#opponentEntrySummary>summary{cursor:pointer;padding:10px 0;color:#abc7df;font-weight:700}
+#opponentEntrySummary[open]{padding-bottom:8px}
+.decompWorstLoss #handDecompCost{color:#f18e9b!important}
+.decompMatchupDisclosure{border-top:1px solid #30445c;padding:12px 0 2px;margin-top:10px}
+.decompMatchupDisclosure>summary{cursor:pointer;color:#c9dff1;font-weight:750;font-size:12px}
+.decompMatchupDisclosure>.note{margin:8px 0}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -535,9 +558,10 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">02 / </span>Мои соперники</h2><span class="badge">До 8 диапазонов · Multiway</span></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><span id="opponentCountLabel" class="small">3 из 8</span><button id="addOpponent" class="btn sm" type="button" aria-label="Добавить соперника">+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
 <div class="oppTable"><div class="oppHead"><span>№</span><span>Диапазон</span><span>Позиция</span><span>Ситуация</span><span>Действие</span><span>Постфлоп</span><span>Вероятность входа</span><span></span></div><div id="opponents"></div></div>
-<div id="opponentEntrySummary" class="oppEntryDistribution" role="status"><strong>Вероятность числа активных оппонентов</strong><div class="entryPrecisionTools"><label for="entryPrecisionTrials">Погрешность EV при числе симуляций на руку</label>
-<select id="entryPrecisionTrials"><option value="250">250</option><option value="500">500</option><option value="1000" selected>1 000</option><option value="2000">2 000</option><option value="4000">4 000</option><option value="8000">8 000</option><option value="16000">16 000</option><option value="32000">32 000</option><option value="64000">64 000</option></select></div>
-<div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></div>
+<details id="opponentEntrySummary" class="oppEntryDistribution">
+<summary>Диагностика поля · число соперников и размер банка</summary>
+<p class="note">Справочная статистика модели, не дополнительная настройка: сколько соперников участвовало, каков средний банк и погрешность EV. N берётся из основного селектора симуляций.</p>
+<div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></details>
 <p class="note">«Ширина диапазона» — вероятность получить руку из игрового диапазона, вычисленная по 4/6/12 комбинациям и частотам (с учётом блокеров Hero). «100%» — гарантированно входит в банк с выбранным условным диапазоном рук. «0%» — не участвует. Решения о входе считаются независимыми; последовательное развитие торговли не моделируется.</p></div>
 <div class="equityInsideOpponents">
 <div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
@@ -590,7 +614,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
 <div class="matrixMetric"><span>Выбрано в A17</span><strong id="studioGroupHands">—</strong><small id="studioGroupCombos">комбинаций</small></div>
 <div class="matrixMetric"><span>Классы без группы</span><strong id="studioUnassigned">—</strong><small>размещаются в пуле</small></div>
 </div>
-<details id="groupEditor" class="groupDrawer groupEditor" open><summary>Редактор A17 · кисть и 17 коробок</summary>
+<details id="groupEditor" class="groupDrawer groupEditor"><summary>Коробки A17 · 17 групп <span class="groupDisclosureHint">Развернуть / свернуть</span></summary>
 <div class="a17Workbench unifiedGroupEditor">
 <div class="heading"><strong>Коробки A17 · единый редактор · 4 в ряд</strong><span id="brushStatus" class="badge">Режим: выбор</span></div>
 <div class="brushbar">
@@ -646,10 +670,14 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  </div>
  <div class="matrixMetrics handDecompStats">
   <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
-  <div class="matrixMetric"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small id="handDecompCostLabel">BB/раздачу · наблюдаемый убыток</small></div>
-  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>симулированных раздач, включая фолды</small></div>
+  <div class="matrixMetric decompWorstLoss"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small id="handDecompCostLabel">BB/раздачу · наблюдаемый убыток</small></div>
+  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>N из блока 02 · все исходы, включая фолды</small></div>
  </div>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Выбери руку на матрице для автоматического расчёта источников EV.</p></div>
+<details class="decompMatchupDisclosure"><summary>Доминирование стартовых рук · конкретные столкновения</summary>
+<p class="note">Доминирование: AK против AQ или QQ против 99. Соперник — сильнейший по итоговому борду из дошедших до вскрытия. При нескольких оппонентах это не охватывает все столкновения.</p>
+<div id="handDecompMatchups" class="handDecompRows">После расчёта появятся конкретные пары стартовых рук.</div>
+</details>
  <p class="note handDecompCaveat">Стоимость потерь — фактический отрицательный net BB на первоначальную раздачу в выбранной модели, а не доказанная ошибка принятого решения. Чтобы измерить стоимость ошибки, потребуется сравнить альтернативные действия при одинаковом состоянии стола. Анализ не включает ICM и не заменяет солвер.</p>
 </section>
 
@@ -847,7 +875,7 @@ function renderEntryDistribution(){
   $('entryDistributionNote').textContent='Точность можно оценить только по разбросу фактических net BB, а не по размеру банка.';
   return;
  }
- const targetN=Number($('entryPrecisionTrials').value)||1000;
+ const targetN=Number($('trials').value)||1000;
  const table=el('table',''),thead=el('thead'),row=el('tr');
  for(const h of ['Активных соперников','Вероятность','Случаев','Средний банк, BB','±95% EV, BB при '+targetN.toLocaleString('ru-RU')]){
   row.append(el('th','',h));
@@ -1908,7 +1936,7 @@ function renderPerOpponent(){
 // The main matrix (169 classes) keeps its own independent result.
 let handDecompResult=null,handDecompSignature='',computingHandDecomp=false;
 let autoDecompKey='',autoDecompTimer=null,autoDecompPending=false;
-let decompSort={column:'contribution_bb',desc:false};
+let decompSort={column:'fixed',desc:false};
 const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
 function decompRequestSignature(){
  if(!hero)return '';
@@ -1929,12 +1957,13 @@ function renderHandDecomposition(){
  $('handDecompTag').textContent=selected+(data?' · '+data.samples+' раздач':' · расчёт');
  $('handDecompEV').textContent=data?decompFormat(data.ev_bb)+' BB':'—';
  const worst=data?.loss_exposures?.[0];
- $('handDecompCost').textContent=worst?decompFormat(worst.cost_bb)+' BB':'—';
+ $('handDecompCost').textContent=worst?decompFormat(-worst.cost_bb)+' BB':'—';
  $('handDecompCostLabel').textContent=worst?worst.label+' · BB/раздачу':'BB/раздачу · наблюдаемый убыток';
- $('handDecompSamples').textContent=data?String(data.samples):'—';
+ $('handDecompSamples').textContent=data?data.samples.toLocaleString('ru-RU'):'—';
  const root=$('handDecompRows');root.replaceChildren();
  if(!data){
   root.append(el('p','handDecompEmpty','Для '+selected+' выполняется автоматический расчёт источников EV.'));
+  renderDominationMatchups(null);
   return;
  }
  const tbl=el('table','handDecompTable'),head=el('thead'),header=el('tr');
@@ -1953,8 +1982,8 @@ function renderHandDecomposition(){
  }
  head.append(header);tbl.append(head);
  const body=el('tbody');
- const events=[...(data.events||[])];
- events.sort((a,b)=>{
+ const events=[...(data.outcome_groups||data.events||[])].filter(x=>x.key!=='showdown_split'||x.count>0);
+ if(decompSort.column!=='fixed')events.sort((a,b)=>{
   const x=a[decompSort.column],y=b[decompSort.column];
   const delta=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'ru');
   return (decompSort.desc?-delta:delta)||a.key.localeCompare(b.key);
@@ -1968,9 +1997,43 @@ function renderHandDecomposition(){
   body.append(tr);
  }
  tbl.append(body);root.append(tbl);
+ renderDominationMatchups(data);
  root.append(el('p','small','Каждая симуляция в одном исходе. Сумма вкладов = итоговому EV '
   +decompFormat(data.ev_bb)+' BB (с учётом округления). Красный — отрицательный вклад, зелёный — положительный. '
-  +'Заголовки сортируют таблицу.'));
+  +'Группы с доминированием определяются по стартовым картам; ничья показывается отдельно только при наличии. Заголовки сортируют таблицу.'));
+}
+function renderDominationMatchups(data){
+ const root=$('handDecompMatchups');if(!root)return;
+ root.replaceChildren();
+ const matchups=data?.domination_matchups||[];
+ if(!matchups.length){
+  root.append(el('p','note',data?'В этой выборке префлоп-доминирование на вскрытии не встретилось.':'Пока нет рассчитанных столкновений.'));
+  return;
+ }
+ const hero=matchups.filter(x=>x.relation==='hero');
+ const rival=matchups.filter(x=>x.relation==='villain');
+ const sum=x=>x.reduce((acc,row)=>acc+row.count,0);
+ const won=x=>x.reduce((acc,row)=>acc+row.wins,0);
+ const summary=el('p','note','Мы доминируем: '+sum(hero)+' случаев · побед '+won(hero)
+  +' · нас доминируют: '+sum(rival)+' случаев · побед '+won(rival)
+  +'. Считаются только состоявшиеся вскрытия; частоты относятся к общей выборке.');
+ root.append(summary);
+ const table=el('table','handDecompTable'),head=el('thead'),thead=el('tr');
+ for(const h of ['Стартовые руки','Исходное преимущество','Случаев','Побед','Win %','Вклад в EV, BB']){
+  thead.append(el('th','',h));
+ }
+ head.append(thead);table.append(head);
+ const body=el('tbody');
+ for(const item of matchups.slice(0,25)){
+  const tr=el('tr',item.contribution_bb<0?'decompLoss':item.contribution_bb>0?'decompPositive':'');
+  const values=[item.hero+' / '+item.villain,
+   item.relation==='hero'?'Мы доминируем':'Нас доминируют',
+   String(item.count),String(item.wins),Number(item.win_pct).toFixed(1)+'%',
+   decompFormat(item.contribution_bb)];
+  values.forEach(v=>tr.append(el('td','',v)));body.append(tr);
+ }
+ table.append(body);root.append(table);
+ if(matchups.length>25)root.append(el('p','small','Показаны 25 наиболее частых столкновений из '+matchups.length+'.'));
 }
 function scheduleHandDecomposition(){
  if(!hero)return;
@@ -2206,9 +2269,9 @@ $('computeVillainReverse').onclick=runOpponentReverse;
 $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
-$('entryPrecisionTrials').onchange=renderEntryDistribution;
+
 $('trials').onchange=()=>{
- $('entryPrecisionTrials').value=$('trials').value;
+
  // Preserve the last 169-hand matrix and its recorded sample size while
  // the selected hand is re-evaluated at a deeper N.
  renderEntryDistribution();
