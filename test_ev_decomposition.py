@@ -134,7 +134,7 @@ class EVDecompositionTests(unittest.TestCase):
             self.assertIn('id="'+key+'"',s)
         self.assertNotIn('id="handDecompRun"',s)
         self.assertNotIn('data-hand-decomp-tab=',s)
-        self.assertIn("decomposition.add(chip_ev,event,risk=risk,flush=flush)",
+        self.assertIn("decomposition.add(chip_ev,event,risk=risk,flush=flush,",
                       __import__("inspect").getsource(ev.calculate))
         self.assertIn("const output=await pollPostflop(settings,epoch",s)
         self.assertIn("function renderHandDecomposition(){",s)
