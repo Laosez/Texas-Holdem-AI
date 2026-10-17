@@ -687,6 +687,11 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .plannerStrategyPanel .heroVersionPanel .heroVersionActions{grid-column:1/-1}
 .plannerStrategyPanel .heroVersionPanel #dirty{grid-column:1/-1}
 @media(max-width:730px){.plannerStrategyPanel .heroVersionPanel{grid-template-columns:minmax(0,1fr)}}
+.handDecompEntrantsPicker{min-width:230px;max-width:330px;width:100%;text-align:left}
+.handDecompEntrantsPicker label{text-align:left}
+.handDecompEntrantsPicker select{width:100%;font-size:12px;font-weight:700}
+#handDecompStratumInfo{margin:11px 0;color:#acc7df}
+@media(max-width:700px){.handDecompControls{align-items:stretch}.handDecompControls .small{text-align:left}.handDecompEntrantsPicker{max-width:none}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -829,16 +834,33 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
  <div class="handDecompHeader">
   <div><span class="small">Выбранная рука</span><div id="handDecompName" class="bigHand">AQs</div>
    </div>
-  <div class="handDecompControls"><span id="handDecompStatus" class="small" role="status">Нажми на руку на матрице — декомпозиция рассчитается автоматически.</span></div>
+  <div class="handDecompControls">
+   <div class="field handDecompEntrantsPicker"><label for="handDecompOpponentCount">Число вошедших соперников</label>
+    <select id="handDecompOpponentCount" aria-label="Декомпозиция EV по числу вошедших соперников">
+     <option value="all">Все сценарии · 0–8 соп.</option>
+     <option value="0">0 · без соперников</option>
+     <option value="1">1 · хедз-ап</option>
+     <option value="2">2 · мультипот 3 участника</option>
+     <option value="3">3 · мультипот 4 участника</option>
+     <option value="4">4 · мультипот 5 участников</option>
+     <option value="5">5 · мультипот 6 участников</option>
+     <option value="6">6 · мультипот 7 участников</option>
+     <option value="7">7 · мультипот 8 участников</option>
+     <option value="8">8 · мультипот 9 участников</option>
+    </select>
+   </div>
+   <span id="handDecompStatus" class="small" role="status">Нажми на руку на матрице — декомпозиция рассчитается автоматически.</span>
+  </div>
  </div>
  <div class="matrixMetrics handDecompStats">
   <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
   <div class="matrixMetric decompWorstLoss"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small id="handDecompCostLabel">BB/раздачу · наблюдаемый убыток</small></div>
   <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>N из блока 02 · все исходы, включая фолды</small></div>
  </div>
+ <p id="handDecompStratumInfo" class="note" role="status">Все сценарии: полный EV руки. При выборе N соперников расчёт не запускается повторно.</p>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Выбери руку на матрице для автоматического расчёта источников EV.</p></div>
 
- <p class="note handDecompCaveat">EV — BB на раздачу. Доминирование — более сильная комбинация того же типа на вскрытии. Не ICM.</p>
+ <p class="note handDecompCaveat">EV — BB на раздачу. Фильтр N показывает условный средний EV только среди раздач с N вошедшими соперниками; это не вклад в общий EV. 0 соперников — выигрыш блайндов без постфлопа. Доминирование — более сильная комбинация того же типа на вскрытии. Не ICM.</p>
 </section>
 
 </main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
@@ -1280,7 +1302,7 @@ function removeOpponent(index){
  $('viewOpponent').value=String(nextIndex);
  invalidateEquity();loadVillain();
 }
-function invalidateEquity(){handDecompResult=null;handDecompSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};matrixContextKey='';handWritebacks.clear();drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
+function invalidateEquity(){handDecompResult=null;handDecompByOpponents=null;handDecompSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};matrixContextKey='';handWritebacks.clear();drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -2243,7 +2265,7 @@ function renderPerOpponent(){
 }
 // Detailed outcome telemetry: one selected hand, recomputed on selection.
 // The main matrix (169 classes) keeps its own independent result.
-let handDecompResult=null,handDecompSignature='',computingHandDecomp=false;
+let handDecompResult=null,handDecompByOpponents=null,handDecompSignature='',computingHandDecomp=false;
 let autoDecompKey='',autoDecompTimer=null,autoDecompPending=false;
 let activeDecompGroup=null, activeDecompSignature='';
 const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
@@ -2446,22 +2468,37 @@ function renderHandDecomposition(){
  $('handDecompName').textContent=selected;
  const signature=decompRequestSignature();
  const valid=handDecompResult?.hand===selected && handDecompSignature===signature;
- const data=valid?handDecompResult:null;
- $('handDecompTag').textContent=selected+(data?' · '+data.samples+' раздач':' · расчёт');
+ const selection=$('handDecompOpponentCount').value;
+ const stratum=valid&&selection!=='all'
+  ?handDecompByOpponents?.find(item=>item.opponents===Number(selection)):null;
+ const data=valid?(selection==='all'?handDecompResult:stratum?.decomposition):null;
+ const n=valid?(selection==='all'?handDecompResult.samples:(stratum?.samples??0)):null;
+ const label=selection==='all'?'все сценарии':selection+' соп.';
+ $('handDecompTag').textContent=selected+(n!==null?' · '+label+' · '+n+' раздач':' · расчёт');
  $('handDecompEV').textContent=data?decompFormat(data.ev_bb)+' BB':'—';
  const worst=data?.loss_exposures?.[0];
  $('handDecompCost').textContent=worst?decompFormat(-worst.cost_bb)+' BB':'—';
  $('handDecompCostLabel').textContent=worst?worst.label:'Убыток, BB/раздачу';
- $('handDecompSamples').textContent=data?data.samples.toLocaleString('ru-RU'):'—';
+ $('handDecompSamples').textContent=n!==null?n.toLocaleString('ru-RU'):'—';
+ const info=$('handDecompStratumInfo');
+ if(!valid)info.textContent='Ожидается расчёт выбранной руки. Переключение N не запускает новый Monte Carlo.';
+ else if(selection==='all')info.textContent='Все '+handDecompResult.samples+
+  ' симуляций · EV усреднён по всем сценариям входа, включая 0 соперников.';
+ else info.textContent=selection+' соперников · '+n+' из '+handDecompResult.samples+
+  ' раздач ('+(stratum?.frequency_pct??0).toFixed(2)+'%) · '+
+  (n===0?'В этой выборке исходов нет.':
+   'EV условный, среди этих раздач'+(Number.isFinite(stratum?.ev_ci95_bb)
+     ?' · 95% ±'+stratum.ev_ci95_bb.toFixed(3)+' BB':' · 95% CI недоступен при N < 2')+'.');
  const root=$('handDecompRows');root.replaceChildren();
  ledgerControls(root);
  if(!data){
-  root.append(el('p','handDecompEmpty','Расчёт выбранной руки…'));
+  root.append(el('p','handDecompEmpty',valid?'Нет исходов с выбранным числом соперников. Увеличь число симуляций или измени вероятности входа.':'Расчёт выбранной руки…'));
   return;
  }
  if(decompReportMode==='bdr')renderBdrLedger(root,data);
  else renderBalanceLedger(root,data);
  const note=el('p','evLedgerFootnote','Все строки раскрыты · N = '+data.samples+
+   (selection==='all'?' · общая выборка':' · условная выборка ('+selection+' соп.)')+
    ' · EV учитывает исходы раздач, не ICM. Группы и детали не складываются повторно.');
  root.append(note);
 }
@@ -2498,10 +2535,12 @@ async function calculateHandDecomposition(){
   if(!output||epoch!==calcEpoch||signature!==decompRequestSignature())return;
   acceptSingleHandMatrixResult(hand,output,settings);
   if(!output.decomposition){
-   handDecompResult=null;
+   handDecompResult=null;handDecompByOpponents=null;
    $('handDecompStatus').textContent='EV отключён: выбери постфлоп-профили для активных игроков.';
   }else{
    handDecompResult=output.decomposition;
+   handDecompByOpponents=Array.isArray(output.decomposition_by_opponents)
+    ?output.decomposition_by_opponents:null;
    handDecompSignature=signature;
    const ci=output.ev_ci95_bb?.[hand];
    $('handDecompStatus').textContent='Готово · '+hand+' · '+output.decomposition.samples
@@ -2774,6 +2813,7 @@ $('evPot').oninput=drawMatrices;$('evCost').oninput=drawMatrices;
 $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
 
+$('handDecompOpponentCount').onchange=renderHandDecomposition;
 $('trials').onchange=()=>{
 
  // Preserve the last 169-hand matrix and its recorded sample size while

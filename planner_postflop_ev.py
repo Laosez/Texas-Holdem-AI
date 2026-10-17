@@ -248,6 +248,32 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
     return (chip_ev, showdown, pot_state["bb"]) if metrics else (chip_ev, showdown)
 
 
+
+def _breakdowns_by_entrants(hand, breakdowns, counts, ev_sums, ev_squares):
+    """Conditional chip EV for each number of participating opponents.
+
+    Counts partition the *same* deals as the aggregate result. All EV and
+    attribution denominators are the stratum sample size, not the total N.
+    Empty strata return no EV; N=1 has no confidence interval.
+    """
+    output = []
+    total = sum(counts)
+    for k, n in enumerate(counts):
+        report = breakdowns[k].result() if n else None
+        if report is not None:
+            assert report["samples"] == n
+            assert abs(report["ev_bb"] - ev_sums[k] / n) < 0.00011
+        variance = max(0., (ev_squares[k] - ev_sums[k] ** 2 / n) / (n - 1)) if n > 1 else None
+        output.append({
+            "opponents": k, "samples": n,
+            "frequency_pct": round(100 * n / total, 2) if total else 0.,
+            "ev_bb": round(ev_sums[k] / n, 4) if n else None,
+            "ev_ci95_bb": round(1.96 * math.sqrt(variance / n), 4) if variance is not None else None,
+            "decomposition": report
+        })
+    return output
+
+
 def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
               _prepared=None):
     payload = validate_request(raw)
@@ -272,6 +298,8 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
     if payload["hand"] and not disabled:
         from planner_ev_decomposition import EVDecomposition
         decomposition = EVDecomposition(payload["hand"])
+    per_entrant_decomp = ([EVDecomposition(payload["hand"]) for _ in range(len(src) + 1)]
+                          if decomposition is not None else None)
     # Common random *deals* for all postflop policies: switching GTO/TAG/LAG
     # does not re-roll hole cards, entrants or board. Action randomness is
     # independent of the deal stream.
@@ -315,6 +343,7 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                     fold_win_total += 1
                     if decomposition:
                         decomposition.add(uncontested,"uncontested")
+                        per_entrant_decomp[0].add(uncontested,"uncontested")
                 entry_pots[0] += 1.5  # SB 0.5 + BB 1.0
                 samples += 1
                 continue
@@ -340,6 +369,9 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                     event,risk,flush,group,matchup,reason = rollout[2]
                     decomposition.add(chip_ev,event,risk=risk,flush=flush,
                                       group=group,matchup=matchup,reason=reason)
+                    per_entrant_decomp[entrants].add(
+                        chip_ev,event,risk=risk,flush=flush,
+                        group=group,matchup=matchup,reason=reason)
                 ev_total += chip_ev
                 showdown_total += at_showdown
                 fold_win_total += bool(not at_showdown and chip_ev > 0)
@@ -357,6 +389,10 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
             progress(index + 1, len(selected_hands))
     if payload["hand"]:
         result["decomposition"] = decomposition.result() if decomposition else None
+        result["decomposition_by_opponents"] = (
+            _breakdowns_by_entrants(payload["hand"], per_entrant_decomp,
+                                    entry_counts, entry_ev_sum, entry_ev_sq)
+            if per_entrant_decomp is not None else None)
     total_entries = sum(entry_counts)
     result["entry_counts_pct"] = [round(100 * x / total_entries, 2)
                                    for x in entry_counts]
@@ -444,6 +480,8 @@ def _single_parallel(raw, progress, workers, batch_size=256):
     entry_ev_sq = [0.] * len(entry_counts)
     from planner_ev_decomposition import EVDecomposition
     decomposition = EVDecomposition(payload["hand"]) if not disabled else None
+    per_entrant_decomp = ([EVDecomposition(payload["hand"]) for _ in range(len(src) + 1)]
+                          if decomposition is not None else None)
     ev_total = ev_squared = eq_total = 0.
     accepted = showdown_total = fold_win_total = completed = 0
     result = {
@@ -503,6 +541,9 @@ def _single_parallel(raw, progress, workers, batch_size=256):
                     event, risk, flush, group, matchup, reason = classified
                     decomposition.add(net, event, risk=risk, flush=flush,
                                       group=group, matchup=matchup, reason=reason)
+                    per_entrant_decomp[entrants].add(
+                        net,event,risk=risk,flush=flush,
+                        group=group,matchup=matchup,reason=reason)
                 completed += 1
             if progress:
                 progress(completed, n)
@@ -512,6 +553,10 @@ def _single_parallel(raw, progress, workers, batch_size=256):
     result["showdown_pct"][hand] = round(100 * showdown_total / n, 2) if not disabled else None
     result["fold_win_pct"][hand] = round(100 * fold_win_total / n, 2) if not disabled else None
     result["decomposition"] = decomposition.result() if decomposition else None
+    result["decomposition_by_opponents"] = (
+        _breakdowns_by_entrants(hand, per_entrant_decomp, entry_counts,
+                                entry_ev_sum, entry_ev_sq)
+        if per_entrant_decomp is not None else None)
     result["ev_ci95_bb"] = (
         {hand: round(1.96 * math.sqrt(max(
             0., (ev_squared - ev_total**2 / n) / (n - 1)) / n), 4)}

@@ -195,6 +195,68 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertEqual(result["loss_exposures"][1]["cost_bb"],.5)
         self.assertAlmostEqual(sum(x["frequency_pct"] for x in result["events"]),100)
 
+
+    def test_conditional_ev_breakdown_reconciles_by_number_of_opponents(self):
+        q = {
+            "model": "selected", "hand": "K4s", "trials": 90, "cycles": 1,
+            "hero_postflop": "gto2", "hero_position": "3", "hero_stack_bb": 20,
+            "opponents": [
+                {"profile": "builtin:a17_v5", "position": position,
+                 "scenario": "rfi", "players": 9, "selector": "active",
+                 "entry_mode": "range", "entry_pct": 100, "postflop": "lag"}
+                for position in ("9", "8")
+            ],
+        }
+        output = ev.calculate(q)
+        buckets = output["decomposition_by_opponents"]
+        self.assertEqual(len(buckets), 3)
+        self.assertEqual([item["opponents"] for item in buckets], [0, 1, 2])
+        self.assertEqual(sum(item["samples"] for item in buckets), 90)
+        self.assertEqual([item["samples"] for item in buckets],
+                         output["entry_n_samples"])
+        self.assertAlmostEqual(sum(item["frequency_pct"] for item in buckets),
+                               100, delta=0.03)
+        overall_ev = output["decomposition"]["ev_bb"]
+        mean_by_bucket = sum(item["samples"] * (item["ev_bb"] or 0)
+                             for item in buckets) / 90
+        self.assertAlmostEqual(overall_ev, mean_by_bucket, delta=0.0002)
+        for item in buckets:
+            breakdown = item["decomposition"]
+            if not item["samples"]:
+                self.assertIsNone(breakdown)
+                self.assertIsNone(item["ev_bb"])
+                self.assertIsNone(item["ev_ci95_bb"])
+                continue
+            self.assertEqual(breakdown["samples"], item["samples"])
+            self.assertAlmostEqual(breakdown["ev_bb"], item["ev_bb"])
+            self.assertEqual(sum(group["count"] for group in
+                                 breakdown["outcome_groups"]), item["samples"])
+            self.assertAlmostEqual(
+                sum(group["contribution_bb"] for group in
+                    breakdown["outcome_groups"]), item["ev_bb"], delta=0.0002)
+
+    def test_zero_opponents_bucket_and_empty_group_are_explicit(self):
+        q = {
+            "model": "selected", "hand": "T6s", "trials": 50, "cycles": 1,
+            "hero_postflop": "gto2", "hero_position": "3", "hero_stack_bb": 20,
+            "opponents": [{
+                "profile": "builtin:any_two", "position": "9",
+                "scenario": "rfi", "players": 9, "selector": "active",
+                "entry_mode": "never", "entry_pct": 0, "postflop": "lag"
+            }],
+        }
+        out = ev.calculate(q)
+        no_opponent, one_opponent = out["decomposition_by_opponents"]
+        self.assertEqual(no_opponent["samples"], 50)
+        self.assertAlmostEqual(no_opponent["ev_bb"], 1.5)
+        self.assertAlmostEqual(no_opponent["frequency_pct"], 100.)
+        self.assertAlmostEqual(no_opponent["ev_ci95_bb"], 0.)
+        self.assertEqual(one_opponent["samples"], 0)
+        self.assertIsNone(one_opponent["decomposition"])
+        self.assertIsNone(one_opponent["ev_bb"])
+        self.assertEqual(no_opponent["decomposition"]["samples"], 50)
+        self.assertEqual(out["ev_bb"]["T6s"], 1.5)
+
     def test_full_engine_selected_hand_detailed_output_reconciles_to_ev(self):
         q={
             "model":"selected","hand":"K4s","trials":75,"cycles":1,
