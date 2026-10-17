@@ -27,11 +27,11 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             # P0: combinations where the formerly generic class lost vital draw equity.
             ("9s 8s", "7s-6s-2", "F-FDOESD"),
             ("14s 13s", "12s-11s-2", "F-FDGS"),
-            ("9s 8s", "9-7s-6s", "F-PFDOESD"),
-            ("10s 7s", "10-9s-6s", "F-PFDGS"),
+            ("9s 8s", "9-7s-6s", "F-TPFDOESD"),
+            ("10s 7s", "10-9s-6s", "F-TPFDGS"),
             ("9 8", "9-7-6", "F-TPOESD"),
-            ("8 7", "9-8-6", "F-POESD"),
-            ("10 7", "10-9-6", "F-PGS"),
+            ("8 7", "9-8-6", "F-MPOESD"),
+            ("10 7", "10-9-6", "F-TPGS"),
             ("14s 13s", "10s-7s-2", "F-OCFD"),
             ("14s 12", "10s-7s-2s", "F-1CFD"),
             ("14 13", "12-11-2", "F-OCGS"),
@@ -60,6 +60,40 @@ class NumericPostflopClassifierTests(unittest.TestCase):
                 self.assertEqual(result["scenario"]["id"], code)
                 self.assertEqual(set(result), {"scenario", "hole", "board"})
                 self.assertEqual(set(result["scenario"]), {"id", "name", "street"})
+
+    def test_pair_draw_subclasses_do_not_collapse_made_hand_strength(self):
+        scenarios = [
+            ("9s 8s", "9-7s-6s", "F-TPFDOESD"),
+            ("10s 7s", "10-9s-6s", "F-TPFDGS"),
+            ("9s 8s", "10s-9-7s", "F-MPFDOESD"),
+            ("8s 7s", "10s-9s-8", "F-BPFDOESD"),
+            ("9s 7s", "10s-9-6s", "F-MPFDGS"),
+            ("7s 6s", "10s-9s-7", "F-BPFDGS"),
+            ("9 8", "9-7-6", "F-TPOESD"),
+            ("9 8", "10-9-7", "F-MPOESD"),
+            ("8 7", "10-9-8", "F-BPOESD"),
+            ("10 7", "10-9-6", "F-TPGS"),
+            ("9 7", "10-9-6", "F-MPGS"),
+            ("7 6", "10-9-7", "F-BPGS"),
+            ("10s 10", "9s-7s-2s", "F-OP1CFD"),
+            ("88", "7-6-5", "F-OPOESD"),
+            ("88", "7-6-4", "F-OPGS"),
+            ("8s 8", "7s-6s-5s", "F-OP1CFDOESD"),
+            ("7s 7", "10s-9s-8s", "F-UP1CFDOESD"),
+            ("77", "10-8-6", "F-PMIDGS"),
+            ("9s 8s", "9-7s-6s-2", "T-TPFDOESD"),
+            # River: failed FD is no longer a live draw. If a pair exists,
+            # classify that made pair rather than return FDOESD/FD.
+            ("9s 8s", "9-7s-6s-2-3", "R-TP"),
+        ]
+        for hero, board, wanted in scenarios:
+            with self.subTest(hero=hero, board=board):
+                self.assertEqual(classify_numeric(hero, board)["scenario"]["id"], wanted)
+        self.assertEqual(
+            [classify_numeric("9s 8s", b)["scenario"]["id"] for b in
+             ("9-7s-6s", "9-7s-6s-2", "9-7s-6s-2-3")],
+            ["F-TPFDOESD", "T-TPFDOESD", "R-TP"],
+        )
 
     def test_rank_validation_and_duplicate_physical_card(self):
         for hand, board in [
@@ -124,7 +158,7 @@ class NumericPostflopClassifierTests(unittest.TestCase):
         start = html.index("const rows=[") + len("const rows=[")
         end = html.index("\n];", start)
         entries = ast.literal_eval("[" + html[start:end] + "]")
-        self.assertGreaterEqual(len(entries), 80)
+        self.assertGreaterEqual(len(entries), 100)
         streets = {"Флоп": 0, "Тёрн": 0, "Ривер": 0}
         seen = set()
         for street, hole, board, title, expected in entries:
@@ -135,7 +169,7 @@ class NumericPostflopClassifierTests(unittest.TestCase):
                 self.assertNotIn((street, expected), seen)
                 seen.add((street, expected))
                 streets[street] += 1
-        self.assertGreaterEqual(streets["Флоп"], 40)
+        self.assertGreaterEqual(streets["Флоп"], 60)
         self.assertGreaterEqual(streets["Тёрн"], 15)
         self.assertGreaterEqual(streets["Ривер"], 15)
 

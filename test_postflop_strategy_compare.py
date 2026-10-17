@@ -49,7 +49,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
         start = text.index("const rows=[") + len("const rows=[")
         end = text.index("\n];", start)
         examples = ast.literal_eval("[" + text[start:end] + "]")
-        self.assertGreaterEqual(len(examples), 80)
+        self.assertGreaterEqual(len(examples), 100)
         for street, hole, board, title, code in examples:
             with self.subTest(scenario=code):
                 variations = _physical_variants(hole, board, code)
@@ -105,7 +105,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
                 data = {**basic,"context": {**basic["context"],**changes}}
                 with self.assertRaises(ValueError):
                     compare_request(data)
-        too_many = request_for([{"hole":"14 12","board":"14-7-2"}] * 101)
+        too_many = request_for([{"hole":"14 12","board":"14-7-2"}] * 126)
         with self.assertRaises(ValueError):
             compare_request(too_many)
 
