@@ -558,7 +558,7 @@ def calculate_parallel(raw, progress=None, workers=1, chunk_size=8):
         raise ValueError("Число процессов Monte Carlo: 1–8")
     if payload["hand"]:
         return (_single_parallel(payload, progress, workers)
-                if workers > 1 and payload["trials"] * payload["cycles"] >= 512
+                if workers > 1 and payload["trials"] * payload["cycles"] >= 2000
                 else calculate(payload, progress=progress))
     if workers == 1:
         return calculate(payload, progress=progress)
