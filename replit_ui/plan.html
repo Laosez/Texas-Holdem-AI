@@ -695,6 +695,23 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .plannerOpponentsPanel .simStackControl{display:flex;align-items:center;gap:8px;font-size:11px;color:#b9d0e5;font-weight:650;white-space:nowrap}
 .plannerOpponentsPanel .simStackControl select{width:108px;min-width:108px;font-size:12px;font-weight:750;padding:6px 8px}
 @media(max-width:550px){.plannerOpponentsPanel .simStackControl{width:100%;justify-content:space-between}}
+
+.handDecompHeader>.handDecompABSelectors{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;width:100%;max-width:none;flex:none}
+.handDecompABSelectors .field{min-width:0}
+.handDecompABSelectors select{width:100%;min-width:0;font-size:12px;font-weight:650}
+.handDecompHeader{display:block}
+.handDecompControls{align-items:flex-start;margin-top:10px}
+.handDecompControls .small{max-width:none;text-align:left}
+.handDecompStats .decompPairHeadline{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-top:6px}
+.handDecompStats .decompPairHeadline strong:nth-child(2){color:#9dcaf4}
+.handDecompStats .decompPairHeadline strong:nth-child(3){color:#9fdbb5}
+.handDecompRows .handDecompTable{min-width:900px}
+.handDecompRows .handDecompTable th:not(:first-child){white-space:nowrap}
+.handDecompRows .handDecompTable tr td:nth-child(even){background:rgba(128,172,212,.035)}
+.handDecompRows .evLedgerABHeader{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+.handDecompRows .evLedgerABTag{color:#b7d5f2;font-size:12px;font-weight:700}
+@media(max-width:1140px){.handDecompABSelectors{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:610px){.handDecompABSelectors{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -835,35 +852,46 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 <section class="panel handEVBreakdown" id="handEVBreakdown">
  <div class="heading"><h2><span class="index">05 / </span>Декомпозиция выбранной руки</h2><span id="handDecompTag" class="badge">AQs · не рассчитано</span></div>
  <div class="handDecompHeader">
-  <div><span class="small">Выбранная рука</span><div id="handDecompName" class="bigHand">AQs</div>
+   <div class="handDecompABSelectors">
+     <div class="field"><label for="handDecompHandA">Рука A</label><select id="handDecompHandA" aria-label="Стартовая рука A"></select></div>
+     <div class="field"><label for="handDecompHandB">Рука B</label><select id="handDecompHandB" aria-label="Стартовая рука B"></select></div>
+     <div class="field"><label for="handDecompProfileA">Стратегия A</label><select id="handDecompProfileA" aria-label="Постфлоп-стратегия A"></select></div>
+     <div class="field"><label for="handDecompProfileB">Стратегия B</label><select id="handDecompProfileB" aria-label="Постфлоп-стратегия B"></select></div>
+     <div class="field handDecompEntrantsPicker"><label for="handDecompOpponentCount">Число соперников</label>
+       <select id="handDecompOpponentCount" aria-label="Число вошедших соперников в A/B-отчёте">
+         <option value="all">Все сценарии · 0–8 соп.</option>
+         <option value="0">0 · без соперников</option>
+         <option value="1">1 · HU</option>
+         <option value="2">2 · мультипот</option>
+         <option value="3">3 · мультипот</option>
+         <option value="4">4 · мультипот</option>
+         <option value="5">5 · мультипот</option>
+         <option value="6">6 · мультипот</option>
+         <option value="7">7 · мультипот</option>
+         <option value="8">8 · мультипот</option>
+       </select>
+     </div>
+     <div class="field"><label for="handDecompReportMode">Форма отчёта</label>
+       <select id="handDecompReportMode" aria-label="Форма A/B отчёта">
+         <option value="bdr">1 · БДР</option><option value="balance">3 · Баланс EV</option>
+       </select>
+     </div>
    </div>
-  <div class="handDecompControls">
-   <div class="field handDecompEntrantsPicker"><label for="handDecompOpponentCount">Число вошедших соперников</label>
-    <select id="handDecompOpponentCount" aria-label="Декомпозиция EV по числу вошедших соперников">
-     <option value="all">Все сценарии · 0–8 соп.</option>
-     <option value="0">0 · без соперников</option>
-     <option value="1">1 · хедз-ап</option>
-     <option value="2">2 · мультипот 3 участника</option>
-     <option value="3">3 · мультипот 4 участника</option>
-     <option value="4">4 · мультипот 5 участников</option>
-     <option value="5">5 · мультипот 6 участников</option>
-     <option value="6">6 · мультипот 7 участников</option>
-     <option value="7">7 · мультипот 8 участников</option>
-     <option value="8">8 · мультипот 9 участников</option>
-    </select>
-   </div>
-   <span id="handDecompStatus" class="small" role="status">Нажми на руку на матрице — декомпозиция рассчитается автоматически.</span>
-  </div>
+   <div class="handDecompControls"><span id="handDecompStatus" class="small" role="status">Выбери руки и стратегии A/B. Monte Carlo рассчитает обе.</span></div>
  </div>
  <div class="matrixMetrics handDecompStats">
-  <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
-  <div class="matrixMetric decompWorstLoss"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small id="handDecompCostLabel">BB/раздачу · наблюдаемый убыток</small></div>
-  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>N из блока 02 · все исходы, включая фолды</small></div>
+  <div class="matrixMetric"><span>EV · A / B / Δ(B−A)</span>
+   <div class="decompPairHeadline"><strong id="handDecompEV">—</strong><strong id="handDecompEVB">—</strong><strong id="handDecompDelta">—</strong></div><small>BB/раздачу · значения по выбранному N соперников</small></div>
+  <div class="matrixMetric decompWorstLoss"><span>Самая дорогая потеря · A / B</span>
+   <div class="decompPairHeadline"><strong id="handDecompCost">—</strong><strong id="handDecompCostB">—</strong></div>
+   <small id="handDecompCostLabel">Отдельная причина потерь для A и B</small></div>
+  <div class="matrixMetric"><span>Выборка · A / B</span>
+   <div class="decompPairHeadline"><strong id="handDecompSamples">—</strong><strong id="handDecompSamplesB">—</strong></div>
+   <small>N из общего числа прогонов каждой линии</small></div>
  </div>
- <p id="handDecompStratumInfo" class="note" role="status">Все сценарии: полный EV руки. При выборе N соперников расчёт не запускается повторно.</p>
- <div id="handDecompRows" class="handDecompRows"><p class="note">Выбери руку на матрице для автоматического расчёта источников EV.</p></div>
-
- <p class="note handDecompCaveat">EV — BB на раздачу. Фильтр N показывает условный средний EV только среди раздач с N вошедшими соперниками; это не вклад в общий EV. 0 соперников — выигрыш блайндов без постфлопа. Доминирование — более сильная комбинация того же типа на вскрытии. Не ICM.</p>
+ <p id="handDecompStratumInfo" class="note" role="status">A/B: общий стек, состав и диапазоны соперников. Число соперников фильтруется без повторного расчёта.</p>
+ <div id="handDecompRows" class="handDecompRows"><p class="note">Бухгалтерский отчёт A/B появится после Monte Carlo.</p></div>
+ <p class="note handDecompCaveat">В каждом столбце значения A и B относятся к своим рукам и стратегиям. ΔEV = B − A. При разных руках ΔEV сравнивает два сценария целиком, а не изолированный эффект стратегии. При фильтре N EV условный, только среди раздач с N соперниками. Без ICM, не GTO-солвер.</p>
 </section>
 
 </main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
@@ -1305,7 +1333,7 @@ function removeOpponent(index){
  $('viewOpponent').value=String(nextIndex);
  invalidateEquity();loadVillain();
 }
-function invalidateEquity(){handDecompResult=null;handDecompByOpponents=null;handDecompSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};matrixContextKey='';handWritebacks.clear();drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
+function invalidateEquity(){handDecompResult=null;handDecompByOpponents=null;handDecompSignature='';handDecompBResult=null;handDecompBByOpponents=null;handDecompBSignature='';autoDecompKey='';calcEpoch++;comparisonEpoch++;huComparisonRevision++;huComparisonHand='';perOpponentData=[];equityResults={filter:null,actual:null,any:null};matrixContextKey='';handWritebacks.clear();drawEquityStats();drawMatrices();refreshComparison();renderEntryDistribution()}
 function updateOppCount(){renderOpponents();invalidateEquity();loadVillain()}
 async function loadVillain(){
  if(!meta)return;
@@ -2269,12 +2297,28 @@ function renderPerOpponent(){
 // Detailed outcome telemetry: one selected hand, recomputed on selection.
 // The main matrix (169 classes) keeps its own independent result.
 let handDecompResult=null,handDecompByOpponents=null,handDecompSignature='',computingHandDecomp=false;
+let handDecompBResult=null,handDecompBByOpponents=null,handDecompBSignature='';
 let autoDecompKey='',autoDecompTimer=null,autoDecompPending=false;
 let activeDecompGroup=null, activeDecompSignature='';
 const decompFormat=v=>Number.isFinite(v)?(v>0?'+':'')+Number(v).toFixed(3):'—';
+function decompSideRequest(side){
+ const hand=side==='a'?selected:($('handDecompHandB').value||selected);
+ const profile=$('handDecompProfile'+side.toUpperCase()).value||$('heroPostflop').value;
+ return postflopRequest({hand,hero_postflop:profile});
+}
+function decompSideSignature(side){return JSON.stringify(decompSideRequest(side))}
 function decompRequestSignature(){
  if(!hero)return '';
- return JSON.stringify(postflopRequest({hand:selected}));
+ return JSON.stringify([decompSideSignature('a'),decompSideSignature('b')]);
+}
+function populateDecompSelectors(){
+ const hands=HANDS.map(hand=>({value:hand,label:hand}));
+ refill($('handDecompHandA'),hands,selected);
+ refill($('handDecompHandB'),hands,selected);
+ const profiles=POSTFLOP_OPTIONS.filter(profile=>profile.value!=='none');
+ const current=profiles.some(p=>p.value===$('heroPostflop').value)?$('heroPostflop').value:'gto2';
+ refill($('handDecompProfileA'),profiles,current);
+ refill($('handDecompProfileB'),profiles,current==='gto3'?'gto2':'gto3');
 }
 const DECOMP_LABELS={
  pre_win:'До вскрытия +',
@@ -2356,14 +2400,7 @@ function makeEvLedger(columns){
 }
 function ledgerControls(root){
  const bar=el('div','evLedgerToolbar');
- const title=el('span','small','Формат отчёта');
- bar.append(title);
- for(const [value,label] of [['bdr','1 · БДР'],['balance','3 · Баланс EV']]){
-  const button=el('button','evLedgerMode'+(decompReportMode===value?' isActive':''),label);
-  button.type='button';button.setAttribute('aria-pressed',String(decompReportMode===value));
-  button.onclick=()=>{decompReportMode=value;renderHandDecomposition()};
-  bar.append(button);
- }
+ bar.append(el('span','small','Порядок причин'));
  const sort=el('select','evLedgerSort');
  sort.setAttribute('aria-label','Сортировка причин внутри бухгалтерского отчёта');
  refill(sort,[{value:'count',label:'Детали: по частоте'},
@@ -2466,44 +2503,201 @@ function renderBalanceLedger(root,data){
    evLedgerFormat(data.ev_bb)],'evLedgerTotal');
  root.append(registry.table);
 }
+
+/* Shared A/B ledger: every numeric measure is adjacent A/B, with one EV delta.
+   The same two accounting formats and mutually exclusive groups are retained. */
+const abNumber=(data,v)=>!data?'—':(Number(v)||0).toLocaleString('ru-RU');
+const abEv=(data,v)=>data?evLedgerFormat(v):'—';
+const abAvg=(data,count,contribution)=>!data||!count?'—':evLedgerFormat(contribution*data.samples/count);
+const abPercent=(data,count)=>data?ledgerSamplePct(count,data.samples):'—';
+const abDelta=(a,b,va,vb)=>a&&b?evLedgerFormat((Number(vb)||0)-(Number(va)||0)):'—';
+const abGroups=data=>new Map((data?.outcome_groups||[]).map(g=>[g.key,g]));
+function abReasonRows(gA,gB){
+ const mixed=new Map();
+ for(const item of [...(gA?.reasons||[]),...(gB?.reasons||[])]){
+  if(!mixed.has(item.key))mixed.set(item.key,{key:item.key,label:item.label});
+ }
+ const all=[...mixed.values()];
+ if(decompDetailOrder==='fixed')return all;
+ const rank=(key,name)=>Number((gA?.reasons||[]).find(r=>r.key===key)?.[name]||0)+
+  Number((gB?.reasons||[]).find(r=>r.key===key)?.[name]||0);
+ if(decompDetailOrder==='count')all.sort((a,b)=>rank(b.key,'count')-rank(a.key,'count'));
+ if(decompDetailOrder==='abs_ev')all.sort((a,b)=>Math.abs(rank(b.key,'contribution_bb'))-Math.abs(rank(a.key,'contribution_bb')));
+ if(decompDetailOrder==='ev')all.sort((a,b)=>rank(a.key,'contribution_bb')-rank(b.key,'contribution_bb'));
+ return all;
+}
+function abBdrCells(a,b,counts,contributions){
+ const [ca,cb]=counts,[ea,eb]=contributions;
+ return [
+  abNumber(a,ca),abNumber(b,cb),
+  abPercent(a,ca),abPercent(b,cb),
+  abAvg(a,ca,ea),abAvg(b,cb,eb),
+  abEv(a,ea),abEv(b,eb),abDelta(a,b,ea,eb)
+ ];
+}
+function renderCompareBdrLedger(root,a,b){
+ const ledger=makeEvLedger(['Статья','N · A','N · B','% · A','% · B',
+   'Ср. BB · A','Ср. BB · B','EV · A','EV · B','ΔEV · B−A']);
+ const aMap=abGroups(a),bMap=abGroups(b);
+ for(const [positive,label] of [[true,'01 · ПРИБЫЛЬ'],[false,'02 · УБЫТКИ']]){
+  const countKey=positive?'positive_count':'negative_count';
+  const evKey=positive?'positive_ev_bb':'negative_ev_bb';
+  const ga=[...aMap.values()],gb=[...bMap.values()];
+  const sum=(items,key)=>items.reduce((total,row)=>total+(Number(row[key])||0),0);
+  decompRow(ledger.body,label,
+    abBdrCells(a,b,[sum(ga,countKey),sum(gb,countKey)],[sum(ga,evKey),sum(gb,evKey)]),
+    'evLedgerSection '+(positive?'evLedgerGain':'evLedgerLoss'));
+  for(const key of BALANCE_SECTIONS.flatMap(item=>item.keys)){
+   const left=aMap.get(key),right=bMap.get(key);
+   const nA=left?.[countKey]||0,nB=right?.[countKey]||0;
+   if(!nA&&!nB)continue;
+   decompRow(ledger.body,DECOMP_LABELS[key]||left?.label||right?.label||key,
+    abBdrCells(a,b,[nA,nB],[left?.[evKey]||0,right?.[evKey]||0]),
+    'evLedgerSub '+(positive?'evLedgerGain':'evLedgerLoss'),1);
+   const rA=new Map((left?.reasons||[]).map(r=>[r.key,r]));
+   const rB=new Map((right?.reasons||[]).map(r=>[r.key,r]));
+   for(const common of abReasonRows(left,right)){
+    const x=rA.get(common.key),y=rB.get(common.key);
+    const countA=x?.[countKey]||0,countB=y?.[countKey]||0;
+    if(!countA&&!countB)continue;
+    decompRow(ledger.body,common.label,
+     abBdrCells(a,b,[countA,countB],[x?.[evKey]||0,y?.[evKey]||0]),
+     'evLedgerDetail',2);
+   }
+  }
+ }
+ const neutralA=[...aMap.values()].reduce((n,r)=>n+(r.neutral_count||0),0);
+ const neutralB=[...bMap.values()].reduce((n,r)=>n+(r.neutral_count||0),0);
+ if(neutralA||neutralB)
+  decompRow(ledger.body,'03 · БЕЗ ИЗМЕНЕНИЯ',
+   abBdrCells(a,b,[neutralA,neutralB],[0,0]),'evLedgerSection');
+ const totalA=a?.ev_bb||0,totalB=b?.ev_bb||0;
+ decompRow(ledger.body,'ЧИСТЫЙ EV',
+  [abNumber(a,a?.samples),abNumber(b,b?.samples),
+   a?'100.0':'—',b?'100.0':'—','—','—',
+   abEv(a,totalA),abEv(b,totalB),abDelta(a,b,totalA,totalB)],
+  'evLedgerTotal');
+ root.append(ledger.table);
+}
+function abBalanceRow(a,b,ga,gb,usePercent=false){
+ const countA=ga?.count||0,countB=gb?.count||0;
+ const winA=ga?.win??ga?.positive_count??0,winB=gb?.win??gb?.positive_count??0;
+ const lossA=ga?.loss??ga?.negative_count??0,lossB=gb?.loss??gb?.negative_count??0;
+ const gainA=ga?.positive??ga?.positive_ev_bb??0;
+ const gainB=gb?.positive??gb?.positive_ev_bb??0;
+ const negA=ga?.negative??ga?.negative_ev_bb??0;
+ const negB=gb?.negative??gb?.negative_ev_bb??0;
+ const netA=gainA+negA,netB=gainB+negB;
+ return [
+  abNumber(a,countA),abNumber(b,countB),
+  ...(usePercent?[abPercent(a,countA),abPercent(b,countB)]:
+   [abNumber(a,winA),abNumber(b,winB),abNumber(a,lossA),abNumber(b,lossB)]),
+  abEv(a,gainA),abEv(b,gainB),abEv(a,negA),abEv(b,negB),
+  abEv(a,netA),abEv(b,netB),abDelta(a,b,netA,netB)
+ ];
+}
+function renderCompareBalanceLedger(root,a,b){
+ const groupsA=a?.outcome_groups||[],groupsB=b?.outcome_groups||[];
+ root.append(el('h4','evLedgerSubheading','Баланс'));
+ const top=makeEvLedger(['Механизм','N · A','N · B','N+ · A','N+ · B',
+   'N− · A','N− · B','EV+ · A','EV+ · B','EV− · A','EV− · B',
+   'ΔEV · A','ΔEV · B','Δ(B−A)']);
+ const keys=BALANCE_SECTIONS.flatMap(part=>part.keys);
+ for(const part of BALANCE_SECTIONS){
+  decompRow(top.body,part.label,abBalanceRow(a,b,
+   balanceSection(groupsA,part.keys),balanceSection(groupsB,part.keys)),
+   'evLedgerSection');
+ }
+ decompRow(top.body,'ИТОГО',abBalanceRow(a,b,
+  balanceSection(groupsA,keys),balanceSection(groupsB,keys)),'evLedgerTotal');
+ root.append(top.table);
+ root.append(el('h4','evLedgerSubheading','Реестр механизмов'));
+ const registry=makeEvLedger(['Статья','N · A','N · B','% · A','% · B',
+  'EV+ · A','EV+ · B','EV− · A','EV− · B','ΔEV · A','ΔEV · B','Δ(B−A)']);
+ const mapA=abGroups(a),mapB=abGroups(b);
+ for(const part of BALANCE_SECTIONS){
+  decompRow(registry.body,part.label,abBalanceRow(a,b,
+    balanceSection(groupsA,part.keys),balanceSection(groupsB,part.keys),true),
+    'evLedgerSection');
+  for(const key of part.keys){
+   const x=mapA.get(key),y=mapB.get(key);
+   if(!(x?.count||y?.count))continue;
+   decompRow(registry.body,DECOMP_LABELS[key]||x?.label||y?.label||key,
+     abBalanceRow(a,b,x,y,true),'evLedgerSub',1);
+   const rA=new Map((x?.reasons||[]).map(r=>[r.key,r]));
+   const rB=new Map((y?.reasons||[]).map(r=>[r.key,r]));
+   for(const joint of abReasonRows(x,y)){
+    const rx=rA.get(joint.key),ry=rB.get(joint.key);
+    decompRow(registry.body,joint.label,abBalanceRow(a,b,rx,ry,true),
+      'evLedgerDetail',2);
+   }
+  }
+ }
+ decompRow(registry.body,'ЧИСТЫЙ EV',abBalanceRow(a,b,
+  balanceSection(groupsA,keys),balanceSection(groupsB,keys),true),
+  'evLedgerTotal');
+ root.append(registry.table);
+}
+
+function selectedAbBreakdown(side,selection){
+ const current=side==='a'
+  ?{data:handDecompResult,buckets:handDecompByOpponents,signature:handDecompSignature}
+  :{data:handDecompBResult,buckets:handDecompBByOpponents,signature:handDecompBSignature};
+ const valid=Boolean(current.data&&current.data.hand===decompSideRequest(side).hand&&
+  current.signature===decompSideSignature(side));
+ const group=valid&&selection!=='all'
+  ?current.buckets?.find(item=>item.opponents===Number(selection)):null;
+ return {valid,data:valid?(selection==='all'?current.data:group?.decomposition||null):null,
+  samples:valid?(selection==='all'?current.data.samples:group?.samples??0):null,
+  proportion:group?.frequency_pct??null,
+  ci95:group?.ev_ci95_bb??null};
+}
 function renderHandDecomposition(){
  if(!hero)return;
- $('handDecompName').textContent=selected;
- const signature=decompRequestSignature();
- const valid=handDecompResult?.hand===selected && handDecompSignature===signature;
+ $('handDecompHandA').value=selected;
  const selection=$('handDecompOpponentCount').value;
- const stratum=valid&&selection!=='all'
-  ?handDecompByOpponents?.find(item=>item.opponents===Number(selection)):null;
- const data=valid?(selection==='all'?handDecompResult:stratum?.decomposition):null;
- const n=valid?(selection==='all'?handDecompResult.samples:(stratum?.samples??0)):null;
- const label=selection==='all'?'все сценарии':selection+' соп.';
- $('handDecompTag').textContent=selected+(n!==null?' · '+label+' · '+n+' раздач':' · расчёт');
- $('handDecompEV').textContent=data?decompFormat(data.ev_bb)+' BB':'—';
- const worst=data?.loss_exposures?.[0];
- $('handDecompCost').textContent=worst?decompFormat(-worst.cost_bb)+' BB':'—';
- $('handDecompCostLabel').textContent=worst?worst.label:'Убыток, BB/раздачу';
- $('handDecompSamples').textContent=n!==null?n.toLocaleString('ru-RU'):'—';
+ const left=selectedAbBreakdown('a',selection),right=selectedAbBreakdown('b',selection);
+ const a=left.data,b=right.data;
+ const aHand=selected,bHand=$('handDecompHandB').value||selected;
+ $('handDecompTag').textContent=aHand+' / '+bHand+' · A/B'+
+  (left.valid&&right.valid?' · рассчитано':' · расчёт');
+ $('handDecompEV').textContent=a?decompFormat(a.ev_bb)+' BB':'—';
+ $('handDecompEVB').textContent=b?decompFormat(b.ev_bb)+' BB':'—';
+ $('handDecompDelta').textContent=a&&b?decompFormat(b.ev_bb-a.ev_bb)+' BB':'—';
+ const worstA=a?.loss_exposures?.[0],worstB=b?.loss_exposures?.[0];
+ $('handDecompCost').textContent=worstA?decompFormat(-worstA.cost_bb)+' BB':'—';
+ $('handDecompCostB').textContent=worstB?decompFormat(-worstB.cost_bb)+' BB':'—';
+ $('handDecompCostLabel').textContent='A: '+(worstA?.label||'нет потерь')+
+  ' · B: '+(worstB?.label||'нет потерь');
+ $('handDecompSamples').textContent=left.samples!==null?left.samples.toLocaleString('ru-RU'):'—';
+ $('handDecompSamplesB').textContent=right.samples!==null?right.samples.toLocaleString('ru-RU'):'—';
  const info=$('handDecompStratumInfo');
- if(!valid)info.textContent='Ожидается расчёт выбранной руки. Переключение N не запускает новый Monte Carlo.';
- else if(selection==='all')info.textContent='Все '+handDecompResult.samples+
-  ' симуляций · EV усреднён по всем сценариям входа, включая 0 соперников.';
- else info.textContent=selection+' соперников · '+n+' из '+handDecompResult.samples+
-  ' раздач ('+(stratum?.frequency_pct??0).toFixed(2)+'%) · '+
-  (n===0?'В этой выборке исходов нет.':
-   'EV условный, среди этих раздач'+(Number.isFinite(stratum?.ev_ci95_bb)
-     ?' · 95% ±'+stratum.ev_ci95_bb.toFixed(3)+' BB':' · 95% CI недоступен при N < 2')+'.');
+ const prefix=aHand===bHand?'Одна рука, две стратегии':'Разные стартовые руки и стратегии';
+ const formatStratum=(x,tag)=>tag+': '+
+  (x.samples===null?'ожидается расчёт':x.samples.toLocaleString('ru-RU')+' раздач'+
+   (selection!=='all'?' ('+(x.proportion??0).toFixed(2)+'%)':'')+
+   (Number.isFinite(x.ci95)?' · 95% ±'+x.ci95.toFixed(3)+' BB':''));
+ info.textContent=prefix+' · '+(selection==='all'?'все сценарии':selection+' соп.')+
+  ' · '+formatStratum(left,'A')+'; '+formatStratum(right,'B')+
+  '. Δ = B − A. Изменение N не запускает новый Monte Carlo.';
  const root=$('handDecompRows');root.replaceChildren();
  ledgerControls(root);
- if(!data){
-  root.append(el('p','handDecompEmpty',valid?'Нет исходов с выбранным числом соперников. Увеличь число симуляций или измени вероятности входа.':'Расчёт выбранной руки…'));
+ if(!a&&!b){
+  root.append(el('p','handDecompEmpty',
+   left.valid&&right.valid?'В выбранном мультипоте нет раздач ни для A, ни для B.':
+   'Ожидается A/B Monte Carlo…'));
   return;
  }
- if(decompReportMode==='bdr')renderBdrLedger(root,data);
- else renderBalanceLedger(root,data);
- const note=el('p','evLedgerFootnote','Все строки раскрыты · N = '+data.samples+
-   (selection==='all'?' · общая выборка':' · условная выборка ('+selection+' соп.)')+
-   ' · EV учитывает исходы раздач, не ICM. Группы и детали не складываются повторно.');
- root.append(note);
+ const heading=el('div','evLedgerABHeader');
+ heading.append(el('span','evLedgerABTag','A · '+aHand+' / '+postflopName($('handDecompProfileA').value)));
+ heading.append(el('span','evLedgerABTag','B · '+bHand+' / '+postflopName($('handDecompProfileB').value)));
+ root.append(heading);
+ if(decompReportMode==='bdr')renderCompareBdrLedger(root,a,b);
+ else renderCompareBalanceLedger(root,a,b);
+ root.append(el('p','evLedgerFootnote','Каждая пара колонок — A/B для одной метрики; ΔEV = B − A.'+
+  ' N · A/B — фактические размеры выборок.'+
+  (selection==='all'?'':' Выбран условный EV при '+selection+' соперниках.')+
+  ' При разных руках ΔEV не изолирует влияние стратегии. Без ICM.'));
 }
 function scheduleHandDecomposition(){
  if(!hero)return;
@@ -2519,48 +2713,67 @@ function scheduleHandDecomposition(){
 }
 async function calculateHandDecomposition(){
  if(computingHandDecomp||!hero)return;
- const epoch=calcEpoch,hand=selected;
- const settings=postflopRequest({hand});
- const signature=JSON.stringify(settings);
+ const epoch=calcEpoch,requestSignature=decompRequestSignature();
  computingHandDecomp=true;
- $('handDecompStatus').textContent='Monte Carlo для '+hand+' · '+settings.trials.toLocaleString('ru-RU')+' симуляций…';
  try{
-  const output=await pollPostflop(settings,epoch,task=>{
-   if(signature===decompRequestSignature()){
+  for(const side of ['a','b']){
+   if(epoch!==calcEpoch||requestSignature!==decompRequestSignature())return;
+   const settings=decompSideRequest(side);
+   const signature=JSON.stringify(settings),hand=settings.hand;
+   const known=side==='a'
+     ?handDecompResult?.hand===hand&&handDecompSignature===signature
+     :handDecompBResult?.hand===hand&&handDecompBSignature===signature;
+   if(known)continue;
+   if(side==='b'&&handDecompResult?.hand===hand&&handDecompSignature===signature){
+    handDecompBResult=handDecompResult;
+    handDecompBByOpponents=handDecompByOpponents;
+    handDecompBSignature=signature;
+    renderHandDecomposition();
+    continue;
+   }
+   $('handDecompStatus').textContent='Monte Carlo '+side.toUpperCase()+' · '+hand+
+    ' / '+postflopName(settings.hero_postflop)+' · '+
+    settings.trials.toLocaleString('ru-RU')+' прогонов…';
+   const output=await pollPostflop(settings,epoch,task=>{
+    if(requestSignature!==decompRequestSignature())return;
     const total=Number(task.total)||settings.trials;
     const done=Number(task.done)||0;
-    $('handDecompStatus').textContent=task.status==='queued'
-     ?'Расчёт '+hand+' · в очереди на CPU'
-     :'Расчёт '+hand+' · '+done.toLocaleString('ru-RU')
-       +' / '+total.toLocaleString('ru-RU')+' симуляций';
+    $('handDecompStatus').textContent='Расчёт '+side.toUpperCase()+' · '+hand+' · '+
+     (task.status==='queued'?'очередь':done.toLocaleString('ru-RU')+
+      ' / '+total.toLocaleString('ru-RU'));
+   });
+   if(!output||epoch!==calcEpoch||requestSignature!==decompRequestSignature())return;
+   if(side==='a'){
+    handDecompResult=output.decomposition||null;
+    handDecompByOpponents=Array.isArray(output.decomposition_by_opponents)
+     ?output.decomposition_by_opponents:null;
+    handDecompSignature=signature;
+    // Only the selected hand with the primary HERO policy belongs in the
+    // primary 169-hand matrix. Alternate A/B strategies stay isolated.
+    if(hand===selected&&settings.hero_postflop===$('heroPostflop').value)
+     acceptSingleHandMatrixResult(hand,output,settings);
+   }else{
+    handDecompBResult=output.decomposition||null;
+    handDecompBByOpponents=Array.isArray(output.decomposition_by_opponents)
+     ?output.decomposition_by_opponents:null;
+    handDecompBSignature=signature;
    }
-  });
-  if(!output||epoch!==calcEpoch||signature!==decompRequestSignature())return;
-  acceptSingleHandMatrixResult(hand,output,settings);
-  if(!output.decomposition){
-   handDecompResult=null;handDecompByOpponents=null;
-   $('handDecompStatus').textContent='EV отключён: выбери постфлоп-профили для активных игроков.';
-  }else{
-   handDecompResult=output.decomposition;
-   handDecompByOpponents=Array.isArray(output.decomposition_by_opponents)
-    ?output.decomposition_by_opponents:null;
-   handDecompSignature=signature;
-   const ci=output.ev_ci95_bb?.[hand];
-   $('handDecompStatus').textContent='Готово · '+hand+' · '+output.decomposition.samples
-    +' симуляций · '+postflopName($('heroPostflop').value)
-    +(Number.isFinite(ci)?' · EV 95% ±'+ci.toFixed(3)+' BB':'')
-    +(Number.isFinite(output.compute_seconds)?' · '+output.compute_seconds.toFixed(1)+' с':'');
+   renderHandDecomposition();
   }
-  renderHandDecomposition();
+  if(epoch===calcEpoch&&requestSignature===decompRequestSignature())
+   $('handDecompStatus').textContent='Готово · A/B · '+
+    selected+' / '+($('handDecompHandB').value||selected)+
+    ' · '+postflopName($('handDecompProfileA').value)+' / '+
+    postflopName($('handDecompProfileB').value)+
+    ' · '+Number($('trials').value).toLocaleString('ru-RU')+' прогонов на линию';
  }catch(e){
-  if(signature===decompRequestSignature())
-   $('handDecompStatus').textContent='Ошибка расчёта '+hand+': '+e.message;
+  if(requestSignature===decompRequestSignature())
+   $('handDecompStatus').textContent='Ошибка A/B Monte Carlo: '+e.message;
  }finally{
   computingHandDecomp=false;
-  if(autoDecompPending||autoDecompKey!==signature){
+  if(autoDecompPending||autoDecompKey!==requestSignature){
    autoDecompPending=false;
-   if(autoDecompKey===decompRequestSignature()&&autoDecompKey!==handDecompSignature)
-    void calculateHandDecomposition();
+   if(autoDecompKey===decompRequestSignature())void calculateHandDecomposition();
   }
  }
 }
@@ -2774,6 +2987,7 @@ async function connect(){
   if(POSTFLOP_OPTIONS.some(x=>x.value===storedLine))$('heroPostflop').value=storedLine;
   else $('heroPostflop').value='gto2'; // V2 stays default; prior choices persist.
   refreshHeroPostflopChoice();
+  populateDecompSelectors();
   const previousStack=localStorage.getItem('skachkov_plan_sim_stack_bb');
   if([...$('simStack').options].some(o=>o.value===previousStack))$('simStack').value=previousStack;
   const lastPlan=localStorage.getItem('skachkov_last_plan_profile');
@@ -2800,6 +3014,9 @@ $('pasteMatrix').onclick=pasteMatrixSettings;
 $('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);invalidateEquity();loadHero()};
 $('heroPostflop').onchange=()=>{
  localStorage.setItem('skachkov_hero_postflop',$('heroPostflop').value);
+ if($('handDecompProfileA').options.length &&
+    [...$('handDecompProfileA').options].some(o=>o.value===$('heroPostflop').value))
+  $('handDecompProfileA').value=$('heroPostflop').value;
  refreshHeroPostflopChoice();
  invalidateEquity();
 };
@@ -2826,6 +3043,17 @@ $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
 
 $('handDecompOpponentCount').onchange=renderHandDecomposition;
+$('handDecompHandA').onchange=()=>{
+ selected=$('handDecompHandA').value;
+ if(hero){drawBoxes();drawMatrices();paintEditor();updateBrushControls()}
+};
+$('handDecompHandB').onchange=()=>{renderHandDecomposition();scheduleHandDecomposition()};
+$('handDecompProfileA').onchange=()=>{renderHandDecomposition();scheduleHandDecomposition()};
+$('handDecompProfileB').onchange=()=>{renderHandDecomposition();scheduleHandDecomposition()};
+$('handDecompReportMode').onchange=()=>{
+ decompReportMode=$('handDecompReportMode').value;
+ renderHandDecomposition();
+};
 $('trials').onchange=()=>{
 
  // Preserve the last 169-hand matrix and its recorded sample size while

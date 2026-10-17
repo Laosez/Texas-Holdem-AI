@@ -128,12 +128,19 @@ class PlanEVWorkflowTests(unittest.TestCase):
             "1 · БДР", "3 · Баланс EV",
             "function renderBdrLedger(root,data){",
             "function renderBalanceLedger(root,data){",
+            "function renderCompareBdrLedger(root,a,b){",
+            "function renderCompareBalanceLedger(root,a,b){",
+            "const a=left.data,b=right.data;",
+            "if(decompReportMode==='bdr')renderCompareBdrLedger(root,a,b);",
+            "renderCompareBalanceLedger(root,a,b);",
+            "abDelta(a,b,ea,eb)",
+            "function selectedAbBreakdown(side,selection){",
             "ledgerControls(root);",
             "decompReportMode==='bdr'",
             'id="handDecompOpponentCount"',
             'id="handDecompStratumInfo"',
             "handDecompByOpponents=Array.isArray(output.decomposition_by_opponents)",
-            "const stratum=valid&&selection!=='all'",
+            "const group=valid&&selection!=='all'",
             "function renderHandDecomposition(){",
             "for(const r of ledgerReasonOrder(g.reasons||[]))",
             "for(const part of BALANCE_SECTIONS)",
@@ -149,6 +156,16 @@ class PlanEVWorkflowTests(unittest.TestCase):
             "id=\"addOpponent\" class=\"btn sm hidden\"",
         ):
             self.assertIn(needle,page)
+        for control in ("handDecompHandA","handDecompHandB","handDecompProfileA",
+                        "handDecompProfileB","handDecompReportMode","handDecompOpponentCount"):
+            self.assertIn('id="'+control+'"',page)
+        for number in ("handDecompEVB","handDecompDelta","handDecompCostB","handDecompSamplesB"):
+            self.assertIn('id="'+number+'"',page)
+        self.assertIn("populateDecompSelectors();",page)
+        self.assertIn("const hand=side==='a'?selected:",page)
+        self.assertIn("settings.hero_postflop===$('heroPostflop').value",page)
+        self.assertIn("if(side==='b'&&handDecompResult?.hand===hand",page)
+        self.assertNotIn("if(decompReportMode==='bdr')renderBdrLedger(root,data)",page)
         self.assertNotIn("activeDecompGroup=opened?null:group.key",page)
         self.assertNotIn("decompOneDetail",page[page.index("function renderHandDecomposition(){"):])
         self.assertIn("«0%» исключает место",page)

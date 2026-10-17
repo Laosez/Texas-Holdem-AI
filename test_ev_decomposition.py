@@ -361,6 +361,11 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertIn("let decompReportMode='bdr';",s)
         self.assertIn("function renderBdrLedger(root,data)",s)
         self.assertIn("function renderBalanceLedger(root,data)",s)
+        self.assertIn("function renderCompareBdrLedger(root,a,b)",s)
+        self.assertIn("function renderCompareBalanceLedger(root,a,b)",s)
+        self.assertIn("abNumber(a,countA),abNumber(b,countB)",s)
+        self.assertIn("const profile=$('handDecompProfile'+side.toUpperCase()).value",s)
+        self.assertIn("if(decompReportMode==='bdr')renderCompareBdrLedger(root,a,b);",s)
         self.assertNotIn("renderDominationMatchups(",s)
         self.assertIn("renderHandDecomposition();",s)
 
