@@ -207,7 +207,7 @@ def start_postflop_ev(raw,busy=False):
     digest=hashlib.sha256()
     for name in ("planner_postflop_ev.py","planner_eval_fast.py","core/fast_eval.py","bots/postflop_profiles.py",
                  "bots/postflop_archetypes_v1.py","bots/gto_postflop_v2.py",
-                 "bots/gto_postflop_v3.py","planner_ev_decomposition.py",
+                 "bots/gto_postflop_v3.py","bots/gto_postflop_v4.py","planner_ev_decomposition.py",
                  "core/engine.py"):
         digest.update((core.ROOT/name).read_bytes())
     key={
