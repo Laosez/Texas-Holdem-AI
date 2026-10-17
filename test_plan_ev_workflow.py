@@ -80,7 +80,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn("activeDecompGroup=opened?null:group.key",page)
         self.assertIn("decompOneDetail",page)
         self.assertNotIn('class="decompMatchupDisclosure"',page)
-        self.assertNotIn('Как именно · '+String(1)+' сценариев',page)
+        self.assertNotIn('decompReasonDisclosure',page)
 
 
 if __name__=="__main__":
