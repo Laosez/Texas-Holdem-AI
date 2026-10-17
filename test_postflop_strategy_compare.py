@@ -78,6 +78,22 @@ class PostflopStrategyCompareTests(unittest.TestCase):
                     compare_request({"strategies": strategies,
                                      "rows": [{"hole": "14 12", "board": "14-7-2"}]})
 
+    def test_every_registered_policy_runs_on_each_street_and_bet_state(self):
+        rows = [
+            {"hole": "14 12", "board": "14-7-2"},
+            {"hole": "14s 10s", "board": "7s-4s-2-9"},
+            {"hole": "77", "board": "7-14-14-4-2"},
+        ]
+        names = list(POLICIES)
+        for call in (0, 8):
+            for start in (0, 5):
+                with self.subTest(call=call,profiles=names[start:start+5]):
+                    result = compare_request(request_for(
+                        rows, profiles=names[start:start+5], to_call=call))
+                    for row in result["rows"]:
+                        for strategy in names[start:start+5]:
+                            self.assertAlmostEqual(sum(row["actions"][strategy].values()), 1)
+
     def test_context_and_payload_are_bounded_and_validated(self):
         basic = request_for([{"hole":"14 12","board":"14-7-2"}])
         for changes in [
