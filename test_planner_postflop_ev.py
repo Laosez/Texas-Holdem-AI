@@ -50,6 +50,61 @@ class PostflopEVTests(unittest.TestCase):
             self.assertTrue(-20 <= amount <= 20)
             self.assertIsInstance(show,bool)
 
+    def test_9max_fixed_seats_keep_blinds_on_real_sb_bb(self):
+        """Inactive blinds post, fold and cannot transfer obligations to UTG."""
+        from core.engine import Table
+        raw = setup(hero="gto3", hand="T6s")
+        raw["hero_position"] = "9"
+        active = dict(raw["opponents"][0], position="8", entry_mode="always")
+        sb = dict(raw["opponents"][0], position="SB", entry_mode="never")
+        bb = dict(raw["opponents"][0], position="BB", entry_mode="never")
+        raw["opponents"] = [active, sb, bb]
+        ranges, _ = eq.build_ranges(raw["opponents"], "selected")
+        import random
+        picked, board = post._draw_case("T6s", ranges, raw["opponents"], random.Random(14))
+        self.assertEqual(len(picked), 2)
+        capture = {}
+        original = Table.play_hand
+
+        def spy(table, seats, *args, **kwargs):
+            capture["ring"] = [seat.player_id for seat in seats]
+            capture["policies"] = kwargs["bot_for"]
+            capture["on_deal"] = {}
+            table.on_deal = lambda hand_id, holes, positions, n: capture["on_deal"].update(
+                {"positions": dict(positions), "seats": n})
+            original_end = table.on_hand_end
+
+            def on_end(hand_id, net, bb_value, players, winners):
+                capture["net"] = dict(net)
+                return original_end(hand_id, net, bb_value, players, winners)
+
+            table.on_hand_end = on_end
+            return original(table, seats, *args, **kwargs)
+
+        with patch.object(Table, "play_hand", spy):
+            net, showdown, classified, pot = post._play_case(
+                picked, board, "gto3", "9", 20, 77, detail=True, metrics=True)
+        self.assertEqual(capture["ring"], [
+            "FOLD_3", "FOLD_SB", "FOLD_BB", "HERO", "V1",
+            "FOLD_7", "FOLD_6", "FOLD_5", "FOLD_4"])
+        self.assertEqual(capture["on_deal"]["seats"], 9)
+        self.assertEqual(capture["on_deal"]["positions"]["HERO"], "9")
+        self.assertEqual(capture["on_deal"]["positions"]["FOLD_SB"], "SB")
+        self.assertEqual(capture["on_deal"]["positions"]["FOLD_BB"], "BB")
+        self.assertIsInstance(capture["policies"]["FOLD_SB"], post._InactivePolicy)
+        self.assertIsInstance(capture["policies"]["FOLD_BB"], post._InactivePolicy)
+        self.assertEqual(capture["net"]["FOLD_SB"], -1)  # chips: 0.5 BB
+        self.assertEqual(capture["net"]["FOLD_BB"], -2)  # chips: 1.0 BB
+        self.assertAlmostEqual(sum(capture["net"].values()), 0)
+        self.assertAlmostEqual(net, capture["net"]["HERO"] / 2)
+        self.assertGreaterEqual(pot, 1.5)
+
+    def test_inactive_preflop_policy_checks_without_calling_and_folds_to_bet(self):
+        from types import SimpleNamespace
+        dead = post._InactivePolicy()
+        self.assertEqual(dead.act(SimpleNamespace(to_call=2)).type, "fold")
+        self.assertEqual(dead.act(SimpleNamespace(to_call=0)).type, "check")
+
     def test_replay_ev_converges_to_legal_chip_range_and_equity(self):
         out=post.calculate(setup(hand="AA",trials=50))
         self.assertGreater(out["equity"]["AA"],30)

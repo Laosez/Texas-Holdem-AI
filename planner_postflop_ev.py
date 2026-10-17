@@ -145,6 +145,22 @@ class _Policy:
         return action
 
 
+class _InactivePolicy:
+    """Keep an unadmitted 9-max seat for correct blinds and order.
+
+    Sitting out would move the blinds. These seats post their obligatory blind
+    and fold when facing a wager; they never take a postflop decision.
+    """
+    def act(self, view):
+        from core.bot_api import Action
+        if view.to_call:
+            return Action("fold")
+        return Action("check")
+
+
+SEAT_ORDER = ("3", "SB", "BB", "9", "8", "7", "6", "5", "4")
+
+
 def _entry_probability(mode, pct, weighted_range, exact_hero):
     if mode == "never":
         return 0.
@@ -202,16 +218,38 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed, *, de
     """One complete legal preflop-to-river betting hand with sampled cards."""
     from core.engine import Seat, Table
 
-    entries = [("HERO", hero_position, picked[0][1])]
-    entries.extend((pid, entry["position"], cards) for pid, cards, entry in picked[1:])
-    entries.sort(key=lambda x: (_seat_sort(x[1]), x[0]))
-    ring = [x[0] for x in entries]
-    holes = {pid: cards for pid, _, cards in entries}
-    policies = {}
-    entry_lookup = {pid: spec for pid, _, spec in picked[1:]}
-    for pid, pos, _ in entries:
-        kind = hero_profile if pid == "HERO" else entry_lookup[pid]["postflop"]
-        policies[pid] = _Policy(kind, pos, hero=(pid == "HERO"))
+    # Physical seating is fixed for the entire 9-max hand. Players excluded
+    # from the entered-pot scenario must still occupy seats; otherwise an
+    # engine with 7 entrants reassigns UTG to SB and UTG+1 to BB.
+    by_position = {str(hero_position): ("HERO", picked[0][1],
+                                       _Policy(hero_profile, hero_position, hero=True))}
+    for pid, cards, spec in picked[1:]:
+        pos = str(spec["position"])
+        if pos in by_position or pos not in SEAT_ORDER:
+            raise ValueError("Повторяющаяся или некорректная позиция за столом")
+        by_position[pos] = (pid, cards, _Policy(spec["postflop"], pos))
+
+    occupied = set(board)
+    for _, cards, _ in by_position.values():
+        occupied.update(cards)
+    if len(occupied) != 5 + 2 * len(by_position):
+        raise RuntimeError("Пересечение физических карт при подготовке раздачи")
+    # Dummy cards are drawn AFTER the actual board and participant cards, so
+    # the conditional Monte Carlo range distribution remains unchanged.
+    filler_cards = iter(random.Random(seed ^ 0x4649584544534541).sample(
+        [card for card in eq.ALL_CARDS if card not in occupied],
+        2 * (len(SEAT_ORDER) - len(by_position))))
+    for position in SEAT_ORDER:
+        if position not in by_position:
+            by_position[position] = (
+                "FOLD_" + position, (next(filler_cards), next(filler_cards)),
+                _InactivePolicy())
+
+    ring = [by_position[position][0] for position in SEAT_ORDER]
+    holes = {by_position[position][0]: by_position[position][1]
+             for position in SEAT_ORDER}
+    policies = {by_position[position][0]: by_position[position][2]
+                for position in SEAT_ORDER}
 
     table = Table(rng=_FixedDeal(ring, holes, board, seed))
     history = {"showdown": False}

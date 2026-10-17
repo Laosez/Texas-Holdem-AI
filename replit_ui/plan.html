@@ -779,6 +779,22 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompRows .evLedgerToolbar>.small{margin-left:auto}
 .handDecompRows .handDecompTable{min-width:0!important;width:100%}
 .handDecompRows{overflow-x:auto}
+
+/* Shared A/B chart: one axis to prevent deceptive independent scaling. */
+.handDecompCombinedChart{margin-top:12px;padding:13px 16px 8px}
+.handDecompCombinedChart .handDecompChartTitle{align-items:center;font-size:13px}
+.handDecompCombinedLegend{display:flex;gap:13px;font-size:12px;font-weight:750}
+.handDecompLegendA{color:#8dc5f4}.handDecompLegendB{color:#cfb3f2}
+.handDecompCombinedChart .handDecompChartCanvas{min-height:188px}
+.handDecompCombinedChart .handDecompChartCanvas svg{height:auto;max-height:260px}
+.handDecompChartNote{color:#9bb0c6;font-size:11px;margin-top:4px}
+.handDecompRows .handDecompTable td{font-size:13px;line-height:1.55}
+.handDecompRows .handDecompTable th{font-size:12px;line-height:1.55}
+.handDecompRows .handDecompTable td.abRelative,.handDecompRows .handDecompTable .abSubHeader.abRelative{font-size:12px}
+.handDecompRows .handDecompTable .abMetricGood,.handDecompRows .handDecompTable .abMetricBad{font-weight:400!important}
+.handDecompRows .handDecompTable td.abRelative,.handDecompRows .handDecompTable td.abDelta{font-weight:400!important}
+.handDecompRows .handDecompTable td{font-variant-numeric:tabular-nums}
+@media(max-width:580px){.handDecompCombinedChart{padding:10px 6px}.handDecompCombinedChart .handDecompChartTitle{flex-wrap:wrap}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -953,12 +969,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
     </div>
     <span class="handDecompHint">Выбрана в матрице · стратегия из настроек HERO</span>
     <div class="handDecompSideMetrics">
-     <div class="handDecompSideMetric"><span>Самая дорогая ошибка</span><strong id="handDecompCost">—</strong>
+     <div class="handDecompSideMetric"><span>Крупнейшая статья убытка</span><strong id="handDecompCost">—</strong>
       <small id="handDecompCostLabel">Самая дорогая категория потерь</small></div>
      <div class="handDecompSideMetric"><span>Общий EV</span><strong id="handDecompEV">—</strong><small>BB на раздачу</small></div>
-    </div>
-    <div class="handDecompChart"><div class="handDecompChartTitle">EV по числу соперников <span>1 · 2 · 3 · 4+</span></div>
-     <div id="handDecompChartA" class="handDecompChartCanvas" role="img" aria-label="EV руки A по числу вошедших соперников">Ожидается расчёт…</div>
     </div>
    </div>
    <div class="handDecompMatchCard isB" id="handDecompCardB">
@@ -969,13 +982,18 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
     </div>
     <span id="handDecompBHint" class="handDecompHint">«—» — только отчёт по руке A · «=» — та же рука, другая стратегия</span>
     <div class="handDecompSideMetrics">
-     <div class="handDecompSideMetric"><span>Самая дорогая ошибка</span><strong id="handDecompCostB">—</strong><small id="handDecompCostLabelB">Самая дорогая категория потерь</small></div>
+     <div class="handDecompSideMetric"><span>Крупнейшая статья убытка</span><strong id="handDecompCostB">—</strong><small id="handDecompCostLabelB">Самая дорогая категория потерь</small></div>
      <div class="handDecompSideMetric"><span>Общий EV</span><strong id="handDecompEVB">—</strong><small>BB на раздачу</small></div>
     </div>
-    <div class="handDecompChart"><div class="handDecompChartTitle">EV по числу соперников <span>1 · 2 · 3 · 4+</span></div>
-     <div id="handDecompChartB" class="handDecompChartCanvas" role="img" aria-label="EV руки B по числу вошедших соперников">Выбери руку B</div>
-    </div>
    </div>
+  </div>
+  <div class="handDecompChart handDecompCombinedChart">
+   <div class="handDecompChartTitle">
+    <span>EV по числу вошедших соперников · общая шкала</span>
+    <span class="handDecompCombinedLegend"><span class="handDecompLegendA">A</span><span id="handDecompLegendB" class="handDecompLegendB">B</span></span>
+   </div>
+   <div id="handDecompChartAB" class="handDecompChartCanvas" role="img" aria-label="Сравнение EV A/B в разрезе числа соперников">Ожидается расчёт…</div>
+   <div class="handDecompChartNote">1 / 2 / 3 / 4+ соперников · EV, BB на раздачу · N в подсказке к точке · интервалы 95% при наличии данных</div>
   </div>
  </div>
  <p id="handDecompStratumInfo" class="note" role="status">A/B: общий стек, состав и диапазоны соперников. Число соперников фильтруется без повторного расчёта.</p>
@@ -2910,79 +2928,126 @@ function opponentEvChartPoints(buckets){
  }
  return points;
 }
-function renderOpponentEvChart(side,report){
- const root=$('handDecompChart'+side.toUpperCase());
+function opponentEvChartCi(group,combined){
+ const positive=group.filter(x=>x.samples>0);
+ const count=positive.reduce((n,x)=>n+x.samples,0);
+ if(count<2||positive.some(x=>!Number.isFinite(x.ev_ci95_bb)||
+    !Number.isFinite(x.ev_bb)))return null;
+ if(!combined)return positive[0].ev_ci95_bb;
+ const mean=positive.reduce((total,x)=>total+x.samples*x.ev_bb,0)/count;
+ const sq=positive.reduce((total,x)=>{
+  const variance=Math.pow(x.ev_ci95_bb/1.96,2)*x.samples;
+  return total+(x.samples-1)*variance+x.samples*x.ev_bb*x.ev_bb;
+ },0);
+ const variance=Math.max(0,(sq-count*mean*mean)/(count-1));
+ return 1.96*Math.sqrt(variance/count);
+}
+function opponentEvChartPoints(buckets){
+ const points=[];
+ for(const n of [1,2,3,4]){
+  const group=buckets.filter(x=>n===4?x.opponents>=4:x.opponents===n);
+  const count=group.reduce((t,x)=>t+(Number(x.samples)||0),0);
+  const total=group.reduce((t,x)=>t+(Number(x.samples)||0)*
+   (Number.isFinite(x.ev_bb)?x.ev_bb:0),0);
+  const observed=group.filter(x=>x.samples>0);
+  const name=n===4?'4+':String(n);
+  const detail=n===4&&observed.length===1?name+' ('+observed[0].opponents+')':name;
+  points.push({label:name,detail,samples:count,
+   ev:count?total/count:null,
+   ci:count>1?opponentEvChartCi(group,n===4):null});
+ }
+ return points;
+}
+function renderOpponentEvComparison(chartA,chartB){
+ const root=$('handDecompChartAB');
  root.replaceChildren();
- if(!report){
-  root.append(el('div','chartEmpty',side==='b'&&!decompSideRequest('b')
-   ?'Включи сравнение — выбери = или руку B.':'Ожидается расчёт EV…'));
-  root.setAttribute('aria-label','График EV: нет данных');
-  return;
- }
- const points=opponentEvChartPoints(report.buckets);
- const actual=points.filter(p=>Number.isFinite(p.ev));
+ $('handDecompLegendB').classList.toggle('hidden',!chartB&&!decompSideRequest('b'));
+ const a=chartA?opponentEvChartPoints(chartA.buckets):null;
+ const b=chartB?opponentEvChartPoints(chartB.buckets):null;
+ const series=[{key:'A',points:a,color:'#8dc5f4',offset:-13},
+               {key:'B',points:b,color:'#cfb3f2',offset:16}].filter(x=>x.points);
+ const actual=series.flatMap(x=>x.points.filter(p=>Number.isFinite(p.ev)));
  if(!actual.length){
-  root.append(el('div','chartEmpty','Нет исходов с 1 и более соперниками.'));
-  root.setAttribute('aria-label','График EV: нет раздач с вошедшими соперниками');
+  root.append(el('div','chartEmpty','Ожидается Monte Carlo: EV при 1, 2, 3 и 4+ соперниках.'));
+  root.setAttribute('aria-label','Сравнение EV: данные отсутствуют');
   return;
  }
- const colored=side==='a'?'#8dc5f4':'#cfb3f2';
- const nfmt=n=>n.toLocaleString('ru-RU');
  const evfmt=n=>(n>0?'+':'')+n.toFixed(3);
- root.setAttribute('aria-label','Условный EV по числу соперников: '+
-   points.map(p=>p.label+': '+(p.ev===null?'нет исходов':evfmt(p.ev)+
-    ' BB, '+nfmt(p.samples)+' раздач')).join('; '));
  const ns='http://www.w3.org/2000/svg';
  const svg=document.createElementNS(ns,'svg');
- svg.setAttribute('viewBox','0 0 412 170');
+ svg.setAttribute('viewBox','0 0 800 230');
  svg.setAttribute('role','img');
- const title=document.createElementNS(ns,'title');title.textContent='Условный EV по числу вошедших соперников';
+ const title=document.createElementNS(ns,'title');
+ title.textContent='EV A и B при одинаковой вертикальной шкале';
  svg.append(title);
- const values=[...actual.map(p=>p.ev),0];
- const low=Math.min(...values),high=Math.max(...values);
- const pad=Math.max(.13,(high-low)*.16);
+ const limits=[0,...actual.flatMap(p=>Number.isFinite(p.ci)?
+   [p.ev-p.ci,p.ev+p.ci]:[p.ev])];
+ const low=Math.min(...limits),high=Math.max(...limits);
+ const pad=Math.max(.13,(high-low)*.14);
  const min=low-pad,max=high+pad;
- const x=i=>59+i*111;
- const y=v=>132-(v-min)/(max-min)*105;
+ const xx=i=>112+i*216,yy=v=>172-(v-min)/(max-min)*131;
  const element=(tag,attrs={},content)=>{
   const node=document.createElementNS(ns,tag);
   for(const [k,v] of Object.entries(attrs))node.setAttribute(k,String(v));
   if(content!==undefined)node.textContent=content;
   svg.append(node);return node;
  };
- const txt=(x0,y0,value,size=10,fill='#a8bed2',anchor='middle')=>
-  element('text',{x:x0,y:y0,'font-size':size,fill,'text-anchor':anchor,
-   'font-family':'Inter,system-ui,sans-serif'},value);
- element('line',{x1:36,y1:y(0),x2:400,y2:y(0),
-  stroke:'#8e9eae','stroke-opacity':.46,'stroke-dasharray':'3 4'});
- txt(33,y(0)+3,'0',10,'#a5bacd','end');
- // One connected segment per run of observed groups; never connect over missing samples.
- let segment=[];
- const flush=()=>{
-  if(segment.length>1)element('polyline',{points:segment.join(' '),
-   fill:'none',stroke:colored,'stroke-width':2.4,'stroke-linejoin':'round'});
-  segment=[];
- };
- for(let i=0;i<points.length;i++){
-  const p=points[i];
-  if(p.ev===null){flush();continue}
-  segment.push(x(i)+','+y(p.ev));
- }
- flush();
- points.forEach((p,i)=>{
-  txt(x(i),160,p.label,12,'#c0d2e4');
-  if(p.ev===null){
-   txt(x(i),81,'—',14,'#788ba0');return;
+ const text=(x,y,msg,size=12,color='#a8bed2',anchor='middle')=>
+  element('text',{x,y,'font-size':size,fill:color,'text-anchor':anchor,
+   'font-family':'Inter,system-ui,sans-serif'},msg);
+ const zeroy=yy(0);
+ element('line',{x1:66,y1:zeroy,x2:782,y2:zeroy,stroke:'#9babbc',
+  'stroke-dasharray':'4 5','stroke-opacity':.72});
+ text(60,zeroy+4,'0',12,'#9babbc','end');
+ const nfmt=n=>n.toLocaleString('ru-RU');
+ const descriptions=[];
+ for(const seriesItem of series){
+  const {key,points,color,offset}=seriesItem;
+  descriptions.push(key+': '+points.map(p=>p.detail+' соп. = '+
+   (p.ev===null?'нет исходов':evfmt(p.ev)+' BB (N '+nfmt(p.samples)+')')).join(', '));
+  // Missing categories break the line rather than suggesting interpolation.
+  let path=[];
+  const flush=()=>{
+   if(path.length>1)element('polyline',{points:path.join(' '),
+    fill:'none',stroke:color,'stroke-width':2.6,'stroke-linejoin':'round'});
+   path=[];
+  };
+  for(let i=0;i<points.length;i++){
+   const p=points[i];
+   if(p.ev===null){flush();continue}
+   path.push(xx(i)+','+yy(p.ev));
   }
-  const circle=element('circle',{cx:x(i),cy:y(p.ev),r:4.4,
-   fill:colored,stroke:'#14263c','stroke-width':1.4});
-  const tooltip=document.createElementNS(ns,'title');
-  tooltip.textContent=p.label+' соп. · '+evfmt(p.ev)+' BB · N='+nfmt(p.samples);
-  circle.append(tooltip);
-  const labelY=y(p.ev)-10<16?y(p.ev)+18:y(p.ev)-10;
-  txt(x(i),labelY,evfmt(p.ev),10,colored);
-  txt(x(i),145,'N '+nfmt(p.samples),9,'#8fa5bd');
- });
+  flush();
+  for(let i=0;i<points.length;i++){
+   const p=points[i];if(p.ev===null)continue;
+   const x=xx(i)+(series.length===2?offset*.42:0),y=yy(p.ev);
+   if(Number.isFinite(p.ci)){
+    const top=yy(p.ev+p.ci),bottom=yy(p.ev-p.ci);
+    element('line',{x1:x,y1:top,x2:x,y2:bottom,stroke:color,
+     'stroke-width':1.4,'stroke-opacity':.65});
+    element('line',{x1:x-5,y1:top,x2:x+5,y2:top,stroke:color});
+    element('line',{x1:x-5,y1:bottom,x2:x+5,y2:bottom,stroke:color});
+   }
+   const dot=element('circle',{cx:x,cy:y,r:5,fill:color,stroke:'#102035',
+    'stroke-width':1.6});
+   const tip=document.createElementNS(ns,'title');
+   tip.textContent=key+' · '+p.detail+' соп. · '+evfmt(p.ev)+' BB'+
+    (Number.isFinite(p.ci)?' · 95% ±'+p.ci.toFixed(3)+' BB':'')+
+    ' · N='+nfmt(p.samples);dot.append(tip);
+   const upper=yy(Number.isFinite(p.ci)?p.ev+p.ci:p.ev);
+   const lower=yy(Number.isFinite(p.ci)?p.ev-p.ci:p.ev);
+   const labelY=key==='A'
+    ?(upper>35?upper-9:Math.min(219,lower+18))
+    :(lower<180?lower+19:Math.max(23,upper-9));
+   text(xx(i)+(series.length===2?offset*.42:0),labelY,evfmt(p.ev),12,color);
+  }
+ }
+ const labels=a||b;
+ for(let i=0;i<4;i++){
+  const label=labels[i]?.detail||String(i+1);
+  text(xx(i),212,label+' соп.',13,'#c8d9e9');
+ }
+ root.setAttribute('aria-label','Общий график условного EV: '+descriptions.join('; '));
  root.append(svg);
 }
 function renderHandDecomposition(){
@@ -3018,8 +3083,7 @@ function renderHandDecomposition(){
  $('handDecompSamples').textContent=left.samples!==null?left.samples.toLocaleString('ru-RU'):'—';
  $('handDecompSamplesB').textContent=right.samples!==null?right.samples.toLocaleString('ru-RU'):'—';
  $('handDecompSampleBWrap').classList.toggle('hidden',!compare);
- renderOpponentEvChart('a',fullA);
- renderOpponentEvChart('b',fullB);
+ renderOpponentEvComparison(fullA,fullB);
  const formatStratum=(x,tag)=>tag+': '+
   (x.samples===null?'ожидается расчёт':x.samples.toLocaleString('ru-RU')+' раздач'+
    (selection!=='all'?' ('+(x.proportion??0).toFixed(2)+'%)':'')+
