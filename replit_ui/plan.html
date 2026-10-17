@@ -671,7 +671,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  <div class="matrixMetrics handDecompStats">
   <div class="matrixMetric"><span>EV выбранной руки</span><strong id="handDecompEV">—</strong><small>BB на раздачу · сумма источников</small></div>
   <div class="matrixMetric decompWorstLoss"><span>Самая дорогая потеря</span><strong id="handDecompCost">—</strong><small id="handDecompCostLabel">BB/раздачу · наблюдаемый убыток</small></div>
-  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>симулированных раздач, включая фолды</small></div>
+  <div class="matrixMetric"><span>Выборка</span><strong id="handDecompSamples">—</strong><small>N из блока 02 · все исходы, включая фолды</small></div>
  </div>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Выбери руку на матрице для автоматического расчёта источников EV.</p></div>
 <details class="decompMatchupDisclosure"><summary>Доминирование стартовых рук · конкретные столкновения</summary>
@@ -1963,6 +1963,7 @@ function renderHandDecomposition(){
  const root=$('handDecompRows');root.replaceChildren();
  if(!data){
   root.append(el('p','handDecompEmpty','Для '+selected+' выполняется автоматический расчёт источников EV.'));
+  renderDominationMatchups(null);
   return;
  }
  const tbl=el('table','handDecompTable'),head=el('thead'),header=el('tr');
