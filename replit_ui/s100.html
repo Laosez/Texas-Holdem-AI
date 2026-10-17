@@ -68,6 +68,12 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 }
 @media(max-width:410px){.controls,.filterbar,.grid2{grid-template-columns:1fr}.right #key{min-width:0}}
 
+.notation{border:1px solid #304d6a;border-radius:8px;margin-top:13px;background:#11243a}
+.notation summary{cursor:pointer;padding:10px 13px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.notationBody{padding:0 13px 12px;display:grid;gap:6px;line-height:1.8;font-size:12px}
+.classifierResult{border:1px solid #385b7f;border-radius:8px;padding:15px;background:#0e233c;min-height:54px}
+.classifierResult strong{font-size:19px;color:#bde1ff}
+.classTable{min-width:650px}.classTable .btn{white-space:nowrap}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect" type="button">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп · План</strong><small>100 сценариев S100</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -75,8 +81,28 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 <section class="panel"><div class="heading"><h2><span class="index">01 / </span>Постфлоп · План S100</h2><span class="badge">S001–S100 · справочник человека и бота</span></div>
 <p class="panelIntro"><strong>10 семейств силы руки × 5 подтипов × HU / Multiway = 100 сценариев.</strong> Человек изучает справочник и проверяет ситуации, а бот использует тот же набор правил при выборе действий. Частоты экспериментальные: не являются GTO-решением и не подтверждены сравнительным EV-тестированием.</p>
 </section>
+<section class="panel" id="numericClassifier">
+<div class="heading"><h2><span class="index">02 / </span>Классификатор ситуаций</h2><span class="badge">Одни карты → один сценарий</span></div>
+<p class="panelIntro">Номиналы 2–14, где 14 = A, 13 = K, 12 = Q, 11 = J. Мастевые группы <strong>s / z / y</strong> обозначаем только когда их совпадение существенно. Классификатор возвращает один сценарий: без дополнительных флагов и без изменения стратегий ботов.</p>
+<details class="notation" open><summary><strong>00 / Нотация карт</strong> <span class="small">Краткие правила записи</span></summary>
+<div class="notationBody">
+<div><strong>14 12</strong> = AQ &nbsp; · &nbsp; <strong>88</strong> = карманная пара &nbsp; · &nbsp; <strong>14s 12s</strong> = одномастные AQ</div>
+<div><strong>14s 12s / 10s-7s-2</strong> = флеш-дро &nbsp; · &nbsp; <strong>77 / 14-7-2</strong> = сет</div>
+<div class="small">Буквы s, z, y означают первую, вторую и третью выделенную повторяющуюся масть, а не пики/черви. Без букв масть не используется для определения флеша или дро. Для конкретной раздачи указываем значимые совпадения.</div>
+</div></details>
+<div class="grid2" style="margin-top:14px">
+<div class="field"><label for="classHole">HERO · числовая запись</label><input id="classHole" value="14 12" placeholder="14 12 или 1414"></div>
+<div class="field"><label for="classBoard">Борд · флоп / тёрн / ривер</label><input id="classBoard" value="14-7-2" placeholder="14-7-2"></div>
+</div>
+<div class="actionsRow"><span class="note" style="margin:0">Сценарий зависит только от карт. Действия стратегий проверяются отдельно.</span><button class="btn primary" id="classify" type="button">Определить сценарий</button></div>
+<p id="classMessage" class="statusLine" role="status"></p>
+<div class="classifierResult" id="classResult" aria-live="polite"><span class="small">Введите HERO и борд или выберите пример ниже.</span></div>
+<div class="heading" style="margin-top:17px"><h2 style="font-size:14px">Таблица примеров · Флоп / Тёрн / Ривер</h2><span class="small">Нажмите строку, чтобы классифицировать</span></div>
+<div class="tablewrap" style="max-height:none"><table class="classTable"><thead><tr><th>Улица</th><th>HERO</th><th>Борд</th><th>Сценарий</th><th></th></tr></thead><tbody id="classExamples"></tbody></table></div>
+<p class="summary">Это независимый классификатор V2 с комбинированными дро, однокарточным флеш-дро и уточнёнными карманными парами. Исходный S100 и турнирные решения остаются неизменными. Отдельный сценарий создаём только тогда, когда различие существенно для решения.</p>
+</section>
 <section class="panel">
-<div class="heading"><h2><span class="index">02 / </span>Проверить раздачу</h2><span class="badge">Та же логика, что у бота S100</span></div>
+<div class="heading"><h2><span class="index">03 / </span>Проверить раздачу · S100 V1</h2><span class="badge">Та же логика, что у бота S100</span></div>
 <p class="note" style="margin:0 0 13px">Укажите карты и цену Call — получите код сценария, вероятности действий и объяснение.</p>
 <div id="exampleButtons" class="exampleButtons">
 <button class="btn sm outline" type="button" data-example="aqtrue">AQ · A-Q-7-7</button>
@@ -97,7 +123,7 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 <div id="inspectorResults" aria-live="polite"></div>
 </section>
 <section class="panel">
-<div class="heading"><h2><span class="index">03 / </span>Справочник сценариев S001–S100</h2><span id="count" class="badge">Загрузка…</span></div>
+<div class="heading"><h2><span class="index">04 / </span>Справочник сценариев S001–S100</h2><span id="count" class="badge">Загрузка…</span></div>
 <div class="filterbar">
 <div class="field"><label for="query">Поиск</label><input id="query" placeholder="Например, две пары или S061"></div>
 <div class="field"><label for="family">Сила руки</label><select id="family"><option value="">Все 10 семейств</option></select></div>
@@ -139,6 +165,59 @@ function renderTable(){
 }
 for(const key of ['query','family','mode'])$(key).addEventListener('input',renderTable);
 $('reset').addEventListener('click',()=>{$('query').value='';$('family').value='';$('mode').value='';renderTable()});
+const notationExamples=[
+ ['Флоп','14 12','14-7-2','Топ-пара'],
+ ['Флоп','14s 12s','14-10s-7s','Топ-пара + флеш-дро'],
+ ['Флоп','9s 8s','7s-6s-2','Флеш-дро + OESD'],
+ ['Флоп','14s 13s','12s-11s-2','Флеш-дро + гатшот'],
+ ['Флоп','9s 8s','9-7s-6s','Пара + флеш-дро + OESD'],
+ ['Флоп','9 8','9-7-6','Топ-пара + OESD'],
+ ['Флоп','14s 13s','10s-7s-2','Две оверкарты + флеш-дро'],
+ ['Флоп','14s 12','10s-7s-2s','Однокарточное флеш-дро'],
+ ['Флоп','6 12','8-9-10','Двойной гатшот'],
+ ['Флоп','14 12','7-7-2','Пара борда + две оверкарты'],
+ ['Флоп','10 10','14-7-2','Карманная пара между картами борда'],
+ ['Флоп','14 4','10-7-2','Одна оверкарта'],
+ ['Флоп','77','14-7-2','Сет'],
+ ['Тёрн','14 10','14-7-7-2','Сильные общие две пары'],
+ ['Тёрн','10 6','13-7-7-10','Уязвимые общие две пары'],
+ ['Тёрн','14 7','14-7-2-2','Две собственные пары'],
+ ['Тёрн','9s 4s','14s-7s-2-9','Флеш-дро / пара'],
+ ['Ривер','14 10','7-7-4-4-2','Две пары на борде'],
+ ['Ривер','14s 10s','7s-4s-2-9-3','Незакрывшееся флеш-дро'],
+ ['Ривер','77','7-14-14-4-2','Фулл-хаус'],
+ ['Ривер','14 2','10-9-8-7-6','Стрит на борде'],
+];
+async function classifyNumeric(){
+ $('classMessage').textContent='';
+ $('classResult').textContent='Проверка...';
+ try{
+  const r=await fetch('/api/postflop/classify',{
+   method:'POST',headers:{...auth(),'Content-Type':'application/json'},
+   body:JSON.stringify({hole:$('classHole').value,board:$('classBoard').value})
+  });
+  const x=await r.json();
+  if(!r.ok)throw Error(x.error||'Ошибка классификатора');
+  $('classResult').replaceChildren();
+  const title=document.createElement('strong');
+  title.textContent=x.scenario.id+' · '+x.scenario.name;
+  const detail=document.createElement('div');
+  detail.className='note';
+  detail.textContent='HERO: '+x.hole+' · Борд: '+x.board;
+  $('classResult').append(title,detail);
+ }catch(e){$('classResult').textContent='Сценарий не определён';$('classMessage').textContent=e.message}
+}
+$('classify').addEventListener('click',classifyNumeric);
+for(const item of notationExamples){
+ const tr=document.createElement('tr');
+ for(const value of item){const cell=document.createElement('td');cell.textContent=value;tr.append(cell)}
+ const cell=document.createElement('td'),btn=document.createElement('button');
+ btn.className='btn sm outline';btn.type='button';btn.textContent='Проверить';
+ btn.addEventListener('click',()=>{
+  $('classHole').value=item[1];$('classBoard').value=item[2];classifyNumeric();
+ });
+ cell.append(btn);tr.append(cell);$('classExamples').append(tr);
+}
 const examples={
  aqtrue:{hole:'As Qs',board:'Ad Qd 7c 7h'},
  aqshared:{hole:'As Qs',board:'Ad 7c 7h 2d'},
