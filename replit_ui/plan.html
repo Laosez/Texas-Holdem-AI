@@ -553,6 +553,45 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  .decompCompactTable th,.decompCompactTable td{padding:6px 4px!important;font-size:11px}
 }
 
+
+/* 0 = a bulk editor row, aligned with eight opponent table columns. */
+.plannerOpponentsPanel .oppBulkRow{
+ background:rgba(80,124,168,.16);border-radius:6px;padding:6px 5px;
+ margin:3px 0 10px;align-items:center;
+}
+.plannerOpponentsPanel .oppBulkRow .num{font-size:13px;color:#bde2ff}
+.plannerOpponentsPanel .oppBulkRow .oppBulkSelect{
+ border-color:#5c88b2;background:#1c3954;color:#e2f0ff;font-weight:700
+}
+.plannerOpponentsPanel .oppBulkRow .oppBulkBlank{min-height:1px}
+
+
+/* Compact sortable EV decomposition: click heading; no nested repeated tables. */
+.decompSortButton{font:inherit!important;font-weight:700!important;cursor:pointer;
+ border:0!important;background:transparent!important;padding:3px 1px!important;
+ color:inherit!important;white-space:nowrap}
+.decompSortButton:hover{text-decoration:underline;color:#e4f4ff!important}
+.decompCompactTable th[aria-sort],.decompReasonsTable th[aria-sort]{color:#9fc9f2}
+.decompSortReset{display:block;margin:0 0 5px auto;background:transparent;border:0;
+ color:#a2c0dc;cursor:pointer;font-size:10px;padding:4px}
+.decompReasonsTable{width:100%;border-collapse:collapse;table-layout:auto;font-size:11px}
+.decompReasonsTable th,.decompReasonsTable td{padding:6px 8px;
+ border-bottom:1px solid #2b465f}
+.decompReasonsTable th:first-child,.decompReasonsTable td:first-child{text-align:left}
+.decompReasonsTable th:not(:first-child),.decompReasonsTable td:not(:first-child){
+ text-align:right;font-variant-numeric:tabular-nums}
+.decompReasonsTable th{color:#a8c4e0}
+.decompReasonsTable .decompLoss td{color:#f19ca8}
+.decompReasonsTable .decompPositive td{color:#96dac0}
+#decompOneDetail{overflow-x:auto}
+@media(max-width:620px){
+ .decompReasonsTable{min-width:475px}
+ .decompReasonsTable td,.decompReasonsTable th{padding:5px}
+}
+
+.decompSortControls,.decompReasonHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.decompSortControls{justify-content:flex-end;min-height:23px}
+.decompReasonHead .decompOneTitle{margin:0!important}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -941,10 +980,42 @@ function updateOpponentButtons(){
  $('opponentCountLabel').textContent=opponents.length+' из 8';
  $('addOpponent').disabled=opponents.length>=8;
 }
+function bulkChangeOpponent(field,value){
+ if(!['profile','postflop'].includes(field)||!value||!opponents.length)return false;
+ const allowed=field==='profile'?profileOptions():POSTFLOP_OPTIONS;
+ if(!allowed.some(item=>item.value===value))return false;
+ for(const opponent of opponents)opponent[field]=value;
+ // Changing a range never overwrites seat, scenario, action or entry mode.
+ invalidateEquity();renderOpponents();
+ if(field==='profile')loadVillain();
+ const label=field==='profile'?'Диапазон':'Постфлоп';
+ const picked=allowed.find(item=>item.value===value);
+ msg(label+' → всем '+opponents.length+' соперникам: '+(picked?.label||value));
+ return true;
+}
+function opponentBulkRow(){
+ const row=el('div','oppRow oppBulkRow');
+ row.append(el('span','num','0'));
+ const makeSelect=(options,placeholder,field)=>{
+  const select=el('select','oppBulkSelect');
+  select.setAttribute('aria-label',placeholder);
+  refill(select,[{value:'',label:placeholder},...options],'');
+  select.value='';
+  select.onchange=()=>{if(select.value)bulkChangeOpponent(field,select.value)};
+  return select;
+ };
+ row.append(makeSelect(profileOptions(),'Диапазон → всем','profile'));
+ for(let i=0;i<3;i++)row.append(el('span','oppBulkBlank',''));
+ row.append(makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop'));
+ row.append(el('span','oppBulkBlank',''));
+ row.append(el('span','oppBulkBlank',''));
+ return row;
+}
 function renderOpponents(){
  updateOpponentButtons();
  const count=opponents.length;
  const target=$('opponents');target.replaceChildren();
+ target.append(opponentBulkRow());
  opponents.slice(0,count).forEach((opp,i)=>{
   const row=el('div','oppRow');row.append(el('div','num','#'+(i+1)));
   const p=el('select');refill(p,profileOptions(),opp.profile);p.onchange=()=>{
@@ -1983,6 +2054,42 @@ const DECOMP_LABELS={
  showdown_loss_dominated:'Доминирование −',
  showdown_split:'Ничья'
 };
+// Persistent sort choices let different hands be compared in the same order.
+// Signed EV sorts expose the biggest gains (descending) and losses (ascending).
+let decompSort={key:'fixed',direction:'desc'};
+let decompReasonSort={key:'count',direction:'desc'};
+function sortDecompRows(rows,order){
+ const copied=[...rows];
+ if(order.key==='fixed')return copied;
+ const sign=order.direction==='asc'?1:-1;
+ return copied.sort((a,b)=>{
+  let diff;
+  if(order.key==='label')diff=String(a.label||'').localeCompare(String(b.label||''),'ru');
+  else if(order.key==='abs_ev')
+   diff=Math.abs(Number(a.contribution_bb)||0)-Math.abs(Number(b.contribution_bb)||0);
+  else diff=(Number(a[order.key])||0)-(Number(b[order.key])||0);
+  return sign*diff || String(a.key||a.label||'').localeCompare(String(b.key||b.label||''),'ru');
+ });
+}
+function setDecompSort(key,detail=false){
+ const state=detail?decompReasonSort:decompSort;
+ if(state.key===key)state.direction=state.direction==='desc'?'asc':'desc';
+ else {state.key=key;state.direction=key==='label'?'asc':'desc';}
+ renderHandDecomposition();
+}
+function decompSortHeader(label,key,detail=false){
+ const state=detail?decompReasonSort:decompSort;
+ const active=state.key===key;
+ const th=el('th','',undefined);
+ th.scope='col';
+ if(active)th.setAttribute('aria-sort',state.direction==='asc'?'ascending':'descending');
+ const button=el('button','decompSortButton',label+(active?(state.direction==='asc'?' ↑':' ↓'):''));
+ button.type='button';
+ button.title='Сортировка по '+label;
+ button.onclick=()=>setDecompSort(key,detail);
+ th.append(button);
+ return th;
+}
 function renderHandDecomposition(){
  if(!hero)return;
  $('handDecompName').textContent=selected;
@@ -2004,12 +2111,27 @@ function renderHandDecomposition(){
   root.append(el('p','handDecompEmpty','Расчёт выбранной руки…'));
   return;
  }
- const entries=(data.outcome_groups||[])
-    .filter(g=>g.key!=='showdown_split'||g.count>0);
+ const entries=sortDecompRows((data.outcome_groups||[])
+    .filter(g=>g.key!=='showdown_split'||g.count>0),decompSort);
+ const controls=el('div','decompSortControls');
+ const influence=el('button','decompSortReset',
+   decompSort.key==='abs_ev'?'|EV| '+(decompSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
+ influence.type='button';
+ influence.title='Самые влиятельные источники EV независимо от знака';
+ influence.onclick=()=>setDecompSort('abs_ev');
+ controls.append(influence);
+ if(decompSort.key!=='fixed'){
+  const restore=el('button','decompSortReset','↺ По этапам');
+  restore.type='button';
+  restore.onclick=()=>{decompSort={key:'fixed',direction:'desc'};renderHandDecomposition();};
+  controls.append(restore);
+ }
+ root.append(controls);
  const table=el('table','handDecompTable decompCompactTable');
  const head=el('thead'),trHead=el('tr');
- for(const label of ['Исход','N','%','BB','EV']){
-  const h=el('th','',label);h.scope='col';trHead.append(h);
+ for(const [label,key] of [['Исход','label'],['N','count'],['%','frequency_pct'],
+                            ['BB','avg_bb'],['EV','contribution_bb']]){
+  trHead.append(decompSortHeader(label,key));
  }
  head.append(trHead);table.append(head);
  const body=el('tbody');
@@ -2039,19 +2161,40 @@ function renderHandDecomposition(){
  const selectedGroup=entries.find(g=>g.key===activeDecompGroup);
  if(selectedGroup && Array.isArray(selectedGroup.reasons)){
   const panel=el('div','decompOneDetail');panel.id='decompOneDetail';
-  panel.append(el('strong','decompOneTitle',
-                   DECOMP_LABELS[selectedGroup.key]||selectedGroup.label));
-  if(!selectedGroup.reasons.length){
+  const detailHeader=el('div','decompReasonHead');
+  detailHeader.append(el('strong','decompOneTitle',DECOMP_LABELS[selectedGroup.key]||selectedGroup.label));
+  const impact=el('button','decompSortReset',
+    decompReasonSort.key==='abs_ev'?'|EV| '+(decompReasonSort.direction==='asc'?'↑':'↓'):'|EV| ↓');
+  impact.type='button';impact.title='Сначала самые сильные причины EV';
+  impact.onclick=()=>setDecompSort('abs_ev',true);
+  detailHeader.append(impact);panel.append(detailHeader);
+  const reasons=sortDecompRows(selectedGroup.reasons,decompReasonSort);
+  if(!reasons.length){
    panel.append(el('p','small','В этой категории нет случаев.'));
   }else{
-   for(const reason of selectedGroup.reasons){
-    const row=el('div','decompOneReason');
-    row.append(el('span','decompOneName',reason.label));
-    row.append(el('span','decompOneCount',reason.count+' · '+Number(reason.within_group_pct).toFixed(1)+'%'));
-    row.append(el('strong',reason.contribution_bb<0?'decompNegative':'decompPositiveText',
-                         decompFormat(reason.contribution_bb)+' BB'));
-    panel.append(row);
+   const table=el('table','decompReasonsTable');
+   const heading=el('thead'),tr=el('tr');
+   for(const [label,key] of [['Механизм','label'],['N','count'],
+                              ['% группы','within_group_pct'],
+                              ['BB','avg_bb'],['EV','contribution_bb']]){
+    tr.append(decompSortHeader(label,key,true));
    }
+   heading.append(tr);table.append(heading);
+   const body=el('tbody');
+   for(const reason of reasons){
+    const tr=el('tr',
+      reason.contribution_bb<0?'decompLoss':
+      reason.contribution_bb>0?'decompPositive':'');
+    if(reason.count<30)tr.title='Малая выборка: менее 30 случаев';
+    for(const v of [reason.label,String(reason.count),
+                    Number(reason.within_group_pct).toFixed(1),
+                    decompFormat(reason.avg_bb),
+                    decompFormat(reason.contribution_bb)]){
+     tr.append(el('td','',v));
+    }
+    body.append(tr);
+   }
+   table.append(body);panel.append(table);
   }
   root.append(panel);
  }
