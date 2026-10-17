@@ -87,6 +87,55 @@ _NAMES = {
 }
 
 
+# For mixed made-hand/draw classes keep one canonical scenario ID.
+# These names and stable abbreviations are generated from just two dimensions:
+# the actual made-pair strength and the actual draw structure.
+_PAIR_PREFIX = {
+    "top_pair": ("TP", "Топ-пара"),
+    "middle_pair": ("MP", "Средняя пара"),
+    "bottom_pair": ("BP", "Нижняя пара"),
+    "overpair": ("OP", "Оверпара"),
+    "pocket_middle": ("PMID", "Карманная пара между картами борда"),
+    "underpair": ("UP", "Карманная пара ниже борда"),
+}
+_DRAW_SUFFIX = {
+    "flush_oesd": ("FDOESD", "флеш-дро + OESD"),
+    "flush_double_gutshot": ("FDDGS", "флеш-дро + двойной гатшот"),
+    "flush_gutshot": ("FDGS", "флеш-дро + гатшот"),
+    "one_card_flush_oesd": ("1CFDOESD", "однокарточное флеш-дро + OESD"),
+    "one_card_flush_double_gutshot": ("1CFDDGS", "однокарточное флеш-дро + двойной гатшот"),
+    "one_card_flush_gutshot": ("1CFDGS", "однокарточное флеш-дро + гатшот"),
+    "flush_draw": ("FD", "флеш-дро"),
+    "one_card_flush_draw": ("1CFD", "однокарточное флеш-дро"),
+    "oesd": ("OESD", "OESD"),
+    "double_gutshot": ("DGS", "двойной гатшот"),
+    "gutshot": ("GS", "гатшот"),
+}
+for _made_kind, (_made_code, _made_name) in _PAIR_PREFIX.items():
+    for _draw_kind, (_draw_code, _draw_name) in _DRAW_SUFFIX.items():
+        _NAMES[f"{_made_kind}_with_{_draw_kind}"] = (
+            f"{_made_code}{_draw_code}", f"{_made_name} + {_draw_name}"
+        )
+
+
+def _pair_draw_kind(made_kind, draw, flush_cards, street):
+    """Do not lose pair strength when assigning a combined draw scenario.
+
+    No live draws on river. One-card FD is distinguished from two-card FD.
+    Double gutshot never masquerades as OESD.
+    """
+    if street == "river" or made_kind not in _PAIR_PREFIX:
+        return None
+    has_flush = flush_cards in (1, 2)
+    if has_flush:
+        prefix = "one_card_flush_" if flush_cards == 1 else "flush_"
+        suffix = draw if draw in ("oesd", "gutshot", "double_gutshot") else "draw"
+        return f"{made_kind}_with_{prefix}{suffix}"
+    if draw in ("oesd", "gutshot", "double_gutshot"):
+        return f"{made_kind}_with_{draw}"
+    return None
+
+
 def _tokens(value, expected=None, board=False):
     if not isinstance(value, str) or len(value) > 100:
         raise ValueError("Карты нужно указать строкой, например: 14 12 / 14-7-2")
@@ -309,19 +358,15 @@ def _make_kind(hole, board, ranks, counts, street):
     pairs = any(n >= 2 for n in counts.values())
     if pairs:
         kind = _pair_kind(hole, board, counts)
-        if kind in ("top_pair", "top_pair_high_kicker", "top_pair_weak_kicker",
-                    "middle_pair", "bottom_pair"):
-            if four_suited and draw in ("oesd", "double_gutshot"):
-                return "pair_flush_oesd"
-            if four_suited and draw == "gutshot":
-                return "pair_flush_gutshot"
-            if four_suited:
-                return "top_pair_flush_draw" if kind.startswith("top_pair") else "pair_flush_draw"
-            if draw in ("oesd", "double_gutshot"):
-                return "top_pair_oesd" if kind.startswith("top_pair") else "pair_oesd"
-            if draw == "gutshot":
-                return "pair_gutshot"
-        return kind
+        # Kicker remains a separate scenario only when there is no strong draw;
+        # if there is a draw, pair class takes priority over kicker subdivision.
+        pair_base = "top_pair" if kind.startswith("top_pair") and kind in (
+            "top_pair", "top_pair_high_kicker", "top_pair_weak_kicker"
+        ) else kind
+        combo = _pair_draw_kind(
+            pair_base, draw, flush_hole_count if four_suited else 0, street
+        )
+        return combo or kind
     if four_suited:
         if street == "river":
             return "missed_flush_draw"
