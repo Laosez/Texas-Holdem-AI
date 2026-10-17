@@ -1186,7 +1186,7 @@ function renderOpponents(){
   remove.onclick=()=>removeOpponent(i);
   row.append(remove);target.append(row);
  });
- if(heroRank===FIXED_TABLE_POSITIONS.length-1)target.append(heroPositionSeatRow(heroSeat));
+ if(heroRank===FIXED_TABLE_POSITIONS.length-1)target.append(heroPositionSeatRow(heroSeat,heroControls));
  refill($('viewOpponent'),opponents.slice(0,count).map((o,i)=>({value:String(i),label:'#'+(i+1)+' · '+profileName(o.profile)})),$('viewOpponent').value||'0');
  refreshEntryHints();renderEntryDistribution();
 }
