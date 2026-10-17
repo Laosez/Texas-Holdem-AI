@@ -132,7 +132,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
             "function heroPositionSeatRow(position,controls){",
             "const heroSeat=normalizeFixedSeats();",
             "target.append(heroPositionSeatRow(heroSeat,heroControls));",
-            "const pos=el('span','oppFixedSeat',fixedSeatCaption(opp.position))",
+            "heroSeatPositionPicker(opp.position,false)",
             "entry_mode:i<3?'range':'never'",
             "id=\"addOpponent\" class=\"btn sm hidden\"",
         ):

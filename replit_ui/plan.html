@@ -554,6 +554,13 @@ main.plannerMain{grid-template-columns:minmax(275px,1fr) minmax(0,3fr);align-ite
 }
 
 
+/* Dot picker for Hero seat and bulk entry editor. */
+.heroSeatPicker{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.heroSeatDot{width:15px;height:15px;flex:none;border:1.5px solid #82abc8;border-radius:50%;padding:0;background:#10283f;cursor:pointer}
+.heroSeatDot[aria-checked="true"]{background:#89cbff;box-shadow:inset 0 0 0 3px #173753;border-color:#b9e1ff}
+.heroSeatDot:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.heroSeatPicker .oppFixedSeat{min-height:27px}
+.plannerOpponentsPanel .oppBulkRow .entryControl select{font-size:11px;font-weight:750}
 /* 0 = a bulk editor row, aligned with eight opponent table columns. */
 .plannerOpponentsPanel .oppBulkRow{
  background:rgba(80,124,168,.16);border-radius:6px;padding:6px 5px;
@@ -1069,6 +1076,23 @@ function normalizeFixedSeats(){
 }
 // Reuse the exact existing Hero controls so state and change listeners remain
 // authoritative for the range editor, Monte Carlo and saved versions.
+function selectHeroSeat(position){
+ const control=$('heroPosition');
+ if(!control||control.value===position)return;
+ control.value=position;
+ control.dispatchEvent(new Event('change',{bubbles:true}));
+}
+function heroSeatPositionPicker(position,isHero){
+ const wrap=el('div','heroSeatPicker');
+ const dot=el('button','heroSeatDot');
+ dot.type='button';dot.title='Назначить HERO на '+fixedSeatCaption(position);
+ dot.setAttribute('role','radio');
+ dot.setAttribute('aria-checked',String(isHero));
+ dot.setAttribute('aria-label','HERO · '+fixedSeatCaption(position));
+ dot.onclick=()=>selectHeroSeat(position);
+ wrap.append(dot,el('span','oppFixedSeat',fixedSeatCaption(position)));
+ return wrap;
+}
 function heroPositionSeatRow(position,controls){
  const row=el('div','oppRow oppHeroSeat');
  row.setAttribute('aria-label','Hero · моя стратегия');
@@ -1079,7 +1103,10 @@ function heroPositionSeatRow(position,controls){
  row.append(profile);
  const pos=controls.position;
  pos.setAttribute('aria-label','Hero · позиция');
- row.append(pos);
+ const seatPicker=heroSeatPositionPicker(position,true);
+ pos.classList.add('hidden');
+ seatPicker.append(pos);
+ row.append(seatPicker);
  const scenario=controls.scenario;
  scenario.setAttribute('aria-label','Hero · ситуация');
  row.append(scenario);
@@ -1103,7 +1130,17 @@ function updateOpponentButtons(){
  $('addOpponent').disabled=true;
 }
 function bulkChangeOpponent(field,value){
- if(!['profile','postflop'].includes(field)||!value||!opponents.length)return false;
+ if(!['profile','postflop','entry_mode'].includes(field)||!value||!opponents.length)return false;
+ if(field==='entry_mode'){
+  if(!['range','always','never'].includes(value))return false;
+  for(const opponent of opponents){
+   opponent.entry_mode=value;
+   opponent.entry_pct=value==='never'?0:100;
+  }
+  invalidateEquity();renderOpponents();loadVillain();
+  msg('Вероятность входа → всем 8 соперникам: '+({range:'Ширина диапазона',always:'100%',never:'0%'})[value]);
+  return true;
+ }
  const allowed=field==='profile'?profileOptions():POSTFLOP_OPTIONS;
  if(!allowed.some(item=>item.value===value))return false;
  for(const opponent of opponents)opponent[field]=value;
@@ -1130,7 +1167,16 @@ function opponentBulkRow(){
  row.append(el('span','oppBulkPosition','9-max · фикс.'));
  for(let i=0;i<2;i++)row.append(el('span','oppBulkBlank',''));
  row.append(makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop'));
- row.append(el('span','oppBulkBlank',''));
+ const bulkEntry=el('div','entryControl');
+ const entrySelect=el('select','oppBulkSelect');
+ refill(entrySelect,[{value:'',label:'Вход → всем'},
+  {value:'range',label:'Ширина диапазона → всем'},
+  {value:'always',label:'100% → всем'},
+  {value:'never',label:'0% → всем'}],'');
+ entrySelect.value='';
+ entrySelect.setAttribute('aria-label','Вероятность входа → всем соперникам');
+ entrySelect.onchange=()=>{if(entrySelect.value)bulkChangeOpponent('entry_mode',entrySelect.value)};
+ bulkEntry.append(entrySelect);row.append(bulkEntry);
  row.append(el('span','oppBulkBlank',''));
  return row;
 }
@@ -1156,7 +1202,7 @@ function renderOpponents(){
    opponents[i].profile=p.value; // Changing range must not move a fixed position.
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const pos=el('span','oppFixedSeat',fixedSeatCaption(opp.position));row.append(pos);
+  row.append(heroSeatPositionPicker(opp.position,false));
   const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
