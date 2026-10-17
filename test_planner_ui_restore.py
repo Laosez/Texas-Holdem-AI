@@ -37,7 +37,7 @@ class PlannerLayoutRecoveryTests(unittest.TestCase):
         workspace = page.index('<div class="plannerWorkspace">')
         self.assertLess(first, second)
         self.assertLess(second, workspace)
-        self.assertIn('Моя стратегия', page[first:second])
+        self.assertIn('Версии стратегии', page[first:second])
         self.assertNotIn('id="opponents"', page[first:second])
         self.assertIn('id="opponents"', page[second:workspace])
         self.assertIn('id="computeAll"', page[second:workspace])
