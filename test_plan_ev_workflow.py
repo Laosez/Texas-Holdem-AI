@@ -109,6 +109,9 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn("const table=el('table','decompReasonsTable');",page)
         self.assertIn("const restore=el('button','decompSortReset','↺ По этапам');",page)
         self.assertIn("Малая выборка: менее 30 случаев",page)
+        self.assertIn("setDecompSort('abs_ev')",page)
+        self.assertIn("setDecompSort('abs_ev',true)",page)
+        self.assertIn("Math.abs(Number(a.contribution_bb)",page)
         self.assertNotIn("decompReasonDisclosure",page)
 
     def test_plan_no_metric_cycles_brush_toolbar_and_auto_selected_rows(self):
