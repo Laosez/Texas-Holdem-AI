@@ -22,6 +22,7 @@ on:
       - feat/railway-simulator-20261014
       - release/poker-system-v1-20261014
       - release/poker-system-v2-1-plan-20261015
+      - feature/plan-hero-in-opponents-row-20261017
   workflow_dispatch:
 
 jobs:
