@@ -95,24 +95,32 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn("if(field==='profile')loadVillain();",page)
         self.assertIn(".plannerOpponentsPanel .oppBulkRow{",page)
 
-    def test_decomposition_two_sortable_tables_keep_compact_parent(self):
+    def test_accounting_report_variants_and_fixed_seat_grid(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn("function sortDecompRows(rows,order){",page)
-        self.assertIn("function setDecompSort(key,detail=false){",page)
-        self.assertIn("function decompSortHeader(label,key,detail=false){",page)
-        self.assertIn("state.direction==='asc'?'ascending':'descending'",page)
-        self.assertIn("['EV','contribution_bb']",page)
-        self.assertIn("['BB','avg_bb']",page)
-        self.assertIn("['N','count']",page)
-        self.assertIn("['% группы','within_group_pct']",page)
-        self.assertIn("sortDecompRows(selectedGroup.reasons,decompReasonSort)",page)
-        self.assertIn("const table=el('table','decompReasonsTable');",page)
-        self.assertIn("const restore=el('button','decompSortReset','↺ По этапам');",page)
-        self.assertIn("Малая выборка: менее 30 случаев",page)
-        self.assertIn("setDecompSort('abs_ev')",page)
-        self.assertIn("setDecompSort('abs_ev',true)",page)
-        self.assertIn("Math.abs(Number(a.contribution_bb)",page)
-        self.assertNotIn("decompReasonDisclosure",page)
+        for needle in (
+            "let decompReportMode='bdr';",
+            "1 · БДР", "3 · Баланс EV",
+            "function renderBdrLedger(root,data){",
+            "function renderBalanceLedger(root,data){",
+            "ledgerControls(root);",
+            "decompReportMode==='bdr'",
+            "for(const r of ledgerReasonOrder(g.reasons||[]))",
+            "for(const part of BALANCE_SECTIONS)",
+            "return {data,count:data.reduce",
+            "positive_ev_bb", "negative_ev_bb",
+            "function normalizeFixedSeats(){",
+            "const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];",
+            "function heroPositionSeatRow(position){",
+            "const heroSeat=normalizeFixedSeats();",
+            "target.append(heroPositionSeatRow(heroSeat));",
+            "const pos=el('span','oppFixedSeat',positionCaption(opp.position))",
+            "entry_mode:i<3?'range':'never'",
+            "id=\"addOpponent\" class=\"btn sm hidden\"",
+        ):
+            self.assertIn(needle,page)
+        self.assertNotIn("activeDecompGroup=opened?null:group.key",page)
+        self.assertNotIn("decompOneDetail",page[page.index("function renderHandDecomposition(){"):])
+        self.assertIn("«0%» исключает место",page)
 
     def test_plan_no_metric_cycles_brush_toolbar_and_auto_selected_rows(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
@@ -135,8 +143,8 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn('Средний банк, BB',page)
         self.assertNotIn('decompSort.column===col.key',page)
         self.assertIn("DECOMP_LABELS={",page)
-        self.assertIn("activeDecompGroup=opened?null:group.key",page)
-        self.assertIn("decompOneDetail",page)
+        self.assertIn("function renderBdrLedger(root,data)",page)
+        self.assertIn("function renderBalanceLedger(root,data)",page)
         self.assertNotIn('class="decompMatchupDisclosure"',page)
         self.assertNotIn('decompReasonDisclosure',page)
 
