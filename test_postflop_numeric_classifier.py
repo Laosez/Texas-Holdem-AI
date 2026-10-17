@@ -93,6 +93,32 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             self.assertTrue(result["scenario"]["name"])
             self.assertEqual(len(result["scenario"]), 3)
 
+    def test_3000_random_river_paths_have_one_scenario_per_street(self):
+        """A full hand has F -> T -> R scenarios, not a single lifetime label."""
+        rng = random.Random(31018)
+        deck = [(rank, suit) for rank in range(2, 15) for suit in "cdhs"]
+        for _ in range(3000):
+            cards = rng.sample(deck, 7)
+            observed = []
+            for board_size, prefix in ((3, "F"), (4, "T"), (5, "R")):
+                dealt = cards[:2] + cards[2:2 + board_size]
+                suit_counts = {s: sum(c[1] == s for c in dealt) for s in "cdhs"}
+                repeated = list(dict.fromkeys(
+                    suit for _, suit in dealt if suit_counts[suit] >= 2))
+                labels = {s: "szy"[i] for i, s in enumerate(repeated)}
+                normalized = [str(rank) + labels.get(suit, "")
+                              for rank, suit in dealt]
+                found = classify_numeric(" ".join(normalized[:2]),
+                                         "-".join(normalized[2:]))
+                self.assertTrue(found["scenario"]["id"].startswith(prefix + "-"))
+                observed.append(found["scenario"]["id"])
+            self.assertEqual(len(observed), 3)
+        self.assertEqual(
+            [classify_numeric("14 12", b)["scenario"]["id"] for b in
+             ("14-7-2", "14-7-2-7", "14-7-2-7-12")],
+            ["F-TPHK", "T-TPBP", "R-2OWN"],
+        )
+
     def test_strategy_ledger_examples_have_correct_single_scenario(self):
         html = (app.ROOT / "replit_ui/s100.html").read_text(encoding="utf-8")
         start = html.index("const rows=[") + len("const rows=[")
