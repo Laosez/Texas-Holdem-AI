@@ -26,6 +26,35 @@ _NAMES = {
     "board_pair_overcards": ("PBOC", "Пара борда + две оверкарты"),
     "pocket_middle": ("PMID", "Карманная пара между картами борда"),
     "double_gutshot": ("DGS", "Двойной гатшот"),
+    "top_pair_high_kicker": ("TPHK", "Топ-пара + старший кикер"),
+    "top_pair_weak_kicker": ("TPWK", "Топ-пара + слабый кикер"),
+    "top_pair_board_pair_high": ("TPBPHK", "Топ-пара + пара борда + старший кикер"),
+    "top_pair_board_pair": ("TPBP", "Топ-пара + пара борда"),
+    "top_pair_board_pair_weak": ("TPBPWK", "Топ-пара + пара борда + слабый кикер"),
+    "top_pair_board_pair_board_kicker": ("TPBPBDK", "Топ-пара + пара борда + общий кикер"),
+    "middle_pair_board_pair": ("MPBP", "Средняя пара + пара борда"),
+    "bottom_pair_board_pair": ("BPBP", "Нижняя пара + пара борда"),
+    "two_pair_board_high_kicker": ("2BDHK", "Две пары борда + старший кикер HERO"),
+    "trips_high_kicker": ("TRPHK", "Трипс от пары борда + старший кикер"),
+    "trips_weak_kicker": ("TRPWK", "Трипс от пары борда + слабый кикер"),
+    "trips_board_kicker": ("TRPBDK", "Трипс от пары борда + общие кикеры"),
+    "board_trips_high_kicker": ("BTRHK", "Тройка борда + старший кикер HERO"),
+    "board_trips_board_kicker": ("BTRBDK", "Тройка борда + общие кикеры"),
+    "straight_one_hole": ("STR1", "Стрит с одной картой HERO"),
+    "straight_two_hole": ("STR2", "Стрит с двумя картами HERO"),
+    "flush_one_hole": ("FL1", "Флеш с одной картой HERO"),
+    "flush_two_hole": ("FL2", "Флеш с двумя картами HERO"),
+    "flush_board": ("FLBD", "Флеш на борде"),
+    "full_house_set": ("FHSET", "Фулл-хаус: сет + пара"),
+    "full_house_trips": ("FHTRP", "Фулл-хаус: трипс + пара"),
+    "full_house_board_trips": ("FHBTR", "Фулл-хаус: тройка борда + пара HERO"),
+    "full_house_board": ("FHBD", "Фулл-хаус на борде"),
+    "quads_pocket": ("4KPK", "Каре: карманная пара + пара борда"),
+    "quads_trips": ("4KTRP", "Каре: тройка борда + карта HERO"),
+    "quads_board": ("4KBD", "Каре на борде"),
+    "straight_flush_one_hole": ("SF1", "Стрит-флеш с одной картой HERO"),
+    "straight_flush_two_hole": ("SF2", "Стрит-флеш с двумя картами HERO"),
+    "straight_flush_board": ("SFBD", "Стрит-флеш на борде"),
     "air": ("AIR", "Воздух"),
     "overcards": ("OC", "Две оверкарты"),
     "backdoor_flush": ("BFD", "Бэкдор-флеш"),
@@ -123,43 +152,195 @@ def _suit_status(hole, board):
     return sf, flush_suit is not None, draw_suit is not None, draw_hole_cards, backdoor
 
 
-def _pair_class(hole, board, ranks, counts):
-    board_counts = Counter(r for r, _ in board)
-    hole_ranks = [r for r, _ in hole]
-    pairs = sorted((r for r, n in counts.items() if n >= 2), reverse=True)
-    if len(pairs) >= 2:
-        best = pairs[:2]
-        if sum(board_counts[r] >= 2 for r in best) == 2:
-            return "two_pair_board"
-        if hole_ranks[0] != hole_ranks[1] and all(
-                r in best and board_counts[r] >= 1 for r in hole_ranks):
+def _best_full_house(counts):
+    """Highest available trips and a separate highest available pair."""
+    triples = sorted((rank for rank, n in counts.items() if n >= 3), reverse=True)
+    for trip in triples:
+        pairs = [rank for rank, n in counts.items() if rank != trip and n >= 2]
+        if pairs:
+            return trip, max(pairs)
+    return None
+
+
+def _straight_hole_use(hole, board, high):
+    window = {14, 2, 3, 4, 5} if high == 5 else set(range(high - 4, high + 1))
+    return max(0, 5 - len(window & {r for r, _ in board}))
+
+
+def _flush_rank_and_hole_use(hole, board, suit):
+    """How many HERO cards are actually in the highest suited five cards."""
+    options = sorted([(rank, 1) for rank, s in hole if s == suit] +
+                     [(rank, 0) for rank, s in board if s == suit],
+                     reverse=True)
+    return sum(is_hole for _, is_hole in options[:5])
+
+
+def _trips_kicker_kind(hole, board, trip):
+    """Hero's paired-board trips with a materially contributing kicker."""
+    other_hole = [r for r, _ in hole if r != trip]
+    if not other_hole:
+        return "trips"
+    h = other_hole[0]
+    top_two = sorted([r for r, _ in hole + board if r != trip], reverse=True)[:2]
+    if h not in top_two:
+        return "trips_board_kicker"
+    if h >= 13:
+        return "trips_high_kicker"
+    return "trips_weak_kicker" if h <= 9 else "trips"
+
+
+def _board_trips_kind(hole, board, trip):
+    top_two = sorted([r for r, _ in hole + board if r != trip], reverse=True)[:2]
+    highest_hole = max(r for r, _ in hole)
+    if all(r not in top_two for r, _ in hole):
+        return "board_trips_board_kicker"
+    return "board_trips_high_kicker" if highest_hole >= 13 else "board_trips"
+
+
+def _pair_kind(hole, board, counts):
+    b = Counter(rank for rank, _ in board)
+    h = [rank for rank, _ in hole]
+    paired = sorted((rank for rank, n in counts.items() if n >= 2), reverse=True)
+    top_board = max(b)
+    if len(paired) >= 2:
+        p0, p1 = paired[:2]  # Actual two highest pairs; lower ones do not play.
+        selected = {p0, p1}
+        if h[0] != h[1] and all(r in selected and b[r] == 1 for r in h):
             return "two_pair_own"
-        if hole_ranks[0] == hole_ranks[1] and hole_ranks[0] in best:
+        shared = [r for r in selected if b[r] >= 2]
+        own = [r for r in selected if r in h and b[r] == 1]
+        if len(shared) == 2:
+            board_fifth = max((r for r, n in b.items() if r not in selected), default=0)
+            hole_fifth = max((r for r in h if r not in selected), default=0)
+            return "two_pair_board_high_kicker" if hole_fifth > board_fifth else "two_pair_board"
+        if h[0] == h[1] and h[0] in selected:
             return "two_pair_pocket_board"
-        shared = [r for r in best if board_counts[r] >= 2]
-        own = [r for r in best if r in hole_ranks and board_counts[r] == 1]
-        if shared and own:
-            highest_unpaired_board = max(
-                (r for r, n in board_counts.items() if n == 1), default=0)
-            if highest_unpaired_board > own[0]:
-                return "two_pair_shared_low"
-            return "two_pair_shared_high"
+        if len(shared) == 1 and len(own) == 1:
+            matched = own[0]
+            if matched == top_board:
+                remaining_hole = [r for r in h if r != matched]
+                hero_kicker = max(remaining_hole, default=0)
+                other_board = max((r for r in b if r not in selected), default=0)
+                if hero_kicker <= other_board:
+                    return "top_pair_board_pair_board_kicker"
+                if hero_kicker >= 13:
+                    return "top_pair_board_pair_high"
+                if hero_kicker <= 7:
+                    return "top_pair_board_pair_weak"
+                return "top_pair_board_pair"
+            return ("middle_pair_board_pair" if matched > shared[0]
+                    else "bottom_pair_board_pair")
         return "two_pair_board"
-    pair = pairs[0]
-    if hole_ranks[0] == hole_ranks[1]:
-        board_ranks = [r for r, _ in board]
-        if pair > max(board_ranks):
+    pair = paired[0]
+    if h[0] == h[1]:
+        if pair > top_board:
             return "overpair"
-        return "pocket_middle" if pair > min(board_ranks) else "underpair"
-    if board_counts[pair] >= 2:
-        return ("board_pair_overcards" if all(r > max(board_counts) for r in hole_ranks)
-                else "board_pair")
-    ranks_on_board = sorted(set(r for r, _ in board))
-    if pair == ranks_on_board[-1]:
+        return "pocket_middle" if pair > min(b) else "underpair"
+    if b[pair] >= 2:
+        return "board_pair_overcards" if all(r > top_board for r in h) else "board_pair"
+    if pair == top_board:
+        kicker = next(r for r in h if r != pair)
+        if kicker >= 11 and kicker > max((r for r in b if r != pair), default=0):
+            return "top_pair_high_kicker"
+        if kicker <= 7:
+            return "top_pair_weak_kicker"
         return "top_pair"
-    if pair == ranks_on_board[0]:
+    if pair == min(b):
         return "bottom_pair"
     return "middle_pair"
+
+
+def _make_kind(hole, board, ranks, counts, street):
+    b = Counter(r for r, _ in board)
+    suits = Counter(s for _, s in hole + board if s)
+    full = _best_full_house(counts)
+    # Five known cards of one suit can be board-only; no HERO suit required.
+    suited_sf = []
+    suited_flush = []
+    for suit, n in suits.items():
+        if n >= 5:
+            suited_flush.append(suit)
+            high = _straight_high([r for r, s in hole + board if s == suit])
+            if high:
+                suited_sf.append((high, suit))
+    if suited_sf:
+        high, suit = max(suited_sf)
+        hole_use = _straight_hole_use(
+            [(r, s) for r, s in hole if s == suit],
+            [(r, s) for r, s in board if s == suit], high)
+        return ("straight_flush_board" if hole_use == 0
+                else "straight_flush_one_hole" if hole_use == 1
+                else "straight_flush_two_hole")
+    quad = max((r for r, n in counts.items() if n >= 4), default=0)
+    if quad:
+        return ("quads_board" if b[quad] == 4
+                else "quads_pocket" if b[quad] == 2 else "quads_trips")
+    if full:
+        trip, pair = full
+        # The best full house can be completed entirely by the river board.
+        board_full = _best_full_house(b)
+        if board_full is not None and board_full >= full:
+            return "full_house_board"
+        return ("full_house_set" if b[trip] == 1
+                else "full_house_trips" if b[trip] == 2
+                else "full_house_board_trips")
+    if suited_flush:
+        # Two suited options cannot both have 5 cards within max 7.
+        suit = suited_flush[0]
+        used = _flush_rank_and_hole_use(hole, board, suit)
+        return "flush_board" if used == 0 else "flush_one_hole" if used == 1 else "flush_two_hole"
+    high = _straight_high(ranks)
+    if high:
+        needed = _straight_hole_use(hole, board, high)
+        return "board_straight" if needed == 0 else "straight_one_hole" if needed == 1 else "straight_two_hole"
+    triple = max((rank for rank, n in counts.items() if n >= 3), default=0)
+    if triple:
+        if b[triple] == 1:
+            return "set"
+        if b[triple] == 2:
+            return _trips_kicker_kind(hole, board, triple)
+        return _board_trips_kind(hole, board, triple)
+
+    _, _, four_suited, flush_hole_count, three_suited = _suit_status(hole, board)
+    draw = _draw_type(hole, board)
+    bmax = max(r for r, _ in board)
+    two_overcards = all(r > bmax for r, _ in hole)
+    one_overcard = sum(r > bmax for r, _ in hole) == 1
+    pairs = any(n >= 2 for n in counts.values())
+    if pairs:
+        kind = _pair_kind(hole, board, counts)
+        if kind in ("top_pair", "top_pair_high_kicker", "top_pair_weak_kicker",
+                    "middle_pair", "bottom_pair"):
+            if four_suited and draw in ("oesd", "double_gutshot"):
+                return "pair_flush_oesd"
+            if four_suited and draw == "gutshot":
+                return "pair_flush_gutshot"
+            if four_suited:
+                return "top_pair_flush_draw" if kind.startswith("top_pair") else "pair_flush_draw"
+            if draw in ("oesd", "double_gutshot"):
+                return "top_pair_oesd" if kind.startswith("top_pair") else "pair_oesd"
+            if draw == "gutshot":
+                return "pair_gutshot"
+        return kind
+    if four_suited:
+        if draw in ("oesd", "double_gutshot"):
+            return "flush_oesd"
+        if draw == "gutshot":
+            return "flush_gutshot"
+        if flush_hole_count == 1:
+            return "one_card_flush"
+        if two_overcards:
+            return "overcards_flush"
+        return "flush_draw"
+    if draw == "double_gutshot":
+        return "double_gutshot"
+    if draw == "oesd":
+        return "oesd"
+    if draw == "gutshot":
+        return "overcards_gutshot" if two_overcards else "gutshot"
+    if three_suited:
+        return "backdoor_flush"
+    return "overcards" if two_overcards else "one_overcard" if one_overcard else "air"
 
 
 def classify_numeric(hole_text, board_text):
@@ -186,66 +367,7 @@ def classify_numeric(hole_text, board_text):
     street = _STREETS[len(board)]
     if any(count == 1 for count in suits.values()):
         raise ValueError("Буква масти ставится только для повторяющейся группы карт")
-    sf, flush, four_suited, flush_hole_count, three_suited = _suit_status(hole, board)
-    triples = sorted((r for r, n in counts.items() if n >= 3), reverse=True)
-    pairs = sorted((r for r, n in counts.items() if n >= 2), reverse=True)
-    board_ranks = [r for r, _ in board]
-    straight_draw = _draw_type(hole, board)
-    two_overcards = all(r > max(board_ranks) for r, _ in hole)
-    one_overcard = sum(r > max(board_ranks) for r, _ in hole) == 1
-    if sf:
-        kind = "straight_flush"
-    elif 4 in counts.values():
-        kind = "four_kind"
-    elif triples and any(r != triples[0] for r in pairs):
-        kind = "full_house"
-    elif flush:
-        kind = "flush"
-    elif _straight_high(ranks):
-        kind = ("board_straight" if len(board) == 5
-                and _straight_high(board_ranks) == _straight_high(ranks)
-                else "straight")
-    elif triples:
-        trip = triples[0]
-        bc = sum(r == trip for r, _ in board)
-        hc = sum(r == trip for r, _ in hole)
-        kind = "set" if hc == 2 and bc >= 1 else "trips" if hc else "board_trips"
-    elif pairs:
-        kind = _pair_class(hole, board, ranks, counts)
-        if kind in ("top_pair", "middle_pair", "bottom_pair"):
-            if four_suited and straight_draw in ("oesd", "double_gutshot"):
-                kind = "pair_flush_oesd"
-            elif four_suited and straight_draw == "gutshot":
-                kind = "pair_flush_gutshot"
-            elif four_suited:
-                kind = "top_pair_flush_draw" if kind == "top_pair" else "pair_flush_draw"
-            elif straight_draw in ("oesd", "double_gutshot"):
-                kind = "top_pair_oesd" if kind == "top_pair" else "pair_oesd"
-            elif straight_draw == "gutshot":
-                kind = "pair_gutshot"
-    elif four_suited:
-        if straight_draw in ("oesd", "double_gutshot"):
-            kind = "flush_oesd"
-        elif straight_draw == "gutshot":
-            kind = "flush_gutshot"
-        elif street == "river":
-            kind = "missed_flush_draw"
-        elif flush_hole_count == 1:
-            kind = "one_card_flush"
-        elif two_overcards:
-            kind = "overcards_flush"
-        else:
-            kind = "flush_draw"
-    elif straight_draw == "double_gutshot":
-        kind = "double_gutshot"
-    elif straight_draw == "oesd":
-        kind = "oesd"
-    elif straight_draw == "gutshot":
-        kind = "overcards_gutshot" if two_overcards else "gutshot"
-    elif three_suited:
-        kind = "backdoor_flush"
-    else:
-        kind = "overcards" if two_overcards else "one_overcard" if one_overcard else "air"
+    kind = _make_kind(hole, board, ranks, counts, street)
     abbreviation, name = _NAMES[kind]
     return {
         "scenario": {
