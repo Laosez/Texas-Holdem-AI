@@ -1,5 +1,6 @@
 """Regression suite for the independent numeric postflop classification sheet."""
 import json
+import ast
 import random
 import threading
 import unittest
@@ -91,6 +92,26 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             self.assertTrue(result["scenario"]["id"].startswith("F-"))
             self.assertTrue(result["scenario"]["name"])
             self.assertEqual(len(result["scenario"]), 3)
+
+    def test_strategy_ledger_examples_have_correct_single_scenario(self):
+        html = (app.ROOT / "replit_ui/s100.html").read_text(encoding="utf-8")
+        start = html.index("const rows=[") + len("const rows=[")
+        end = html.index("\n];", start)
+        entries = ast.literal_eval("[" + html[start:end] + "]")
+        self.assertGreaterEqual(len(entries), 40)
+        streets = {"Флоп": 0, "Тёрн": 0, "Ривер": 0}
+        seen = set()
+        for street, hole, board, title, expected in entries:
+            with self.subTest(street=street, hole=hole, board=board):
+                actual = classify_numeric(hole, board)
+                self.assertEqual(actual["scenario"]["id"], expected)
+                self.assertEqual(actual["scenario"]["name"], title)
+                self.assertNotIn((street, expected), seen)
+                seen.add((street, expected))
+                streets[street] += 1
+        self.assertGreaterEqual(streets["Флоп"], 25)
+        self.assertGreaterEqual(streets["Тёрн"], 3)
+        self.assertGreaterEqual(streets["Ривер"], 6)
 
     def test_original_s100_unchanged_and_numeric_api_authenticated(self):
         with patch.object(app, "TOKEN", "numeric_classifier_test_key"):
