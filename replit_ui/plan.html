@@ -283,7 +283,7 @@ footer{padding:20px 0 40px;color:#7790aa;font-size:11px}.hidden{display:none!imp
 .matrixGrid .hand.rangeIntersection .handMetric{position:relative;z-index:4}
 
 /* Layout: section 01 takes one third, section 02 two thirds; matrices/editor below. */
-main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:start}
+main.plannerMain{grid-template-columns:minmax(275px,1fr) minmax(0,3fr);align-items:start}
 .plannerMain>.plannerStrategyPanel{grid-column:1;min-width:0}
 .plannerMain>.plannerOpponentsPanel{grid-column:2;min-width:0}
 .plannerMain>.plannerWorkspace{grid-column:1/-1;min-width:0}
@@ -839,6 +839,7 @@ const HERO_LINE_DESCRIPTIONS={
 function refreshHeroPostflopChoice(){
  const line=$('heroPostflop').value;
  $('heroPostflopHint').textContent=HERO_LINE_DESCRIPTIONS[line]||'Выбери постфлоп-линию.';
+ $('heroPostflop').title=$('heroPostflopHint').textContent;
  const range=$('heroProfile').selectedOptions[0]?.textContent||'Не выбран';
  $('heroStrategyComposition').textContent='Сборка для EV: '+range+' (префлоп) + '+postflopName(line)+' (постфлоп)';
 }
@@ -1071,7 +1072,7 @@ function normalizeFixedSeats(){
 function heroPositionSeatRow(position,controls){
  const row=el('div','oppRow oppHeroSeat');
  row.setAttribute('aria-label','Hero · моя стратегия');
- row.append(el('span','num','H'));
+ const heroMarker=el('span','num','H');heroMarker.title='Hero · моя стратегия';row.append(heroMarker);
  const profile=controls.profile;
  profile.setAttribute('aria-label','Hero · префлоп-диапазон');
  profile.title='Моя стратегия · префлоп / пресет';
