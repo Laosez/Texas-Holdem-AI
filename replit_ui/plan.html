@@ -804,7 +804,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompPreflopInfo.isWarning{color:#efc58d}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
-<div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>100 сценариев S100</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
+<div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
 <main class="plannerMain">
 <section class="panel plannerOpponentsPanel"><div class="heading"><h2><span class="index">01 / </span>Мои соперники</h2><span class="badge">9-max · Hero + 8 мест</span></div>
 <div class="profile"><div class="heading" style="margin-bottom:6px"><h3 style="margin:0">Диапазоны соперников</h3><div class="buttons"><label class="simStackControl" for="simStack">Стек всех игроков <select id="simStack" aria-label="Общий стек всех игроков для симуляции"><option value="10">10 BB</option><option value="15">15 BB</option><option value="20" selected>20 BB</option><option value="30">30 BB</option><option value="40">40 BB</option><option value="60">60 BB</option><option value="80">80 BB</option><option value="100">100 BB</option><option value="150">150 BB</option><option value="200">200 BB</option></select></label><span id="opponentCountLabel" class="small">8 мест + Hero</span><button id="addOpponent" class="btn sm hidden" type="button" aria-label="Добавить соперника" disabled>+ Добавить</button></div><select id="oppCount" class="hidden" aria-label="Число соперников" tabindex="-1"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
@@ -832,7 +832,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
   <div id="heroControlDock" class="hidden" aria-hidden="true">
    <label for="heroProfile">Префлоп · диапазон / пресет</label><select id="heroProfile"></select>
    <label for="heroPostflop">Постфлоп · моя стратегия</label>
-   <a href="/s100" style="display:inline-block;margin:4px 0 6px;color:#9ac9f4;text-decoration:underline;font-size:12px">Перейти на лист 03 · S100 ↗</a>
+   <a href="/s100" style="display:inline-block;margin:4px 0 6px;color:#9ac9f4;text-decoration:underline;font-size:12px">Перейти на лист 03 · Постфлоп План ↗</a>
    <select id="heroPostflop">
     <option value="gto2" selected>GTO V2 · исправленные мелкие пары</option>
     <option value="gto3">GTO V3 · эксперимент Kxs/кикер/дро</option>
