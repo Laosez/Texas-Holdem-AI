@@ -553,6 +553,18 @@ main.plannerMain{grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:s
  .decompCompactTable th,.decompCompactTable td{padding:6px 4px!important;font-size:11px}
 }
 
+
+/* 0 = a bulk editor row, aligned with eight opponent table columns. */
+.plannerOpponentsPanel .oppBulkRow{
+ background:rgba(80,124,168,.16);border-radius:6px;padding:6px 5px;
+ margin:3px 0 10px;align-items:center;
+}
+.plannerOpponentsPanel .oppBulkRow .num{font-size:13px;color:#bde2ff}
+.plannerOpponentsPanel .oppBulkRow .oppBulkSelect{
+ border-color:#5c88b2;background:#1c3954;color:#e2f0ff;font-weight:700
+}
+.plannerOpponentsPanel .oppBulkRow .oppBulkBlank{min-height:1px}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><div class="tab"><b>03</b><span><strong>Проверка</strong><small>Следующий этап</small></span></div><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -941,10 +953,42 @@ function updateOpponentButtons(){
  $('opponentCountLabel').textContent=opponents.length+' из 8';
  $('addOpponent').disabled=opponents.length>=8;
 }
+function bulkChangeOpponent(field,value){
+ if(!['profile','postflop'].includes(field)||!value||!opponents.length)return false;
+ const allowed=field==='profile'?profileOptions():POSTFLOP_OPTIONS;
+ if(!allowed.some(item=>item.value===value))return false;
+ for(const opponent of opponents)opponent[field]=value;
+ // Changing a range never overwrites seat, scenario, action or entry mode.
+ invalidateEquity();renderOpponents();
+ if(field==='profile')loadVillain();
+ const label=field==='profile'?'Диапазон':'Постфлоп';
+ const picked=allowed.find(item=>item.value===value);
+ msg(label+' → всем '+opponents.length+' соперникам: '+(picked?.label||value));
+ return true;
+}
+function opponentBulkRow(){
+ const row=el('div','oppRow oppBulkRow');
+ row.append(el('span','num','0'));
+ const makeSelect=(options,placeholder,field)=>{
+  const select=el('select','oppBulkSelect');
+  select.setAttribute('aria-label',placeholder);
+  refill(select,[{value:'',label:placeholder},...options],'');
+  select.value='';
+  select.onchange=()=>{if(select.value)bulkChangeOpponent(field,select.value)};
+  return select;
+ };
+ row.append(makeSelect(profileOptions(),'Диапазон → всем','profile'));
+ for(let i=0;i<3;i++)row.append(el('span','oppBulkBlank',''));
+ row.append(makeSelect(POSTFLOP_OPTIONS,'Постфлоп → всем','postflop'));
+ row.append(el('span','oppBulkBlank',''));
+ row.append(el('span','oppBulkBlank',''));
+ return row;
+}
 function renderOpponents(){
  updateOpponentButtons();
  const count=opponents.length;
  const target=$('opponents');target.replaceChildren();
+ target.append(opponentBulkRow());
  opponents.slice(0,count).forEach((opp,i)=>{
   const row=el('div','oppRow');row.append(el('div','num','#'+(i+1)));
   const p=el('select');refill(p,profileOptions(),opp.profile);p.onchange=()=>{
