@@ -663,9 +663,7 @@ def _single_parallel(raw, progress, workers, batch_size=256):
         else None for k, v in enumerate(entry_counts)]
     result["preflop_line_counts"]=preflop_lines
     result["preflop_line_note"]=(
-        "hero_rfi: все позиции до HERO сбросили; isolation_raise: "
-        "до HERO вошли лимпом и он сделал изолирующий рейз; "
-        "walk: BB получает блайнды без рейза.")
+        "RFI когда ранее все сбросили, иначе изолирующий рейз после лимпов.")
     result["entry_stats_note"] = (
         "Средний банк = фактический финальный банк (все ставки), BB. "
         "σ EV оценивается по фактическим net BB; прогноз ±95% для N прогонов "
