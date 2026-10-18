@@ -93,6 +93,33 @@ class CatalogEVReportTests(unittest.TestCase):
                          {r["id"]:r["count"] for r in b})
         self.assertEqual(result["comparison"]["samples"],50)
 
+    def test_sortable_glossary_preserves_hierarchy_and_ev_reconciliation(self):
+        html=app.PLAN_UI.read_text(encoding="utf-8")
+        for needle in (
+            "let catalogSortColumn='count:a',catalogSortDirection='desc';",
+            "function catalogCompareRows(x,y){",
+            "function catalogSortValue(item,column){",
+            "function catalogSortToolbar(root,compare){",
+            "function catalogSortHeadings(table,compare){",
+            "table.querySelectorAll('thead th')",
+            "cell.setAttribute('aria-sort'",
+            "categories=[...new Set([...mapA.keys(),...mapB.keys()])].map(key=>{",
+            "}).sort(catalogCompareRows);",
+            "codes=[...new Set([...rowsA.keys(),...rowsB.keys()])].map(key=>({",
+            "catalogOpenBoards.has(key)",
+            "catalogSortToolbar(root,compare);",
+            "root.append(toolbar,table);",
+            "const last=appendRow('ЧИСТЫЙ EV · ИТОГО'",
+            "validA=!a||(allA.count===a.samples",
+            "if(!catalogSortFields(compare).some(item=>item.key===catalogSortColumn))",
+            "changeCatalogSort(column)",
+        ):
+            self.assertIn(needle,html)
+        self.assertIn('catalogSortHeader',html)
+        self.assertIn('Сортировка',html)
+        self.assertIn('↓ По убыванию',html)
+        self.assertIn('↑ По возрастанию',html)
+
     def test_new_report_variant_switch_preserves_existing_bdr(self):
         html=app.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="handDecompReportVariant"',html)
