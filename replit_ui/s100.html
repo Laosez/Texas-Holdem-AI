@@ -800,8 +800,109 @@ function catalogGroupSort(a,b){
  const family=x=>x.startsWith("A-")?0:x.startsWith("N-")?1:x.startsWith("P-")?2:3;
  return family(a)-family(b)||a.localeCompare(b,"en");
 }
+
+const catalogColumnDefs=[
+ ['number','№',true],['code','Код сценария',true],['board','Борд',true],
+ ['boardName','Название борда',false],['hero','HERO',true],
+ ['holeName','Карманная рука',false],['hit','Попадание HERO',false],
+ ['heroP','Вероятность HERO',false],['oppP','Вероятность OPP',false],
+ ['freq','Частота класса',false],['reviewed','Изучено',false],
+ ['actions','Действия стратегий',false],
+];
+const catalogColumnsKey='skachkov_postflop_1019_visible_columns_v1';
+const catalogDefaultColumns=['number','code','board','hero','hit','heroP','oppP','actions'];
+let catalogVisibleColumns=[...catalogDefaultColumns];
+try{
+ const x=JSON.parse(localStorage.getItem(catalogColumnsKey)||'null');
+ if(Array.isArray(x)&&x.every(id=>catalogColumnDefs.some(col=>col[0]===id)))
+  catalogVisibleColumns=[...new Set([...catalogColumnDefs.filter(x=>x[2]).map(x=>x[0]),...x])];
+}catch(e){}
+let catalogCurrentMatching=[];
+const catalogActionCache=new Map();
+function catalogHeaderCount(){
+ return catalogColumnDefs.slice(0,11).filter(x=>catalogVisibleColumns.includes(x[0])).length+
+    (catalogVisibleColumns.includes('actions')?chosen.length:0);
+}
+function syncCatalogHeaders(){
+ const head=$('catalogHeadRow');
+ head.querySelectorAll('.catalogActionHeader').forEach(th=>th.remove());
+ [...head.querySelectorAll('th')].forEach((th,i)=>{
+  th.dataset.col=catalogColumnDefs[i][0];
+  th.classList.toggle('catalogHidden',!catalogVisibleColumns.includes(th.dataset.col));
+ });
+ if(catalogVisibleColumns.includes('actions')){
+  for(const policy of chosen){
+   const th=document.createElement('th');
+   th.className='catalogActionHeader';
+   th.dataset.col='actions';
+   th.dataset.policy=policy;
+   th.textContent=strategiesAvailable.find(x=>x[0]===policy)?.[1]||policy;
+   head.append(th);
+  }
+ }
+}
+function renderCatalogStrategyPicker(){
+ const host=$('catalogStrategyPicker');host.replaceChildren();
+ chosen.forEach((id,i)=>{
+  const field=document.createElement('div');field.className='field';
+  const label=document.createElement('label');label.textContent='Стратегия '+(i+1);
+  const select=document.createElement('select');
+  select.setAttribute('aria-label','Стратегия '+(i+1)+' в каталоге');
+  for(const [value,name] of strategiesAvailable){
+   const option=document.createElement('option');
+   option.value=value;option.textContent=name;select.append(option);
+  }
+  select.value=id;
+  select.addEventListener('change',()=>{
+   if(chosen.includes(select.value)){
+    $('strategyMessage').textContent='Стратегия уже выбрана в другой колонке';
+    select.value=id;return;
+   }
+   chosen[i]=select.value;
+   saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();
+   drawCompositeCatalog();queueCompare();
+  });
+  field.append(label,select);host.append(field);
+ });
+}
+function updateCatalogColumnVisibility(){
+ for(const el of document.querySelectorAll('#compositeCatalog [data-col]'))
+  el.classList.toggle('catalogHidden',!catalogVisibleColumns.includes(el.dataset.col));
+ const span=catalogHeaderCount();
+ for(const tr of document.querySelectorAll('#catalogRows .catalogGroup'))
+  tr.firstElementChild.colSpan=span;
+}
+function renderCatalogColumnChoices(){
+ const root=$('catalogColumnChoices');root.replaceChildren();
+ for(const [id,name,fixed] of catalogColumnDefs){
+  const label=document.createElement('label'),check=document.createElement('input');
+  check.type='checkbox';check.checked=catalogVisibleColumns.includes(id);check.disabled=fixed;
+  check.addEventListener('change',()=>{
+   if(check.checked)catalogVisibleColumns.push(id);
+   else catalogVisibleColumns=catalogVisibleColumns.filter(x=>x!==id);
+   try{localStorage.setItem(catalogColumnsKey,JSON.stringify(catalogVisibleColumns))}catch(e){}
+   // Rebuild only when showing or hiding strategy result columns.
+   if(id==='actions')drawCompositeCatalog();
+   else updateCatalogColumnVisibility();
+  });
+  label.append(check,document.createTextNode(name));root.append(label);
+ }
+}
+function catalogSelectedSort(rows){
+ switch($('catalogSort').value){
+  case 'hero_desc':return rows.sort((a,b)=>(b.hero_goals?.[$('catalogHeroGoal').value]??-1)-
+     (a.hero_goals?.[$('catalogHeroGoal').value]??-1)||a.id.localeCompare(b.id));
+  case 'villain_desc':return rows.sort((a,b)=>(b.villain_goals?.[$('catalogVillainGoal').value]?.[$('catalogOpponentRange').value]??-1)-
+     (a.villain_goals?.[$('catalogVillainGoal').value]?.[$('catalogOpponentRange').value]??-1)||a.id.localeCompare(b.id));
+  case 'frequency_desc':return rows.sort((a,b)=>b.deals-a.deals||a.id.localeCompare(b.id));
+  case 'id':return rows.sort((a,b)=>a.id.localeCompare(b.id));
+  default:return rows;
+ }
+}
+
 function drawCompositeCatalog(){
  if(!compositeCatalogueLoaded)return;
+ syncCatalogHeaders();
  $("catalogHeroHeader").textContent=$("catalogHeroGoal").selectedOptions[0].textContent;
  $("catalogVillainHeader").textContent=$("catalogVillainGoal").selectedOptions[0].textContent;
  const search=$("catalogSearch").value.trim().toLowerCase();
@@ -809,7 +910,7 @@ function drawCompositeCatalog(){
  const boardCode=$("catalogBoardFilter").value;
  const heroCode=$("catalogHeroFilter").value;
  const reviewCode=$("catalogReviewFilter").value;
- const matching=compositeCatalogRows.filter(row=>{
+ let matching=compositeCatalogRows.filter(row=>{
   if(boardCode&&row.board_group!==boardCode)return false;
   if(heroCode&&row.hero_class!==heroCode)return false;
   if(reviewCode==="done"&&!catalogReviewed[row.id])return false;
@@ -818,15 +919,19 @@ function drawCompositeCatalog(){
                   row.board,row.hero,row.hole_name].join(" ").toLowerCase();
   return words.every(word=>haystack.includes(word));
  });
+ matching=catalogSelectedSort(matching);
+ catalogCurrentMatching=matching;
+ const groupCounts=new Map();
+ for(const row of matching)groupCounts.set(row.board_group,(groupCounts.get(row.board_group)||0)+1);
  const body=$("catalogRows"),fragment=document.createDocumentFragment();
  let previous=null,ordinal=0;
  for(const row of matching){
-  if(row.board_group!==previous){
+  if($('catalogSort').value==='group'&&row.board_group!==previous){
    previous=row.board_group;
    const header=document.createElement("tr");header.className="catalogGroup";
-   const cell=document.createElement("td");cell.colSpan=11;
+   const cell=document.createElement("td");cell.colSpan=catalogHeaderCount();
    cell.textContent=row.board_group+" · "+row.board_name+
-    " · "+matching.filter(x=>x.board_group===row.board_group).length+" сценариев";
+    " · "+groupCounts.get(row.board_group)+" сценариев";
    header.append(cell);fragment.append(header);
   }
   ordinal++;
@@ -874,20 +979,35 @@ function drawCompositeCatalog(){
    const selected=$("catalogSelected");selected.hidden=false;
    selected.textContent=row.id+" · "+row.board_name+" · "+row.hero_name+
      " · HERO "+row.hero+" / борд "+row.board+
-     ". Карты переданы в классификатор выше.";
-   if(token())classifyComposite();
+     ". Показаны вероятности эталонного физического примера.";
+   $('catalogPhysicalHero').value=row.hero;
+   $('catalogPhysicalBoard').value=row.board;
   };
   tr.addEventListener("click",open);
   tr.addEventListener("keydown",e=>{
    if((e.key==="Enter"||e.key===" ")&&e.target===tr){e.preventDefault();open()}
   });
-  tr.append(number,code,board,boardLabel,hero,heroLabel,hit,stronger,contact,chance,marked);
+  const cells=[number,code,board,boardLabel,hero,heroLabel,hit,stronger,contact,chance,marked];
+  cells.forEach((cell,i)=>{
+   cell.dataset.col=catalogColumnDefs[i][0];
+   cell.classList.toggle('catalogHidden',!catalogVisibleColumns.includes(cell.dataset.col));
+  });
+  tr.append(...cells);
+  if(catalogVisibleColumns.includes('actions')){
+   const contextKey=JSON.stringify(catalogContext());
+   for(const policy of chosen){
+    const td=document.createElement('td');
+    td.className='catalogStrategyCell';td.dataset.col='actions';td.dataset.policy=policy;
+    renderCatalogActionCell(td,catalogActionCache.get(catalogCacheKey(row.id,policy,contextKey)));
+    tr.append(td);
+   }
+  }
   fragment.append(tr);
  }
  body.replaceChildren(fragment);
  if(!matching.length){
   const tr=document.createElement("tr");const td=document.createElement("td");
-  td.colSpan=11;td.textContent="По выбранным фильтрам сценариев нет";
+  td.colSpan=catalogHeaderCount();td.textContent="По выбранным фильтрам сценариев нет";
   tr.append(td);body.append(tr);
  }
  updateCatalogMeta(matching.length);
