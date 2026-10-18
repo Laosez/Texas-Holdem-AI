@@ -96,7 +96,7 @@ class CompositeCatalogTests(unittest.TestCase):
                         if expected is None: self.assertIsNone(actual)
                         else: self.assertAlmostEqual(expected,actual,places=7)
 
-    def test_sheet_three_catalog_stays_separate_from_action_sampling(self):
+    def test_sheet_three_unifies_catalog_with_bounded_physical_action_sampling(self):
         html=(app.ROOT/"replit_ui/s100.html").read_text(encoding="utf-8")
         for marker in ('id="compositeCatalog"','id="catalogRows"',
                        'id="catalogBoardFilter"','id="catalogHeroFilter"',
@@ -109,9 +109,14 @@ class CompositeCatalogTests(unittest.TestCase):
                        'catalogMarkStorage',
                        'localStorage.setItem','/api/postflop/composite-catalog'):
             self.assertIn(marker,html)
-        self.assertIn('id="scenarioLedger"',html)
-        # Existing comparison remains limited to 102 example situations, not 1,019.
-        self.assertIn("rows:rows.map((r)=>({hole:r[1],board:r[2]}))",html)
+        self.assertIn('id="scenarioLedger"',html)  # compatibility-only hidden DOM
+        self.assertIn('.s100Main > section:not(#compositeCatalog){display:none}',html)
+        for marker in ('id="catalogMatch"', 'id="catalogPhysicalHero"',
+                       'id="catalogPhysicalBoard"', 'id="catalogSort"',
+                       'id="catalogColumnChoices"', 'id="catalogStrategyPicker"',
+                       "mode:'physical_catalog'", "rows:batch.map(",
+                       "catalogActionCache", "renderCatalogActionCell"):
+            self.assertIn(marker, html)
         self.assertNotIn("rows:compositeCatalogRows.map",html)
 
     def test_catalog_endpoint_is_authenticated_and_matches_on_disk(self):
