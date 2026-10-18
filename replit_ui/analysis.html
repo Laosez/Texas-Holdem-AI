@@ -87,11 +87,11 @@ footer{color:#758daa;font-size:11px;margin:13px auto 40px}
 'use strict';
 const $=id=>document.getElementById(id);
 const seats=['9','8','7','6','5','4','3','SB','BB'];
-const seatNames={'9':'9 · UTG','8':'8 · UTG+1','7':'7 · MP','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN','SB':'SB','BB':'BB'};
+const seatNames={'9':'9 · ранняя','8':'8 · ранняя','7':'7 · средняя','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN','SB':'SB','BB':'BB'};
 const preMetrics=['vpip','pfr','rfi','threebet','fourbet'];
 const percentMetrics=new Set([...preMetrics,'flop_cbet','turn_cbet','river_cbet','fold_to_bet','check_raise','wsd']);
 const names={a17_preflop:'A17 V5',pc_gto_80bb:'PC GTO 80 BB',gto:'GTO',gto_postflop_v1:'GTO V1',gto_postflop_v2:'GTO V2',gto_postflop_v3:'GTO V3',gto_postflop_v4:'GTO V4',tag_postflop_v1:'TAG',lag_postflop_v1:'LAG',s100_postflop_v1:'S100',trapper_postflop_v1:'Trapper',chaser_postflop_v1:'Chaser'};
-let jobs=[],runA=null,runB=null,requestId=0;
+let jobs=[],runA=null,runB=null,sessionTicket=0,primaryTicket=0,secondaryTicket=0;
 const cache=new Map(),expanded=new Set();
 function accessKey(){return $('key').value.trim()}
 function status(msg,kind=''){$('status').textContent=msg;$('status').className='status'+(kind?' '+kind:'')}
@@ -110,6 +110,12 @@ function wilson(w,n){
 }
 function playerTitle(bot){const m=/^P(\d+)=split:([^:]+):([^:]+)$/.exec(bot||'');return m?'P'+m[1]+' · '+(names[m[2]]||m[2])+' / '+(names[m[3]]||m[3]):String(bot||'—')}
 function idx(bot){const m=/^P(\d+)=/.exec(bot||'');return m?Number(m[1])-1:-1}
+function seatLabel(seat){
+ const size=Number($('stage').value);
+ if(size>=6&&Number(seat)===size)return seat+' · UTG';
+ if(size===9&&seat==='8')return '8 · UTG+1';
+ return seatNames[seat]||seat;
+}
 function fetchJSON(path){
  if(!accessKey())return Promise.reject(new Error('Укажи POKER_RUNNER_KEY'));
  return fetch(path,{cache:'no-store',headers:{'X-Runner-Key':accessKey()}})
@@ -167,35 +173,35 @@ function fillSessions(rootId,allowBlank,previous){
  else if(root.options.length)root.selectedIndex=0;
 }
 async function loadSessions(){
- const req=++requestId;status('Загружаю сессии…');$('connect').disabled=true;
+ const req=++sessionTicket;status('Загружаю сессии…');$('connect').disabled=true;
  try{
   sessionStorage.setItem('skachkov_key',accessKey());
   const current=$('sessionA').value||new URLSearchParams(location.search).get('session')||'';
   const currentB=$('sessionB').value;
   const data=await fetchJSON('/api/runs');
-  if(req!==requestId)return;
+  if(req!==sessionTicket)return;
   jobs=(data.runs||[]).filter(j=>j.status!=='deleted');
   fillSessions('sessionA',false,current);
   fillSessions('sessionB',true,currentB);
   await loadPrimary(true);await loadSecondary(true);
-  if(req===requestId)status('Сессии доступны · '+jobs.length,'ok');
+  if(req===sessionTicket)status('Сессии доступны · '+jobs.length,'ok');
  }catch(e){status(e.message,'error');emptyData()}finally{$('connect').disabled=false}
 }
 async function loadPrimary(force=false){
- const id=$('sessionA').value,req=++requestId;
+ const id=$('sessionA').value,req=++primaryTicket;
  if(!id){runA=null;emptyData();return}
  try{
   const run=await getRun(id,force);
-  if(req!==requestId||$('sessionA').value!==id)return;
+  if(req!==primaryTicket||$('sessionA').value!==id)return;
   runA=run;expanded.clear();
   fillPlayers('playerA',run,$('playerA').value);
   render();renderCompare();
  }catch(e){status('Сессия A: '+e.message,'error')}
 }
 async function loadSecondary(force=false){
- const id=$('sessionB').value,req=++requestId;
+ const id=$('sessionB').value,req=++secondaryTicket;
  if(!id){runB=null;fillPlayers('playerB',null,'');renderCompare();return}
- try{const run=await getRun(id,force);if(req!==requestId||$('sessionB').value!==id)return;
+ try{const run=await getRun(id,force);if(req!==secondaryTicket||$('sessionB').value!==id)return;
   runB=run;fillPlayers('playerB',run,$('playerB').value);renderCompare();
  }catch(e){runB=null;status('Сессия B: '+e.message,'error')}
 }
@@ -224,7 +230,7 @@ function renderScores(){
   root.append(tr);
   if(has&&expanded.has(p.bot))for(const seat of seats){
    const item=pos[seat];if(!item||!item.hands_observed)continue;
-   const child=rowOf([seatNames[seat]||seat,'—','—','—','—','—','—',num(item.net_bb_100,2),integer(item.hands_observed)],'subrow');
+   const child=rowOf([seatLabel(seat),'—','—','—','—','—','—',num(item.net_bb_100,2),integer(item.hands_observed)],'subrow');
    root.append(child);
   }
  }
@@ -236,7 +242,7 @@ function renderPre(){
  const root=clearRow('preflop',7,!runA?'Нет выбранной сессии':'');
  if(!runA)return;
  const bot=$('playerA').value,record=scopeRecord(runA,bot),positions=scopedSeats(runA,bot);
- const rows=[['ВСЕ ПОЗИЦИИ',record],...seats.map(s=>[seatNames[s],positions[s]]).filter(x=>x[1]&&x[1].hands_observed)];
+ const rows=[['ВСЕ ПОЗИЦИИ',record],...seats.map(s=>[seatLabel(s),positions[s]]).filter(x=>x[1]&&x[1].hands_observed)];
  for(const [label,r] of rows){
   const tr=document.createElement('tr');
   tr.append(cell(label));tr.append(cell(integer(r.hands_observed)));
@@ -274,7 +280,7 @@ function renderPositions(){
  const root=clearRow('positionTable',11,!runA?'Нет выбранной сессии':'');if(!runA)return;
  const data=scopedSeats(runA,$('playerA').value);
  for(const s of seats){const r=data[s];if(!r||!r.hands_observed)continue;
-  root.append(rowOf([seatNames[s],integer(r.hands_observed),percent(r.vpip),percent(r.pfr),
+  root.append(rowOf([seatLabel(s),integer(r.hands_observed),percent(r.vpip),percent(r.pfr),
   percent(r.rfi),percent(r.threebet),percent(r.flop_cbet??r.cbet),percent(r.turn_cbet),
   percent(r.river_cbet),num(r.flop_af,2),num(r.net_bb_100,2)]));
  }
@@ -368,7 +374,7 @@ function renderCompare(){
  for(const seat of seats){
   const recordA=pa[seat],recordB=pb[seat];if(!recordA&&!recordB)continue;
   const va=getMetric(recordA,metric),vb=getMetric(recordB,metric);
-  const tr=rowOf([seatNames[seat],integer(recordA?.hands_observed),integer(recordB?.hands_observed),
+  const tr=rowOf([seatLabel(seat),integer(recordA?.hands_observed),integer(recordB?.hands_observed),
   formatMetric(va,metric),formatMetric(vb,metric),
   delta(va,vb,metric)+(va!==null&&vb!==null&&percentMetrics.has(metric)?' п.п.':'')]);
   posRoot.append(tr);
