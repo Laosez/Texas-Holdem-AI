@@ -195,6 +195,12 @@ def _villain_goal_flags(hole, board):
     straight_draw=(category<4 and
                    any(len(window&rankset)>=4 for window in STREETS))
     draw=flush_draw or straight_draw
+    # Preserve the legacy "pair or direct connectivity" metric: a made
+    # straight/flush on the flop is also connected, but is NOT called a DRAW
+    # by the new narrower draw-only selectors.
+    direct_suited=any(n>=4 for n in Counter(s for r,s in all_cards).values())
+    direct_straight=any(len(window&rankset)>=4 for window in STREETS)
+    contact=private_pair or direct_suited or direct_straight
     board_has_trips=len(board_ranks)==1
     trip_on_board_only=board_has_trips and not private_pair
     top_pair_overpair=(
@@ -210,8 +216,8 @@ def _villain_goal_flags(hole, board):
         "flush_draw":flush_draw,
         "straight_draw":straight_draw,
         "any_draw":draw,
-        "pair_or_draw":private_pair or draw,
-        "no_contact":not(private_pair or draw),
+        "pair_or_draw":contact,
+        "no_contact":not contact,
     }
     return flags
 
