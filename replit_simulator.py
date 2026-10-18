@@ -1136,6 +1136,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         if planner_api.get_route(self,path):
             return
+        if path == "/api/postflop/composite-catalog":
+            # Small reviewed static JSON; generated offline from the exact census.
+            catalog = ROOT / "data" / "postflop_composite_catalog.json"
+            try:
+                self.reply(200, json.loads(catalog.read_text(encoding="utf-8")))
+            except (OSError, ValueError):
+                self.reply(503, {"error": "Каталог составных сценариев пока недоступен"})
+            return
         if path == "/api/s100":
             from bots.s100_postflop import CATALOG
             self.reply(200, CATALOG)
