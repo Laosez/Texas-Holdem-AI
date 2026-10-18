@@ -107,8 +107,8 @@ class RiverAttributionTests(unittest.TestCase):
         self.assertEqual(r["cause"],"C05")
         # HERO top pair vs villain two pairs: actual category gap.
         gap=[("HERO",[c("A","s"),c("Q","s")],None),
-             ("V1",[c("K","s"),c("K","h")],None)]
-        paired_board=[c("A","d"),c("7","h"),c("7","c"),c("4","d"),c("3","c")]
+             ("V1",[c("K","s"),c("7","d")],None)]
+        paired_board=[c("A","d"),c("K","h"),c("7","c"),c("4","d"),c("3","c")]
         v=classify_attribution(gap,paired_board,"showdown_2_loss",-2.0,"river",
                                ("HERO","V1"),("V1",))
         self.assertEqual(v["cause"],"C04")
