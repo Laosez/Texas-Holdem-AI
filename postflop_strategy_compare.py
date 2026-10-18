@@ -108,13 +108,17 @@ def compare_request(data):
         raise ValueError("Ожидается JSON-объект")
     strategies = data.get("strategies")
     rows = data.get("rows")
+    physical = data.get("mode") == "physical_catalog"
+    if data.get("mode") not in (None, "physical_catalog"):
+        raise ValueError("Неизвестный режим сравнения сценариев")
     raw_context = data.get("context", {})
     if (not isinstance(strategies, list) or not 1 <= len(strategies) <= 5
             or any(not isinstance(s, str) or s not in POLICIES for s in strategies)
             or len(set(strategies)) != len(strategies)):
         raise ValueError("Выберите от одной до пяти разных зарегистрированных постфлоп-стратегий")
-    if not isinstance(rows, list) or not 1 <= len(rows) <= 125:
-        raise ValueError("Укажите от 1 до 125 сценариев")
+    limit = 32 if physical else 125
+    if not isinstance(rows, list) or not 1 <= len(rows) <= limit:
+        raise ValueError(f"Укажите от 1 до {limit} сценариев")
     if not isinstance(raw_context, dict):
         raise ValueError("Некорректные настройки розыгрыша")
     context = {
@@ -145,9 +149,26 @@ def compare_request(data):
     for idx, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError("Каждый сценарий должен быть объектом")
-        scenario = classify_numeric(row.get("hole"), row.get("board"))
-        variants = _physical_variants(scenario["hole"], scenario["board"], scenario["scenario"]["id"])
-        views = [_view(hole, board, context) for hole, board in variants]
+        if physical:
+            from postflop_composite_classifier import (
+                parse_physical_hero, classify_composite_flop
+            )
+            from flop_board_structure import parse_physical_flop
+            hero_text, board_text = row.get("hero"), row.get("board")
+            hole = tuple(parse_physical_hero(hero_text))
+            board = tuple(parse_physical_flop(board_text))
+            if len(set(hole + board)) != 5:
+                raise ValueError("HERO и флоп содержат повторяющуюся карту")
+            classified = classify_composite_flop(hero_text, board_text)
+            if row.get("id") != classified["id"]:
+                raise ValueError("Код сценария не соответствует физическим картам")
+            scenario = {"id": classified["id"], "name": classified["name"]}
+            views = [_view([(RANKS[r - 2], suit) for r, suit in hole],
+                           [(RANKS[r - 2], suit) for r, suit in board], context)]
+        else:
+            scenario = classify_numeric(row.get("hole"), row.get("board"))
+            views = [_view(hole, board, context) for hole, board in
+                     _physical_variants(scenario["hole"], scenario["board"], scenario["scenario"]["id"])]
         scores = {}
         for strategy in strategies:
             counts = Counter()
@@ -161,12 +182,14 @@ def compare_request(data):
                     raise RuntimeError(f"Стратегия {strategy} вернула недопустимое действие")
                 counts[kind] += 1
             scores[strategy] = {kind: counts[kind] / samples for kind in MOVES if counts[kind]}
-        result.append({"index": idx, "scenario": scenario["scenario"], "actions": scores})
+        result.append({"index": idx,
+                       "scenario": scenario if physical else scenario["scenario"],
+                       "actions": scores})
     return {
         "profiles": [{"id": s, "label": POLICIES[s]} for s in strategies],
         "samples_per_strategy": samples,
-        "suit_variants": 4,
-        "method": "empirical_bot_act",
+        "suit_variants": 1 if physical else 4,
+        "method": "empirical_bot_act_physical" if physical else "empirical_bot_act",
         "context": context,
         "rows": result,
     }

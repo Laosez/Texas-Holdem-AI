@@ -28,7 +28,12 @@ EQUITY_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_EQUITY_WORKERS,thread_name_
 POSTFLOP_MATRIX_EXECUTOR = ThreadPoolExecutor(
     max_workers=1,thread_name_prefix="poker-matrix")
 POSTFLOP_HAND_EXECUTOR = ThreadPoolExecutor(
-    max_workers=1,thread_name_prefix="poker-hand")
+    max_workers=2,thread_name_prefix="poker-hand")
+# Each selected-hand job reserves its own subset of the shared hand CPU budget.
+# A selected A/B pair can compute together while a 169-hand matrix consumes its
+# separate matrix budget. A small cgroup may serialize instead of oversubscribing.
+POSTFLOP_HAND_CONDITION = threading.Condition()
+POSTFLOP_HAND_IN_USE = 0
 
 
 def postflop_cpu_budgets(total):
@@ -278,11 +283,28 @@ def start_postflop_ev(raw,busy=False):
     selected=bool(payload["hand"])
     workers=hand_workers if selected else matrix_workers
     def compute(progress):
-        start=time.perf_counter()
-        result=calculate_parallel(payload,progress=progress,workers=workers)
-        result["compute_seconds"]=round(time.perf_counter()-start,3)
-        result["cpu_workers"]=workers
-        return result
+        global POSTFLOP_HAND_IN_USE
+        allocated=workers
+        if selected:
+            with POSTFLOP_HAND_CONDITION:
+                while POSTFLOP_HAND_IN_USE >= hand_workers:
+                    POSTFLOP_HAND_CONDITION.wait()
+                # Reserve at most half (rounding up) for the first job so
+                # the second A/B job can start without waiting for its sibling.
+                allocated=min(max(1,(hand_workers+1)//2),
+                              hand_workers-POSTFLOP_HAND_IN_USE)
+                POSTFLOP_HAND_IN_USE+=allocated
+        try:
+            start=time.perf_counter()
+            result=calculate_parallel(payload,progress=progress,workers=allocated)
+            result["compute_seconds"]=round(time.perf_counter()-start,3)
+            result["cpu_workers"]=allocated
+            return result
+        finally:
+            if selected:
+                with POSTFLOP_HAND_CONDITION:
+                    POSTFLOP_HAND_IN_USE-=allocated
+                    POSTFLOP_HAND_CONDITION.notify_all()
     return _schedule(identity,compute,
                      payload["trials"]*payload["cycles"] if selected else len(core.HANDS),
                      executor=POSTFLOP_HAND_EXECUTOR if selected else POSTFLOP_MATRIX_EXECUTOR)

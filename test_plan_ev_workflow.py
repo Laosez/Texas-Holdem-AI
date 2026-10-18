@@ -191,7 +191,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
         self.assertIn("abRelativePct(a,b,totalA,totalB)",page)
         self.assertIn("const hand=side==='a'||$('handDecompHandB').value==='='",page)
         self.assertIn("if(side==='b'&&$('handDecompHandB').value==='-')return null;",page)
-        self.assertIn("if(!settings)continue;",page)
+        self.assertIn("Promise.allSettled(sides.map(calculateSide))",page)
         self.assertIn("const compare=$('handDecompHandB').value!=='-';",page)
         self.assertIn("if(side==='b'&&!decompSideRequest('b'))",page)
         self.assertIn("const AB_COLUMN_GROUPS=[",page)

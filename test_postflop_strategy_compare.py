@@ -109,6 +109,31 @@ class PostflopStrategyCompareTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             compare_request(too_many)
 
+    def test_full_catalog_physical_batched_actions_and_validation(self):
+        from postflop_composite_classifier import classify_composite_flop
+        hero, board = "14s-13h", "7d-5c-2s"
+        scenario = classify_composite_flop(hero, board)
+        rows = [{"id":scenario["id"],"hero":hero,"board":board}]
+        request = request_for(rows, profiles=["gto_postflop_v4","lag_postflop_v1"])
+        request["mode"]="physical_catalog"
+        output = compare_request(request)
+        self.assertEqual(output["method"],"empirical_bot_act_physical")
+        self.assertEqual(output["suit_variants"],1)
+        self.assertEqual(output["rows"][0]["scenario"]["id"],scenario["id"])
+        for actions in output["rows"][0]["actions"].values():
+            self.assertAlmostEqual(sum(actions.values()),1.0)
+            self.assertTrue(set(actions) <= {"check","bet"})
+        for invalid in [
+            {**rows[0],"id":"F|INVALID"},
+            {**rows[0],"hero":"7d-13h"},
+            {**rows[0],"board":"7d-5c-5c"},
+        ]:
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    compare_request({**request,"rows":[invalid]})
+        with self.assertRaises(ValueError):
+            compare_request({**request,"rows":rows*33})
+
     def test_authenticated_http_endpoint_and_existing_s100_intact(self):
         with patch.object(app,"TOKEN","compare_secret"):
             server = ThreadingHTTPServer(("127.0.0.1",0),app.Handler)

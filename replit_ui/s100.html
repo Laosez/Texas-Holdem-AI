@@ -117,6 +117,27 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 .catalogSelected{margin:9px 0 0;padding:10px;border:1px solid #385b7f;background:#112943;border-radius:7px;font-size:12px}
 @media(max-width:800px){.catalogBar{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.catalogBar{grid-template-columns:1fr}}
+
+/* The catalog is the only visible postflop workspace. Legacy panels remain
+   mounted until their independent classifiers/tests are migrated. */
+.s100Main > section:not(#compositeCatalog){display:none}
+.catalogLookup{display:grid;grid-template-columns:minmax(125px,1fr) minmax(150px,1.4fr) auto;gap:9px;align-items:end;margin:13px 0}
+.catalogLookup .btn{white-space:nowrap}
+.catalogOptionBar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:12px 0}
+.catalogOptionBar > .field{max-width:280px;flex:1}
+.catalogColumnChoices{display:flex;gap:8px 14px;flex-wrap:wrap;background:#10273f;padding:12px;border:1px solid #3b5c7c;border-radius:8px;margin:7px 0}
+.catalogColumnChoices[hidden]{display:none}
+.catalogColumnChoices label{display:flex;align-items:center;gap:6px;margin:0;cursor:pointer}
+.catalogColumnChoices input{width:15px}
+.catalogStrategyPicker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.catalogStrategyPicker .field{min-width:160px;max-width:240px;flex:1}
+.catalogStrategyControls{padding:12px;background:#10243a;border:1px solid #2c4d6a;border-radius:8px;margin:12px 0}
+.catalogLedger th.catalogActionHeader,.catalogLedger td.catalogStrategyCell{min-width:150px;text-align:left;white-space:normal}
+.catalogLedger .catalogStrategyCell{font-size:11px}
+.catalogLedger .catalogHidden{display:none!important}
+.catalogLedger .catalogGroup td{font-size:12px}
+.catalogLedger{min-width:1280px}
+@media(max-width:700px){.catalogLookup{grid-template-columns:1fr 1fr}.catalogLookup .btn{grid-column:1/-1}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect" type="button">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -144,8 +165,14 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 </section>
 
 <section class="panel" id="compositeCatalog">
- <div class="heading"><h2><span class="index">00Б / </span>Полный каталог составных сценариев</h2><span class="badge" id="catalogTotal">1 019 классов</span></div>
- <p class="panelIntro"><strong>Все достижимые сочетания «структура борда × попадание HERO».</strong> Группировка по 46 типам флопа: коды, названия борда и карманной руки, конкретный физический пример, две условные вероятности и общая частота класса. Нажатие на строку открывает её карты в классификаторе выше. Отмечайте изученные сценарии.</p>
+ <div class="heading"><h2><span class="index">03 / </span>Постфлоп · Стратегии</h2><span class="badge" id="catalogTotal">1 019 классов</span></div>
+ <p class="panelIntro"><strong>Единый каталог 1 019 реальных составных сценариев флопа.</strong> Поиск по коду, структуре, карманным картам и попаданию; вероятности и сравнение до пяти действующих стратегий. Нажмите на строку для выбора, отмечайте изученные ситуации, скрывайте лишние столбцы. Это классификация флопа; действия тёрна и ривера остаются доступными вычислительному движку.</p>
+ <div class="catalogLookup">
+  <div class="field"><label for="catalogPhysicalHero">HERO · физические карты</label><input id="catalogPhysicalHero" value="14s-13h" placeholder="14s-13h"></div>
+  <div class="field"><label for="catalogPhysicalBoard">Борд · три карты флопа</label><input id="catalogPhysicalBoard" value="7d-5c-2s" placeholder="7d-5c-2s"></div>
+  <button class="btn primary" id="catalogMatch" type="button">Найти сценарий</button>
+ </div>
+ <p class="statusLine" id="catalogMatchStatus" role="status"></p>
  <div class="catalogBar">
   <div class="field"><label for="catalogSearch">Поиск · код / название / карты</label><input id="catalogSearch" type="search" placeholder="TPFDOESD, N-C4-2S, 9s-8s"></div>
   <div class="field"><label for="catalogBoardFilter">Структура борда</label><select id="catalogBoardFilter"><option value="">Все 46 структур</option></select></div>
@@ -177,15 +204,23 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
    </select></div>
   <div class="field"><label for="catalogOpponentRange">Диапазон оппонента</label><select id="catalogOpponentRange"><option value="any">100% · случайные две карты</option><option value="UTG">PC GTO 80bb · UTG · RFI</option><option value="UTG1">PC GTO 80bb · UTG+1 · RFI</option><option value="LJ">PC GTO 80bb · LJ · RFI</option><option value="HJ">PC GTO 80bb · HJ · RFI</option><option value="CO">PC GTO 80bb · CO · RFI</option><option value="BTN">PC GTO 80bb · BTN · RFI</option><option value="SB">PC GTO 80bb · SB · рейз</option></select></div>
  </div>
+ <div id="catalogStrategyControls" class="catalogStrategyControls"><div id="catalogStrategyPicker" class="catalogStrategyPicker"></div></div>
+ <div class="catalogOptionBar">
+  <div class="field"><label for="catalogSort">Упорядочить</label>
+   <select id="catalogSort"><option value="group">Структура борда · 46 групп</option><option value="hero_desc">Вероятность HERO ↓</option><option value="villain_desc">Попадание OPP ↓</option><option value="frequency_desc">Частота класса ↓</option><option value="id">Код сценария</option></select></div>
+  <button class="btn outline" type="button" id="catalogColumnsToggle">Столбцы ▾</button>
+  <span class="small">Точные вероятности относятся к указанным физическим примерам</span>
+ </div>
+ <div id="catalogColumnChoices" class="catalogColumnChoices" hidden></div>
  <div class="tableMeta" style="margin-bottom:11px">
   <span class="small" id="catalogStatus" role="status">Каталог доступен после подключения к приложению.</span>
   <div class="buttons"><button class="btn sm" type="button" id="catalogReload">Загрузить каталог</button><button class="btn sm outline" type="button" id="catalogReset" title="Удалить отметки просмотра только в этом браузере">Сбросить отметки</button></div>
  </div>
  <div id="catalogSelected" class="catalogSelected" hidden></div>
  <div class="tablewrap" style="max-height:75vh">
-  <table class="catalogLedger"><thead><tr><th>№</th><th>Код сценария</th><th>Борд</th><th>Название борда</th><th>HERO</th><th>Карманная рука HERO</th><th>Попадание HERO</th><th id="catalogHeroHeader" title="Выберите цель HERO над таблицей; точно по 1 081 возможной паре карт тёрна–ривера" style="text-align:right">Цель HERO · к риверу</th><th id="catalogVillainHeader" title="Попадание одного оппонента на флопе при выбранном диапазоне; известные карты исключены" style="text-align:right">Оппонент · на флопе</th><th style="text-align:right">Частота класса</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
+  <table class="catalogLedger"><thead><tr id="catalogHeadRow"><th>№</th><th>Код сценария</th><th>Борд</th><th>Название борда</th><th>HERO</th><th>Карманная рука HERO</th><th>Попадание HERO</th><th id="catalogHeroHeader" title="Выберите цель HERO над таблицей; точно по 1 081 возможной паре карт тёрна–ривера" style="text-align:right">Цель HERO · к риверу</th><th id="catalogVillainHeader" title="Попадание одного оппонента на флопе при выбранном диапазоне; известные карты исключены" style="text-align:right">Оппонент · на флопе</th><th style="text-align:right">Частота класса</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
  </div>
- <p class="summary"><strong>Выбирайте цель отдельно для HERO и оппонента.</strong> Для HERO — точная вероятность достижения выбранного результата <strong>к риверу</strong> по всем 1 081 тёрнам/риверам после пяти известных карт. «Поймать A или K» означает, что хотя бы одна карта тёрна/ривера совпадёт с соответствующим карманным рангом; это не обязательно выигрыш и не всегда топ-пара. Цели «Пара+», «Две пары+» и т. д. проверяют итоговую категорию <strong>включая комбинации общих карт и уже готовые попадания</strong>; «Выше категории» отдельно требует изменения относительно флопа. Для оппонента — событие <strong>у одного игрока именно на флопе</strong> при выбранном диапазоне с учётом блокеров HERO. «Собственная пара» — карманная пара или совпадение одной из карманных карт с номиналом флопа; общая пара без личного совпадения не считается. Флеш-/стрит-дро означает прямое 4-карточное дро, без бэкдора. <strong>Это показатели физического примера конкретной строки, не средние значения по составному классу, не equity и не EV.</strong> Частота класса показана отдельно. Отметки просмотра сохраняются только в этом браузере; действующая таблица GTO/LAG остаётся ниже.</p>
+ <p class="summary"><strong>Выбирайте цель отдельно для HERO и оппонента.</strong> Для HERO — точная вероятность достижения выбранного результата <strong>к риверу</strong> по всем 1 081 тёрнам/риверам после пяти известных карт. «Поймать A или K» означает, что хотя бы одна карта тёрна/ривера совпадёт с соответствующим карманным рангом; это не обязательно выигрыш и не всегда топ-пара. Цели «Пара+», «Две пары+» и т. д. проверяют итоговую категорию <strong>включая комбинации общих карт и уже готовые попадания</strong>; «Выше категории» отдельно требует изменения относительно флопа. Для оппонента — событие <strong>у одного игрока именно на флопе</strong> при выбранном диапазоне с учётом блокеров HERO. «Собственная пара» — карманная пара или совпадение одной из карманных карт с номиналом флопа; общая пара без личного совпадения не считается. Флеш-/стрит-дро означает прямое 4-карточное дро, без бэкдора. <strong>Это показатели физического примера конкретной строки, не средние значения по составному классу, не equity и не EV.</strong> Частота класса показана отдельно. Отметки просмотра и выбранные столбцы сохраняются в браузере; результаты ботов отображаются в колонках этой же таблицы и зависят от игрового контекста.</p>
 </section>
 <section class="panel" id="numericClassifier">
  <div class="heading"><h2><span class="index">00 / </span>Постфлоп · План</h2><span class="badge">Одна улица → один сценарий</span></div>
@@ -412,7 +447,7 @@ function redrawStrategyColumns(){
    if(chosen.includes(select.value)){
     select.value=chosen[i];$('strategyMessage').textContent='Каждую стратегию можно выбрать только в одной колонке';return;
    }
-   chosen[i]=select.value;saveSelected();redrawStrategyColumns();refreshComparison();
+   chosen[i]=select.value;saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();drawCompositeCatalog();queueCompare();
   });
   head.append(select);
   if(chosen.length>1){
@@ -421,7 +456,7 @@ function redrawStrategyColumns(){
    remove.textContent='×';remove.title='Убрать колонку';
    remove.setAttribute('aria-label','Убрать сравниваемую стратегию '+(i+1));
    remove.addEventListener('click',()=>{
-    chosen.splice(i,1);saveSelected();redrawStrategyColumns();refreshComparison();
+    chosen.splice(i,1);saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();drawCompositeCatalog();queueCompare();
    });
    head.append(remove);
   }
@@ -488,12 +523,8 @@ function renderActions(data){
   });
  }
 }
-async function refreshComparison(){
- if(compareController)compareController.abort();
- const serial=++pendingCompare;
- compareController=new AbortController();
- if(!token()){$('strategyMessage').textContent='Введите ключ доступа в шапке для расчёта действий ботов';return}
- const context={
+function catalogContext(){
+ return {
   opponents:Number($('contextOpponents').value),
   position:$('contextPosition').value,
   preflop_aggressor:$('contextInitiative').value==='1',
@@ -501,37 +532,103 @@ async function refreshComparison(){
   stack:Number($('contextStack').value),
   to_call:$('contextFacing').value==='0'?0:Number($('contextCall').value)
  };
+}
+function catalogCacheKey(rowId,strategy,context){
+ return JSON.stringify([rowId,strategy,context]);
+}
+function renderCatalogActionCell(cell,actions){
+ cell.replaceChildren();
+ if(!actions){cell.textContent='—';return;}
+ const entries=Object.entries(actions).sort((a,b)=>b[1]-a[1]);
+ cell.title=entries.map(([kind,p])=>(labelForAction[kind]||kind)+' '+(100*p).toFixed(1)+'%').join(' · ');
+ entries.slice(0,3).forEach(([kind,p],i)=>{
+  if(i)cell.append(document.createTextNode(' · '));
+  const span=document.createElement('span');
+  span.className=i?'minorAction':'mainAction';
+  span.textContent=(labelForAction[kind]||kind)+' '+(100*p).toFixed(0)+'%';
+  cell.append(span);
+ });
+}
+async function refreshComparison(){
+ if(compareController)compareController.abort();
+ const serial=++pendingCompare;
+ compareController=new AbortController();
+ if(!token()){$('strategyMessage').textContent='Подключитесь, чтобы сравнить стратегии';return;}
+ if(!compositeCatalogueLoaded){$('strategyMessage').textContent='Сначала загрузите каталог';return;}
+ const context=catalogContext();
  if(context.to_call>context.stack||context.to_call>context.pot||
-    Object.values(context).some(v=>typeof v==='number'&&(!Number.isInteger(v)||v<0))){
-  $('strategyMessage').textContent='Проверьте значения банка, ставки и стека';return;
+   Object.values(context).some(v=>typeof v==='number'&&(!Number.isInteger(v)||v<0))||
+   context.pot<1||context.stack<1){
+  $('strategyMessage').textContent='Проверьте банк, стек и цену Call';return;
  }
- $('strategyMessage').textContent='Сравнение действующих политик...';
- document.querySelectorAll('.strategyActionCell').forEach(td=>td.textContent='…');
- const payload={
-  strategies:[...chosen],context,
-  rows:rows.map((r)=>({hole:r[1],board:r[2]}))
- };
+ const target=[...catalogCurrentMatching];
+ if(!target.length){$('strategyMessage').textContent='Нет сценариев для сравнения';return;}
+ const policies=[...chosen],contextKey=JSON.stringify(context);
+ const missing=target.filter(row=>policies.some(policy=>
+  !catalogActionCache.has(catalogCacheKey(row.id,policy,contextKey))));
+ if(!missing.length){
+  $('strategyMessage').textContent='Готово · '+target.length+' сценариев из кеша, '+policies.length+' стратегий';
+  drawCompositeCatalog();return;
+ }
+ $('strategyMessage').textContent='Сравнение · '+missing.length+' сценариев · '+policies.length+' стратегий';
+ let completed=0;
  try{
-  const r=await fetch('/api/postflop/compare',{
-   method:'POST',headers:{...auth(),'Content-Type':'application/json'},
-   body:JSON.stringify(payload),signal:compareController.signal
-  });
-  const data=await r.json();if(serial!==pendingCompare)return;
-  if(!r.ok)throw Error(data.error||'Ошибка сравнения');
-  renderActions(data);
-  $('strategyMessage').textContent='Сравнено '+data.rows.length+' ситуаций × '+data.profiles.length+
-   ' стратегий · '+data.samples_per_strategy+' розыгрышей политики на ячейку · одинаковый контекст';
+  for(let i=0;i<missing.length;i+=24){
+   if(serial!==pendingCompare)return;
+   const batch=missing.slice(i,i+24);
+   const response=await fetch('/api/postflop/compare',{
+    method:'POST',
+    headers:{...auth(),'Content-Type':'application/json'},
+    body:JSON.stringify({mode:'physical_catalog',strategies:policies,context,
+      rows:batch.map(row=>({id:row.id,hero:row.hero,board:row.board}))}),
+    signal:compareController.signal
+   });
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'Ошибка сравнения');
+   if(data.rows.length!==batch.length)throw Error('Сервер вернул неполный пакет');
+   for(const item of data.rows){
+    const row=batch[item.index];
+    if(!row||item.scenario?.id!==row.id)throw Error('Несовпадение сценария в ответе');
+    for(const policy of policies){
+     const actions=item.actions[policy];
+     if(!actions)throw Error('Нет действий стратегии '+policy);
+     catalogActionCache.set(catalogCacheKey(row.id,policy,contextKey),actions);
+    }
+   }
+   completed+=batch.length;
+   // Only visible cells are updated, keeping search and scroll position stable.
+   const currentRows=new Map([...document.querySelectorAll('.catalogLine')].map(tr=>[tr.dataset.compositeId,tr]));
+   for(const row of batch){
+    const tr=currentRows.get(row.id);
+    if(!tr)continue;
+    for(const cell of tr.querySelectorAll('.catalogStrategyCell')){
+     renderCatalogActionCell(cell,catalogActionCache.get(
+      catalogCacheKey(row.id,cell.dataset.policy,contextKey)));
+    }
+   }
+   $('strategyMessage').textContent='Сравнено '+completed+' / '+missing.length+
+    ' новых сценариев · '+policies.length+' стратегий · 96 вызовов / ячейку';
+  }
+  if(serial===pendingCompare)
+   $('strategyMessage').textContent='Готово · '+target.length+' сценариев · '+
+    policies.length+' стратегий. Частоты действий эмпирические, не solver GTO.';
  }catch(e){
   if(serial!==pendingCompare||e.name==='AbortError')return;
-  $('strategyMessage').textContent=e.message;
-  document.querySelectorAll('.strategyActionCell').forEach(td=>td.textContent='—');
+  $('strategyMessage').textContent='Ошибка сравнения после '+completed+' сценариев: '+e.message;
  }
 }
-function queueCompare(){if(compareTimer)clearTimeout(compareTimer);compareTimer=setTimeout(refreshComparison,250)}
+function queueCompare(){
+ if(compareTimer)clearTimeout(compareTimer);
+ if(compareController)compareController.abort();
+ ++pendingCompare;
+ $('strategyMessage').textContent='Контекст изменён · нажмите «Сравнить стратегии»';
+ if(compositeCatalogueLoaded)drawCompositeCatalog();
+}
+
 $('addComparison').addEventListener('click',()=>{
  if(chosen.length>=5)return;
  const next=strategiesAvailable.find(s=>!chosen.includes(s[0]));if(!next)return;
- chosen.push(next[0]);saveSelected();redrawStrategyColumns();refreshComparison();
+ chosen.push(next[0]);saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();drawCompositeCatalog();queueCompare();
 });
 $('refreshComparison').addEventListener('click',refreshComparison);
 for(const id of ['contextOpponents','contextPosition','contextInitiative','contextFacing']){
@@ -703,8 +800,109 @@ function catalogGroupSort(a,b){
  const family=x=>x.startsWith("A-")?0:x.startsWith("N-")?1:x.startsWith("P-")?2:3;
  return family(a)-family(b)||a.localeCompare(b,"en");
 }
+
+const catalogColumnDefs=[
+ ['number','№',true],['code','Код сценария',true],['board','Борд',true],
+ ['boardName','Название борда',false],['hero','HERO',true],
+ ['holeName','Карманная рука',false],['hit','Попадание HERO',false],
+ ['heroP','Вероятность HERO',false],['oppP','Вероятность OPP',false],
+ ['freq','Частота класса',false],['reviewed','Изучено',false],
+ ['actions','Действия стратегий',false],
+];
+const catalogColumnsKey='skachkov_postflop_1019_visible_columns_v1';
+const catalogDefaultColumns=['number','code','board','hero','hit','heroP','oppP','actions'];
+let catalogVisibleColumns=[...catalogDefaultColumns];
+try{
+ const x=JSON.parse(localStorage.getItem(catalogColumnsKey)||'null');
+ if(Array.isArray(x)&&x.every(id=>catalogColumnDefs.some(col=>col[0]===id)))
+  catalogVisibleColumns=[...new Set([...catalogColumnDefs.filter(x=>x[2]).map(x=>x[0]),...x])];
+}catch(e){}
+let catalogCurrentMatching=[];
+const catalogActionCache=new Map();
+function catalogHeaderCount(){
+ return catalogColumnDefs.slice(0,11).filter(x=>catalogVisibleColumns.includes(x[0])).length+
+    (catalogVisibleColumns.includes('actions')?chosen.length:0);
+}
+function syncCatalogHeaders(){
+ const head=$('catalogHeadRow');
+ head.querySelectorAll('.catalogActionHeader').forEach(th=>th.remove());
+ [...head.querySelectorAll('th')].forEach((th,i)=>{
+  th.dataset.col=catalogColumnDefs[i][0];
+  th.classList.toggle('catalogHidden',!catalogVisibleColumns.includes(th.dataset.col));
+ });
+ if(catalogVisibleColumns.includes('actions')){
+  for(const policy of chosen){
+   const th=document.createElement('th');
+   th.className='catalogActionHeader';
+   th.dataset.col='actions';
+   th.dataset.policy=policy;
+   th.textContent=strategiesAvailable.find(x=>x[0]===policy)?.[1]||policy;
+   head.append(th);
+  }
+ }
+}
+function renderCatalogStrategyPicker(){
+ const host=$('catalogStrategyPicker');host.replaceChildren();
+ chosen.forEach((id,i)=>{
+  const field=document.createElement('div');field.className='field';
+  const label=document.createElement('label');label.textContent='Стратегия '+(i+1);
+  const select=document.createElement('select');
+  select.setAttribute('aria-label','Стратегия '+(i+1)+' в каталоге');
+  for(const [value,name] of strategiesAvailable){
+   const option=document.createElement('option');
+   option.value=value;option.textContent=name;select.append(option);
+  }
+  select.value=id;
+  select.addEventListener('change',()=>{
+   if(chosen.includes(select.value)){
+    $('strategyMessage').textContent='Стратегия уже выбрана в другой колонке';
+    select.value=id;return;
+   }
+   chosen[i]=select.value;
+   saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();
+   drawCompositeCatalog();queueCompare();
+  });
+  field.append(label,select);host.append(field);
+ });
+}
+function updateCatalogColumnVisibility(){
+ for(const el of document.querySelectorAll('#compositeCatalog [data-col]'))
+  el.classList.toggle('catalogHidden',!catalogVisibleColumns.includes(el.dataset.col));
+ const span=catalogHeaderCount();
+ for(const tr of document.querySelectorAll('#catalogRows .catalogGroup'))
+  tr.firstElementChild.colSpan=span;
+}
+function renderCatalogColumnChoices(){
+ const root=$('catalogColumnChoices');root.replaceChildren();
+ for(const [id,name,fixed] of catalogColumnDefs){
+  const label=document.createElement('label'),check=document.createElement('input');
+  check.type='checkbox';check.checked=catalogVisibleColumns.includes(id);check.disabled=fixed;
+  check.addEventListener('change',()=>{
+   if(check.checked)catalogVisibleColumns.push(id);
+   else catalogVisibleColumns=catalogVisibleColumns.filter(x=>x!==id);
+   try{localStorage.setItem(catalogColumnsKey,JSON.stringify(catalogVisibleColumns))}catch(e){}
+   // Rebuild only when showing or hiding strategy result columns.
+   if(id==='actions')drawCompositeCatalog();
+   else updateCatalogColumnVisibility();
+  });
+  label.append(check,document.createTextNode(name));root.append(label);
+ }
+}
+function catalogSelectedSort(rows){
+ switch($('catalogSort').value){
+  case 'hero_desc':return rows.sort((a,b)=>(b.hero_goals?.[$('catalogHeroGoal').value]??-1)-
+     (a.hero_goals?.[$('catalogHeroGoal').value]??-1)||a.id.localeCompare(b.id));
+  case 'villain_desc':return rows.sort((a,b)=>(b.villain_goals?.[$('catalogVillainGoal').value]?.[$('catalogOpponentRange').value]??-1)-
+     (a.villain_goals?.[$('catalogVillainGoal').value]?.[$('catalogOpponentRange').value]??-1)||a.id.localeCompare(b.id));
+  case 'frequency_desc':return rows.sort((a,b)=>b.deals-a.deals||a.id.localeCompare(b.id));
+  case 'id':return rows.sort((a,b)=>a.id.localeCompare(b.id));
+  default:return rows;
+ }
+}
+
 function drawCompositeCatalog(){
  if(!compositeCatalogueLoaded)return;
+ syncCatalogHeaders();
  $("catalogHeroHeader").textContent=$("catalogHeroGoal").selectedOptions[0].textContent;
  $("catalogVillainHeader").textContent=$("catalogVillainGoal").selectedOptions[0].textContent;
  const search=$("catalogSearch").value.trim().toLowerCase();
@@ -712,7 +910,7 @@ function drawCompositeCatalog(){
  const boardCode=$("catalogBoardFilter").value;
  const heroCode=$("catalogHeroFilter").value;
  const reviewCode=$("catalogReviewFilter").value;
- const matching=compositeCatalogRows.filter(row=>{
+ let matching=compositeCatalogRows.filter(row=>{
   if(boardCode&&row.board_group!==boardCode)return false;
   if(heroCode&&row.hero_class!==heroCode)return false;
   if(reviewCode==="done"&&!catalogReviewed[row.id])return false;
@@ -721,15 +919,19 @@ function drawCompositeCatalog(){
                   row.board,row.hero,row.hole_name].join(" ").toLowerCase();
   return words.every(word=>haystack.includes(word));
  });
+ matching=catalogSelectedSort(matching);
+ catalogCurrentMatching=matching;
+ const groupCounts=new Map();
+ for(const row of matching)groupCounts.set(row.board_group,(groupCounts.get(row.board_group)||0)+1);
  const body=$("catalogRows"),fragment=document.createDocumentFragment();
  let previous=null,ordinal=0;
  for(const row of matching){
-  if(row.board_group!==previous){
+  if($('catalogSort').value==='group'&&row.board_group!==previous){
    previous=row.board_group;
    const header=document.createElement("tr");header.className="catalogGroup";
-   const cell=document.createElement("td");cell.colSpan=11;
+   const cell=document.createElement("td");cell.colSpan=catalogHeaderCount();
    cell.textContent=row.board_group+" · "+row.board_name+
-    " · "+matching.filter(x=>x.board_group===row.board_group).length+" сценариев";
+    " · "+groupCounts.get(row.board_group)+" сценариев";
    header.append(cell);fragment.append(header);
   }
   ordinal++;
@@ -777,20 +979,35 @@ function drawCompositeCatalog(){
    const selected=$("catalogSelected");selected.hidden=false;
    selected.textContent=row.id+" · "+row.board_name+" · "+row.hero_name+
      " · HERO "+row.hero+" / борд "+row.board+
-     ". Карты переданы в классификатор выше.";
-   if(token())classifyComposite();
+     ". Показаны вероятности эталонного физического примера.";
+   $('catalogPhysicalHero').value=row.hero;
+   $('catalogPhysicalBoard').value=row.board;
   };
   tr.addEventListener("click",open);
   tr.addEventListener("keydown",e=>{
    if((e.key==="Enter"||e.key===" ")&&e.target===tr){e.preventDefault();open()}
   });
-  tr.append(number,code,board,boardLabel,hero,heroLabel,hit,stronger,contact,chance,marked);
+  const cells=[number,code,board,boardLabel,hero,heroLabel,hit,stronger,contact,chance,marked];
+  cells.forEach((cell,i)=>{
+   cell.dataset.col=catalogColumnDefs[i][0];
+   cell.classList.toggle('catalogHidden',!catalogVisibleColumns.includes(cell.dataset.col));
+  });
+  tr.append(...cells);
+  if(catalogVisibleColumns.includes('actions')){
+   const contextKey=JSON.stringify(catalogContext());
+   for(const policy of chosen){
+    const td=document.createElement('td');
+    td.className='catalogStrategyCell';td.dataset.col='actions';td.dataset.policy=policy;
+    renderCatalogActionCell(td,catalogActionCache.get(catalogCacheKey(row.id,policy,contextKey)));
+    tr.append(td);
+   }
+  }
   fragment.append(tr);
  }
  body.replaceChildren(fragment);
  if(!matching.length){
   const tr=document.createElement("tr");const td=document.createElement("td");
-  td.colSpan=11;td.textContent="По выбранным фильтрам сценариев нет";
+  td.colSpan=catalogHeaderCount();td.textContent="По выбранным фильтрам сценариев нет";
   tr.append(td);body.append(tr);
  }
  updateCatalogMeta(matching.length);
@@ -876,10 +1093,53 @@ async function classifyNumeric(){
  }
 }
 $('classify').addEventListener('click',classifyNumeric);
+
+function initUnifiedCatalog(){
+ const panel=$('scenarioLedger'),host=$('catalogStrategyControls');
+ // Preserve working strategies/context controls but show them above the one
+ // physical catalog; the archived example table remains mounted and hidden.
+ host.append(panel.querySelector('.comparisonControls'),
+             panel.querySelector('.actionsRow'),$('strategyMessage'));
+ renderCatalogStrategyPicker();
+ renderCatalogColumnChoices();
+ $('catalogColumnsToggle').addEventListener('click',()=>{
+  const root=$('catalogColumnChoices');root.hidden=!root.hidden;
+ });
+ $('catalogSort').addEventListener('change',drawCompositeCatalog);
+ $('catalogMatch').addEventListener('click',async()=>{
+  const status=$('catalogMatchStatus');status.textContent='Сопоставление пяти карт…';
+  if(!token()){status.textContent='Сначала подключитесь';return}
+  try{
+   const r=await fetch('/api/postflop/composite',{
+    method:'POST',headers:{...auth(),'Content-Type':'application/json'},
+    body:JSON.stringify({hero:$('catalogPhysicalHero').value,
+                         board:$('catalogPhysicalBoard').value})
+   });
+   const x=await r.json();
+   if(!r.ok)throw Error(x.error||'Не удалось сопоставить карты');
+   if(!compositeCatalogueLoaded)await loadCompositeCatalog();
+   if(!compositeCatalogueLoaded)throw Error('Каталог не загружен');
+   for(const id of ['catalogBoardFilter','catalogHeroFilter','catalogReviewFilter'])$(id).value='';
+   $('catalogSearch').value=x.id;
+   drawCompositeCatalog();
+   const tr=[...document.querySelectorAll('.catalogLine')]
+        .find(node=>node.dataset.compositeId===x.id);
+   if(!tr)throw Error('Код не найден среди 1 019 сценариев');
+   tr.classList.add('active');
+   tr.scrollIntoView({block:'center',behavior:'smooth'});
+   status.textContent=x.id+' · '+x.name+
+    ' · найден составной сценарий. Вероятности в строке относятся к эталонному примеру; введённые карты могут давать иные значения.';
+  }catch(e){status.textContent='Ошибка сопоставления: '+e.message}
+ });
+ for(const id of ['catalogPhysicalHero','catalogPhysicalBoard'])
+  $(id).addEventListener('keydown',e=>{if(e.key==='Enter')$('catalogMatch').click()});
+}
+initUnifiedCatalog();
+
 $('connect').addEventListener('click',()=>{
- if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}classifyNumeric();refreshComparison();loadCompositeCatalog()}
- else $('classMessage').textContent='Введите ключ доступа.';
+ if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}loadCompositeCatalog()}
+ else $('catalogMatchStatus').textContent='Введите ключ доступа.';
 });
 $('key').addEventListener('keydown',e=>{if(e.key==='Enter')$('connect').click()});
-if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';refreshComparison();loadCompositeCatalog();}
+if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';loadCompositeCatalog();}
 </script></body></html>

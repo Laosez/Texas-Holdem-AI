@@ -3220,54 +3220,63 @@ async function calculateHandDecomposition(){
   }
   handDecompPairedComparison=null;
   handDecompPairedSignature='';
-  for(const side of ['a','b']){
+  // Independent A/B hands use two concurrent HTTP jobs. A same-hand A/B
+  // strategy experiment above remains a shared-deal paired Monte Carlo.
+  const statuses={a:'ожидает запуска',b:'ожидает запуска'};
+  const showProgress=()=>{
    if(epoch!==calcEpoch||requestSignature!==decompRequestSignature())return;
+   const parts=['a','b'].filter(side=>decompSideRequest(side)).map(side=>
+    side.toUpperCase()+' · '+statuses[side]);
+   $('handDecompStatus').textContent='Monte Carlo параллельно · '+parts.join('   |   ');
+  };
+  const calculateSide=async(side)=>{
    const settings=decompSideRequest(side);
-   if(!settings)continue;
+   if(!settings)return;
    const signature=JSON.stringify(settings),hand=settings.hand;
-   const known=side==='a'
+   const cached=side==='a'
      ?handDecompResult?.hand===hand&&handDecompSignature===signature
      :handDecompBResult?.hand===hand&&handDecompBSignature===signature;
-   if(known)continue;
+   if(cached){statuses[side]='кеш';showProgress();return}
    if(side==='b'&&handDecompResult?.hand===hand&&handDecompSignature===signature){
     handDecompBResult=handDecompResult;
     handDecompBByOpponents=handDecompByOpponents;
     handDecompBSignature=signature;
-    renderHandDecomposition();
-    continue;
+    statuses[side]='кеш A';showProgress();renderHandDecomposition();
+    return;
    }
-   $('handDecompStatus').textContent='Monte Carlo '+side.toUpperCase()+' · '+hand+
-    ' / '+postflopName(settings.hero_postflop)+' · '+
-    settings.trials.toLocaleString('ru-RU')+' прогонов…';
+   statuses[side]='очередь';showProgress();
    const output=await pollPostflop(settings,epoch,task=>{
     if(requestSignature!==decompRequestSignature())return;
-    const total=Number(task.total)||settings.trials;
-    const done=Number(task.done)||0;
-    $('handDecompStatus').textContent='Расчёт '+side.toUpperCase()+' · '+hand+' · '+
-     (task.status==='queued'?'очередь':done.toLocaleString('ru-RU')+
-      ' / '+total.toLocaleString('ru-RU'));
+    const total=Number(task.total)||settings.trials,done=Number(task.done)||0;
+    statuses[side]=task.status==='queued'?'очередь':
+       done.toLocaleString('ru-RU')+' / '+total.toLocaleString('ru-RU');
+    showProgress();
    });
    if(!output||epoch!==calcEpoch||requestSignature!==decompRequestSignature())return;
    if(side==='a'){
     handDecompResult=output.decomposition||null;
     handDecompByOpponents=Array.isArray(output.decomposition_by_opponents)
-     ?output.decomposition_by_opponents:null;
+      ?output.decomposition_by_opponents:null;
     handDecompSignature=signature;
     handDecompPreflopStats=output.preflop_line_counts||null;
-    // Only the selected hand with the primary HERO policy belongs in the
-    // primary 169-hand matrix. Alternate A/B strategies stay isolated.
     if(hand===selected&&settings.hero_postflop===$('heroPostflop').value)
      acceptSingleHandMatrixResult(hand,output,settings);
    }else{
     handDecompBResult=output.decomposition||null;
     handDecompBByOpponents=Array.isArray(output.decomposition_by_opponents)
-     ?output.decomposition_by_opponents:null;
+      ?output.decomposition_by_opponents:null;
     handDecompBSignature=signature;
    }
+   statuses[side]='готово · '+(output.cpu_workers||1)+' CPU';showProgress();
    renderHandDecomposition();
-  }
-  if(epoch===calcEpoch&&requestSignature===decompRequestSignature())
-   $('handDecompStatus').textContent='Готово · '+selected+' / '+
+  };
+  const sides=decompSideRequest('b')?['a','b']:['a'];
+  const finished=await Promise.allSettled(sides.map(calculateSide));
+  if(epoch!==calcEpoch||requestSignature!==decompRequestSignature())return;
+  const errors=finished.map((x,i)=>x.status==='rejected'
+    ?sides[i].toUpperCase()+': '+x.reason?.message:null).filter(Boolean);
+  if(errors.length)throw Error(errors.join(' · '));
+  $('handDecompStatus').textContent='Готово · '+selected+' / '+
     postflopName($('heroPostflop').value)+
     ($('handDecompHandB').value==='-'?' · один отчёт'
      :' · B: '+($('handDecompHandB').value==='='?selected:$('handDecompHandB').value)+
