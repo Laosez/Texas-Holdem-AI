@@ -21,7 +21,7 @@ class SelectedFlopGoalTests(unittest.TestCase):
         self.assertGreaterEqual(goals["top_pair_plus"],expected)
         # Pair+ includes shared pair on runout (77,55,22) even without A/K.
         self.assertGreater(goals["pair_plus"],goals["top_pair_plus"])
-        self.assertEqual(goals["straight_plus"],0)
+        self.assertAlmostEqual(goals["straight_plus"],16/1081)  # Wheel: 3 + 4 completes A2345
         self.assertEqual(goals["flush_plus"],0)
         self.assertEqual(goals["full_house_plus"],0)
 
