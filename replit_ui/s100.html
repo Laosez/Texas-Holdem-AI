@@ -117,6 +117,27 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 .catalogSelected{margin:9px 0 0;padding:10px;border:1px solid #385b7f;background:#112943;border-radius:7px;font-size:12px}
 @media(max-width:800px){.catalogBar{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.catalogBar{grid-template-columns:1fr}}
+
+/* The catalog is the only visible postflop workspace. Legacy panels remain
+   mounted until their independent classifiers/tests are migrated. */
+.s100Main > section:not(#compositeCatalog){display:none}
+.catalogLookup{display:grid;grid-template-columns:minmax(125px,1fr) minmax(150px,1.4fr) auto;gap:9px;align-items:end;margin:13px 0}
+.catalogLookup .btn{white-space:nowrap}
+.catalogOptionBar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:12px 0}
+.catalogOptionBar > .field{max-width:280px;flex:1}
+.catalogColumnChoices{display:flex;gap:8px 14px;flex-wrap:wrap;background:#10273f;padding:12px;border:1px solid #3b5c7c;border-radius:8px;margin:7px 0}
+.catalogColumnChoices[hidden]{display:none}
+.catalogColumnChoices label{display:flex;align-items:center;gap:6px;margin:0;cursor:pointer}
+.catalogColumnChoices input{width:15px}
+.catalogStrategyPicker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.catalogStrategyPicker .field{min-width:160px;max-width:240px;flex:1}
+.catalogStrategyControls{padding:12px;background:#10243a;border:1px solid #2c4d6a;border-radius:8px;margin:12px 0}
+.catalogLedger th.catalogActionHeader,.catalogLedger td.catalogStrategyCell{min-width:150px;text-align:left;white-space:normal}
+.catalogLedger .catalogStrategyCell{font-size:11px}
+.catalogLedger .catalogHidden{display:none!important}
+.catalogLedger .catalogGroup td{font-size:12px}
+.catalogLedger{min-width:1280px}
+@media(max-width:700px){.catalogLookup{grid-template-columns:1fr 1fr}.catalogLookup .btn{grid-column:1/-1}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect" type="button">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -144,8 +165,14 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 </section>
 
 <section class="panel" id="compositeCatalog">
- <div class="heading"><h2><span class="index">00Б / </span>Полный каталог составных сценариев</h2><span class="badge" id="catalogTotal">1 019 классов</span></div>
- <p class="panelIntro"><strong>Все достижимые сочетания «структура борда × попадание HERO».</strong> Группировка по 46 типам флопа: коды, названия борда и карманной руки, конкретный физический пример, две условные вероятности и общая частота класса. Нажатие на строку открывает её карты в классификаторе выше. Отмечайте изученные сценарии.</p>
+ <div class="heading"><h2><span class="index">03 / </span>Постфлоп · Стратегии</h2><span class="badge" id="catalogTotal">1 019 классов</span></div>
+ <p class="panelIntro"><strong>Единый каталог 1 019 реальных составных сценариев флопа.</strong> Поиск по коду, структуре, карманным картам и попаданию; вероятности и сравнение до пяти действующих стратегий. Нажмите на строку для выбора, отмечайте изученные ситуации, скрывайте лишние столбцы. Это классификация флопа; действия тёрна и ривера остаются доступными вычислительному движку.</p>
+ <div class="catalogLookup">
+  <div class="field"><label for="catalogPhysicalHero">HERO · физические карты</label><input id="catalogPhysicalHero" value="14s-13h" placeholder="14s-13h"></div>
+  <div class="field"><label for="catalogPhysicalBoard">Борд · три карты флопа</label><input id="catalogPhysicalBoard" value="7d-5c-2s" placeholder="7d-5c-2s"></div>
+  <button class="btn primary" id="catalogMatch" type="button">Найти сценарий</button>
+ </div>
+ <p class="statusLine" id="catalogMatchStatus" role="status"></p>
  <div class="catalogBar">
   <div class="field"><label for="catalogSearch">Поиск · код / название / карты</label><input id="catalogSearch" type="search" placeholder="TPFDOESD, N-C4-2S, 9s-8s"></div>
   <div class="field"><label for="catalogBoardFilter">Структура борда</label><select id="catalogBoardFilter"><option value="">Все 46 структур</option></select></div>
@@ -177,15 +204,23 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
    </select></div>
   <div class="field"><label for="catalogOpponentRange">Диапазон оппонента</label><select id="catalogOpponentRange"><option value="any">100% · случайные две карты</option><option value="UTG">PC GTO 80bb · UTG · RFI</option><option value="UTG1">PC GTO 80bb · UTG+1 · RFI</option><option value="LJ">PC GTO 80bb · LJ · RFI</option><option value="HJ">PC GTO 80bb · HJ · RFI</option><option value="CO">PC GTO 80bb · CO · RFI</option><option value="BTN">PC GTO 80bb · BTN · RFI</option><option value="SB">PC GTO 80bb · SB · рейз</option></select></div>
  </div>
+ <div id="catalogStrategyControls" class="catalogStrategyControls"><div id="catalogStrategyPicker" class="catalogStrategyPicker"></div></div>
+ <div class="catalogOptionBar">
+  <div class="field"><label for="catalogSort">Упорядочить</label>
+   <select id="catalogSort"><option value="group">Структура борда · 46 групп</option><option value="hero_desc">Вероятность HERO ↓</option><option value="villain_desc">Попадание OPP ↓</option><option value="frequency_desc">Частота класса ↓</option><option value="id">Код сценария</option></select></div>
+  <button class="btn outline" type="button" id="catalogColumnsToggle">Столбцы ▾</button>
+  <span class="small">Точные вероятности относятся к указанным физическим примерам</span>
+ </div>
+ <div id="catalogColumnChoices" class="catalogColumnChoices" hidden></div>
  <div class="tableMeta" style="margin-bottom:11px">
   <span class="small" id="catalogStatus" role="status">Каталог доступен после подключения к приложению.</span>
   <div class="buttons"><button class="btn sm" type="button" id="catalogReload">Загрузить каталог</button><button class="btn sm outline" type="button" id="catalogReset" title="Удалить отметки просмотра только в этом браузере">Сбросить отметки</button></div>
  </div>
  <div id="catalogSelected" class="catalogSelected" hidden></div>
  <div class="tablewrap" style="max-height:75vh">
-  <table class="catalogLedger"><thead><tr><th>№</th><th>Код сценария</th><th>Борд</th><th>Название борда</th><th>HERO</th><th>Карманная рука HERO</th><th>Попадание HERO</th><th id="catalogHeroHeader" title="Выберите цель HERO над таблицей; точно по 1 081 возможной паре карт тёрна–ривера" style="text-align:right">Цель HERO · к риверу</th><th id="catalogVillainHeader" title="Попадание одного оппонента на флопе при выбранном диапазоне; известные карты исключены" style="text-align:right">Оппонент · на флопе</th><th style="text-align:right">Частота класса</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
+  <table class="catalogLedger"><thead><tr id="catalogHeadRow"><th>№</th><th>Код сценария</th><th>Борд</th><th>Название борда</th><th>HERO</th><th>Карманная рука HERO</th><th>Попадание HERO</th><th id="catalogHeroHeader" title="Выберите цель HERO над таблицей; точно по 1 081 возможной паре карт тёрна–ривера" style="text-align:right">Цель HERO · к риверу</th><th id="catalogVillainHeader" title="Попадание одного оппонента на флопе при выбранном диапазоне; известные карты исключены" style="text-align:right">Оппонент · на флопе</th><th style="text-align:right">Частота класса</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
  </div>
- <p class="summary"><strong>Выбирайте цель отдельно для HERO и оппонента.</strong> Для HERO — точная вероятность достижения выбранного результата <strong>к риверу</strong> по всем 1 081 тёрнам/риверам после пяти известных карт. «Поймать A или K» означает, что хотя бы одна карта тёрна/ривера совпадёт с соответствующим карманным рангом; это не обязательно выигрыш и не всегда топ-пара. Цели «Пара+», «Две пары+» и т. д. проверяют итоговую категорию <strong>включая комбинации общих карт и уже готовые попадания</strong>; «Выше категории» отдельно требует изменения относительно флопа. Для оппонента — событие <strong>у одного игрока именно на флопе</strong> при выбранном диапазоне с учётом блокеров HERO. «Собственная пара» — карманная пара или совпадение одной из карманных карт с номиналом флопа; общая пара без личного совпадения не считается. Флеш-/стрит-дро означает прямое 4-карточное дро, без бэкдора. <strong>Это показатели физического примера конкретной строки, не средние значения по составному классу, не equity и не EV.</strong> Частота класса показана отдельно. Отметки просмотра сохраняются только в этом браузере; действующая таблица GTO/LAG остаётся ниже.</p>
+ <p class="summary"><strong>Выбирайте цель отдельно для HERO и оппонента.</strong> Для HERO — точная вероятность достижения выбранного результата <strong>к риверу</strong> по всем 1 081 тёрнам/риверам после пяти известных карт. «Поймать A или K» означает, что хотя бы одна карта тёрна/ривера совпадёт с соответствующим карманным рангом; это не обязательно выигрыш и не всегда топ-пара. Цели «Пара+», «Две пары+» и т. д. проверяют итоговую категорию <strong>включая комбинации общих карт и уже готовые попадания</strong>; «Выше категории» отдельно требует изменения относительно флопа. Для оппонента — событие <strong>у одного игрока именно на флопе</strong> при выбранном диапазоне с учётом блокеров HERO. «Собственная пара» — карманная пара или совпадение одной из карманных карт с номиналом флопа; общая пара без личного совпадения не считается. Флеш-/стрит-дро означает прямое 4-карточное дро, без бэкдора. <strong>Это показатели физического примера конкретной строки, не средние значения по составному классу, не equity и не EV.</strong> Частота класса показана отдельно. Отметки просмотра и выбранные столбцы сохраняются в браузере; результаты ботов отображаются в колонках этой же таблицы и зависят от игрового контекста.</p>
 </section>
 <section class="panel" id="numericClassifier">
  <div class="heading"><h2><span class="index">00 / </span>Постфлоп · План</h2><span class="badge">Одна улица → один сценарий</span></div>
