@@ -447,7 +447,7 @@ function redrawStrategyColumns(){
    if(chosen.includes(select.value)){
     select.value=chosen[i];$('strategyMessage').textContent='Каждую стратегию можно выбрать только в одной колонке';return;
    }
-   chosen[i]=select.value;saveSelected();redrawStrategyColumns();refreshComparison();
+   chosen[i]=select.value;saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();drawCompositeCatalog();queueCompare();
   });
   head.append(select);
   if(chosen.length>1){
@@ -456,7 +456,7 @@ function redrawStrategyColumns(){
    remove.textContent='×';remove.title='Убрать колонку';
    remove.setAttribute('aria-label','Убрать сравниваемую стратегию '+(i+1));
    remove.addEventListener('click',()=>{
-    chosen.splice(i,1);saveSelected();redrawStrategyColumns();refreshComparison();
+    chosen.splice(i,1);saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();drawCompositeCatalog();queueCompare();
    });
    head.append(remove);
   }
@@ -523,12 +523,8 @@ function renderActions(data){
   });
  }
 }
-async function refreshComparison(){
- if(compareController)compareController.abort();
- const serial=++pendingCompare;
- compareController=new AbortController();
- if(!token()){$('strategyMessage').textContent='Введите ключ доступа в шапке для расчёта действий ботов';return}
- const context={
+function catalogContext(){
+ return {
   opponents:Number($('contextOpponents').value),
   position:$('contextPosition').value,
   preflop_aggressor:$('contextInitiative').value==='1',
@@ -536,37 +532,103 @@ async function refreshComparison(){
   stack:Number($('contextStack').value),
   to_call:$('contextFacing').value==='0'?0:Number($('contextCall').value)
  };
+}
+function catalogCacheKey(rowId,strategy,context){
+ return JSON.stringify([rowId,strategy,context]);
+}
+function renderCatalogActionCell(cell,actions){
+ cell.replaceChildren();
+ if(!actions){cell.textContent='—';return;}
+ const entries=Object.entries(actions).sort((a,b)=>b[1]-a[1]);
+ cell.title=entries.map(([kind,p])=>(labelForAction[kind]||kind)+' '+(100*p).toFixed(1)+'%').join(' · ');
+ entries.slice(0,3).forEach(([kind,p],i)=>{
+  if(i)cell.append(document.createTextNode(' · '));
+  const span=document.createElement('span');
+  span.className=i?'minorAction':'mainAction';
+  span.textContent=(labelForAction[kind]||kind)+' '+(100*p).toFixed(0)+'%';
+  cell.append(span);
+ });
+}
+async function refreshComparison(){
+ if(compareController)compareController.abort();
+ const serial=++pendingCompare;
+ compareController=new AbortController();
+ if(!token()){$('strategyMessage').textContent='Подключитесь, чтобы сравнить стратегии';return;}
+ if(!compositeCatalogueLoaded){$('strategyMessage').textContent='Сначала загрузите каталог';return;}
+ const context=catalogContext();
  if(context.to_call>context.stack||context.to_call>context.pot||
-    Object.values(context).some(v=>typeof v==='number'&&(!Number.isInteger(v)||v<0))){
-  $('strategyMessage').textContent='Проверьте значения банка, ставки и стека';return;
+   Object.values(context).some(v=>typeof v==='number'&&(!Number.isInteger(v)||v<0))||
+   context.pot<1||context.stack<1){
+  $('strategyMessage').textContent='Проверьте банк, стек и цену Call';return;
  }
- $('strategyMessage').textContent='Сравнение действующих политик...';
- document.querySelectorAll('.strategyActionCell').forEach(td=>td.textContent='…');
- const payload={
-  strategies:[...chosen],context,
-  rows:rows.map((r)=>({hole:r[1],board:r[2]}))
- };
+ const target=[...catalogCurrentMatching];
+ if(!target.length){$('strategyMessage').textContent='Нет сценариев для сравнения';return;}
+ const policies=[...chosen],contextKey=JSON.stringify(context);
+ const missing=target.filter(row=>policies.some(policy=>
+  !catalogActionCache.has(catalogCacheKey(row.id,policy,contextKey))));
+ if(!missing.length){
+  $('strategyMessage').textContent='Готово · '+target.length+' сценариев из кеша, '+policies.length+' стратегий';
+  drawCompositeCatalog();return;
+ }
+ $('strategyMessage').textContent='Сравнение · '+missing.length+' сценариев · '+policies.length+' стратегий';
+ let completed=0;
  try{
-  const r=await fetch('/api/postflop/compare',{
-   method:'POST',headers:{...auth(),'Content-Type':'application/json'},
-   body:JSON.stringify(payload),signal:compareController.signal
-  });
-  const data=await r.json();if(serial!==pendingCompare)return;
-  if(!r.ok)throw Error(data.error||'Ошибка сравнения');
-  renderActions(data);
-  $('strategyMessage').textContent='Сравнено '+data.rows.length+' ситуаций × '+data.profiles.length+
-   ' стратегий · '+data.samples_per_strategy+' розыгрышей политики на ячейку · одинаковый контекст';
+  for(let i=0;i<missing.length;i+=24){
+   if(serial!==pendingCompare)return;
+   const batch=missing.slice(i,i+24);
+   const response=await fetch('/api/postflop/compare',{
+    method:'POST',
+    headers:{...auth(),'Content-Type':'application/json'},
+    body:JSON.stringify({mode:'physical_catalog',strategies:policies,context,
+      rows:batch.map(row=>({id:row.id,hero:row.hero,board:row.board}))}),
+    signal:compareController.signal
+   });
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'Ошибка сравнения');
+   if(data.rows.length!==batch.length)throw Error('Сервер вернул неполный пакет');
+   for(const item of data.rows){
+    const row=batch[item.index];
+    if(!row||item.scenario?.id!==row.id)throw Error('Несовпадение сценария в ответе');
+    for(const policy of policies){
+     const actions=item.actions[policy];
+     if(!actions)throw Error('Нет действий стратегии '+policy);
+     catalogActionCache.set(catalogCacheKey(row.id,policy,contextKey),actions);
+    }
+   }
+   completed+=batch.length;
+   // Only visible cells are updated, keeping search and scroll position stable.
+   const currentRows=new Map([...document.querySelectorAll('.catalogLine')].map(tr=>[tr.dataset.compositeId,tr]));
+   for(const row of batch){
+    const tr=currentRows.get(row.id);
+    if(!tr)continue;
+    for(const cell of tr.querySelectorAll('.catalogStrategyCell')){
+     renderCatalogActionCell(cell,catalogActionCache.get(
+      catalogCacheKey(row.id,cell.dataset.policy,contextKey)));
+    }
+   }
+   $('strategyMessage').textContent='Сравнено '+completed+' / '+missing.length+
+    ' новых сценариев · '+policies.length+' стратегий · 96 вызовов / ячейку';
+  }
+  if(serial===pendingCompare)
+   $('strategyMessage').textContent='Готово · '+target.length+' сценариев · '+
+    policies.length+' стратегий. Частоты действий эмпирические, не solver GTO.';
  }catch(e){
   if(serial!==pendingCompare||e.name==='AbortError')return;
-  $('strategyMessage').textContent=e.message;
-  document.querySelectorAll('.strategyActionCell').forEach(td=>td.textContent='—');
+  $('strategyMessage').textContent='Ошибка сравнения после '+completed+' сценариев: '+e.message;
  }
 }
-function queueCompare(){if(compareTimer)clearTimeout(compareTimer);compareTimer=setTimeout(refreshComparison,250)}
+function queueCompare(){
+ if(compareTimer)clearTimeout(compareTimer);
+ if(compareController)compareController.abort();
+ ++pendingCompare;
+ $('strategyMessage').textContent='Контекст изменён · нажмите «Сравнить стратегии»';
+ if(compositeCatalogueLoaded)drawCompositeCatalog();
+}
+
 $('addComparison').addEventListener('click',()=>{
  if(chosen.length>=5)return;
  const next=strategiesAvailable.find(s=>!chosen.includes(s[0]));if(!next)return;
- chosen.push(next[0]);saveSelected();redrawStrategyColumns();refreshComparison();
+ chosen.push(next[0]);saveSelected();redrawStrategyColumns();renderCatalogStrategyPicker();drawCompositeCatalog();queueCompare();
 });
 $('refreshComparison').addEventListener('click',refreshComparison);
 for(const id of ['contextOpponents','contextPosition','contextInitiative','contextFacing']){
