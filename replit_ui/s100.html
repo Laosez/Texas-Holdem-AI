@@ -152,9 +152,9 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
   <div class="field"><label for="catalogHeroFilter">Попадание HERO</label><select id="catalogHeroFilter"><option value="">Все классы HERO</option></select></div>
   <div class="field"><label for="catalogReviewFilter">Просмотр</label><select id="catalogReviewFilter"><option value="">Все сценарии</option><option value="new">Не просмотрены</option><option value="done">Просмотрены</option></select></div>
   <div class="field"><label for="catalogHeroGoal">Цель HERO · к риверу</label><select id="catalogHeroGoal">
-    <option value="new_pair_either">Поймать любой карманный ранг (A/K)</option>
-    <option value="new_pair_high">Поймать старшую карту HERO (A)</option>
-    <option value="new_pair_low">Поймать младшую карту HERO (K)</option>
+    <option value="new_pair_either">Поймать любой номинал HERO (A или K для AK)</option>
+    <option value="new_pair_high">Поймать старший номинал HERO</option>
+    <option value="new_pair_low">Поймать младший номинал HERO</option>
     <option value="top_pair_plus">Топ-пара / оверпара или две пары+</option>
     <option value="pair_plus">Любая пара+ (включая общую)</option>
     <option value="two_pair_plus">Две пары или сильнее</option>
@@ -748,7 +748,7 @@ function drawCompositeCatalog(){
   const heroGoal=$("catalogHeroGoal").value;
   const heroGoalValue=row.hero_goals?.[heroGoal];
   stronger.textContent=heroGoalValue===null||heroGoalValue===undefined?"—":(100*heroGoalValue).toFixed(1)+"%";
-  stronger.title="Точная вероятность выбранной цели HERO для физического примера: 1 081 тёрн/ривер";
+  stronger.title="HERO "+row.hole_name+" · конкретные карты "+row.hero+" · точный перебор 1 081 тёрн/ривер";
   const contact=document.createElement("td");contact.className="probability";
   const villainGoal=$("catalogVillainGoal").value;
   const contactValue=row.villain_goals?.[villainGoal]?.[$("catalogOpponentRange").value];
