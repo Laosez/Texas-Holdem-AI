@@ -81,8 +81,9 @@ class CompositeFlopTests(unittest.TestCase):
             if street!="Флоп":
                 continue
             physical_hero,physical_board=_physical_variants(hole,board,code)[0]
-            hero="-".join(str(r)+s for r,s in physical_hero)
-            flop="-".join(str(r)+s for r,s in physical_board)
+            ranks="23456789TJQKA"
+            hero="-".join(str(ranks.index(r)+2)+s for r,s in physical_hero)
+            flop="-".join(str(ranks.index(r)+2)+s for r,s in physical_board)
             with self.subTest(scenario=code):
                 result=classify_composite_flop(hero,flop)
                 self.assertEqual(result["hero_state"]["id"],code)
