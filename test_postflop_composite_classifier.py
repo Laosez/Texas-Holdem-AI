@@ -24,8 +24,8 @@ class CompositeFlopTests(unittest.TestCase):
             ("9s-8s","9d-7s-6s","N-C4-2S","F-TPFDOESD","top_pair","flush_draw_two","oesd"),
             ("14s-13s","9d-7s-6s","N-C4-2S","F-OCFD","two_overcards","flush_draw_two","no_straight_draw"),
             ("9h-9c","9d-7s-6s","N-C4-2S","F-SET","pocket_set","no_flush_draw","no_straight_draw"),
-            ("14s-7h","7s-7d-2c","P-L-R","F-TRPHK","board_trips","no_flush_draw","no_straight_draw"),
-            ("10h-10c","9s-7h-2d","N-D-R","F-OP","pocket_overpair","no_flush_draw","no_straight_draw"),
+            ("14s-7h","7s-7d-2c","P-H-R","F-TRPHK","board_trips","no_flush_draw","no_straight_draw"),
+            ("10h-10c","9s-7h-2d","N-G2-R","F-OP","pocket_overpair","no_flush_draw","no_straight_draw"),
             ("14s-13s","12s-11s-2d","N-C2-2S","F-FDGS","two_overcards","flush_draw_two","gutshot"),
             ("14s-13h","14d-7s-2c","A-C2-R","F-TPHK","top_pair","no_flush_draw","no_straight_draw"),
         ]
