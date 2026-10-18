@@ -711,10 +711,13 @@ def _paired_batch(cases, profile_a, profile_b, hero_position, stack_bb):
     uncontested = _uncontested_net_bb(hero_position)
     for picked, board, seed in cases:
         if len(picked) == 1:
+            from planner_river_classifier import classify_attribution
+            attribution=classify_attribution(picked,board,"uncontested",uncontested,"preflop")
             result = (uncontested, False,
                       _uncontested_pot_bb(hero_position,stack_bb),
                       ("uncontested", None, None, "pre_win", None,
-                       ("pre_uncontested", "Все соперники не вошли в банк")))
+                       ("pre_uncontested", "Все соперники не вошли в банк"),
+                       attribution))
             out.append((None, result, result))
             continue
         share = _showdown_share(picked, board)
