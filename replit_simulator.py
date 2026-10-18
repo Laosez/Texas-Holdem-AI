@@ -463,8 +463,41 @@ def stats_for_folder(folder: Path) -> dict:
         }
         observed[profile]["hands_observed"] = int(row.get("hands_observed") or 0)
     # Optional versioned telemetry: legacy archives remain readable.
-    postflop_columns = ("flop_af", "turn_af", "river_af", "cbet",
+    postflop_columns = ("flop_af", "turn_af", "river_af",
+                        "flop_cbet", "turn_cbet", "river_cbet", "cbet",
                         "fold_to_bet", "check_raise", "wsd", "net_bb_100")
+    preflop_columns = ("vpip", "pfr", "rfi", "threebet", "fourbet")
+    positional = {}
+
+    # Aggregates are exported independently (small 9-seat tables). Reading
+    # 169-hand matrices on every /api/runs/<id> poll would be wasteful.
+    for row in _read_rows(folder / "summary_position_all.csv"):
+        name, position = row.get("bot"), row.get("position")
+        if not name or position not in ("10","9","8","7","6","5","4","3","SB","BB"):
+            continue
+        count = int(row.get("hands_observed") or 0)
+        if count == 0:
+            continue
+        record = {"position": position, "hands_observed": count}
+        for metric in preflop_columns:
+            try:
+                value = row.get(metric + "_pct")
+                record[metric] = float(value) if value not in ("", None) else None
+            except (TypeError, ValueError):
+                record[metric] = None
+        positional[(name, position)] = record
+
+    for row in _read_rows(folder / "postflop_position_summary.csv"):
+        name, position = row.get("bot"), row.get("position")
+        record = positional.get((name, position))
+        if record is None:
+            continue
+        for metric in postflop_columns:
+            try:
+                value = row.get(metric)
+                record[metric] = float(value) if value not in ("", None) else None
+            except (TypeError, ValueError):
+                record[metric] = None
     for row in _read_rows(folder / "postflop_summary.csv"):
         name = row.get("bot")
         if not name:
@@ -477,6 +510,8 @@ def stats_for_folder(folder: Path) -> dict:
             except (ValueError, TypeError):
                 number = None
             stats[metric] = number if number is not None and __import__("math").isfinite(number) else None
+    for (name, position), record in positional.items():
+        observed.setdefault(name, {}).setdefault("positions", {})[position] = record
     placement = {}
     for row in _read_rows(folder / "tournament_players.csv"):
         if row.get("completed") != "1":

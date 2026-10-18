@@ -82,7 +82,9 @@ class TrackedBot:
         self.inner, self.name = inner, name
         self.hands = {}
         self.postflop_counts = defaultdict(int)
+        self.postflop_position_counts = defaultdict(lambda: defaultdict(int))
         self.postflop_seen = set()
+        self.postflop_cbet_hands = set()
         # Only the strategy call (inner.act), not engine, view creation or
         # the preflop event observer. Time is measured in each worker process.
         self.decision_timing = defaultdict(lambda: {
@@ -205,6 +207,20 @@ class TrackedBot:
         mark('squeeze', facing_open and called_after_raise and can_raise, is_raise)
         return action
 
+    def _called_barrel(self, history, street, hand_id):
+        """Hero's qualifying prior barrel was called without a subsequent raise."""
+        if (hand_id, street) not in self.postflop_cbet_hands:
+            return False
+        actions = [item for item in history if item.get('street') == street]
+        me = getattr(self, 'player_id', None)
+        first = next((i for i, item in enumerate(actions)
+                      if item.get('pid') == me and item.get('type') == 'bet'), None)
+        if first is None:
+            return False
+        after = actions[first + 1:]
+        return (any(item.get('pid') != me and item.get('type') == 'call' for item in after)
+                and not any(item.get('type') in ('raise', 'all_in') for item in after))
+
     def observe_postflop(self, view, action):
         street = getattr(view, 'street', None)
         if street not in ('flop', 'turn', 'river'):
@@ -219,38 +235,62 @@ class TrackedBot:
         hid = getattr(view, 'hand_id', None)
         me = getattr(view, 'me', None)
         key = (hid, street)
-        counts = self.postflop_counts
-        # Aggression Factor uses executed bets+raises divided by calls (checks excluded).
-        if kind in ('bet', 'raise'):
-            counts[street + '_aggressive'] += 1
-        elif kind == 'call':
-            counts[street + '_calls'] += 1
-        if int(getattr(view, 'to_call', 0) or 0) > 0 and 'fold' in legal:
-            counts['fold_to_bet_opp'] += 1
-            counts['fold_to_bet_n'] += int(kind == 'fold')
-        had_checked = any(h.get('pid') == me and h.get('type') == 'check' for h in street_hist)
-        if had_checked and int(getattr(view, 'to_call', 0) or 0) > 0 and 'raise' in legal:
-            counts['check_raise_opp'] += 1
-            counts['check_raise_n'] += int(kind == 'raise')
-        if street == 'flop' and key not in self.postflop_seen:
+        position = self.hands.get(hid, {}).get('position')
+        ledgers = [self.postflop_counts]
+        if position is not None:
+            ledgers.append(self.postflop_position_counts[position])
+
+        # Only the very first eligible decision on each street can start a
+        # continuation bet. The previous barrel must have been called.
+        if key not in self.postflop_seen:
             self.postflop_seen.add(key)
-            pre = [h for h in hist if h.get('street') == 'preflop'
-                   and h.get('type') in ('bet', 'raise', 'all_in')]
-            raised_flop = any(h.get('type') in ('bet', 'raise', 'all_in') for h in street_hist)
-            if pre and pre[-1].get('pid') == me and not raised_flop:
-                counts['cbet_opp'] += 1
-                counts['cbet_n'] += int(kind in ('bet', 'raise'))
+            can_open = 'bet' in legal and not any(
+                h.get('type') in ('bet', 'raise', 'all_in') for h in street_hist)
+            is_barrel = False
+            if can_open and street == 'flop':
+                pre = [h for h in hist if h.get('street') == 'preflop'
+                       and h.get('type') in ('bet', 'raise', 'all_in')]
+                is_barrel = bool(pre and pre[-1].get('pid') == me)
+            elif can_open and street == 'turn':
+                is_barrel = self._called_barrel(hist, 'flop', hid)
+            elif can_open and street == 'river':
+                is_barrel = self._called_barrel(hist, 'turn', hid)
+            if is_barrel:
+                field = street + '_cbet'
+                for counts in ledgers:
+                    counts[field + '_opp'] += 1
+                    counts[field + '_n'] += int(kind == 'bet')
+                    if street == 'flop':  # Legacy field maintained for older clients.
+                        counts['cbet_opp'] += 1
+                        counts['cbet_n'] += int(kind == 'bet')
+                if kind == 'bet':
+                    self.postflop_cbet_hands.add((hid, street))
+
+        had_checked = any(h.get('pid') == me and h.get('type') == 'check' for h in street_hist)
+        for counts in ledgers:
+            if kind in ('bet', 'raise'):
+                counts[street + '_aggressive'] += 1
+            elif kind == 'call':
+                counts[street + '_calls'] += 1
+            if int(getattr(view, 'to_call', 0) or 0) > 0 and 'fold' in legal:
+                counts['fold_to_bet_opp'] += 1
+                counts['fold_to_bet_n'] += int(kind == 'fold')
+            if had_checked and int(getattr(view, 'to_call', 0) or 0) > 0 and 'raise' in legal:
+                counts['check_raise_opp'] += 1
+                counts['check_raise_n'] += int(kind == 'raise')
 
     def observe_hand_end(self, hand_id, net, bb, showdown, winners):
-        if hand_id not in self.hands:
+        row = self.hands.get(hand_id)
+        if row is None:
             return
-        counts = self.postflop_counts
-        counts['net_hands'] += 1
-        counts['net_bb_units'] += net.get(self.hands[hand_id]['pid'], 0) / bb if bb else 0
-        pid = self.hands[hand_id]['pid']
-        if pid in showdown:
-            counts['wsd_opp'] += 1
-            counts['wsd_n'] += int(pid in winners)
+        pid = row['pid']
+        ledgers = [self.postflop_counts, self.postflop_position_counts[row['position']]]
+        for counts in ledgers:
+            counts['net_hands'] += 1
+            counts['net_bb_units'] += net.get(pid, 0) / bb if bb else 0
+            if pid in showdown:
+                counts['wsd_opp'] += 1
+                counts['wsd_n'] += int(pid in winners)
 
     def reset_memory(self):
         fn = getattr(self.inner,'reset_memory',None)
@@ -302,7 +342,10 @@ def run_one(task):
         ]
         return (tournament_id, seed, seat_offset, result,
                 [r for bot in instances for r in bot.hands.values()], timings,
-                [{'bot': bot.name, **dict(bot.postflop_counts)} for bot in instances])
+                ([{'bot': bot.name, **dict(bot.postflop_counts)} for bot in instances]
+                 + [{'bot': bot.name, 'position': pos, **dict(counts)}
+                    for bot in instances
+                    for pos, counts in bot.postflop_position_counts.items()]))
     finally:
         runner.create_bot=old
         runner.make_table=old_table
@@ -770,39 +813,54 @@ def main():
                   itertools.chain([headers],(formatted(bot,'ALL','*') for bot in names)))
         if scope=='all':
             all_totals={name:dict(agg.get((name,'ALL','*'),{})) for name in names}
+            csv_write(output/'summary_position_all.csv',
+                      itertools.chain([headers],(formatted(bot,pos,'*')
+                          for bot in names for pos in POSITIONS)))
         del agg
         gc.collect()
     print('[export] Hand tables completed, preparing postflop summaries',flush=True)
     post_agg = defaultdict(lambda: defaultdict(float))
+    post_agg_pos = defaultdict(lambda: defaultdict(float))
     for item in postflop_records:
+        position = item.get('position')
+        dest = post_agg_pos[(item['bot'], position)] if position else post_agg[item['bot']]
         for key,value in item.items():
-            if key != 'bot':
-                post_agg[item['bot']][key] += value
-    post_fields = ('flop_af','turn_af','river_af','cbet','fold_to_bet','check_raise','wsd','net_bb_100')
-    def pf_metrics(name):
-        c=post_agg[name]
+            if key not in ('bot', 'position'):
+                dest[key] += value
+    post_fields = ('flop_af','turn_af','river_af','flop_cbet','turn_cbet',
+                   'river_cbet','cbet','fold_to_bet','check_raise','wsd','net_bb_100')
+    raw_fields = tuple(field for street in ('flop','turn','river')
+                       for field in (street+'_aggressive',street+'_calls',
+                                     street+'_cbet_n',street+'_cbet_opp')) + (
+        'cbet_n','cbet_opp','fold_to_bet_n','fold_to_bet_opp',
+        'check_raise_n','check_raise_opp','wsd_n','wsd_opp',
+        'net_bb_units','net_hands')
+
+    def pf_metrics(c):
         result={}
         for street in ('flop','turn','river'):
             calls=c[street+'_calls']
             result[street+'_af'] = round(c[street+'_aggressive']/calls,4) if calls else None
-        for metric in ('cbet','fold_to_bet','check_raise','wsd'):
+        for metric in ('flop_cbet','turn_cbet','river_cbet','cbet',
+                       'fold_to_bet','check_raise','wsd'):
             denom=c[metric+'_opp']
             result[metric] = round(100*c[metric+'_n']/denom,4) if denom else None
         result['net_bb_100'] = round(100*c['net_bb_units']/c['net_hands'],4) if c['net_hands'] else None
         return result
-    # Persist numerators and denominators for independent audit and CI.
-    raw_fields = tuple(field for street in ('flop','turn','river')
-                       for field in (street+'_aggressive',street+'_calls')) + (
-        'cbet_n','cbet_opp','fold_to_bet_n','fold_to_bet_opp',
-        'check_raise_n','check_raise_opp','wsd_n','wsd_opp',
-        'net_bb_units','net_hands')
-    post_rows=[['bot']+list(post_fields)+list(raw_fields)]
-    for name in names:
-        metrics=pf_metrics(name)
-        raw=post_agg[name]
-        post_rows.append([name]+[metrics[m] if metrics[m] is not None else '' for m in post_fields]+
-                         [raw[f] for f in raw_fields])
-    csv_write(output/'postflop_summary.csv',post_rows)
+
+    def post_record(name, c, position=None):
+        metrics=pf_metrics(c)
+        prefix=[name] if position is None else [name,position]
+        return prefix + [metrics[m] if metrics[m] is not None else '' for m in post_fields] + [
+            c[f] for f in raw_fields]
+
+    csv_write(output/'postflop_summary.csv',
+              itertools.chain([['bot']+list(post_fields)+list(raw_fields)],
+                              (post_record(name,post_agg[name]) for name in names)))
+    csv_write(output/'postflop_position_summary.csv',
+              itertools.chain([['bot','position']+list(post_fields)+list(raw_fields)],
+                              (post_record(name,post_agg_pos[(name,pos)],pos)
+                               for name in names for pos in POSITIONS)))
     for filename, table_rows in {**report_tables, **bot_tables}.items():
         csv_write(output/filename, table_rows)
     write_json(output/'tournament_report.json', report)
@@ -832,7 +890,8 @@ def main():
         'tournaments':a.tournaments,
         'total_hands':total_hands,'seed':a.seed,'players':names,'scopes':scopes,
         'metrics':METRICS,
-        'telemetry_files':['tournaments.csv','tournament_players.csv','leaderboard.csv','blind_levels.csv','blind_summary.csv','tournament_report.json','performance.json','bot_decision_timing.csv','bot_decision_timing_by_street.csv','bot_decision_timing.json','postflop_summary.csv'],
+        'telemetry_files':['tournaments.csv','tournament_players.csv','leaderboard.csv','blind_levels.csv','blind_summary.csv','tournament_report.json','performance.json','bot_decision_timing.csv','bot_decision_timing_by_street.csv','bot_decision_timing.json','postflop_summary.csv',
+                           'summary_position_all.csv','postflop_position_summary.csv'],
         'notes':['Every dealt hand counts in hands_observed, including BB pots won without a decision; other opportunity counters require an action.',
                  'A missing opportunity displays an empty percentage, never 0%.',
                  'Fold-to-steal uses numeric positions 4,3,SB (cutoff, button, small blind).',
@@ -840,7 +899,8 @@ def main():
                  'n9 includes only hands starting with nine active seats; n2 is heads-up (SB is button); all includes every stage.',
                  'Denominator hands_observed includes every player receiving hole cards, even if no preflop action was required.',
                  'Postflop AF is (bets+raises)/calls; a zero-call sample has undefined AF and is blank.',
-                 'C-bet: last preflop aggressor gets first unraised flop opportunity; Fold to bet and Check-raise use eligible decisions.',
+                 'Flop C-bet: last preflop aggressor at first available unraised flop decision. Turn and river barrels require the immediately previous qualifying barrel to be called without a raise.',
+                 'Street C-bet opportunities require a legal bet; all-in players cannot receive new opportunities. Fold to bet and Check-raise use eligible decisions.',
                  'W$SD credits a player winning a showdown side pot, including ties.',
                  'Net bb/100 is whole-hand net chips normalized by BB at each deal, times 100 / dealt hands; not isolated postflop EV.']
     },ensure_ascii=False,indent=2),encoding='utf-8')
