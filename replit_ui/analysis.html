@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SKACHKOV · Анализ турниров</title>
+<style>
+:root{color-scheme:dark;--bg:#081221;--surface:#14243a;--line:#314660;--fg:#ecf5ff;--muted:#9ab0ca;--accent:#7baaf7;--ok:#8cd8bb;--warn:#efc48b}
+*{box-sizing:border-box}body{margin:0;color:var(--fg);background:radial-gradient(ellipse at 60% -35%,#27507a,transparent 70%),var(--bg);font:13px/1.52 Inter,system-ui,sans-serif}
+header,.nav,main,footer{width:min(1710px,96%);margin:auto}header{padding:23px 0 16px;display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:850;font-size:11px;letter-spacing:2px;color:#92baf1}.brand strong{display:block;color:#fff;font-size:25px;letter-spacing:-.6px}.small,.note{color:var(--muted);font-size:11px}.nav{display:grid;grid-template-columns:repeat(4,1fr);background:#101d30;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.tab{border-right:1px solid var(--line);padding:13px 12px;display:flex;gap:9px;color:#91a4bc;text-decoration:none}.tab:last-child{border-right:0}.tab.current{background:#1d3b60;color:#fff;box-shadow:inset 0 -3px #7ca9fa}.tab:hover:not(.current){background:#192e49}.tab b{font-size:19px}.tab strong{display:block;font-size:13px}.tab small{font-size:10px}
+main{display:grid;gap:15px;padding-bottom:12px}.panel{min-width:0;background:linear-gradient(140deg,#17283f,#101e30);border:1px solid var(--line);padding:18px;border-radius:12px}
+.heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:13px}.heading h2{margin:0;font-size:17px}.index{color:#82aef2;font-size:12px}
+.filters{display:grid;grid-template-columns:minmax(220px,2fr) repeat(2,minmax(160px,1fr)) minmax(170px,1fr);gap:10px;align-items:end}
+label{color:#b7cee8;display:block;font-size:11px;font-weight:700;margin-bottom:5px}select,input{background:#081626;color:#edf4ff;border:1px solid #395572;border-radius:7px;font:inherit;padding:10px;width:100%;min-width:0}
+button,a{font:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #92befa;outline-offset:2px}
+.btn{padding:9px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.2)}.btn.primary{background:#347bdf;border-color:#5097ff}.btn:disabled{opacity:.42;cursor:not-allowed}
+.access{display:flex;gap:8px;align-items:center;width:min(360px,100%)}.access input{flex:1}.status{color:#abc1d8;font-size:11px}.status.error{color:#ffc0c6}.status.ok{color:#90e1c3}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.card{background:#10243a;border:1px solid #36516e;padding:11px;border-radius:9px;min-width:0}
+.card small{color:#a4bad5;font-size:10px;display:block}.card strong{font-size:21px;display:block;font-variant-numeric:tabular-nums;white-space:nowrap}.card span{color:#90a8c2;font-size:10px}
+.tableScroll{overflow:auto;max-width:100%;border:1px solid #2b425b;border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:940px;font-size:11px;font-variant-numeric:tabular-nums}th,td{border-bottom:1px solid #2b425b;padding:9px;text-align:right;white-space:nowrap}
+th{text-align:right;background:#1b3550;color:#bbd8f4;font-weight:750;position:sticky;top:0;z-index:2}
+td:first-child,th:first-child{text-align:left;position:sticky;left:0;z-index:1;min-width:182px;background:#182f46}th:first-child{z-index:3}
+tbody tr:nth-child(even) td{background:#15283b}tbody tr:nth-child(even) td:first-child{background:#172f47}tbody tr:hover td{filter:brightness(1.13)}
+.rowButton{border:none;background:transparent;color:#b9dcfc;text-align:left;font:inherit;cursor:pointer;padding:3px 0}.rowButton:hover{text-decoration:underline}
+.subrow td{font-size:10px;color:#b1cadf;background:#10243b!important}.subrow td:first-child{padding-left:27px;border-left:3px solid #6e9bc8;background:#122a43!important}
+.strong{color:#90dfc7;font-weight:800}.dim{color:#7290aa}.tip{border:1px solid #375872;border-radius:8px;background:#10243a;color:#a8c4de;padding:10px 12px;font-size:11px;line-height:1.6;margin-top:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.grid2>.panel{min-width:0}
+.bars{display:grid;gap:8px;margin-bottom:15px}.barRow{display:grid;grid-template-columns:114px minmax(0,1fr) 93px;gap:10px;align-items:center;color:#aecbe7;font-size:11px}
+.barTrack{background:#0b1c2d;border:1px solid #2d4866;height:12px;border-radius:8px;overflow:hidden}.barFill{height:100%;width:0;background:linear-gradient(90deg,#5282c9,#91c6e7)}.barRow strong{text-align:right;font-weight:700}
+.comparisonFilters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.comparisonNotice{padding:12px;border-radius:8px;border:1px solid #685637;background:#302b28;color:#f1cfa0;font-size:11px;line-height:1.6}.comparisonNotice.ok{border-color:#346956;background:#12312e;color:#a0e0c4}
+.negative{color:#f6a8b2}.positive{color:#8cd8bb}.zero{color:#9db5cb}.muted{color:var(--muted)}
+.foot{font-size:11px;color:#91adca;line-height:1.72;padding-top:4px}
+.sectionBody{margin-top:12px}.panel details>summary{cursor:pointer;list-style:none}.panel details>summary::-webkit-details-marker{display:none}.panel details>summary:before{content:"▾";color:#a9d1ff;margin-right:9px}.panel details:not([open])>summary:before{content:"▸"}
+.sectionTitle{font-size:17px;font-weight:800;display:inline}.sectionMeta{color:#88a6c1;font-size:11px;margin-left:12px}
+footer{color:#758daa;font-size:11px;margin:13px auto 40px}
+@media(max-width:950px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:1fr}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:580px){.filters,.comparisonFilters{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.tab{padding:9px 4px;gap:3px;justify-content:center}.tab b{font-size:14px}.tab strong{font-size:11px}.tab small{display:none}.access{width:100%}.barRow{grid-template-columns:82px minmax(0,1fr) 82px}.panel{padding:13px}}
+</style></head><body>
+<header><div class="brand">SKACHKOV / POKER SYSTEM<strong>TOURNAMENT ANALYTICS</strong></div>
+<div class="access"><input id="key" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" aria-label="Ключ доступа"><button class="btn primary" id="connect">Подключить</button></div></header>
+<div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Эксперименты</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Сценарии</small></span></a><a class="tab current" aria-current="page" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · позиции · сравнение</small></span></a></div>
+<main>
+<section class="panel"><div class="heading"><h2><span class="index">00 / </span>Фильтры исследования</h2><span class="status" id="status" role="status">Подключись к хранилищу сессий</span></div>
+<div class="filters">
+<div><label for="sessionA">Основная сессия · A</label><select id="sessionA"><option value="">— Нет сессий —</option></select></div>
+<div><label for="playerA">Игрок / стратегия</label><select id="playerA"><option value="">—</option></select></div>
+<div><label for="stage">Размер стола · число игроков</label><select id="stage"><option value="all">Все размеры</option><option value="9">9-max</option><option value="8">8-max</option><option value="7">7-max</option><option value="6">6-max</option><option value="5">5-max</option><option value="4">4-max</option><option value="3">3-max</option><option value="2">HU · 2</option></select></div>
+<button class="btn" id="refresh">↻ Обновить данные</button>
+</div><p class="note">9-max → HU — число оставшихся игроков на момент сдачи карт, не стадия блайндов. По умолчанию все размеры объединяются по фактическим числителям и знаменателям.</p></section>
+<div class="cards">
+<div class="card"><small>Завершено турниров</small><strong id="kT">—</strong><span id="kTSub">Сессия A</span></div>
+<div class="card"><small>Раздач в серии</small><strong id="kH">—</strong><span>Все игроки</span></div>
+<div class="card"><small>Win % · выбранный игрок</small><strong id="kW">—</strong><span id="kWSub">95% ДИ: —</span></div>
+<div class="card"><small>Net bb/100 · игрок</small><strong id="kB">—</strong><span>Результат раздач в BB</span></div>
+<div class="card"><small>Раздач · игрок / фильтр</small><strong id="kN">—</strong><span id="kNSub">Все размеры</span></div>
+</div>
+<section class="panel"><details open id="sectionResults"><summary><span class="index">01 / </span><span class="sectionTitle">Турниры · результаты</span><span class="sectionMeta">Игроки и раскрываемые позиции</span></summary>
+<div class="sectionBody"><div class="tableScroll"><table><thead><tr><th>Игрок / стратегия</th><th>Победы</th><th>Win %</th><th>Win 95% ДИ</th><th>Топ-3 %</th><th>Ср. место</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="scoreboard"><tr><td colspan="9">Выбери сессию</td></tr></tbody></table></div>
+<p class="tip" id="resultsNote">Победы и места относятся к полным турнирам. При фильтрации размера стола победы и места не распределяются по стадиям или позициям.</p></div></details></section>
+<div class="grid2">
+<section class="panel"><details open><summary><span class="index">02 / </span><span class="sectionTitle">Preflop</span><span class="sectionMeta">Диапазоны и действия</span></summary><div class="sectionBody">
+<div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th></tr></thead><tbody id="preflop"><tr><td colspan="7">Нет данных</td></tr></tbody></table></div>
+<p class="note">RFI, 3-bet и 4-bet имеют разные знаменатели возможностей. Наведи курсор на процент, чтобы увидеть фактический счётчик, если он сохранён.</p></div></details></section>
+<section class="panel"><details open><summary><span class="index">03 / </span><span class="sectionTitle">Postflop</span><span class="sectionMeta">Три барреля · агрессия</span></summary><div class="sectionBody">
+<div class="bars" id="barrels"></div>
+<div class="tableScroll"><table><thead><tr><th>Улица</th><th>C-bet %</th><th>Возможностей</th><th>AF</th><th>Bet + Raise</th><th>Call</th></tr></thead><tbody id="postflop"><tr><td colspan="6">Нет данных</td></tr></tbody></table></div>
+<div class="tableScroll" style="margin-top:12px"><table><thead><tr><th>Метрика</th><th>Значение</th><th>Наблюдений</th></tr></thead><tbody id="postOther"></tbody></table></div>
+<p class="note">Turn/River C-bet требуют колла предыдущего барреля без рейза. AF — отношение агрессивных действий к коллам, не процент. BB/100 — результат всей раздачи, а не отдельной улицы.</p></div></details></section></div>
+<section class="panel"><details open><summary><span class="index">04 / </span><span class="sectionTitle">Позиционная аналитика</span><span class="sectionMeta">Фактические позиции в каждой раздаче</span></summary><div class="sectionBody">
+<div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>Flop C-bet</th><th>Turn C-bet</th><th>River C-bet</th><th>Flop AF</th><th>Net bb/100</th></tr></thead><tbody id="positionTable"></tbody></table></div>
+<p class="note">При «Все размеры» SB включает и HU button/SB; UTG/MP определяются текущим размером стола. Для строгого сравнения выбирай конкретный размер.</p></div></details></section>
+<section class="panel" id="compare"><details open><summary><span class="index">05 / </span><span class="sectionTitle">Сравнение стратегий / сессий</span><span class="sectionMeta">A → B · Δ</span></summary><div class="sectionBody">
+<div class="comparisonFilters">
+<div><label for="sessionB">Сессия B (можно выбрать ту же)</label><select id="sessionB"><option value="">— Выбери сессию B —</option></select></div>
+<div><label for="playerB">Игрок B / стратегия</label><select id="playerB"><option value="">—</option></select></div>
+</div>
+<div id="compareNotice" class="comparisonNotice">Выбери сессию B для сравнения. Дельта описательная, не доказательство превосходства стратегии.</div>
+<div class="tableScroll" style="margin-top:12px"><table><thead><tr><th>Показатель</th><th>A</th><th>B</th><th>Δ (B − A)</th><th>Единица</th></tr></thead><tbody id="compareMetrics"></tbody></table></div>
+<div class="heading" style="margin:17px 0 9px"><h2 style="font-size:13px">Сравнение позиций</h2><div style="min-width:200px"><label for="compareMetric">Метрика для позиционного сравнения</label>
+<select id="compareMetric"><option value="net_bb_100">Net bb/100</option><option value="vpip">VPIP</option><option value="pfr">PFR</option><option value="rfi">RFI</option><option value="threebet">3-bet</option><option value="flop_cbet">Flop C-bet</option><option value="turn_cbet">Turn C-bet</option><option value="river_cbet">River C-bet</option></select></div></div>
+<div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук A</th><th>Рук B</th><th>A</th><th>B</th><th>Δ (B − A)</th></tr></thead><tbody id="comparePositions"></tbody></table></div>
+<p class="note">Для процентов Δ измеряется в процентных пунктах; для AF — в единицах AF, для Net bb/100 — в BB/100. Нет возможности измерения — «—», а не 0%. Статистическая значимость разности не вычисляется без достаточных исходных данных.</p>
+</div></details></section>
+<div class="foot">Методология: результат выводится только из сохранённых турнирных данных; отсутствие числителя или знаменателя не заменяется прогнозом. Win 95% ДИ — интервал Уилсона при условии завершённых турниров, с ограничениями при зависимости наблюдений. Экспериментальные результаты нельзя автоматически интерпретировать как причинный эффект стратегии. <a href="/" style="color:#9ec9ef">Вернуться к реализации →</a></div>
+</main><footer>SKACHKOV Poker System · 01 Реализация → 02 План → 03 Постфлоп → 04 Анализ</footer>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const seats=['9','8','7','6','5','4','3','SB','BB'];
+const seatNames={'9':'9 · ранняя','8':'8 · ранняя','7':'7 · средняя','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN','SB':'SB','BB':'BB'};
+const preMetrics=['vpip','pfr','rfi','threebet','fourbet'];
+const percentMetrics=new Set([...preMetrics,'flop_cbet','turn_cbet','river_cbet','fold_to_bet','check_raise','wsd']);
+const names={a17_preflop:'A17 V5',pc_gto_80bb:'PC GTO 80 BB',gto:'GTO',gto_postflop_v1:'GTO V1',gto_postflop_v2:'GTO V2',gto_postflop_v3:'GTO V3',gto_postflop_v4:'GTO V4',tag_postflop_v1:'TAG',lag_postflop_v1:'LAG',s100_postflop_v1:'S100',trapper_postflop_v1:'Trapper',chaser_postflop_v1:'Chaser'};
+let jobs=[],runA=null,runB=null,sessionTicket=0,primaryTicket=0,secondaryTicket=0;
+const cache=new Map(),expanded=new Set();
+function accessKey(){return $('key').value.trim()}
+function status(msg,kind=''){$('status').textContent=msg;$('status').className='status'+(kind?' '+kind:'')}
+function option(value,label){const x=document.createElement('option');x.value=value;x.textContent=label;return x}
+function cell(text,cls=''){const x=document.createElement('td');x.textContent=String(text??'—');if(cls)x.className=cls;return x}
+function clearRow(id,spanning,message){const root=$(id);root.replaceChildren();if(message){const tr=document.createElement('tr');const td=cell(message);td.colSpan=spanning;tr.append(td);root.append(tr)}return root}
+function rowOf(cells,cls=''){const tr=document.createElement('tr');if(cls)tr.className=cls;cells.forEach(v=>tr.append(cell(v)));return tr}
+function num(v,d=1){const n=Number(v);return v===null||v===undefined||v===''||!Number.isFinite(n)?'—':n.toLocaleString('ru-RU',{maximumFractionDigits:d,minimumFractionDigits:d})}
+function integer(v){return num(v,0)}
+function percent(v){return num(v,1)==='—'?'—':num(v,1)+'%'}
+function wilson(w,n){
+ if(!Number.isFinite(w)||!Number.isFinite(n)||n<=0||w<0||w>n)return '—';
+ const z=1.96,p=w/n,k=1+z*z/n,m=(p+z*z/(2*n))/k;
+ const r=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/k;
+ return num(100*(m-r),1)+'–'+num(100*(m+r),1)+'%';
+}
+function playerTitle(bot){const m=/^P(\d+)=split:([^:]+):([^:]+)$/.exec(bot||'');return m?'P'+m[1]+' · '+(names[m[2]]||m[2])+' / '+(names[m[3]]||m[3]):String(bot||'—')}
+function idx(bot){const m=/^P(\d+)=/.exec(bot||'');return m?Number(m[1])-1:-1}
+function seatLabel(seat){
+ const size=Number($('stage').value);
+ if(size>=6&&Number(seat)===size)return seat+' · UTG';
+ if(size===9&&seat==='8')return '8 · UTG+1';
+ return seatNames[seat]||seat;
+}
+function fetchJSON(path){
+ if(!accessKey())return Promise.reject(new Error('Укажи POKER_RUNNER_KEY'));
+ return fetch(path,{cache:'no-store',headers:{'X-Runner-Key':accessKey()}})
+ .then(async r=>{let data;try{data=await r.json()}catch{throw Error('HTTP '+r.status)}if(!r.ok)throw Error(data.error||'HTTP '+r.status);return data});
+}
+async function getRun(id,force=false){
+ if(!id)return null;
+ if(!force&&cache.has(id))return cache.get(id);
+ const data=await fetchJSON('/api/runs/'+encodeURIComponent(id));
+ if(['completed','imported'].includes(data.status))cache.set(id,data);
+ else cache.delete(id);
+ return data;
+}
+function leaderboard(run){return run?.report?.leaderboard||[]}
+function dataFor(run,bot){return run?.stats?.[bot]||{}}
+function scopeRecord(run,bot){
+ const source=dataFor(run,bot);
+ const stage=$('stage').value;
+ return stage==='all'?source:(source.stages?.[stage]?.total||{});
+}
+function scopedSeats(run,bot){const d=dataFor(run,bot);return $('stage').value==='all'?d.positions||{}:d.stages?.[$('stage').value]?.positions||{}}
+function getMetric(record,metric){return record&&Number.isFinite(Number(record[metric]))&&record[metric]!==null&&record[metric]!==undefined?Number(record[metric]):null}
+function denom(record,metric){
+ if(!record)return null;
+ const raw=preMetrics.includes(metric)?record.pre_raw:record.post_raw;
+ if(!raw)return null;
+ const den=preMetrics.includes(metric)?({vpip:'hands_observed',pfr:'hands_observed',rfi:'rfi_opportunities',threebet:'threebet_opportunities',fourbet:'fourbet_opportunities'}[metric]):metric+'_opp';
+ return raw[den]===undefined?null:Number(raw[den]);
+}
+function numerator(record,metric){
+ if(!record)return null;const raw=preMetrics.includes(metric)?record.pre_raw:record.post_raw;
+ return raw?.[metric+'_n']===undefined?null:Number(raw[metric+'_n']);
+}
+function countTitle(record,metric){const n=numerator(record,metric),d=denom(record,metric);return n===null||d===null?'Числитель / знаменатель не сохранены':num(n,0)+' / '+num(d,0)+' возможностей'}
+function appendPct(parent,record,metric){
+ const value=getMetric(record,metric);const td=cell(percent(value),value===null?'dim':'');
+ td.title=countTitle(record,metric);parent.append(td);
+}
+function emptyData(){['kT','kH','kW','kB','kN','kWSub'].forEach(id=>$(id).textContent='—');
+ ['scoreboard','preflop','postflop','postOther','positionTable','compareMetrics','comparePositions'].forEach(id=>$(id).replaceChildren());
+ $('barrels').replaceChildren();
+}
+function fillPlayers(id,run,current){
+ const root=$(id),old=current||root.value;root.replaceChildren();
+ for(const p of leaderboard(run)){root.append(option(p.bot,playerTitle(p.bot)))}
+ if([...root.options].some(o=>o.value===old))root.value=old;
+ if(!root.value&&root.options.length)root.selectedIndex=0;
+}
+function fillSessions(rootId,allowBlank,previous){
+ const root=$(rootId),choice=previous||root.value;root.replaceChildren();
+ if(allowBlank)root.append(option('','— Сессия B не выбрана —'));
+ for(const j of jobs)root.append(option(j.id,j.id+' · '+j.status+' · '+j.created.slice(0,16).replace('T',' ')));
+ if([...root.options].some(o=>o.value===choice))root.value=choice;
+ else if(allowBlank)root.value='';
+ else if(root.options.length)root.selectedIndex=0;
+}
+async function loadSessions(){
+ const req=++sessionTicket;status('Загружаю сессии…');$('connect').disabled=true;
+ try{
+  sessionStorage.setItem('skachkov_key',accessKey());
+  const current=$('sessionA').value||new URLSearchParams(location.search).get('session')||'';
+  const currentB=$('sessionB').value;
+  const data=await fetchJSON('/api/runs');
+  if(req!==sessionTicket)return;
+  jobs=(data.runs||[]).filter(j=>j.status!=='deleted');
+  fillSessions('sessionA',false,current);
+  fillSessions('sessionB',true,currentB);
+  await loadPrimary(true);await loadSecondary(true);
+  if(req===sessionTicket)status('Сессии доступны · '+jobs.length,'ok');
+ }catch(e){status(e.message,'error');emptyData()}finally{$('connect').disabled=false}
+}
+async function loadPrimary(force=false){
+ const id=$('sessionA').value,req=++primaryTicket;
+ if(!id){runA=null;emptyData();return}
+ try{
+  const run=await getRun(id,force);
+  if(req!==primaryTicket||$('sessionA').value!==id)return;
+  runA=run;expanded.clear();
+  fillPlayers('playerA',run,$('playerA').value);
+  render();renderCompare();
+ }catch(e){status('Сессия A: '+e.message,'error')}
+}
+async function loadSecondary(force=false){
+ const id=$('sessionB').value,req=++secondaryTicket;
+ if(!id){runB=null;fillPlayers('playerB',null,'');renderCompare();return}
+ try{const run=await getRun(id,force);if(req!==secondaryTicket||$('sessionB').value!==id)return;
+  runB=run;fillPlayers('playerB',run,$('playerB').value);renderCompare();
+ }catch(e){runB=null;status('Сессия B: '+e.message,'error')}
+}
+function summaryRow(x,run,stageSpecific=false){
+ const st=scopeRecord(run,x.bot);
+ if(!stageSpecific)return [playerTitle(x.bot),integer(x.wins),percent(x.win_pct_completed),
+ wilson(Number(x.wins),Number(run.report.tournaments_completed)),percent(dataFor(run,x.bot).top3_pct),
+ num(x.avg_position_completed,2),num(dataFor(run,x.bot).median_position,1),num(st.net_bb_100,2),integer(st.hands_observed)];
+ return [playerTitle(x.bot),'—','—','—','—','—','—',num(st.net_bb_100,2),integer(st.hands_observed)];
+}
+function renderScores(){
+ const root=clearRow('scoreboard',9,!runA?'Сессия не выбрана':(!leaderboard(runA).length?'Нет завершённого отчёта':''));
+ if(!leaderboard(runA).length)return;
+ const focused=$('playerA').value;
+ for(const p of leaderboard(runA)){
+  const tr=rowOf(summaryRow(p,runA,$('stage').value!=='all'));
+  const first=tr.firstChild;first.replaceChildren();
+  const button=document.createElement('button');button.className='rowButton';button.type='button';
+  const record=scopeRecord(runA,p.bot),pos=$('stage').value==='all'?dataFor(runA,p.bot).positions:runA.stats?.[p.bot]?.stages?.[$('stage').value]?.positions;
+  const has=pos&&Object.keys(pos).length;
+  button.textContent=(has?(expanded.has(p.bot)?'▾ ':'▸ '):'')+playerTitle(p.bot);
+  button.disabled=!has;button.setAttribute('aria-expanded',String(!!has&&expanded.has(p.bot)));
+  button.onclick=()=>{if(expanded.has(p.bot))expanded.delete(p.bot);else expanded.add(p.bot);$('playerA').value=p.bot;render();};
+  first.append(button);
+  if(p.bot===focused)tr.lastChild.classList.add('strong');
+  root.append(tr);
+  if(has&&expanded.has(p.bot))for(const seat of seats){
+   const item=pos[seat];if(!item||!item.hands_observed)continue;
+   const child=rowOf([seatLabel(seat),'—','—','—','—','—','—',num(item.net_bb_100,2),integer(item.hands_observed)],'subrow');
+   root.append(child);
+  }
+ }
+ $('resultsNote').textContent=$('stage').value==='all'
+ ?'Полные турниры: Win %, доверительный интервал Уилсона и итоговые места. Стрелка раскрывает позиции; победы не распределяются по позициям.'
+ :'Фильтр '+$('stage').value+' игроков: показываются только Net bb/100 и раздачи этого размера. Победы, Win % и место не относятся к отдельной стадии.';
+}
+function renderPre(){
+ const root=clearRow('preflop',7,!runA?'Нет выбранной сессии':'');
+ if(!runA)return;
+ const bot=$('playerA').value,record=scopeRecord(runA,bot),positions=scopedSeats(runA,bot);
+ const rows=[['ВСЕ ПОЗИЦИИ',record],...seats.map(s=>[seatLabel(s),positions[s]]).filter(x=>x[1]&&x[1].hands_observed)];
+ for(const [label,r] of rows){
+  const tr=document.createElement('tr');
+  tr.append(cell(label));tr.append(cell(integer(r.hands_observed)));
+  for(const m of preMetrics)appendPct(tr,r,m);
+  root.append(tr);
+ }
+}
+function renderPost(){
+ const root=clearRow('postflop',6,!runA?'Нет выбранной сессии':'');
+ const other=clearRow('postOther',3,'');
+ const bars=$('barrels');bars.replaceChildren();
+ if(!runA)return;
+ const data=scopeRecord(runA,$('playerA').value);
+ for(const street of ['flop','turn','river']){
+  const name=street[0].toUpperCase()+street.slice(1),k=street+'_cbet',raw=data.post_raw||{};
+  const pct=getMetric(data,k)??(street==='flop'?getMetric(data,'cbet'):null);
+  const opp=denom(data,k)??(street==='flop'?denom(data,'cbet'):null);
+  const tr=rowOf([name,percent(pct),integer(opp),num(data[street+'_af'],2),
+                  integer(raw[street+'_aggressive']),integer(raw[street+'_calls'])]);
+  root.append(tr);
+  const row=document.createElement('div');row.className='barRow';
+  const nameCell=document.createElement('span');nameCell.textContent=name+' C-bet';
+  const track=document.createElement('div');track.className='barTrack';
+  const fill=document.createElement('div');fill.className='barFill';
+  fill.style.width=pct===null?'0%':Math.max(0,Math.min(100,pct))+'%';track.append(fill);
+  const value=document.createElement('strong');value.textContent=percent(pct);
+  row.append(nameCell,track,value);bars.append(row);
+ }
+ for(const [label,k] of [['Fold to bet','fold_to_bet'],['Check-raise','check_raise'],['W$SD','wsd']]){
+  other.append(rowOf([label,percent(getMetric(data,k)),integer(denom(data,k))]));
+ }
+ other.append(rowOf(['Net bb/100',num(data.net_bb_100,2),integer(data.post_raw?.net_hands)]));
+}
+function renderPositions(){
+ const root=clearRow('positionTable',11,!runA?'Нет выбранной сессии':'');if(!runA)return;
+ const data=scopedSeats(runA,$('playerA').value);
+ for(const s of seats){const r=data[s];if(!r||!r.hands_observed)continue;
+  root.append(rowOf([seatLabel(s),integer(r.hands_observed),percent(r.vpip),percent(r.pfr),
+  percent(r.rfi),percent(r.threebet),percent(r.flop_cbet??r.cbet),percent(r.turn_cbet),
+  percent(r.river_cbet),num(r.flop_af,2),num(r.net_bb_100,2)]));
+ }
+ if(!root.children.length)clearRow('positionTable',11,'Нет позиционного экспорта для выбранного размера стола / сессии');
+}
+function render(){
+ if(!runA){emptyData();return}
+ const bot=$('playerA').value,stats=scopeRecord(runA,bot),report=runA.report||{};
+ const player=leaderboard(runA).find(p=>p.bot===bot)||{};
+ $('kT').textContent=integer(report.tournaments_completed);
+ $('kTSub').textContent=integer(report.tournaments_requested)+' запрошено';
+ $('kH').textContent=integer(report.total_hands);
+ $('kW').textContent=percent(player.win_pct_completed);
+ $('kWSub').textContent='95% ДИ: '+wilson(Number(player.wins),Number(report.tournaments_completed));
+ $('kB').textContent=num(stats.net_bb_100,2);
+ $('kN').textContent=integer(stats.hands_observed);
+ $('kNSub').textContent=$('stage').value==='all'?'Все размеры':$('stage').value+' игроков за столом';
+ if(runA.status!=='completed'&&runA.status!=='imported')status('Сессия ещё не завершена; финальная аналитика может отсутствовать');
+ renderScores();renderPre();renderPost();renderPositions();
+}
+function configProfile(run,index){
+ if(index<0)return null;
+ const c=run.config||{};
+ if(Array.isArray(c.bots)&&c.bots[index])return c.bots[index].pre+':'+c.bots[index].post;
+ if(Array.isArray(c.players)&&c.players[index])return String(c.players[index]).replace(/^P\d+=/,'');
+ return null;
+}
+function compatibility(a,b,pa,pb){
+ const alerts=[];if(!a||!b)return alerts;
+ const configA=a.config||{},configB=b.config||{};
+ for(const [name,key] of [['Стартовый стек','chips'],['SB','sb'],['BB','bb'],
+ ['Интервал роста блайндов','blind_increase_every'],['Лимит рук','max_hands'],
+ ['Посадка','seat_mode'],['Политика баттона','button_policy'],
+ ['Префлоп-протокол','preflop_protocol']]){
+  if(configA[key]!==configB[key])alerts.push(name+' различается');
+ }
+ const as=configA.bots?.length||configA.players?.length||leaderboard(a).length;
+ const bs=configB.bots?.length||configB.players?.length||leaderboard(b).length;
+ if(as!==bs)alerts.push('Различное число участников');
+ if(a.strategy_fingerprint!==b.strategy_fingerprint)alerts.push('Разные версии кода/стратегий');
+ const idxA=idx(pa),idxB=idx(pb);
+ if(idxA<0||idxB<0)alerts.push('Нельзя однозначно сопоставить номера игроков');
+ else{
+  const poolA=[],poolB=[];
+  for(let i=0;i<as;i++)if(i!==idxA)poolA.push(configProfile(a,i));
+  for(let i=0;i<bs;i++)if(i!==idxB)poolB.push(configProfile(b,i));
+  if(poolA.some(v=>v===null)||poolB.some(v=>v===null)||poolA.slice().sort().join('|')!==poolB.slice().sort().join('|'))
+   alerts.push('Состав соперников различается или не идентифицирован');
+ }
+ if(a.id===b.id)alerts.push('Одна и та же сессия: результаты игроков зависимы');
+ if(a.status!=='completed'&&a.status!=='imported'||b.status!=='completed'&&b.status!=='imported')
+  alerts.push('Одна из сессий не завершена');
+ const nA=Number(a.report?.tournaments_completed||0),nB=Number(b.report?.tournaments_completed||0);
+ if(nA!==nB)alerts.push('Разное число завершённых турниров (победы напрямую несопоставимы)');
+ if(nA<30||nB<30)alerts.push('Малая выборка завершённых турниров (менее 30)');
+ return alerts;
+}
+function metricLabel(metric){return ({vpip:'VPIP',pfr:'PFR',rfi:'RFI',threebet:'3-bet',fourbet:'4-bet',
+  flop_af:'Flop AF',turn_af:'Turn AF',river_af:'River AF',flop_cbet:'Flop C-bet',turn_cbet:'Turn C-bet',river_cbet:'River C-bet',
+  fold_to_bet:'Fold to bet',check_raise:'Check-raise',wsd:'W$SD',net_bb_100:'Net bb/100'}[metric]||metric)}
+function delta(a,b,metric){if(a===null||b===null)return '—';const n=b-a;
+ return (n>0?'+':'')+num(n,2)}
+function formatMetric(value,metric){return percentMetrics.has(metric)?percent(value):num(value,2)}
+function renderCompare(){
+ clearRow('compareMetrics',5,'Выбери сессию B');clearRow('comparePositions',6,'Выбери сессию B');
+ if(!runA||!runB){$('compareNotice').className='comparisonNotice';$('compareNotice').textContent='Для сравнения выбери сессию B. Значения не подменяются модельными предположениями.';return}
+ const a=$('playerA').value,b=$('playerB').value,st=$('stage').value;
+ const issues=compatibility(runA,runB,a,b);
+ $('compareNotice').className='comparisonNotice'+(!issues.length?' ok':'');
+ $('compareNotice').textContent=issues.length?'ОГРАНИЧЕНИЯ СОПОСТАВИМОСТИ: '+issues.join(' · ')+'. Разности — описательные, не причинные оценки.':
+ 'Настройки и версии совпадают, остальные профили сопоставимы. Даже при совпадении условий Δ не является доказательством статистически значимого превосходства.';
+ const dA=scopeRecord(runA,a),dB=scopeRecord(runB,b);
+ const metrics=['vpip','pfr','rfi','threebet','fourbet','flop_cbet','turn_cbet','river_cbet',
+ 'flop_af','turn_af','river_af','fold_to_bet','check_raise','wsd','net_bb_100'];
+ const root=$('compareMetrics');root.replaceChildren();
+ if(st==='all'){
+  const pA=leaderboard(runA).find(x=>x.bot===a)||{};
+  const pB=leaderboard(runB).find(x=>x.bot===b)||{};
+  const winnerA=getMetric(pA,'win_pct_completed'),winnerB=getMetric(pB,'win_pct_completed');
+  const nA=Number(runA.report?.tournaments_completed||0),nB=Number(runB.report?.tournaments_completed||0);
+  root.append(rowOf(['Победы',integer(pA.wins),integer(pB.wins),
+    nA===nB?delta(getMetric(pA,'wins'),getMetric(pB,'wins'),'wins'):'—',
+    nA===nB?'турниры':'Разные размеры выборок']));
+  root.append(rowOf(['Win %',percent(winnerA),percent(winnerB),
+   winnerA===null||winnerB===null?'—':delta(winnerA,winnerB,'win')+' п.п.',
+   '95% ДИ A '+wilson(Number(pA.wins),nA)+'; B '+wilson(Number(pB.wins),nB)]));
+  const fullA=dataFor(runA,a),fullB=dataFor(runB,b);
+  const topA=getMetric(fullA,'top3_pct'),topB=getMetric(fullB,'top3_pct');
+  root.append(rowOf(['Топ-3 %',percent(topA),percent(topB),
+   topA===null||topB===null?'—':delta(topA,topB,'top3')+' п.п.','завершённые турниры']));
+  const placeA=getMetric(pA,'avg_position_completed'),placeB=getMetric(pB,'avg_position_completed');
+  root.append(rowOf(['Среднее место',num(placeA,2),num(placeB,2),delta(placeA,placeB,'place'),'место']));
+  const medA=getMetric(fullA,'median_position'),medB=getMetric(fullB,'median_position');
+  root.append(rowOf(['Медианное место',num(medA,1),num(medB,1),delta(medA,medB,'place'),'место']));
+ }
+ for(const m of metrics){
+  const aValue=getMetric(dA,m),bValue=getMetric(dB,m);
+  const d=delta(aValue,bValue,m),suffix=percentMetrics.has(m)?'п.п.':m==='net_bb_100'?'BB/100':'AF';
+  const tr=rowOf([metricLabel(m),formatMetric(aValue,m),formatMetric(bValue,m),
+  d==='—'?d:d+' '+suffix,percentMetrics.has(m)?'A: '+integer(denom(dA,m))+' / B: '+integer(denom(dB,m))+' возможностей':suffix]);
+  root.append(tr);
+ }
+ const pa=scopedSeats(runA,a),pb=scopedSeats(runB,b),metric=$('compareMetric').value;
+ const posRoot=$('comparePositions');posRoot.replaceChildren();
+ for(const seat of seats){
+  const recordA=pa[seat],recordB=pb[seat];if(!recordA&&!recordB)continue;
+  const va=getMetric(recordA,metric),vb=getMetric(recordB,metric);
+  const tr=rowOf([seatLabel(seat),integer(recordA?.hands_observed),integer(recordB?.hands_observed),
+  formatMetric(va,metric),formatMetric(vb,metric),
+  delta(va,vb,metric)+(va!==null&&vb!==null&&percentMetrics.has(metric)?' п.п.':'')]);
+  posRoot.append(tr);
+ }
+ if(!posRoot.children.length)clearRow('comparePositions',6,'Позиционные данные для фильтра отсутствуют');
+}
+$('key').value=sessionStorage.getItem('skachkov_key')||'';
+$('connect').onclick=loadSessions;
+$('key').addEventListener('keydown',e=>{if(e.key==='Enter')loadSessions()});
+$('refresh').onclick=()=>{cache.clear();loadSessions()};
+$('sessionA').onchange=()=>{runA=null;loadPrimary(true)};
+$('sessionB').onchange=()=>{runB=null;loadSecondary(true)};
+$('playerA').onchange=()=>{render();renderCompare()};
+$('playerB').onchange=renderCompare;
+$('stage').onchange=()=>{render();renderCompare()};
+$('compareMetric').onchange=renderCompare;
+if(accessKey())loadSessions();
+</script></body></html>

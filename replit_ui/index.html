@@ -8,7 +8,7 @@ main.simulatorLayout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
 .simulatorLayout .topColumn{min-width:0;height:clamp(440px,calc((100vw - 48px)/2),700px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#3a5471 #102137;align-content:start;padding-bottom:2px}
 .simulatorLayout .resultsPanel{grid-column:1/-1;min-width:0}
 .simulatorLayout .resultsPanel .tableWrap{max-height:min(68vh,730px)}
-.simulatorLayout .resultsPanel .statsTable{min-width:1920px}
+.simulatorLayout .resultsPanel .statsTable{min-width:1030px}
 .simulatorLayout .topColumn .panel{padding:15px}
 .simulatorLayout .topColumn .heading h2{font-size:16px}
 .simulatorLayout .journalColumn{grid-column:1/-1;height:auto;overflow:visible;padding:0}.simulatorLayout .journalColumn pre{height:290px;max-height:430px;min-height:180px}
@@ -72,7 +72,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .simulatorLayout .parametersColumn,.simulatorLayout .strategiesColumn{grid-column:1/-1}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><span id="connection" class="badge">Нет соединения</span></header>
-<div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
+<div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Результаты · позиции</small></span></a></div>
 <main class="simulatorLayout"><div class="column topColumn parametersColumn">
 <section class="panel"><div class="heading"><h2><span class="index">01 / </span>Параметры турнира</h2><button class="btn sm outline" id="preset">Контроль V3</button></div>
 <div class="fields">
@@ -139,7 +139,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </div>
 <section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="/analysis">↗ Открыть в анализе</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="trashPanel" id="trashPanel" hidden>
 <div class="trashHeader"><strong>Корзина турниров</strong><span class="muted" id="trashCount">0 сессий</span><button class="btn sm" id="trashReload" type="button">↻ Обновить</button></div>
 <div id="trashItems" class="trashItems"><p class="note">Нажми «Корзина», чтобы загрузить список.</p></div>
@@ -149,8 +149,8 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </div>
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
-<div class="tableWrap"><table class="statsTable"><thead><tr class="stageHead"><th colspan="7" class="generalGroup">ТУРНИРЫ / РЕЗУЛЬТАТ</th><th colspan="5" class="preflopGroup">PREFLOP</th><th colspan="11" class="postflopGroup">POSTFLOP / BB</th></tr><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона по победам и завершённым турнирам">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th class="preflopStart">VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th><th class="postflopStart">Flop AF</th><th>Turn AF</th><th>River AF</th><th title="Продолженная ставка на флопе">Flop C-bet %</th><th title="Второй баррель после Flop C-bet и колла">Turn C-bet %</th><th title="Третий баррель после второго барреля и колла">River C-bet %</th><th>Fold to bet %</th><th>Check-raise %</th><th>W$SD %</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="23">Нет результатов</td></tr></tbody></table></div>
-<p class="note">При сбое нажми «Продолжить»: уже завершённые турниры сохраняются. Результаты другой версии стратегии автоматически не смешиваются.</p><p class="note">Win % — среди завершённых турниров. Flop/Turn/River AF = (Bet + Raise) / Call; Flop / Turn / River C-bet — частоты первого, второго и третьего барреля; Turn и River требуют колла предыдущего барреля без рейза. Каждый процент рассчитывается по доступным возможностям ставки, а не по всем раздачам. Раскрытие игрока показывает позиционные показатели по всем стадиям, без фиктивных «побед по позиции». Fold to bet, Check-raise и W$SD имеют собственные счётчики возможностей. Net bb/100 учитывает итог всей раздачи в единицах фактического BB (это общий результат, не изолированная постфлоп-прибыль). Win 95% ДИ — приближённый интервал Уилсона по числу завершённых турниров: он отражает неопределённость Win %, а не разницу EV; для малых выборок интервал широкий. Новая статистика доступна для новых запусков; «—» означает, что показатель пока не собран. Пустая частота не равна 0%.</p>
+<div class="tableWrap"><table class="statsTable"><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="9">Нет результатов</td></tr></tbody></table></div>
+<p class="note">Только итоговые показатели турнира. Подробные префлоп-частоты, Flop/Turn/River C-bet, агрессию, разбивку по позициям и сравнение сессий смотри на листе <a href="/analysis" style="color:#b3d7ff">04 · Анализ</a>. ДИ Уилсона рассчитывается по завершённым турнирам. BB/100 — итог всей раздачи в текущих BB.</p>
 </section>
 </main><footer>SKACHKOV Poker System · Legacy Engine · Railway Volume /data · Реализация → Проверка → Анализ → План</footer>
 <script>
@@ -276,73 +276,27 @@ async function api(path,options={}){
 }
 async function get(path,opts){return (await api(path,opts)).json()}
 function title(profile){const m=/^P(\d+)=split:([^:]+):([^:]+)$/.exec(profile||'');return m?'P'+m[1]+' · '+(names[m[2]]||m[2])+' / '+(names[m[3]]||m[3]):(profile==='a17_tag'?'A17 TAG':profile||'—')}
-const POSITION_ORDER=['9','8','7','6','5','4','3','SB','BB'];
-const POSITION_LABELS={'9':'9 · UTG (9-max)','8':'8 · UTG+1 (9-max)',
- '7':'7 · MP (9-max)','6':'6 · LJ (9-max)','5':'5 · HJ (9-max)',
- '4':'4 · CO','3':'3 · BTN','SB':'SB','BB':'BB'};
-const expandedPlayers=new Set();
-let expansionSession=null;
-function tournamentCells(st,x,report){
- return [title(x.bot),x.wins||0,pct(x.win_pct_completed),
-  winWilson95(x.wins??0,report.tournaments_completed),
-  fmt(x.avg_position_completed),pct(st.top3_pct),fmt(st.median_position),
-  pct(st.vpip),pct(st.pfr),pct(st.rfi),pct(st.threebet),pct(st.fourbet),
-  fmt(st.flop_af),fmt(st.turn_af),fmt(st.river_af),
-  pct(st.flop_cbet??st.cbet),pct(st.turn_cbet),pct(st.river_cbet),
-  pct(st.fold_to_bet),pct(st.check_raise),pct(st.wsd),
-  fmt(st.net_bb_100),fmt(st.hands_observed)];
-}
 function renderLeaderboard(s){
- const report=s.report||{},tbody=$('leader');
- if(expansionSession!==s.id){expandedPlayers.clear();expansionSession=s.id}
- tbody.replaceChildren();
+ const root=$('leader');root.replaceChildren();
+ const report=s.report||{};
  for(const x of report.leaderboard||[]){
-  const st=s.stats?.[x.bot]||{},fields=tournamentCells(st,x,report);
-  const seats=st.positions||{},hasPositions=Object.keys(seats).length>0;
-  const opened=expandedPlayers.has(x.bot)&&hasPositions;
-  const tr=el('tr');tr.className='playerSummary';
-  fields.forEach((v,i)=>{
-   const td=el('td',i===1&&Number(v)>0?'leader':'',String(v));
-   if(i===0&&hasPositions){
-    td.replaceChildren();
-    const button=el('button','expandButton');
-    button.type='button';
-    button.setAttribute('aria-expanded',String(opened));
-    button.title='Развернуть статистику по позициям';
-    button.append(el('span','twist',opened?'▾':'▸'));
-    button.append(document.createTextNode(String(v)));
-    button.onclick=()=>{
-     if(expandedPlayers.has(x.bot))expandedPlayers.delete(x.bot);
-     else expandedPlayers.add(x.bot);
-     renderLeaderboard(s);
-    };
-    td.append(button);
-   }
-   tr.append(td);
-  });
-  tbody.append(tr);
-  if(opened)for(const position of POSITION_ORDER){
-   const r=seats[position];if(!r||!r.hands_observed)continue;
-   const cells=[
-    POSITION_LABELS[position]||position,'—','—','—','—','—','—',
-    pct(r.vpip),pct(r.pfr),pct(r.rfi),pct(r.threebet),pct(r.fourbet),
-    fmt(r.flop_af),fmt(r.turn_af),fmt(r.river_af),
-    pct(r.flop_cbet??r.cbet),pct(r.turn_cbet),pct(r.river_cbet),
-    pct(r.fold_to_bet),pct(r.check_raise),pct(r.wsd),fmt(r.net_bb_100),
-    fmt(r.hands_observed)
-   ];
-   const child=el('tr','positionRow');
-   cells.forEach(value=>child.append(el('td',value==='—'?'missingMetric':'',value)));
-   tbody.append(child);
-  }
+  const st=s.stats?.[x.bot]||{};
+  const values=[title(x.bot),x.wins||0,pct(x.win_pct_completed),
+   winWilson95(x.wins??0,report.tournaments_completed),
+   fmt(x.avg_position_completed),pct(st.top3_pct),fmt(st.median_position),
+   fmt(st.net_bb_100),fmt(st.hands_observed)];
+  const tr=el('tr');
+  values.forEach((v,i)=>tr.append(el('td',i===1&&Number(v)>0?'leader':'',String(v))));
+  root.append(tr);
  }
  if(!report.leaderboard?.length){
   const tr=el('tr'),td=el('td','','Нет завершённого отчёта');
-  td.colSpan=23;tr.append(td);tbody.append(tr);
+  td.colSpan=9;tr.append(td);root.append(tr);
  }
 }
 function present(s){
  selected=s;if(!s)return;
+ $('openAnalysis').href='/analysis?session='+encodeURIComponent(s.id);
  const active=['running','starting'].includes(s.status);
  $('runStatus').textContent=({running:'Выполняется',starting:'Запускается',completed:'Завершена',imported:'Загружена',failed:'Ошибка',cancelled:'Остановлена',interrupted:'Прервана'})[s.status]||s.status;
  $('runStatus').className='badge'+(['completed','imported'].includes(s.status)?' ok':['failed','interrupted'].includes(s.status)?' fail':'');
@@ -367,7 +321,7 @@ function present(s){
 function empty(){
  selected=null;['completed','hands','hps','started'].forEach(id=>$(id).textContent='—');
  $('fill').style.width='0';$('progress').textContent='Нет данных';$('eta').textContent='';$('runStatus').textContent='—';$('sessionProtocol').textContent='Префлоп: —';
- $('leader').replaceChildren();expandedPlayers.clear();expansionSession=null;$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;$('resume').disabled=true;working=false;valid();
+ $('leader').replaceChildren();$('openAnalysis').href='/analysis';$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;$('resume').disabled=true;working=false;valid();
 }
 async function refresh(){
  const result=await get('/api/runs');sessions=result.runs||[];
