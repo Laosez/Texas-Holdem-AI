@@ -155,11 +155,12 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(moving["button_policy"],"moving")
         with self.assertRaisesRegex(ValueError,"баттона"):
             app.validate_config({"bots":regular,"button_policy":"invented"})
-        self.assertIn('id="compareRfi"',page)
-        self.assertIn("bots=Array.from({length:9}",page)
-        self.assertIn("post:'tag_postflop_v1'",page)
-        self.assertIn("savedForComparison.filter",page)
-        self.assertIn("$('seat_mode').value='rotate'",page)
+        for old_preset in ("compareRfi","compareRandom","comparePost","compareFivePost"):
+            self.assertNotIn('id="'+old_preset+'"',page)
+        self.assertIn("function botBulkRow(){",page)
+        self.assertIn("function bulkChangeBots(street,value){",page)
+        self.assertIn("bots.forEach(b=>{b[key]=value})",page)
+        self.assertIn("row.append(el('span','id','0 · всем'))",page)
         self.assertIn("Покрытие ИСХОДНЫХ алгоритмов",page)
         runner=(app.ROOT/"replit_simulator.py").read_text(encoding="utf-8")
         self.assertIn('POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy")',runner)
@@ -346,9 +347,9 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(split.postflop_name,"gto")
         page=app.UI.read_text(encoding="utf-8")
         self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','gto_postflop_v3','gto_postflop_v4','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
-        self.assertIn('id="compareFivePost"',page)
+        self.assertNotIn('id="compareFivePost"',page)
         self.assertNotIn('id="compareOldGto"',page)
-        self.assertIn("pre:'pc_gto_80bb',post:postflops[i%postflops.length]",page)
+        self.assertIn("root.append(botBulkRow());",page)
         self.assertIn("preflopValues=['','a17_preflop','pc_gto_80bb','random']",page)
 
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_threebet"])
@@ -415,9 +416,22 @@ class ScreenOneTests(unittest.TestCase):
         for name in request["players"]:
             self.assertIsNotNone(create_bot(name.split("=", 1)[1]))
         page = app.UI.read_text(encoding="utf-8")
-        self.assertIn('id="compareRandom"', page)
-        self.assertIn("...Array.from({length:7},()=>({pre:'random',post:'random'}))",page)
+        self.assertNotIn('id="compareRandom"', page)
+        self.assertIn("select.setAttribute('aria-label',title)",page)
+        self.assertIn("const key=street==='pre'?'pre':'post';",page)
         self.assertIn("const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];",page)
+
+    def test_session_result_win_ci_and_position_safe_columns(self):
+        page=app.UI.read_text(encoding="utf-8")
+        self.assertIn("function winWilson95(wins,completed){",page)
+        self.assertIn("winWilson95(x.wins??0,report.tournaments_completed)",page)
+        self.assertIn('Win 95% ДИ</th>',page)
+        self.assertIn('colspan="7" class="generalGroup"',page)
+        self.assertIn('colspan="21"',page)
+        self.assertIn("td.colSpan=21",page)
+        self.assertIn(".statsTable td:nth-child(8)",page)
+        self.assertIn(".statsTable td:nth-child(13)",page)
+        self.assertIn("Второе поле не изменено.",page)
 
     def test_two_upper_workspaces_full_width_journal_and_results(self):
         page=app.UI.read_text(encoding="utf-8")

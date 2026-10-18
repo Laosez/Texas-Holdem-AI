@@ -14,7 +14,11 @@ main.simulatorLayout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
 .simulatorLayout .journalColumn{grid-column:1/-1;height:auto;overflow:visible;padding:0}.simulatorLayout .journalColumn pre{height:290px;max-height:430px;min-height:180px}
 
 .column{display:grid;gap:16px;min-width:0}.panel{min-width:0;background:linear-gradient(140deg,#17283f,#101e30);border:1px solid var(--line);padding:19px;border-radius:12px}.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}.heading h2{margin:0;font-size:18px;letter-spacing:-.25px}.index{color:#82aef2;font-size:12px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.field{min-width:0}.field.wide{grid-column:1/-1}label{display:block;font-size:11px;color:#adc4dc;font-weight:750;margin-bottom:5px}input,select{width:100%;min-width:0;padding:10px 9px;background:#081626;color:#edf4ff;border:1px solid #395572;border-radius:7px;font:inherit}input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent)}select.invalid{border-color:#f0788c}.buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.btn{padding:10px 12px;border-radius:7px;background:#1b3655;color:#edf5ff;border:1px solid #456283;font:inherit;font-weight:700;cursor:pointer}.btn:hover{filter:brightness(1.19)}.btn:disabled{opacity:.44;cursor:not-allowed}.btn.primary{background:#347bdf;border-color:#5097ff}.btn.danger{background:#332232;border-color:#835063;color:#ffbdc6}.btn.outline{background:transparent}.btn.sm{padding:7px 9px;font-size:11px}.note{font-size:11px;color:#9aafc8;margin:10px 0 0}.bad{color:#ffadba;font-size:12px;font-weight:700}.good{color:#7bdcbf}.muted{color:#9cb4cf}
-.botHead,.botRow{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 27px;gap:7px;align-items:center}.botHead{font-size:10px;color:#b4c7dc;font-weight:700;margin-bottom:8px}.botRow{margin-bottom:8px}.botRow select{font-size:12px;padding:9px 6px}.botRow .id{color:#a9c9f1;font-size:11px;font-weight:800}.botRow .remove{border:0;background:transparent;color:#ffc1c8;font-size:18px;cursor:pointer}.warning{background:#112d3b;border:1px solid #45697b;padding:9px;border-radius:6px;color:#bed3e5;font-size:11px;margin:11px 0}
+.botHead,.botRow{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 27px;gap:7px;align-items:center}.botHead{font-size:10px;color:#b4c7dc;font-weight:700;margin-bottom:8px}.botRow{margin-bottom:8px}.botRow select{font-size:12px;padding:9px 6px}.botRow .id{color:#a9c9f1;font-size:11px;font-weight:800}.botRow .remove{border:0;background:transparent;color:#ffc1c8;font-size:18px;cursor:pointer}
+.botBulkRow{padding:9px 7px;margin:0 0 12px;background:#183653;border:1px solid #416589;border-radius:8px}
+.botBulkRow .id{font-size:12px;color:#c3e1ff}.botBulkRow select{font-weight:750;border-color:#4c7196}
+.botBulkRow .botBulkEmpty{min-height:1px}
+.warning{background:#112d3b;border:1px solid #45697b;padding:9px;border-radius:6px;color:#bed3e5;font-size:11px;margin:11px 0}
 .badge{padding:5px 10px;border:1px solid #587998;border-radius:25px;font-size:11px;color:#a8c5e3}.badge.ok{border-color:#468873;color:#81e1c0}.badge.fail{border-color:#9b596b;color:#ffc1cc}
 .toolbar{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.sessionActions{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}.sessionActions .btn{font-size:11px;padding:8px 9px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.stat{background:#10233a;border:1px solid #36516e;border-radius:8px;padding:10px;min-width:0}.stat small{font-size:10px;color:#9daec5;display:block}.stat strong{font-size:20px;font-variant-numeric:tabular-nums;display:block}.progress{height:9px;background:#071625;border:1px solid #293f56;border-radius:20px;overflow:hidden}.progress div{height:100%;width:0;background:linear-gradient(90deg,#417bdf,#69c4d4);transition:width .3s}.progressLine{display:flex;justify-content:space-between;color:#9cb5cb;font-size:11px;margin:6px 0 15px;gap:9px}
@@ -27,10 +31,10 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 .statsTable .generalGroup{background:#1b2a40}
 .statsTable .preflopGroup{background:#173d5b;border-left:3px solid #5aa3e7}
 .statsTable .postflopGroup{background:#39412f;border-left:3px solid #c9a75e}
-.statsTable th.preflopStart,.statsTable td:nth-child(7){border-left:3px solid #5aa3e7}
-.statsTable th.postflopStart,.statsTable td:nth-child(12){border-left:3px solid #c9a75e}
-.statsTable td:nth-child(n+7):nth-child(-n+11){background:rgba(62,135,211,.065)}
-.statsTable td:nth-child(n+12):nth-child(-n+19){background:rgba(211,169,81,.055)}
+.statsTable th.preflopStart,.statsTable td:nth-child(8){border-left:3px solid #5aa3e7}
+.statsTable th.postflopStart,.statsTable td:nth-child(13){border-left:3px solid #c9a75e}
+.statsTable td:nth-child(n+8):nth-child(-n+12){background:rgba(62,135,211,.065)}
+.statsTable td:nth-child(n+13):nth-child(-n+20){background:rgba(211,169,81,.055)}
 .statsTable tbody tr:hover td{filter:brightness(1.3)}
 
 /* Explicit, reversible trash management; no ID prompt or hidden purge step. */
@@ -54,7 +58,7 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 .coverageAudit .coverageTable td:first-child{font-weight:750;color:#b9d4ee;width:29%}
 
 /* Screen 1: tournament parameters (01) above player strategies (02).
-   Keep strategy controls, tournament semantics and presets unchanged. */
+   Shared row zero changes selected streets without replacing individual seat setup. */
 main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .simulatorLayout .topColumn{height:auto;max-height:none;overflow:visible;overscroll-behavior:auto}
 .simulatorLayout .parametersColumn,.simulatorLayout .strategiesColumn{grid-column:1/-1}
@@ -94,9 +98,10 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </tbody></table>
 <p class="note">Sizing: Open 2,5 BB / SB 3 BB; 3-bet ×3 от предыдущего рейза; 4-bet ×2,3; 5-bet all-in. Если стек или легальные ставки не позволяют задать точный размер, движок ограничивает его разрешёнными пределами. Это контрольный экспериментальный протокол, а не решение GTO.</p></details>
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
+<p class="note">Строка <strong>0 · всем</strong> задаёт диапазон Preflop или стратегию Postflop сразу для всех текущих игроков (2–9). Каждый список работает независимо; индивидуальные настройки можно менять ниже. Preflop-стратегия содержит собственные позиционные диапазоны.</p>
 <p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p><p class="note">Random доступен для Preflop и Postflop. Random/Random выбирает допустимые действия и размеры рейзов случайно, без оценки карт. Единый протокол V1 нормализует A17/PC, но не ограничивает Random на префлопе.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
-<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button><button class="btn sm primary" id="compareRfi" type="button">A17 vs PC · одинаковый Postflop</button><button class="btn sm outline" id="compareRandom" type="button">A17 vs PC + 7 Random</button><button class="btn sm primary" id="comparePost" type="button">GTO Postflop vs LAG · 8 мест</button><button class="btn sm outline" id="compareFivePost" type="button">GTO V1/V2/V3 + TAG/LAG/Chaser/Trapper · 9 мест</button></div>
+<div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
 <details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO V1 / V2 / V3 / TAG / LAG / Chaser / Trapper</summary>
@@ -136,8 +141,8 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </div>
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
-<div class="tableWrap"><table class="statsTable"><thead><tr class="stageHead"><th colspan="6" class="generalGroup">ТУРНИРЫ / РЕЗУЛЬТАТ</th><th colspan="5" class="preflopGroup">PREFLOP</th><th colspan="9" class="postflopGroup">POSTFLOP / BB</th></tr><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th class="preflopStart">VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th><th class="postflopStart">Flop AF</th><th>Turn AF</th><th>River AF</th><th>C-bet %</th><th>Fold to bet %</th><th>Check-raise %</th><th>W$SD %</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="20">Нет результатов</td></tr></tbody></table></div>
-<p class="note">При сбое нажми «Продолжить»: уже завершённые турниры сохраняются. Результаты другой версии стратегии автоматически не смешиваются.</p><p class="note">Win % — среди завершённых турниров. Flop/Turn/River AF = (Bet + Raise) / Call; C-bet, Fold to bet, Check-raise и W$SD имеют собственные счётчики возможностей. Net bb/100 учитывает итог всей раздачи в единицах фактического BB (это общий результат, не изолированная постфлоп-прибыль). Новая статистика доступна для новых запусков; «—» означает, что показатель пока не собран. Пустая частота не равна 0%.</p>
+<div class="tableWrap"><table class="statsTable"><thead><tr class="stageHead"><th colspan="7" class="generalGroup">ТУРНИРЫ / РЕЗУЛЬТАТ</th><th colspan="5" class="preflopGroup">PREFLOP</th><th colspan="9" class="postflopGroup">POSTFLOP / BB</th></tr><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона по победам и завершённым турнирам">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th class="preflopStart">VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th><th class="postflopStart">Flop AF</th><th>Turn AF</th><th>River AF</th><th>C-bet %</th><th>Fold to bet %</th><th>Check-raise %</th><th>W$SD %</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="21">Нет результатов</td></tr></tbody></table></div>
+<p class="note">При сбое нажми «Продолжить»: уже завершённые турниры сохраняются. Результаты другой версии стратегии автоматически не смешиваются.</p><p class="note">Win % — среди завершённых турниров. Flop/Turn/River AF = (Bet + Raise) / Call; C-bet, Fold to bet, Check-raise и W$SD имеют собственные счётчики возможностей. Net bb/100 учитывает итог всей раздачи в единицах фактического BB (это общий результат, не изолированная постфлоп-прибыль). Win 95% ДИ — приближённый интервал Уилсона по числу завершённых турниров: он отражает неопределённость Win %, а не разницу EV; для малых выборок интервал широкий. Новая статистика доступна для новых запусков; «—» означает, что показатель пока не собран. Пустая частота не равна 0%.</p>
 </section>
 </main><footer>SKACHKOV Poker System · Legacy Engine · Railway Volume /data · Реализация → Проверка → Анализ → План</footer>
 <script>
@@ -169,6 +174,15 @@ let bots=[],sessions=[],selected=null,working=false,savedForComparison=[];
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
 const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const pct=n=>n===null||n===undefined||n===''?'—':Number(n).toFixed(1)+'%';
+function winWilson95(wins,completed){
+ // Wilson score interval (95%): robust also with 0 and 100% observed wins.
+ if(!Number.isInteger(completed)||completed<=0||!Number.isInteger(wins)||wins<0||wins>completed)return '—';
+ const z=1.96,z2=z*z,p=wins/completed,div=1+z2/completed;
+ const mid=(p+z2/(2*completed))/div;
+ const span=z*Math.sqrt(p*(1-p)/completed+z2/(4*completed*completed))/div;
+ return (100*Math.max(0,mid-span)).toFixed(1)+'–'+
+        (100*Math.min(1,mid+span)).toFixed(1)+'%';
+}
 const token=()=>($('key').value||'').trim();
 function feedback(message,bad){$('feedback').textContent=message;$('feedback').style.color=bad?'#ffabb7':'#a7d4f0'}
 function el(t,cls,txt){const x=document.createElement(t);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x}
@@ -200,8 +214,32 @@ function valid(){
  $('start').disabled=invalid.length>0||working||!token();
  return invalid.length===0;
 }
+function bulkChangeBots(street,value){
+ const allowed=street==='pre'?preflopValues:postflopValues;
+ if(!value||!allowed.includes(value))return false;
+ const key=street==='pre'?'pre':'post';
+ bots.forEach(b=>{b[key]=value});
+ drawBots();
+ feedback((street==='pre'?'Preflop':'Postflop')+' → всем '+bots.length+
+  ' игрокам: '+(names[value]||value)+'. Второе поле не изменено.');
+ return true;
+}
+function botBulkRow(){
+ const row=el('div','botRow botBulkRow');
+ row.append(el('span','id','0 · всем'));
+ for(const [street,title] of [['pre','Диапазон → всем'],['post','Постфлоп → всем']]){
+  const select=botOptions('',v=>bulkChangeBots(street,v),street);
+  select.classList.remove('invalid');
+  select.setAttribute('aria-label',title);
+  select.options[0].textContent=title;
+  row.append(select);
+ }
+ row.append(el('span','botBulkEmpty',''));
+ return row;
+}
 function drawBots(){
  const root=$('bots');root.replaceChildren();
+ root.append(botBulkRow());
  bots.forEach((b,i)=>{
   const row=el('div','botRow');row.append(el('div','id','P'+(i+1)));
   row.append(botOptions(b.pre,v=>{bots[i].pre=v;drawBots()},'pre'));
@@ -248,8 +286,8 @@ function present(s){
    (s.status==='failed'&&total&&done>=total?' · симуляция завершена, ошибка финального экспорта':'');
  $('eta').textContent=active&&prog.tpm>0?'≈ '+Math.ceil((total-done)/prog.tpm)+' мин':'';
  const tbody=$('leader');tbody.replaceChildren();
- for(const x of report.leaderboard||[]){const st=s.stats?.[x.bot]||{};const fields=[title(x.bot),x.wins||0,pct(x.win_pct_completed),fmt(x.avg_position_completed),pct(st.top3_pct),fmt(st.median_position),pct(st.vpip),pct(st.pfr),pct(st.rfi),pct(st.threebet),pct(st.fourbet),fmt(st.flop_af),fmt(st.turn_af),fmt(st.river_af),pct(st.cbet),pct(st.fold_to_bet),pct(st.check_raise),pct(st.wsd),fmt(st.net_bb_100),fmt(st.hands_observed)];const tr=el('tr');fields.forEach((v,i)=>{let td=el('td',i===1&&Number(v)>0?'leader':'',String(v));tr.append(td)});tbody.append(tr)}
- if(!report.leaderboard?.length){const tr=el('tr'),td=el('td','','Нет завершённого отчёта');td.colSpan=20;tr.append(td);tbody.append(tr)}
+ for(const x of report.leaderboard||[]){const st=s.stats?.[x.bot]||{};const fields=[title(x.bot),x.wins||0,pct(x.win_pct_completed),winWilson95(x.wins??0,report.tournaments_completed),fmt(x.avg_position_completed),pct(st.top3_pct),fmt(st.median_position),pct(st.vpip),pct(st.pfr),pct(st.rfi),pct(st.threebet),pct(st.fourbet),fmt(st.flop_af),fmt(st.turn_af),fmt(st.river_af),pct(st.cbet),pct(st.fold_to_bet),pct(st.check_raise),pct(st.wsd),fmt(st.net_bb_100),fmt(st.hands_observed)];const tr=el('tr');fields.forEach((v,i)=>{let td=el('td',i===1&&Number(v)>0?'leader':'',String(v));tr.append(td)});tbody.append(tr)}
+ if(!report.leaderboard?.length){const tr=el('tr'),td=el('td','','Нет завершённого отчёта');td.colSpan=21;tr.append(td);tbody.append(tr)}
  $('runStatus').title=s.error||'';
  $('logLabel').textContent=s.id+' · '+s.updated+(s.error?' · '+s.error:'');
  const log=$('log');log.textContent=(s.log||[]).join('\n')||'Журнал пуст';log.scrollTop=log.scrollHeight;
@@ -304,64 +342,6 @@ $('resetBots').onclick=()=>{bots=preset.map(x=>({pre:x[0],post:x[1]}));drawBots(
 $('addBot').onclick=()=>{if(bots.length<9){bots.push({pre:'',post:''});drawBots()}};
 $('key').oninput=valid;$('connect').onclick=connect;
 $('syncStrategies').onclick=async()=>{await loadCatalog();feedback('Каталог стратегий обновлён из редактора.')};
-$('compareFivePost').onclick=()=>{
- // Same preflop everywhere, five independent postflop policies.
- const postflops=POSTFLOP_FIVE;
- bots=Array.from({length:9},(_,i)=>({
-  pre:'pc_gto_80bb',post:postflops[i%postflops.length]
- }));
- $('preflop_protocol').value='standard_v1';
- $('seat_mode').value='rotate';
- drawBots();
- feedback('Готово: PC GTO префлоп, постфлоп GTO V1/V2/V3, TAG, LAG, Chaser, Trapper; 9 игроков.');
-};
-$('comparePost').onclick=()=>{
- const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
-  /(оптимиз|optimi[sz])/i.test(x.name));
- const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
- const a17=optimized?.token||'a17_preflop';
- // Factorial design: 2 preflop ranges x 2 postflop engines x 2 seats each.
- // Eight comparable participants; all use the same preflop defense protocol.
- const combos=[
-  [a17,'gto_postflop_v1'],['pc_gto_80bb','gto_postflop_v1'],
-  [a17,'lag_postflop_v1'],['pc_gto_80bb','lag_postflop_v1']
- ];
- bots=Array.from({length:8},(_,i)=>{
-  const c=combos[i%4];return {pre:c[0],post:c[1]};
- });
- $('preflop_protocol').value='standard_v1';
- $('seat_mode').value='rotate';
- drawBots();
- feedback('Готово: 2×2 A17/PC × GTO/LAG Postflop, по два места на сочетание. Все префлоп-защиты единые, места ротируются. Проверь и запусти эксперимент.');
-};
-$('compareRandom').onclick=()=>{
-  const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
-    /(оптимиз|optimi[sz])/i.test(x.name));
-  const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
-  const hero=optimized?.token||'a17_preflop';
-  bots=[
-    {pre:hero,post:'gto_postflop_v2'},
-    {pre:'pc_gto_80bb',post:'gto_postflop_v2'},
-    ...Array.from({length:7},()=>({pre:'random',post:'random'}))
-  ];
-  $('preflop_protocol').value='standard_v1';
-  $('seat_mode').value='rotate';
-  drawBots();
-  feedback('Контроль: '+(optimized?optimized.name+' v'+optimized.version:'A17 V5')+
-    ' против PC GTO; обоим GTO Postflop V2; семь Random/Random (полностью случайные действия). Ротация включена.');
-};
-$('compareRfi').onclick=()=>{
- const candidates=savedForComparison.filter(x=>/^(a17|а17)/i.test(x.name.trim()) &&
-  /(оптимиз|optimi[sz])/i.test(x.name));
- const optimized=candidates.sort((a,b)=>Number(b.version)-Number(a.version))[0];
- const hero=optimized?.token||'a17_preflop';
- bots=Array.from({length:9},(_,i)=>({pre:i%2===0?hero:'pc_gto_80bb',post:'tag_postflop_v1'}));
- $('preflop_protocol').value='standard_v1';
- $('seat_mode').value='rotate';
- drawBots();
- feedback('Контроль подготовлен: '+(optimized?optimized.name+' v'+optimized.version:'A17 V5')+
-  ' против PC GTO; общий Postflop TAG V1, один протокол ответов, ротация мест. Проверь параметры и нажми «Запустить».');
-};
 $('forget').onclick=()=>{sessionStorage.removeItem('skachkov_key');$('key').value='';$('connection').textContent='Отключено';$('connection').className='badge';valid()};
 $('start').onclick=async()=>{try{const c=config();working=true;valid();const s=await get('/api/runs',{method:'POST',body:JSON.stringify(c)});selected=s;await refresh();feedback('Сессия запущена.')}catch(e){working=false;valid();feedback(e.message,true)}};
 $('resume').onclick=async()=>{
