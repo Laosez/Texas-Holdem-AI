@@ -72,7 +72,8 @@ class CompositeCatalogTests(unittest.TestCase):
                        'id="catalogReviewFilter"','id="catalogSearch"',
                        'id="catalogReset"','id="catalogOpponentRange"',
                        'Карманная рука HERO','Название борда',
-                       'Усиление к риверу','Опп. пара+ / дро',
+                       'Цель HERO · к риверу','Оппонент · на флопе',
+                       'id="catalogHeroGoal"','id="catalogVillainGoal"',
                        'catalogMarkStorage',
                        'localStorage.setItem','/api/postflop/composite-catalog'):
             self.assertIn(marker,html)
