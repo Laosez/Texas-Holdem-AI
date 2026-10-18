@@ -99,6 +99,24 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 .mainAction{font-weight:750;color:#c3e0fb}.minorAction{color:#98afc8}
 @media(max-width:1100px){.comparisonControls{grid-template-columns:repeat(4,minmax(95px,1fr))}}
 @media(max-width:650px){.comparisonControls{grid-template-columns:repeat(2,minmax(90px,1fr))}}
+
+/* Separate analytical catalog: 1,019 physically reachable composite classes.
+   Do not attach bot-frequency columns to this table. */
+.catalogBar{display:grid;grid-template-columns:minmax(210px,2fr) repeat(3,minmax(130px,1fr));gap:9px;margin:13px 0}
+.catalogLedger{min-width:950px;font-variant-numeric:tabular-nums;font-size:12px}
+.catalogLedger .catalogGroup td{position:static!important;background:#254b70!important;color:#edf6ff;font-weight:800;padding:11px 13px;letter-spacing:.2px}
+.catalogLedger .catalogGroup td:first-child{position:static!important}
+.catalogLedger tr.catalogLine{cursor:pointer}
+.catalogLedger tr.catalogLine.active td{background:#254865!important}
+.catalogLedger td.code{white-space:nowrap;font-size:11px;color:#b6d8ff}
+.catalogLedger td.cards{white-space:nowrap;letter-spacing:.2px}
+.catalogLedger td.probability{text-align:right;white-space:nowrap}
+.catalogLedger td.mark{text-align:center;min-width:88px}
+.catalogLedger input[type=checkbox]{width:17px;height:17px;accent-color:#65bdaf;cursor:pointer}
+.catalogLedger th:first-child,.catalogLedger td:first-child{min-width:55px}
+.catalogSelected{margin:9px 0 0;padding:10px;border:1px solid #385b7f;background:#112943;border-radius:7px;font-size:12px}
+@media(max-width:800px){.catalogBar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.catalogBar{grid-template-columns:1fr}}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect" type="button">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
@@ -123,6 +141,26 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
  </div>
  <p class="statusLine" id="compositeMessage" role="status"></p>
  <div class="classifierResult" id="compositeResult" aria-live="polite"><span class="small">Выберите пример или введите пять физических карт. Система определит, как HERO попал в структуру борда.</span></div>
+</section>
+
+<section class="panel" id="compositeCatalog">
+ <div class="heading"><h2><span class="index">00Б / </span>Полный каталог составных сценариев</h2><span class="badge" id="catalogTotal">1 019 классов</span></div>
+ <p class="panelIntro"><strong>Все достижимые сочетания «структура борда × попадание HERO».</strong> Таблица развёрнута по 46 типам флопа. Для каждого кода указан один физически допустимый пример и точная доля всех раздач двух карт HERO + флопа. Нажатие на строку переносит её карты в классификатор выше. Отмечайте уже изученные сценарии.</p>
+ <div class="catalogBar">
+  <div class="field"><label for="catalogSearch">Поиск · код / название / карты</label><input id="catalogSearch" type="search" placeholder="TPFDOESD, N-C4-2S, 9s-8s"></div>
+  <div class="field"><label for="catalogBoardFilter">Структура борда</label><select id="catalogBoardFilter"><option value="">Все 46 структур</option></select></div>
+  <div class="field"><label for="catalogHeroFilter">Попадание HERO</label><select id="catalogHeroFilter"><option value="">Все классы HERO</option></select></div>
+  <div class="field"><label for="catalogReviewFilter">Просмотр</label><select id="catalogReviewFilter"><option value="">Все сценарии</option><option value="new">Не просмотрены</option><option value="done">Просмотрены</option></select></div>
+ </div>
+ <div class="tableMeta" style="margin-bottom:11px">
+  <span class="small" id="catalogStatus" role="status">Каталог доступен после подключения к приложению.</span>
+  <div class="buttons"><button class="btn sm" type="button" id="catalogReload">Загрузить каталог</button><button class="btn sm outline" type="button" id="catalogReset" title="Удалить отметки просмотра только в этом браузере">Сбросить отметки</button></div>
+ </div>
+ <div id="catalogSelected" class="catalogSelected" hidden></div>
+ <div class="tablewrap" style="max-height:75vh">
+  <table class="catalogLedger"><thead><tr><th>№</th><th>Код сценария</th><th>Борд</th><th>HERO</th><th>Попадание HERO</th><th style="text-align:right">Частота</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="7">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
+ </div>
+ <p class="summary">Частота — доля физических сочетаний HERO + флопа при равномерной раздаче, не частота попадания в сценарий в турнире и не EV. Отметки «Проверено» хранятся <strong>только в этом браузере</strong>; 102 примера с расчётом действий GTO/LAG остаются отдельной таблицей ниже.</p>
 </section>
 <section class="panel" id="numericClassifier">
  <div class="heading"><h2><span class="index">00 / </span>Постфлоп · План</h2><span class="badge">Одна улица → один сценарий</span></div>
@@ -615,6 +653,157 @@ async function classifyComposite(){
   $('compositeMessage').textContent=e.message;
  }
 }
+
+/* Complete but static catalogue: separate from the 102-row live bot comparison. */
+let compositeCatalogRows=[], compositeCatalogueLoaded=false;
+const catalogMarkStorage="skachkov_poker_composite_1019_review_v1";
+let catalogReviewed={};
+try{
+ const obj=JSON.parse(localStorage.getItem(catalogMarkStorage)||"{}");
+ if(obj&&typeof obj==="object"&&!Array.isArray(obj))catalogReviewed=obj;
+}catch(e){}
+function storeCatalogReviews(){
+ try{localStorage.setItem(catalogMarkStorage,JSON.stringify(catalogReviewed))}catch(e){}
+}
+function addCatalogFilter(selectId,values,label){
+ const field=$(selectId);
+ for(const [id,name] of values){
+  const option=document.createElement("option");
+  option.value=id;option.textContent=id+" · "+name;
+  field.append(option);
+ }
+}
+function catalogGroupSort(a,b){
+ // Standardized board order: unpaired A/N, then paired and trips.
+ const family=x=>x.startsWith("A-")?0:x.startsWith("N-")?1:x.startsWith("P-")?2:3;
+ return family(a)-family(b)||a.localeCompare(b,"en");
+}
+function drawCompositeCatalog(){
+ if(!compositeCatalogueLoaded)return;
+ const search=$("catalogSearch").value.trim().toLowerCase();
+ const words=search.split(/\s+/).filter(Boolean);
+ const boardCode=$("catalogBoardFilter").value;
+ const heroCode=$("catalogHeroFilter").value;
+ const reviewCode=$("catalogReviewFilter").value;
+ const matching=compositeCatalogRows.filter(row=>{
+  if(boardCode&&row.board_group!==boardCode)return false;
+  if(heroCode&&row.hero_class!==heroCode)return false;
+  if(reviewCode==="done"&&!catalogReviewed[row.id])return false;
+  if(reviewCode==="new"&&catalogReviewed[row.id])return false;
+  const haystack=[row.id,row.board_group,row.board_name,row.hero_class,row.hero_name,
+                  row.board,row.hero].join(" ").toLowerCase();
+  return words.every(word=>haystack.includes(word));
+ });
+ const body=$("catalogRows"),fragment=document.createDocumentFragment();
+ let previous=null,ordinal=0;
+ for(const row of matching){
+  if(row.board_group!==previous){
+   previous=row.board_group;
+   const header=document.createElement("tr");header.className="catalogGroup";
+   const cell=document.createElement("td");cell.colSpan=7;
+   cell.textContent=row.board_group+" · "+row.board_name+
+    " · "+matching.filter(x=>x.board_group===row.board_group).length+" сценариев";
+   header.append(cell);fragment.append(header);
+  }
+  ordinal++;
+  const tr=document.createElement("tr");
+  tr.className="catalogLine";tr.tabIndex=0;
+  tr.title="Открыть пример в составном классификаторе";
+  tr.dataset.compositeId=row.id;
+  const number=document.createElement("td");number.textContent=String(ordinal);
+  const code=document.createElement("td");code.className="code";code.textContent=row.id;
+  const board=document.createElement("td");board.className="cards";board.textContent=row.board;
+  const hero=document.createElement("td");hero.className="cards";hero.textContent=row.hero;
+  const hit=document.createElement("td");hit.textContent=row.hero_name;
+  const chance=document.createElement("td");chance.className="probability";
+  chance.textContent=(100*row.deals/25989600).toFixed(4)+"%";
+  chance.title=row.deals.toLocaleString("ru-RU")+" / 25 989 600 физических раздач";
+  const marked=document.createElement("td");marked.className="mark";
+  const check=document.createElement("input");check.type="checkbox";
+  check.checked=!!catalogReviewed[row.id];
+  check.setAttribute("aria-label","Сценарий изучен: "+row.id);
+  check.addEventListener("click",e=>e.stopPropagation());
+  check.addEventListener("change",()=>{
+   if(check.checked)catalogReviewed[row.id]=1;
+   else delete catalogReviewed[row.id];
+   storeCatalogReviews();updateCatalogMeta();
+   if($("catalogReviewFilter").value)drawCompositeCatalog();
+  });
+  marked.append(check);
+  const open=()=>{
+   $("compositeHero").value=row.hero;
+   $("compositeBoard").value=row.board;
+   document.querySelectorAll(".catalogLine.active").forEach(x=>x.classList.remove("active"));
+   tr.classList.add("active");
+   const selected=$("catalogSelected");selected.hidden=false;
+   selected.textContent=row.id+" · "+row.board_name+" · "+row.hero_name+
+     " · HERO "+row.hero+" / борд "+row.board+
+     ". Карты переданы в классификатор выше.";
+   if(token())classifyComposite();
+  };
+  tr.addEventListener("click",open);
+  tr.addEventListener("keydown",e=>{
+   if((e.key==="Enter"||e.key===" ")&&e.target===tr){e.preventDefault();open()}
+  });
+  tr.append(number,code,board,hero,hit,chance,marked);
+  fragment.append(tr);
+ }
+ body.replaceChildren(fragment);
+ if(!matching.length){
+  const tr=document.createElement("tr");const td=document.createElement("td");
+  td.colSpan=7;td.textContent="По выбранным фильтрам сценариев нет";
+  tr.append(td);body.append(tr);
+ }
+ updateCatalogMeta(matching.length);
+}
+function updateCatalogMeta(visible){
+ const reviewed=compositeCatalogRows.filter(x=>catalogReviewed[x.id]).length;
+ $("catalogStatus").textContent=
+  "Показано "+(visible===undefined?compositeCatalogRows.length:visible).toLocaleString("ru-RU")+
+  " из "+compositeCatalogRows.length.toLocaleString("ru-RU")+
+  " · просмотрено "+reviewed.toLocaleString("ru-RU")+
+  " · осталось "+(compositeCatalogRows.length-reviewed).toLocaleString("ru-RU");
+}
+async function loadCompositeCatalog(){
+ if(!token()){
+  $("catalogStatus").textContent="Введите ключ доступа в шапке, чтобы открыть каталог";
+  return;
+ }
+ $("catalogStatus").textContent="Загрузка 1 019 сценариев...";
+ try{
+  const response=await fetch("/api/postflop/composite-catalog",{headers:auth()});
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||"Ошибка загрузки каталога");
+  if(!Array.isArray(data.rows)||data.rows.length!==1019)throw Error("Каталог неполный");
+  compositeCatalogRows=data.rows.slice().sort((a,b)=>
+   catalogGroupSort(a.board_group,b.board_group)||
+   a.hero_name.localeCompare(b.hero_name,"ru")||
+   a.id.localeCompare(b.id,"en"));
+  if(!compositeCatalogueLoaded){
+   const group=new Map(),hero=new Map();
+   for(const row of compositeCatalogRows){
+    group.set(row.board_group,row.board_name);
+    hero.set(row.hero_class,row.hero_name);
+   }
+   addCatalogFilter("catalogBoardFilter",[...group.entries()].sort((a,b)=>catalogGroupSort(a[0],b[0])));
+   addCatalogFilter("catalogHeroFilter",[...hero.entries()].sort((a,b)=>a[1].localeCompare(b[1],"ru")));
+  }
+  compositeCatalogueLoaded=true;
+  drawCompositeCatalog();
+  $("catalogTotal").textContent=data.rows.length.toLocaleString("ru-RU")+" классов";
+ }catch(err){
+  $("catalogStatus").textContent="Не удалось загрузить каталог: "+err.message;
+ }
+}
+for(const id of ["catalogBoardFilter","catalogHeroFilter","catalogReviewFilter"]){
+ $(id).addEventListener("change",drawCompositeCatalog);
+}
+$("catalogSearch").addEventListener("input",drawCompositeCatalog);
+$("catalogReload").addEventListener("click",loadCompositeCatalog);
+$("catalogReset").addEventListener("click",()=>{
+ if(!window.confirm("Сбросить отметки просмотра для всех составных сценариев в этом браузере?"))return;
+ catalogReviewed={};storeCatalogReviews();drawCompositeCatalog();
+});
 async function classifyNumeric(){
  $('classMessage').textContent='';$('classResult').textContent='Проверка...';
  if(!token()){$('classResult').textContent='Не подключено';$('classMessage').textContent='Укажите POKER_RUNNER_KEY в шапке';return}
@@ -647,9 +836,9 @@ async function classifyNumeric(){
 }
 $('classify').addEventListener('click',classifyNumeric);
 $('connect').addEventListener('click',()=>{
- if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}classifyNumeric();refreshComparison()}
+ if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}classifyNumeric();refreshComparison();loadCompositeCatalog()}
  else $('classMessage').textContent='Введите ключ доступа.';
 });
 $('key').addEventListener('keydown',e=>{if(e.key==='Enter')$('connect').click()});
-if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';refreshComparison();}
+if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';refreshComparison();loadCompositeCatalog();}
 </script></body></html>
