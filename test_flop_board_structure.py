@@ -64,7 +64,7 @@ class FlopBoardStructureTests(unittest.TestCase):
 
     def test_ace_pairstyles_and_no_hm_hl_ml_split(self):
         labels = {
-            "14s-7h-2d": "A-D-R",
+            "14s-7h-2d": "A-C2-R",
             "13s-7h-2d": "N-D-R",
             "14s-14h-2d": "P-AA-R",
             "2s-2h-14d": "P-AX-R",
