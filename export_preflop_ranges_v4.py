@@ -83,6 +83,7 @@ class TrackedBot:
         self.hands = {}
         self.postflop_counts = defaultdict(int)
         self.postflop_position_counts = defaultdict(lambda: defaultdict(int))
+        self.postflop_stage_counts = defaultdict(lambda: defaultdict(int))
         self.postflop_seen = set()
         self.postflop_cbet_hands = set()
         # Only the strategy call (inner.act), not engine, view creation or
@@ -239,6 +240,7 @@ class TrackedBot:
         ledgers = [self.postflop_counts]
         if position is not None:
             ledgers.append(self.postflop_position_counts[position])
+            ledgers.append(self.postflop_stage_counts[(position, self.hands[hid]['table_size'])])
 
         # Only the very first eligible decision on each street can start a
         # continuation bet. The previous barrel must have been called.
@@ -284,7 +286,9 @@ class TrackedBot:
         if row is None:
             return
         pid = row['pid']
-        ledgers = [self.postflop_counts, self.postflop_position_counts[row['position']]]
+        ledgers = [self.postflop_counts,
+                   self.postflop_position_counts[row['position']],
+                   self.postflop_stage_counts[(row['position'],row['table_size'])]]
         for counts in ledgers:
             counts['net_hands'] += 1
             counts['net_bb_units'] += net.get(pid, 0) / bb if bb else 0
@@ -343,9 +347,9 @@ def run_one(task):
         return (tournament_id, seed, seat_offset, result,
                 [r for bot in instances for r in bot.hands.values()], timings,
                 ([{'bot': bot.name, **dict(bot.postflop_counts)} for bot in instances]
-                 + [{'bot': bot.name, 'position': pos, **dict(counts)}
+                 + [{'bot': bot.name, 'position': pos, 'table_size': size, **dict(counts)}
                     for bot in instances
-                    for pos, counts in bot.postflop_position_counts.items()]))
+                    for (pos, size), counts in bot.postflop_stage_counts.items()]))
     finally:
         runner.create_bot=old
         runner.make_table=old_table
@@ -727,12 +731,17 @@ def main():
     total_hands=0
     results=[]
     decision_records=[]
-    postflop_records=[]
+    postflop_aggregate=defaultdict(lambda:defaultdict(float))
     def ingest(result):
         nonlocal total_hands
         tournament_id, seed, seat_offset, outcome, rows, bot_timings, postflop=result
         decision_records.extend(bot_timings)
-        postflop_records.extend(postflop)
+        for item in postflop:
+            key=(item['bot'],item.get('position'),item.get('table_size'))
+            total=postflop_aggregate[key]
+            for field,value in item.items():
+                if field not in ('bot','position','table_size'):
+                    total[field]+=value
         results.append((tournament_id, seed, seat_offset, outcome))
         total_hands+=outcome['hand_count']
         for row in rows:
@@ -813,20 +822,21 @@ def main():
                   itertools.chain([headers],(formatted(bot,'ALL','*') for bot in names)))
         if scope=='all':
             all_totals={name:dict(agg.get((name,'ALL','*'),{})) for name in names}
-            csv_write(output/'summary_position_all.csv',
-                      itertools.chain([headers],(formatted(bot,pos,'*')
-                          for bot in names for pos in POSITIONS)))
+        csv_write(output/f'summary_position_{scope}.csv',
+                  itertools.chain([headers],(formatted(bot,pos,'*')
+                      for bot in names for pos in positions)))
         del agg
         gc.collect()
     print('[export] Hand tables completed, preparing postflop summaries',flush=True)
     post_agg = defaultdict(lambda: defaultdict(float))
     post_agg_pos = defaultdict(lambda: defaultdict(float))
-    for item in postflop_records:
-        position = item.get('position')
-        dest = post_agg_pos[(item['bot'], position)] if position else post_agg[item['bot']]
+    post_agg_stage = defaultdict(lambda: defaultdict(float))
+    for (name, position, size), item in postflop_aggregate.items():
+        dest = post_agg[name] if position is None else post_agg_stage[(name, position, size)]
         for key,value in item.items():
-            if key not in ('bot', 'position'):
-                dest[key] += value
+            dest[key] += value
+            if position is not None:
+                post_agg_pos[(name, position)][key] += value
     post_fields = ('flop_af','turn_af','river_af','flop_cbet','turn_cbet',
                    'river_cbet','cbet','fold_to_bet','check_raise','wsd','net_bb_100')
     raw_fields = tuple(field for street in ('flop','turn','river')
@@ -848,9 +858,11 @@ def main():
         result['net_bb_100'] = round(100*c['net_bb_units']/c['net_hands'],4) if c['net_hands'] else None
         return result
 
-    def post_record(name, c, position=None):
+    def post_record(name, c, position=None, table_size=None):
         metrics=pf_metrics(c)
         prefix=[name] if position is None else [name,position]
+        if table_size is not None:
+            prefix.append(table_size)
         return prefix + [metrics[m] if metrics[m] is not None else '' for m in post_fields] + [
             c[f] for f in raw_fields]
 
@@ -861,6 +873,11 @@ def main():
               itertools.chain([['bot','position']+list(post_fields)+list(raw_fields)],
                               (post_record(name,post_agg_pos[(name,pos)],pos)
                                for name in names for pos in POSITIONS)))
+    csv_write(output/'postflop_position_stage_summary.csv',
+              itertools.chain([['bot','position','table_size']+list(post_fields)+list(raw_fields)],
+                              (post_record(name,post_agg_stage[(name,pos,n)],pos,n)
+                               for name in names for n in range(2,len(names)+1)
+                               for pos in position_labels(n))))
     for filename, table_rows in {**report_tables, **bot_tables}.items():
         csv_write(output/filename, table_rows)
     write_json(output/'tournament_report.json', report)
@@ -891,7 +908,9 @@ def main():
         'total_hands':total_hands,'seed':a.seed,'players':names,'scopes':scopes,
         'metrics':METRICS,
         'telemetry_files':['tournaments.csv','tournament_players.csv','leaderboard.csv','blind_levels.csv','blind_summary.csv','tournament_report.json','performance.json','bot_decision_timing.csv','bot_decision_timing_by_street.csv','bot_decision_timing.json','postflop_summary.csv',
-                           'summary_position_all.csv','postflop_position_summary.csv'],
+                           'summary_position_all.csv','postflop_position_summary.csv',
+                           'postflop_position_stage_summary.csv',
+                           'summary_position_n2.csv (and up to player count)'],
         'notes':['Every dealt hand counts in hands_observed, including BB pots won without a decision; other opportunity counters require an action.',
                  'A missing opportunity displays an empty percentage, never 0%.',
                  'Fold-to-steal uses numeric positions 4,3,SB (cutoff, button, small blind).',
