@@ -349,7 +349,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','gto_postflop_v3','gto_postflop_v4','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
         self.assertNotIn('id="compareFivePost"',page)
         self.assertNotIn('id="compareOldGto"',page)
-        self.assertIn("row.append(botBulkRow());",page)
+        self.assertIn("root.append(botBulkRow());",page)
         self.assertIn("preflopValues=['','a17_preflop','pc_gto_80bb','random']",page)
 
         self.assertIn("fallback:gto_fixed",catalog["preflop_coverage"]["pc_gto_80bb"]["vs_threebet"])
