@@ -103,6 +103,27 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect" type="button">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><div class="tab"><b>04</b><span><strong>Анализ</strong><small>Следующий этап</small></span></div></div>
 <main class="s100Main">
+<section class="panel" id="compositeClassifier">
+ <div class="heading"><h2><span class="index">00 / </span>Составной сценарий · борд + попадание HERO</h2><span class="badge">Флоп · 2 + 3 карты</span></div>
+ <p class="panelIntro">Одна <strong>реальная раздача</strong> определяет две независимые составляющие: <strong>структуру флопа</strong> (46 типов) и <strong>попадание HERO</strong> (номиналы, масти, стрит-связность, вторая карта). Совместный код пригоден для дальнейшего сравнения стратегий. Все пять мастей карт задаём явно: s ♠, h ♥, d ♦, c ♣.</p>
+ <div class="grid2">
+  <div class="field"><label for="compositeHero">HERO · две физические карты</label><input id="compositeHero" autocomplete="off" value="9s-8s" placeholder="9s-8s"></div>
+  <div class="field"><label for="compositeBoard">Флоп · три физические карты</label><input id="compositeBoard" autocomplete="off" value="9d-7s-6s" placeholder="9d-7s-6s"></div>
+ </div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="field"><label for="compositePreset">Примеры попаданий HERO</label><select id="compositePreset">
+   <option value="9s-8s|9d-7s-6s">Топ-пара + флеш-дро + двустороннее стрит-дро</option>
+   <option value="14s-13s|9d-7s-6s">Две оверкарты + флеш-дро</option>
+   <option value="9h-9c|9d-7s-6s">Сет на таком же борде</option>
+   <option value="14s-7h|7s-7d-2c">Трипс из пары борда</option>
+   <option value="10h-10c|9s-7h-2d">Карманная оверпара</option>
+   <option value="14s-13s|12s-7s-2d">Флеш-дро + гатшот</option>
+  </select></div>
+  <div class="field" style="justify-content:end"><label>Расчёт</label><button class="btn primary" type="button" id="classifyComposite">Определить составной сценарий</button></div>
+ </div>
+ <p class="statusLine" id="compositeMessage" role="status"></p>
+ <div class="classifierResult" id="compositeResult" aria-live="polite"><span class="small">Выберите пример или введите пять физических карт. Система определит, как HERO попал в структуру борда.</span></div>
+</section>
 <section class="panel" id="numericClassifier">
  <div class="heading"><h2><span class="index">00 / </span>Постфлоп · План</h2><span class="badge">Одна улица → один сценарий</span></div>
  <p class="panelIntro">Вводим HERO и борд в числовой нотации — получаем сценарий. Отдельный класс создаём только для стратегически существенных различий.</p>
@@ -543,6 +564,55 @@ async function classifyTexture(){
  }catch(e){
   $('textureResult').textContent='Структура не определена';
   $('textureMessage').textContent=e.message;
+ }
+}
+$('compositePreset').addEventListener('change',()=>{
+ const [hero,board]=$('compositePreset').value.split('|');
+ $('compositeHero').value=hero;$('compositeBoard').value=board;
+ if(token())classifyComposite();
+});
+for(const id of ['compositeHero','compositeBoard']){
+ $(id).addEventListener('keydown',e=>{if(e.key==='Enter')classifyComposite()});
+}
+$('classifyComposite').addEventListener('click',classifyComposite);
+async function classifyComposite(){
+ $('compositeMessage').textContent='';
+ $('compositeResult').textContent='Проверка...';
+ if(!token()){
+  $('compositeResult').textContent='Не подключено';
+  $('compositeMessage').textContent='Укажите POKER_RUNNER_KEY в шапке';
+  return;
+ }
+ try{
+  const response=await fetch('/api/postflop/composite',{
+   method:'POST',headers:{...auth(),'Content-Type':'application/json'},
+   body:JSON.stringify({hero:$('compositeHero').value,board:$('compositeBoard').value})
+  });
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||'Ошибка составного классификатора');
+  const root=$('compositeResult');
+  const title=document.createElement('strong');
+  title.textContent=data.id;
+  const name=document.createElement('div');name.className='note';
+  name.textContent=data.name;
+  root.replaceChildren(title,name);
+  const details=[
+   ['Структура борда',data.board.group_id+' · '+data.board.group_name],
+   ['Попадание по номиналам',data.hit.rank.name],
+   ['Попадание по мастям',data.hit.suit.name],
+   ['Стрит-связность',data.hit.straight.name],
+   ['Карманная карта / кикер',data.hit.kicker.name],
+   ['Итоговый класс HERO',data.hero_state.id+' · '+data.hero_state.name],
+  ];
+  for(const [heading,value] of details){
+   const line=document.createElement('div');line.className='note';
+   const label=document.createElement('strong');label.textContent=heading+': ';
+   line.append(label,document.createTextNode(value));root.append(line);
+  }
+  $('connection').textContent='Подключено';$('connection').className='badge ok';
+ }catch(e){
+  $('compositeResult').textContent='Составной сценарий не определён';
+  $('compositeMessage').textContent=e.message;
  }
 }
 async function classifyNumeric(){
