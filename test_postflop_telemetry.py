@@ -124,16 +124,16 @@ class PostflopTelemetryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             folder=Path(tmp)
             (folder/"summary_position_all.csv").write_text(
-                "bot,position,hands_observed,vpip_pct,pfr_pct,rfi_pct,threebet_pct,fourbet_pct\\n"
-                "P1,9,80,18,11,9,2,1\\n"
-                "P1,BB,50,21,13,,,\\n",
+                "bot,position,hands_observed,vpip_pct,pfr_pct,rfi_pct,threebet_pct,fourbet_pct\n"
+                "P1,9,80,18,11,9,2,1\n"
+                "P1,BB,50,21,13,,,\n",
                 encoding="utf-8")
             (folder/"postflop_summary.csv").write_text(
-                "bot,flop_cbet,turn_cbet,river_cbet,cbet\\n"
-                "P1,50,33.3333,20,50\\n",encoding="utf-8")
+                "bot,flop_cbet,turn_cbet,river_cbet,cbet\n"
+                "P1,50,33.3333,20,50\n",encoding="utf-8")
             (folder/"postflop_position_summary.csv").write_text(
-                "bot,position,flop_cbet,turn_cbet,river_cbet,net_bb_100\\n"
-                "P1,9,60,40,25,8\\nP1,BB,,,,\\n",encoding="utf-8")
+                "bot,position,flop_cbet,turn_cbet,river_cbet,net_bb_100\n"
+                "P1,9,60,40,25,8\nP1,BB,,,,\n",encoding="utf-8")
             d=replit_simulator.stats_for_folder(folder)["P1"]
             self.assertEqual(d["turn_cbet"],33.3333)
             self.assertEqual(d["positions"]["9"]["hands_observed"],80)
