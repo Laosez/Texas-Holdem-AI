@@ -95,6 +95,20 @@ class NumericPostflopClassifierTests(unittest.TestCase):
             ["F-TPFDOESD", "T-TPFDOESD", "R-TP"],
         )
 
+    def test_all_user_facing_oesd_names_are_russian(self):
+        from postflop_numeric_classifier import _NAMES
+        self.assertTrue(all("OESD" not in description
+                            for _, description in _NAMES.values()))
+        html = (app.ROOT / "replit_ui/s100.html").read_text(encoding="utf-8")
+        start = html.index("const rows=[") + len("const rows=[")
+        end = html.index("\n];", start)
+        entries = ast.literal_eval("[" + html[start:end] + "]")
+        self.assertTrue(all("OESD" not in title for _, _, _, title, _ in entries))
+        self.assertIn('id="flopBoardAudit"', html)
+        self.assertIn("Одна улица → один сценарий", html)
+        for phrase in ("2s", "3s", "22 100", "Парный · 2s", "Тройка · радуга"):
+            self.assertIn(phrase, html)
+
     def test_rank_validation_and_duplicate_physical_card(self):
         for hand, board in [
             ("15 12", "14-7-2"),
