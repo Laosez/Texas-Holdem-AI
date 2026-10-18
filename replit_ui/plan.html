@@ -960,7 +960,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
      <option value="8">8 · мультипот</option>
     </select>
    </div>
-   <div class="field handDecompFormat"><span class="simFieldLabel">Форма отчёта</span><span id="handDecompReportMode" class="handDecompFormatValue">БДР</span></div>
+   <div class="field handDecompFormat"><label class="simFieldLabel" for="handDecompReportVariant">Форма отчёта</label><span id="handDecompReportMode" class="handDecompFormatValue">БДР</span><select id="handDecompReportVariant" aria-label="Переключить форму отчёта"><option value="bdr" selected>БДР · причины</option><option value="catalog">По справочнику · флоп</option></select></div>
    <div class="field handDecompSampleTop"><span class="simFieldLabel">Выборка · A / B</span>
     <div class="handDecompSampleValues">
      <span class="sampleA"><span class="sampleMark">A</span><strong id="handDecompSamples">—</strong></span>
@@ -2496,6 +2496,7 @@ function decompSortHeader(label,key,detail=false){
 }
 
 let decompReportMode='bdr';
+const catalogOpenBoards=new Set();
 let decompDetailOrder='count';
 function decompRow(tableBody,label,values,cls='',level=0){
  const tr=el('tr','evLedgerRow '+cls+' evLedgerLevel'+level);
@@ -3083,7 +3084,7 @@ function renderHandDecomposition(){
   :'«—» — только отчёт по руке A · «=» — та же рука, другая стратегия';
  $('handDecompTag').textContent=compare
   ?selected+' / '+bHand+' · A/B'+(left.valid&&right.valid?' · готово':' · расчёт')
-  :selected+' · БДР'+(left.valid?' · готово':' · расчёт');
+  :selected+' · '+(decompReportMode==='catalog'?'СПРАВОЧНИК':'БДР')+(left.valid?' · готово':' · расчёт');
  const fullA=handDecompFullReport('a');
  const fullB=compare?handDecompFullReport('b'):null;
  const overallA=fullA?.data||null,overallB=fullB?.data||null;
@@ -3147,7 +3148,7 @@ function renderHandDecomposition(){
   formatStratum(left,'A')+(compare?'; '+formatStratum(right,'B'):'')+
   '. Переключение N не запускает новый Monte Carlo.';
  const root=$('handDecompRows');root.replaceChildren();
- ledgerControls(root);
+ if(decompReportMode==='bdr')ledgerControls(root);
  if(!a&&!b){
   root.append(el('p','handDecompEmpty',left.valid&&(!compare||right.valid)
    ?'В выбранном сценарии нет наблюдений. Увеличь N или измени вероятность входа.'
@@ -3158,6 +3159,10 @@ function renderHandDecomposition(){
  heading.append(el('span','evLedgerABTag isA','A · '+selected+' / '+postflopName($('heroPostflop').value)));
  if(compare)heading.append(el('span','evLedgerABTag isB','B · '+bHand+' / '+postflopName($('handDecompProfileB').value)));
  root.append(heading);
+ if(decompReportMode==='catalog'){
+  renderCatalogLedger(root,a,b,compare);
+  return;
+ }
  renderCompareBdrLedger(root,a,b,compare);
  root.append(el('p','evLedgerFootnote',
   'Группы прибыли и убытков раскрываются по нажатию. В каждой категории можно раскрыть причины. '+
@@ -3557,6 +3562,11 @@ $('allInDead').oninput=drawMatrices;
 $('equityModel').onchange=invalidateEquity;
 
 $('handDecompOpponentCount').onchange=renderHandDecomposition;
+$('handDecompReportVariant').onchange=()=>{
+ decompReportMode=$('handDecompReportVariant').value;
+ $('handDecompReportMode').textContent=decompReportMode==='catalog'?'СПРАВОЧНИК':'БДР';
+ renderHandDecomposition();
+};
 $('handDecompHandB').onchange=()=>{renderHandDecomposition();scheduleHandDecomposition()};
 $('handDecompProfileB').onchange=()=>{renderHandDecomposition();scheduleHandDecomposition()};
 $('trials').onchange=()=>{
