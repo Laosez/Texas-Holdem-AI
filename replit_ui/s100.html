@@ -102,8 +102,8 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 
 /* Separate analytical catalog: 1,019 physically reachable composite classes.
    Do not attach bot-frequency columns to this table. */
-.catalogBar{display:grid;grid-template-columns:minmax(210px,2fr) repeat(3,minmax(130px,1fr));gap:9px;margin:13px 0}
-.catalogLedger{min-width:950px;font-variant-numeric:tabular-nums;font-size:12px}
+.catalogBar{display:grid;grid-template-columns:minmax(210px,2fr) repeat(4,minmax(125px,1fr));gap:9px;margin:13px 0}
+.catalogLedger{min-width:1650px;font-variant-numeric:tabular-nums;font-size:12px}
 .catalogLedger .catalogGroup td{position:static!important;background:#254b70!important;color:#edf6ff;font-weight:800;padding:11px 13px;letter-spacing:.2px}
 .catalogLedger .catalogGroup td:first-child{position:static!important}
 .catalogLedger tr.catalogLine{cursor:pointer}
@@ -145,12 +145,13 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 
 <section class="panel" id="compositeCatalog">
  <div class="heading"><h2><span class="index">00Б / </span>Полный каталог составных сценариев</h2><span class="badge" id="catalogTotal">1 019 классов</span></div>
- <p class="panelIntro"><strong>Все достижимые сочетания «структура борда × попадание HERO».</strong> Таблица развёрнута по 46 типам флопа. Для каждого кода указан один физически допустимый пример и точная доля всех раздач двух карт HERO + флопа. Нажатие на строку переносит её карты в классификатор выше. Отмечайте уже изученные сценарии.</p>
+ <p class="panelIntro"><strong>Все достижимые сочетания «структура борда × попадание HERO».</strong> Группировка по 46 типам флопа: коды, названия борда и карманной руки, конкретный физический пример, две условные вероятности и общая частота класса. Нажатие на строку открывает её карты в классификаторе выше. Отмечайте изученные сценарии.</p>
  <div class="catalogBar">
   <div class="field"><label for="catalogSearch">Поиск · код / название / карты</label><input id="catalogSearch" type="search" placeholder="TPFDOESD, N-C4-2S, 9s-8s"></div>
   <div class="field"><label for="catalogBoardFilter">Структура борда</label><select id="catalogBoardFilter"><option value="">Все 46 структур</option></select></div>
   <div class="field"><label for="catalogHeroFilter">Попадание HERO</label><select id="catalogHeroFilter"><option value="">Все классы HERO</option></select></div>
   <div class="field"><label for="catalogReviewFilter">Просмотр</label><select id="catalogReviewFilter"><option value="">Все сценарии</option><option value="new">Не просмотрены</option><option value="done">Просмотрены</option></select></div>
+  <div class="field"><label for="catalogOpponentRange">Диапазон оппонента</label><select id="catalogOpponentRange"><option value="any">100% · случайные две карты</option><option value="UTG">PC GTO 80bb · UTG · RFI</option><option value="UTG1">PC GTO 80bb · UTG+1 · RFI</option><option value="LJ">PC GTO 80bb · LJ · RFI</option><option value="HJ">PC GTO 80bb · HJ · RFI</option><option value="CO">PC GTO 80bb · CO · RFI</option><option value="BTN">PC GTO 80bb · BTN · RFI</option><option value="SB">PC GTO 80bb · SB · рейз</option></select></div>
  </div>
  <div class="tableMeta" style="margin-bottom:11px">
   <span class="small" id="catalogStatus" role="status">Каталог доступен после подключения к приложению.</span>
@@ -158,9 +159,9 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
  </div>
  <div id="catalogSelected" class="catalogSelected" hidden></div>
  <div class="tablewrap" style="max-height:75vh">
-  <table class="catalogLedger"><thead><tr><th>№</th><th>Код сценария</th><th>Борд</th><th>HERO</th><th>Попадание HERO</th><th style="text-align:right">Частота</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="7">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
+  <table class="catalogLedger"><thead><tr><th>№</th><th>Код сценария</th><th>Борд</th><th>Название борда</th><th>HERO</th><th>Карманная рука HERO</th><th>Попадание HERO</th><th title="Точная вероятность, что категория готовой руки HERO к риверу станет старше, чем на флопе, при случайных тёрне и ривере" style="text-align:right">Усиление к риверу</th><th title="Вероятность, что у одного оппонента на флопе есть карманная пара, совпадение ранга с бордом или прямое стрит-/флеш-дро; диапазон выбирается выше" style="text-align:right">Опп. пара+ / дро</th><th style="text-align:right">Частота класса</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
  </div>
- <p class="summary">Частота — доля физических сочетаний HERO + флопа при равномерной раздаче, не частота попадания в сценарий в турнире и не EV. Отметки «Проверено» хранятся <strong>только в этом браузере</strong>; 102 примера с расчётом действий GTO/LAG остаются отдельной таблицей ниже.</p>
+ <p class="summary"><strong>Важно:</strong> обе вероятности рассчитаны для <strong>конкретных пяти карт в строке</strong>, а не усреднены по всем раздачам этого составного класса. «Усиление» — переход в более высокую категорию готовой пятикарточной комбинации к риверу по всем 1 081 вариантам двух следующих карт (включая улучшения общих карт); это <strong>не вероятность выигрыша и не прирост EV</strong>. «Опп. пара+ / дро» — вероятность для <strong>одного</strong> оппонента с учётом пяти известных карт: собственная карманная пара, совпадение с бордом или прямое четырёхкарточное стрит-/флеш-дро; общая пара на борде и бэкдоры сами по себе не считаются. Режимы PC GTO 80bb используют реальные частоты рейза RFI по позиции, без поправок на постфлоп-действия. Частота класса — доля всех равномерно сданных HERO + флопов, не вероятность выигрыша. Отметки просмотра хранятся только в этом браузере; старая таблица GTO/LAG остаётся ниже.</p>
 </section>
 <section class="panel" id="numericClassifier">
  <div class="heading"><h2><span class="index">00 / </span>Постфлоп · План</h2><span class="badge">Одна улица → один сценарий</span></div>
@@ -691,7 +692,7 @@ function drawCompositeCatalog(){
   if(reviewCode==="done"&&!catalogReviewed[row.id])return false;
   if(reviewCode==="new"&&catalogReviewed[row.id])return false;
   const haystack=[row.id,row.board_group,row.board_name,row.hero_class,row.hero_name,
-                  row.board,row.hero].join(" ").toLowerCase();
+                  row.board,row.hero,row.hole_name].join(" ").toLowerCase();
   return words.every(word=>haystack.includes(word));
  });
  const body=$("catalogRows"),fragment=document.createDocumentFragment();
@@ -700,7 +701,7 @@ function drawCompositeCatalog(){
   if(row.board_group!==previous){
    previous=row.board_group;
    const header=document.createElement("tr");header.className="catalogGroup";
-   const cell=document.createElement("td");cell.colSpan=7;
+   const cell=document.createElement("td");cell.colSpan=11;
    cell.textContent=row.board_group+" · "+row.board_name+
     " · "+matching.filter(x=>x.board_group===row.board_group).length+" сценариев";
    header.append(cell);fragment.append(header);
@@ -713,8 +714,17 @@ function drawCompositeCatalog(){
   const number=document.createElement("td");number.textContent=String(row.ordinal).padStart(4,"0");
   const code=document.createElement("td");code.className="code";code.textContent=row.id;
   const board=document.createElement("td");board.className="cards";board.textContent=row.board;
+  const boardLabel=document.createElement("td");boardLabel.textContent=row.board_name;
   const hero=document.createElement("td");hero.className="cards";hero.textContent=row.hero;
+  const heroLabel=document.createElement("td");heroLabel.textContent=row.hole_name;
   const hit=document.createElement("td");hit.textContent=row.hero_name;
+  const stronger=document.createElement("td");stronger.className="probability";
+  stronger.textContent=(100*row.hero_improve).toFixed(1)+"%";
+  stronger.title="Смена категории готовой руки к риверу · точный перебор 1 081 вариантов следующих карт для этого примера";
+  const contact=document.createElement("td");contact.className="probability";
+  const contactValue=row.opp_contact[$("catalogOpponentRange").value];
+  contact.textContent=contactValue===null||contactValue===undefined?"—":(100*contactValue).toFixed(1)+"%";
+  contact.title="Пара с участием карманных карт или прямое стрит-/флеш-дро одного оппонента · учтены блокеры и выбранный диапазон";
   const chance=document.createElement("td");chance.className="probability";
   chance.textContent=(100*row.deals/25989600).toFixed(4)+"%";
   chance.title=row.deals.toLocaleString("ru-RU")+" / 25 989 600 физических раздач";
@@ -745,13 +755,13 @@ function drawCompositeCatalog(){
   tr.addEventListener("keydown",e=>{
    if((e.key==="Enter"||e.key===" ")&&e.target===tr){e.preventDefault();open()}
   });
-  tr.append(number,code,board,hero,hit,chance,marked);
+  tr.append(number,code,board,boardLabel,hero,heroLabel,hit,stronger,contact,chance,marked);
   fragment.append(tr);
  }
  body.replaceChildren(fragment);
  if(!matching.length){
   const tr=document.createElement("tr");const td=document.createElement("td");
-  td.colSpan=7;td.textContent="По выбранным фильтрам сценариев нет";
+  td.colSpan=11;td.textContent="По выбранным фильтрам сценариев нет";
   tr.append(td);body.append(tr);
  }
  updateCatalogMeta(matching.length);
@@ -796,7 +806,7 @@ async function loadCompositeCatalog(){
   $("catalogStatus").textContent="Не удалось загрузить каталог: "+err.message;
  }
 }
-for(const id of ["catalogBoardFilter","catalogHeroFilter","catalogReviewFilter"]){
+for(const id of ["catalogBoardFilter","catalogHeroFilter","catalogReviewFilter","catalogOpponentRange"]){
  $(id).addEventListener("change",drawCompositeCatalog);
 }
 $("catalogSearch").addEventListener("input",drawCompositeCatalog);
