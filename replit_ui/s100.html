@@ -126,8 +126,8 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
     <tr><td>Парный · 2s</td><td>7♠–7♥–2♠</td><td>8,47%</td></tr>
     <tr><td>Тройка · радуга</td><td>7♠–7♥–7♦</td><td>0,24%</td></tr>
    </tbody></table></div>
-   <div><strong>Связность трёх разных номиналов:</strong> три подряд · три в пределах пятирангового стрит-окна · две соседние · две через один ранг · разрозненные. Примеры: 2–3–4, 2–4–6, 2–3–9, 2–4–9, 2–6–10. Туз учитываем как 14 и как 1 для младших стритов.</div>
-   <div><strong>Пока не покрыто отдельными сценариями:</strong> независимый от HERO тип борда, старшая карта борда и геометрия разрывов. Текущая числовая нотация не задаёт все четыре физические масти, поэтому нельзя автоматически утверждать «радуга» для немаркированного борда. Карты с символами ♠♥♦♣ выше — только иллюстрации.</div>
+   <div><strong>Шесть типов связности:</strong> C3 · три подряд (9-8-7); C4 · три из четырёх с дыркой (9-8-6); C5 · три из пяти с двумя дырками (9-7-5); C2 · только две подряд; G2 · две через один ранг; D · разрозненные. Туз может быть 14 или 1 для младшего стрита.</div>
+   <div><strong>Новый отдельный классификатор ниже:</strong> 36 непарных + 8 парных + 2 с тройкой = 46 структур. Требует реальные масти s/h/d/c. В сценариях HERO по-прежнему используется сокращённая абстрактная запись s/z/y; нельзя считать отсутствие маркировки доказательством радуги.</div>
   </div>
  </details>
  <div class="grid2" style="margin-top:14px">
@@ -137,6 +137,22 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
  <div class="actionsRow"><span class="note" style="margin:0">Ключ доступа общий с листами 01–02.</span><button class="btn primary" id="classify" type="button">Определить сценарий</button></div>
  <p class="statusLine" id="classMessage" role="status"></p>
  <div class="classifierResult" id="classResult" aria-live="polite"><span class="small">Введите карты или выберите строку таблицы.</span></div>
+</section>
+
+<section class="panel" id="flopTextureClassifier">
+ <div class="heading"><h2><span class="index">00А / </span>Структура флопа · отдельно от HERO</h2><span class="badge">46 классов</span></div>
+ <p class="panelIntro">Классифицируем <strong>только три карты флопа</strong> по мастям, связности, тузу и положению пары. HM/HL/ML специально <strong>не разделяем</strong>. Для этой проверки указывайте все реальные масти: <strong>s</strong> ♠, <strong>h</strong> ♥, <strong>d</strong> ♦, <strong>c</strong> ♣. Запись здесь отличается от сокращённой нотации сценариев HERO.</p>
+ <div class="grid2" style="margin-top:14px">
+  <div class="field"><label for="textureBoard">Флоп · три карты с физическими мастями</label><input id="textureBoard" value="14s-13s-2d" placeholder="14s-13s-2d" autocomplete="off"></div>
+  <div class="field" style="justify-content:end"><label>Примеры</label><select id="texturePreset"><option value="14s-13s-2d">Тузовый · 2s · две подряд</option><option value="9s-8h-6d">Без туза · радуга · C4</option><option value="9s-7s-5s">Без туза · 3s · C5</option><option value="14s-14h-2s">Пара тузов · 2s</option><option value="7s-7h-14d">Туз отдельно от пары · радуга</option><option value="7s-7h-7d">Тройка на борде</option></select></div>
+ </div>
+ <div class="actionsRow"><span class="note" style="margin:0;flex:1">Результат независим от руки HERO, стратегии и позиции. Нужен ключ доступа из шапки.</span><button class="btn primary" type="button" id="classifyTexture">Определить структуру</button></div>
+ <p class="statusLine" id="textureMessage" role="status"></p>
+ <div class="classifierResult" id="textureResult" aria-live="polite"><span class="small">Введите физический флоп или выберите пример.</span></div>
+ <details class="notation" id="board46Catalog" style="margin-top:12px"><summary><strong>Полный список · 46 структур флопа</strong><span class="small">36 без пары · 8 парных · 2 с тройкой</span></summary>
+  <div class="notationBody"><div class="tablewrap" style="max-height:500px"><table class="boardAuditTable"><thead><tr><th>Код</th><th>Пример</th><th>Структура</th></tr></thead><tbody id="board46Rows"></tbody></table></div>
+   <div>Коды C3/C4/C5 показывают геометрию трёх разных номиналов, а R/2S/3S — масти. A — есть туз, N — без туза. P — парный, T — тройка. Дополнительные признаки wheel и число бродвейных рангов отображаются в результате без создания новых классов.</div></div>
+ </details>
 </section>
 <section class="panel" id="scenarioLedger">
  <div class="heading"><h2><span class="index">01 / </span>Сценарии и действия стратегий</h2><span class="badge" id="count">—</span></div>
@@ -442,6 +458,93 @@ for(const id of ['contextOpponents','contextPosition','contextInitiative','conte
 }
 for(const id of ['contextPot','contextStack','contextCall'])$(id).addEventListener('input',queueCompare);
 $('count').textContent=rows.length+' примеров · Ф '+rows.filter(r=>r[0]==='Флоп').length+' / Т '+rows.filter(r=>r[0]==='Тёрн').length+' / Р '+rows.filter(r=>r[0]==='Ривер').length;
+const boardStyles=[
+ ['R','s-h-d','радуга'],
+ ['2S','s-s-d','двухмастный'],
+ ['3S','s-s-s','одномастный']
+];
+const rankPatterns=[
+ ['C3','Три подряд','14-13-12','9-8-7'],
+ ['C4','Три из четырёх, одна дырка','14-13-11','9-8-6'],
+ ['C5','Три из пяти, две дырки','14-12-10','9-7-5'],
+ ['C2','Две подряд, третья отдельно','14-13-5','9-8-2'],
+ ['G2','Две через ранг, третья отдельно','14-12-5','9-7-2'],
+ ['D','Разрозненные','14-9-4','13-8-2']
+];
+function appendBoardRow(code, board, title){
+ const tr=document.createElement('tr');
+ for(const value of [code,board,title]){
+  const td=document.createElement('td');td.textContent=value;tr.append(td);
+ }
+ tr.tabIndex=0;tr.title='Выбрать борд для классификации';
+ const choose=()=>{$('textureBoard').value=board;classifyTexture();};
+ tr.addEventListener('click',choose);
+ tr.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();choose()}});
+ $('board46Rows').append(tr);
+}
+for(const ace of [['A',2],['N',3]]){
+ for(const shape of rankPatterns){
+  const rankLine=shape[ace[1]].split('-');
+  for(const [suitCode,suitLine,suitName] of boardStyles){
+   const suits=suitLine.split('-');
+   const physical=rankLine.map((r,i)=>r+suits[i]).join('-');
+   appendBoardRow(ace[0]+'-'+shape[0]+'-'+suitCode,physical,
+    (ace[0]==='A'?'С тузом':'Без туза')+' · '+shape[1]+' · '+suitName);
+  }
+ }
+}
+for(const [code,ranks,title] of [
+ ['AA','14-14-7','Пара тузов'],
+ ['AX','7-7-14','Туз отдельно от пары'],
+ ['H','13-13-2','Старшая пара без туза'],
+ ['L','2-2-13','Младшая пара без туза']
+]){
+ for(const [suitCode,suitLine,suitName] of boardStyles.slice(0,2)){
+  const physical=ranks.split('-').map((r,i)=>r+suitLine.split('-')[i]).join('-');
+  // For a paired board, use separate suits on equal ranks.
+  // Two-tone: pair s/h + singleton s; rainbow: pair s/h + singleton d.
+  const pairSuits=suitCode==='R'?['s','h','d']:['s','h','s'];
+  const fixed=ranks.split('-').map((r,i)=>r+pairSuits[i]).join('-');
+  appendBoardRow('P-'+code+'-'+suitCode,fixed,title+' · '+suitName);
+ }
+}
+appendBoardRow('T-A','14s-14h-14d','Тройка тузов');
+appendBoardRow('T-X','7s-7h-7d','Тройка без туза');
+$('texturePreset').addEventListener('change',()=>{
+ $('textureBoard').value=$('texturePreset').value;
+ if(token())classifyTexture();
+});
+$('textureBoard').addEventListener('keydown',e=>{if(e.key==='Enter')classifyTexture()});
+async function classifyTexture(){
+ $('textureMessage').textContent='';
+ $('textureResult').textContent='Проверка...';
+ if(!token()){
+  $('textureResult').textContent='Не подключено';
+  $('textureMessage').textContent='Укажите POKER_RUNNER_KEY в шапке';
+  return;
+ }
+ try{
+  const response=await fetch('/api/postflop/board-texture',{
+   method:'POST',headers:{...auth(),'Content-Type':'application/json'},
+   body:JSON.stringify({board:$('textureBoard').value})
+  });
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error||'Ошибка классификатора флопа');
+  const title=document.createElement('strong');
+  title.textContent=data.group_id+' · '+data.group_name;
+  const more=document.createElement('div');more.className='note';
+  const flags=[];
+  if(data.wheel_ace)flags.push('Wheel · туз как младший');
+  if(data.pair_gap!==null)flags.push('Разрыв пары: '+data.pair_gap);
+  flags.push('Бродвейных номиналов: '+data.broadway_count);
+  more.textContent='Борд: '+data.board+' · '+flags.join(' · ');
+  $('textureResult').replaceChildren(title,more);
+  $('connection').textContent='Подключено';$('connection').className='badge ok';
+ }catch(e){
+  $('textureResult').textContent='Структура не определена';
+  $('textureMessage').textContent=e.message;
+ }
+}
 async function classifyNumeric(){
  $('classMessage').textContent='';$('classResult').textContent='Проверка...';
  if(!token()){$('classResult').textContent='Не подключено';$('classMessage').textContent='Укажите POKER_RUNNER_KEY в шапке';return}
