@@ -241,11 +241,13 @@ class EVDecomposition:
         self.groups=defaultdict(lambda:{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,"positive_count":0,"negative_count":0,"neutral_count":0})
         self.matchups=defaultdict(lambda:{"count":0,"wins":0,"net":0.0})
         self.reasons=defaultdict(lambda:{"count":0,"net":0.0,"label":"",**{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,"positive_count":0,"negative_count":0,"neutral_count":0}})
+        self.river=defaultdict(lambda:{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,
+                                        "positive_count":0,"negative_count":0,"neutral_count":0})
         self.catalog=defaultdict(lambda:{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,
                                          "positive_count":0,"negative_count":0,"neutral_count":0,
                                          "board_group":"","board_name":"","hero_class":"","hero_name":""})
 
-    def add(self,net_bb, event, *, risk=None, flush=None, group=None, matchup=None, reason=None, catalog=None):
+    def add(self,net_bb, event, *, risk=None, flush=None, group=None, matchup=None, reason=None, catalog=None, attribution=None):
         self.n+=1
         self.ev_total+=net_bb
         e=self.event[event];e["count"]+=1;e["net"]+=net_bb
@@ -265,6 +267,25 @@ class EVDecomposition:
                 record["negative_net"]+=net_bb;record["negative_count"]+=1
             else:
                 record["neutral_count"]+=1
+        if attribution is not None:
+            bd=attribution["board"]
+            hero=attribution["hero"]
+            # Compact sparse cube, not 1,019 pre-materialized scenario rows.
+            key=(attribution["sign"],attribution["cause"],
+                 bd["id"],bd["street"],bd["suit"],bd["rank_texture"],
+                 bd["straight"],hero["origin"],hero["category"],
+                 hero["hole_use"],attribution["detail"])
+            cell=self.river[key]
+            cell["count"]+=1
+            cell["net"]+=net_bb
+            if net_bb>0:
+                cell["positive_net"]+=net_bb
+                cell["positive_count"]+=1
+            elif net_bb<0:
+                cell["negative_net"]+=net_bb
+                cell["negative_count"]+=1
+            else:
+                cell["neutral_count"]+=1
         if catalog is not None:
             item=self.catalog[catalog["id"]]
             item["board_group"]=catalog["board_group"]
@@ -375,7 +396,35 @@ class EVDecomposition:
                     "contribution_bb":round(item["net"]/n,6)
                 })
             assert abs(sum(v["net"] for v in self.catalog.values())-self.ev_total)<1e-7
+        river_rows=[]
+        if self.river:
+            from planner_river_classifier import BOARDS,CAUSES,ORIGINS
+            assert sum(item["count"] for item in self.river.values())==n
+            assert abs(sum(item["net"] for item in self.river.values())-self.ev_total)<1e-7
+            for key,item in sorted(self.river.items(),key=lambda p:str(p[0])):
+                sign,cause,board_id,street,suit,rank_texture,straight,origin,category,hole_use,detail=key
+                river_rows.append({
+                    "sign":sign,"cause":cause,"cause_name":CAUSES[cause],
+                    "board_id":board_id,"board_name":BOARDS[board_id],
+                    "street":street,"suit":suit,
+                    "rank_texture":rank_texture,"straight":straight,
+                    "origin":origin,"origin_name":ORIGINS[origin],
+                    "hero_category":category,"hero_hole_use":hole_use,
+                    "detail":detail,"count":item["count"],
+                    "positive_count":item["positive_count"],
+                    "negative_count":item["negative_count"],
+                    "neutral_count":item["neutral_count"],
+                    "positive_ev_bb":round(item["positive_net"]/n,7),
+                    "negative_ev_bb":round(item["negative_net"]/n,7),
+                    "contribution_bb":round(item["net"]/n,7)
+                })
         return {"hand":self.hand,"samples":n,
+                "river_attribution":{
+                    "version":"river_reason_board_v1",
+                    "samples":n,
+                    "reconciled":bool(river_rows),
+                    "rows":river_rows,
+                    "note":"Финансовый знак → причина → фактический последний борд; участие HERO, масть и связность — независимые свойства. Валовые EV нормированы на все N. Не является оценкой ошибки решения."},
                 "catalog_attribution":{
                     "source":"postflop_composite_catalog_v1",
                     "total_scenarios":1019,

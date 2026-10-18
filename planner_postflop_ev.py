@@ -131,8 +131,10 @@ class _Policy:
         self.opened = False
         self.folded_after_flop = False
         self.fold_street = None
+        self.last_street = "preflop"
 
     def act(self, view):
+        self.last_street=view.street
         from core.bot_api import Action
         if view.street == "preflop":
             if self.hero and not self.opened:
@@ -321,8 +323,19 @@ def _play_case(picked, board, hero_profile, hero_position, stack_bb, seed,
     showdown = history["showdown"] and not policies["HERO"].folded_after_flop
     if detail:
         from planner_ev_decomposition import classify_case
+        from planner_river_classifier import classify_attribution
         classified = classify_case(
             picked, board, history, policies["HERO"].fold_street, chip_ev)
+        fold_street=policies["HERO"].fold_street
+        observed=max((getattr(policy,"last_street","preflop")
+                      for policy in policies.values()),
+                     key={"preflop":0,"flop":1,"turn":2,"river":3}.__getitem__)
+        last_street=(fold_street if fold_street else
+                     "river" if showdown else observed)
+        attribution=classify_attribution(
+            picked,board,classified[0],chip_ev,last_street,
+            history.get("players",()),history.get("winners",()))
+        classified=(*classified,attribution)
         return (chip_ev, showdown, classified, pot_state["bb"]) if metrics else (
             chip_ev, showdown, classified)
     return (chip_ev, showdown, pot_state["bb"]) if metrics else (chip_ev, showdown)
@@ -425,8 +438,13 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                     fold_win_total += 1
                     if decomposition:
                         catalog=catalog_flop_case(picked,board)
-                        decomposition.add(uncontested,"uncontested",catalog=catalog)
-                        per_entrant_decomp[0].add(uncontested,"uncontested",catalog=catalog)
+                        from planner_river_classifier import classify_attribution
+                        attribution=classify_attribution(picked,board,"uncontested",
+                                                         uncontested,"preflop")
+                        decomposition.add(uncontested,"uncontested",catalog=catalog,
+                                          attribution=attribution)
+                        per_entrant_decomp[0].add(uncontested,"uncontested",catalog=catalog,
+                                                   attribution=attribution)
                 entry_pots[0] += _uncontested_pot_bb(
                     payload["hero_position"],payload["hero_stack_bb"])
                 samples += 1
@@ -450,13 +468,15 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                 entry_ev_sq[entrants] += chip_ev ** 2
                 ev_squared_total += chip_ev ** 2
                 if decomposition:
-                    event,risk,flush,group,matchup,reason = rollout[2]
+                    event,risk,flush,group,matchup,reason,attribution = rollout[2]
                     catalog=catalog_flop_case(picked,board)
                     decomposition.add(chip_ev,event,risk=risk,flush=flush,
-                                      group=group,matchup=matchup,reason=reason,catalog=catalog)
+                                      group=group,matchup=matchup,reason=reason,catalog=catalog,
+                                      attribution=attribution)
                     per_entrant_decomp[entrants].add(
                         chip_ev,event,risk=risk,flush=flush,
-                        group=group,matchup=matchup,reason=reason,catalog=catalog)
+                        group=group,matchup=matchup,reason=reason,catalog=catalog,
+                        attribution=attribution)
                 ev_total += chip_ev
                 showdown_total += at_showdown
                 fold_win_total += bool(not at_showdown and chip_ev > 0)
@@ -527,7 +547,9 @@ def _single_batch(cases, hero_profile, hero_position, stack_bb, disabled):
         if len(picked) == 1:
             out.append((None, uncontested if not disabled else None,
                         False, _uncontested_pot_bb(hero_position,stack_bb), ("uncontested", None, None, "pre_win", None,
-                         ("pre_uncontested", "Все соперники не вошли в банк"))))
+                         ("pre_uncontested", "Все соперники не вошли в банк"),
+                         __import__("planner_river_classifier").classify_attribution(
+                             picked,board,"uncontested",uncontested,"preflop"))))
             continue
         share = _showdown_share(picked, board)
         if disabled:
@@ -629,13 +651,15 @@ def _single_parallel(raw, progress, workers, batch_size=256):
                     else:
                         showdown_total += showdown
                         fold_win_total += bool(not showdown and net > 0)
-                    event, risk, flush, group, matchup, reason = classified
+                    event, risk, flush, group, matchup, reason, attribution = classified
                     catalog=catalog_flop_case(picked,board)
                     decomposition.add(net, event, risk=risk, flush=flush,
-                                      group=group, matchup=matchup, reason=reason,catalog=catalog)
+                                      group=group, matchup=matchup, reason=reason,catalog=catalog,
+                                      attribution=attribution)
                     per_entrant_decomp[entrants].add(
                         net,event,risk=risk,flush=flush,
-                        group=group,matchup=matchup,reason=reason,catalog=catalog)
+                        group=group,matchup=matchup,reason=reason,catalog=catalog,
+                        attribution=attribution)
                 completed += 1
             if progress:
                 progress(completed, n)
@@ -687,10 +711,13 @@ def _paired_batch(cases, profile_a, profile_b, hero_position, stack_bb):
     uncontested = _uncontested_net_bb(hero_position)
     for picked, board, seed in cases:
         if len(picked) == 1:
+            from planner_river_classifier import classify_attribution
+            attribution=classify_attribution(picked,board,"uncontested",uncontested,"preflop")
             result = (uncontested, False,
                       _uncontested_pot_bb(hero_position,stack_bb),
                       ("uncontested", None, None, "pre_win", None,
-                       ("pre_uncontested", "Все соперники не вошли в банк")))
+                       ("pre_uncontested", "Все соперники не вошли в банк"),
+                       attribution))
             out.append((None, result, result))
             continue
         share = _showdown_share(picked, board)
@@ -742,9 +769,9 @@ class _PairedSide:
             self.fold_wins += bool(not showdown and net > 0)
         else:
             self.fold_wins += 1
-        event, risk, flush, group, matchup, reason = classified
+        event, risk, flush, group, matchup, reason, attribution = classified
         options = dict(risk=risk, flush=flush, group=group,
-                       matchup=matchup, reason=reason)
+                       matchup=matchup, reason=reason, attribution=attribution)
         self.decomp.add(net, event, catalog=catalog, **options)
         self.by_n[entrants].add(net, event, catalog=catalog, **options)
 
