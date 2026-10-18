@@ -334,6 +334,7 @@ function compatibility(a,b,pa,pb){
  if(a.status!=='completed'&&a.status!=='imported'||b.status!=='completed'&&b.status!=='imported')
   alerts.push('Одна из сессий не завершена');
  const nA=Number(a.report?.tournaments_completed||0),nB=Number(b.report?.tournaments_completed||0);
+ if(nA!==nB)alerts.push('Разное число завершённых турниров (победы напрямую несопоставимы)');
  if(nA<30||nB<30)alerts.push('Малая выборка завершённых турниров (менее 30)');
  return alerts;
 }
@@ -359,8 +360,21 @@ function renderCompare(){
   const pA=leaderboard(runA).find(x=>x.bot===a)||{};
   const pB=leaderboard(runB).find(x=>x.bot===b)||{};
   const winnerA=getMetric(pA,'win_pct_completed'),winnerB=getMetric(pB,'win_pct_completed');
-  root.append(rowOf(['Победы',integer(pA.wins),integer(pB.wins),delta(getMetric(pA,'wins'),getMetric(pB,'wins'),'wins'),'турниры']));
-  root.append(rowOf(['Win %',percent(winnerA),percent(winnerB),delta(winnerA,winnerB,'win')+' п.п.','95% ДИ A '+wilson(Number(pA.wins),Number(runA.report?.tournaments_completed))+'; B '+wilson(Number(pB.wins),Number(runB.report?.tournaments_completed))]));
+  const nA=Number(runA.report?.tournaments_completed||0),nB=Number(runB.report?.tournaments_completed||0);
+  root.append(rowOf(['Победы',integer(pA.wins),integer(pB.wins),
+    nA===nB?delta(getMetric(pA,'wins'),getMetric(pB,'wins'),'wins'):'—',
+    nA===nB?'турниры':'Разные размеры выборок']));
+  root.append(rowOf(['Win %',percent(winnerA),percent(winnerB),
+   winnerA===null||winnerB===null?'—':delta(winnerA,winnerB,'win')+' п.п.',
+   '95% ДИ A '+wilson(Number(pA.wins),nA)+'; B '+wilson(Number(pB.wins),nB)]));
+  const fullA=dataFor(runA,a),fullB=dataFor(runB,b);
+  const topA=getMetric(fullA,'top3_pct'),topB=getMetric(fullB,'top3_pct');
+  root.append(rowOf(['Топ-3 %',percent(topA),percent(topB),
+   topA===null||topB===null?'—':delta(topA,topB,'top3')+' п.п.','завершённые турниры']));
+  const placeA=getMetric(pA,'avg_position_completed'),placeB=getMetric(pB,'avg_position_completed');
+  root.append(rowOf(['Среднее место',num(placeA,2),num(placeB,2),delta(placeA,placeB,'place'),'место']));
+  const medA=getMetric(fullA,'median_position'),medB=getMetric(fullB,'median_position');
+  root.append(rowOf(['Медианное место',num(medA,1),num(medB,1),delta(medA,medB,'place'),'место']));
  }
  for(const m of metrics){
   const aValue=getMetric(dA,m),bValue=getMetric(dB,m);
