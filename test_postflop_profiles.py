@@ -43,11 +43,13 @@ class PostflopProfileTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 PostflopProfileBot(name).act(make_view(street="preflop"))
         ui=app.UI.read_text(encoding="utf-8")
-        self.assertIn('id="comparePost"',ui)
-        self.assertIn('id="compareFivePost"',ui)
-
+        # Legacy quick experiment buttons were replaced by the mass-edit row.
+        self.assertNotIn('id="comparePost"',ui)
+        self.assertNotIn('id="compareFivePost"',ui)
+        self.assertIn("function botBulkRow(){",ui)
+        self.assertIn("function bulkChangeBots(street,value){",ui)
+        self.assertIn("root.append(botBulkRow());",ui)
         self.assertIn('id="postflopModels"',ui)
-        self.assertIn("bots=Array.from({length:8}",ui)
         self.assertIn("gto_postflop_v1:'GTO Postflop V1 (model)'",ui)
 
     def test_made_value_relative_to_board_not_board_alone(self):
