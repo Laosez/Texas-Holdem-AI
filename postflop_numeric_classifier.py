@@ -12,12 +12,12 @@ _PAIR = re.compile(r"(1[0-4]|[2-9])\1\Z")
 _STREETS = {3: "flop", 4: "turn", 5: "river"}
 _PREFIX = {"flop": "F", "turn": "T", "river": "R"}
 _NAMES = {
-    "flush_oesd": ("FDOESD", "Флеш-дро + OESD"),
+    "flush_oesd": ("FDOESD", "Флеш-дро + двустороннее стрит-дро"),
     "flush_gutshot": ("FDGS", "Флеш-дро + гатшот"),
-    "pair_flush_oesd": ("PFDOESD", "Пара + флеш-дро + OESD"),
+    "pair_flush_oesd": ("PFDOESD", "Пара + флеш-дро + двустороннее стрит-дро"),
     "pair_flush_gutshot": ("PFDGS", "Пара + флеш-дро + гатшот"),
-    "top_pair_oesd": ("TPOESD", "Топ-пара + OESD"),
-    "pair_oesd": ("POESD", "Пара + OESD"),
+    "top_pair_oesd": ("TPOESD", "Топ-пара + двустороннее стрит-дро"),
+    "pair_oesd": ("POESD", "Пара + двустороннее стрит-дро"),
     "pair_gutshot": ("PGS", "Пара + гатшот"),
     "overcards_flush": ("OCFD", "Две оверкарты + флеш-дро"),
     "one_card_flush": ("1CFD", "Однокарточное флеш-дро"),
@@ -99,15 +99,15 @@ _PAIR_PREFIX = {
     "underpair": ("UP", "Карманная пара ниже борда"),
 }
 _DRAW_SUFFIX = {
-    "flush_oesd": ("FDOESD", "флеш-дро + OESD"),
+    "flush_oesd": ("FDOESD", "флеш-дро + двустороннее стрит-дро"),
     "flush_double_gutshot": ("FDDGS", "флеш-дро + двойной гатшот"),
     "flush_gutshot": ("FDGS", "флеш-дро + гатшот"),
-    "one_card_flush_oesd": ("1CFDOESD", "однокарточное флеш-дро + OESD"),
+    "one_card_flush_oesd": ("1CFDOESD", "однокарточное флеш-дро + двустороннее стрит-дро"),
     "one_card_flush_double_gutshot": ("1CFDDGS", "однокарточное флеш-дро + двойной гатшот"),
     "one_card_flush_gutshot": ("1CFDGS", "однокарточное флеш-дро + гатшот"),
     "flush_draw": ("FD", "флеш-дро"),
     "one_card_flush_draw": ("1CFD", "однокарточное флеш-дро"),
-    "oesd": ("OESD", "OESD"),
+    "oesd": ("OESD", "двустороннее стрит-дро"),
     "double_gutshot": ("DGS", "двойной гатшот"),
     "gutshot": ("GS", "гатшот"),
 }
