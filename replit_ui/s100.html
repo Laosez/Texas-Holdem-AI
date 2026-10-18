@@ -710,7 +710,7 @@ function drawCompositeCatalog(){
   tr.className="catalogLine";tr.tabIndex=0;
   tr.title="Открыть пример в составном классификаторе";
   tr.dataset.compositeId=row.id;
-  const number=document.createElement("td");number.textContent=String(ordinal);
+  const number=document.createElement("td");number.textContent=String(row.ordinal).padStart(4,"0");
   const code=document.createElement("td");code.className="code";code.textContent=row.id;
   const board=document.createElement("td");board.className="cards";board.textContent=row.board;
   const hero=document.createElement("td");hero.className="cards";hero.textContent=row.hero;
@@ -788,6 +788,7 @@ async function loadCompositeCatalog(){
    addCatalogFilter("catalogBoardFilter",[...group.entries()].sort((a,b)=>catalogGroupSort(a[0],b[0])));
    addCatalogFilter("catalogHeroFilter",[...hero.entries()].sort((a,b)=>a[1].localeCompare(b[1],"ru")));
   }
+  compositeCatalogRows.forEach((row,i)=>{row.ordinal=i+1});
   compositeCatalogueLoaded=true;
   drawCompositeCatalog();
   $("catalogTotal").textContent=data.rows.length.toLocaleString("ru-RU")+" классов";
