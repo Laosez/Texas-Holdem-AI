@@ -802,6 +802,13 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 
 .handDecompPreflopInfo{font-size:12px;line-height:1.5;color:#a9bed2;margin-top:6px}
 .handDecompPreflopInfo.isWarning{color:#efc58d}
+.catalogSortToolbar{align-items:end;gap:10px;flex-wrap:wrap}
+.catalogSortToolbar label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700}
+.catalogSortToolbar .evLedgerSort{margin:0;min-width:176px}
+.catalogLedgerReport th .catalogSortHeader{display:block;width:100%;padding:3px 2px;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;white-space:nowrap;text-align:inherit;cursor:pointer}
+.catalogLedgerReport th .catalogSortHeader:hover{color:#fff;text-decoration:underline}
+.catalogLedgerReport th .catalogSortHeader:focus-visible{outline:2px solid #a6d5fd;border-radius:3px}
+.catalogLedgerReport th[aria-sort=ascending],.catalogLedgerReport th[aria-sort=descending]{background:#264766;color:#f6fdff}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · сравнение</small></span></a></div>
@@ -2497,6 +2504,19 @@ function decompSortHeader(label,key,detail=false){
 
 let decompReportMode='bdr';
 const catalogOpenBoards=new Set();
+let catalogSortColumn='count:a',catalogSortDirection='desc';
+const CATALOG_SORT_FIELDS=[
+ {key:'label',label:'Статья',metric:null},
+ {key:'count:a',label:'N · A',metric:'count',side:'a'},
+ {key:'count:b',label:'N · B',metric:'count',side:'b'},
+ {key:'positive_ev_bb:a',label:'EV+ · A',metric:'positive_ev_bb',side:'a'},
+ {key:'positive_ev_bb:b',label:'EV+ · B',metric:'positive_ev_bb',side:'b'},
+ {key:'negative_ev_bb:a',label:'EV− · A',metric:'negative_ev_bb',side:'a'},
+ {key:'negative_ev_bb:b',label:'EV− · B',metric:'negative_ev_bb',side:'b'},
+ {key:'contribution_bb:a',label:'Net · A',metric:'contribution_bb',side:'a'},
+ {key:'contribution_bb:b',label:'Net · B',metric:'contribution_bb',side:'b'},
+ {key:'delta',label:'Δ (B−A)',metric:'delta'}
+];
 let decompDetailOrder='count';
 function decompRow(tableBody,label,values,cls='',level=0){
  const tr=el('tr','evLedgerRow '+cls+' evLedgerLevel'+level);
@@ -2925,6 +2945,82 @@ function catalogTotal(items){
  }
  return total;
 }
+
+function catalogSortFields(compare){
+ return CATALOG_SORT_FIELDS.filter(field=>compare||(!field.key.endsWith(':b')&&field.key!=='delta'));
+}
+function catalogSortValue(item,column){
+ if(column==='label')return item.label||'';
+ if(column==='delta')
+  return Number(item.b?.contribution_bb||0)-Number(item.a?.contribution_bb||0);
+ const field=CATALOG_SORT_FIELDS.find(x=>x.key===column);
+ if(!field||!field.metric)return 0;
+ return Number(item[field.side]?.[field.metric]||0);
+}
+function catalogCompareRows(x,y){
+ const a=catalogSortValue(x,catalogSortColumn);
+ const b=catalogSortValue(y,catalogSortColumn);
+ const dir=catalogSortDirection==='asc'?1:-1;
+ const difference=catalogSortColumn==='label'
+  ?String(a).localeCompare(String(b),'ru'):a-b;
+ return dir*difference||String(x.key).localeCompare(String(y.key),'ru');
+}
+function changeCatalogSort(column){
+ if(catalogSortColumn===column){
+  catalogSortDirection=catalogSortDirection==='asc'?'desc':'asc';
+ }else{
+  catalogSortColumn=column;
+  catalogSortDirection=column==='label'||column.startsWith('negative_ev_bb:')?'asc':'desc';
+ }
+ renderHandDecomposition();
+}
+function catalogSortToolbar(root,compare){
+ const toolbar=el('div','evLedgerToolbar catalogSortToolbar');
+ const label=el('label','small','Сортировка');
+ const selector=el('select','evLedgerSort');
+ selector.setAttribute('aria-label','Сортировать статьи справочника по показателю');
+ for(const field of catalogSortFields(compare)){
+  const option=el('option','',field.label);
+  option.value=field.key;
+  selector.append(option);
+ }
+ if(!catalogSortFields(compare).some(field=>field.key===catalogSortColumn)){
+  catalogSortColumn='count:a';catalogSortDirection='desc';
+ }
+ selector.value=catalogSortColumn;
+ selector.onchange=()=>{
+  catalogSortColumn=selector.value;
+  catalogSortDirection=catalogSortColumn==='label'||catalogSortColumn.startsWith('negative_ev_bb:')?'asc':'desc';
+  renderHandDecomposition();
+ };
+ label.append(selector);
+ const direction=el('button','btn sm',catalogSortDirection==='desc'?'↓ По убыванию':'↑ По возрастанию');
+ direction.type='button';direction.title='Изменить направление сортировки';
+ direction.setAttribute('aria-label','Изменить направление сортировки статей справочника');
+ direction.onclick=()=>{catalogSortDirection=catalogSortDirection==='asc'?'desc':'asc';renderHandDecomposition()};
+ toolbar.append(label,direction);
+ root.append(toolbar);
+}
+function catalogSortHeadings(table,compare){
+ const definitions=compare?
+  ['label','count:a','count:b','count:a','count:b','positive_ev_bb:a','positive_ev_bb:b',
+   'negative_ev_bb:a','negative_ev_bb:b','contribution_bb:a','contribution_bb:b','delta']:
+  ['label','count:a','count:a','positive_ev_bb:a','negative_ev_bb:a','contribution_bb:a'];
+ const cells=table.querySelectorAll('thead th');
+ for(let i=0;i<cells.length;i++){
+  const column=definitions[i],cell=cells[i];
+  if(!column)continue;
+  const active=column===catalogSortColumn;
+  cell.setAttribute('aria-sort',active?(catalogSortDirection==='asc'?'ascending':'descending'):'none');
+  const button=el('button','catalogSortHeader',cell.textContent+
+   (active?(catalogSortDirection==='asc'?' ↑':' ↓'):' ↕'));
+  button.type='button';
+  button.title='Сортировать по '+cell.textContent;
+  button.onclick=()=>changeCatalogSort(column);
+  cell.replaceChildren(button);
+ }
+}
+
 function renderCatalogLedger(root,a,b,compare){
  root.append(el('h4','evLedgerSubheading','Справочник 1 019 сценариев флопа · структура борда → HERO'));
  if((a&&!a.catalog_attribution?.reconciled)||(b&&!b.catalog_attribution?.reconciled)){
@@ -2936,13 +3032,18 @@ function renderCatalogLedger(root,a,b,compare){
   return;
  }
  const mapA=catalogRowsByBoard(a),mapB=catalogRowsByBoard(b);
- const categories=[...new Set([...mapA.keys(),...mapB.keys()])]
-   .sort((x,y)=>x==='PRE|NO_FLOP'?-1:y==='PRE|NO_FLOP'?1:x.localeCompare(y));
+ const categories=[...new Set([...mapA.keys(),...mapB.keys()])].map(key=>{
+  const groupA=mapA.get(key),groupB=mapB.get(key);
+  return {key,label:groupA?.name||groupB?.name||key,
+   a:catalogTotal(groupA?.rows.values()||[]),
+   b:catalogTotal(groupB?.rows.values()||[])};
+ }).sort(catalogCompareRows);
  const columns=compare?
   ['Статья справочника','N A','N B','% A','% B','EV+ A','EV+ B','EV− A','EV− B','Net A','Net B','Δ (B−A)']:
   ['Статья справочника','N','%','EV+','EV−','Net'];
  const {table,body}=makeEvLedger(columns);
  table.classList.add('catalogLedgerReport');
+ catalogSortHeadings(table,compare);
  const value=(data,n)=>data?evLedgerFormat(n):'—';
  function appendRow(label,ra,rb,level=0,groupKey=null){
   const aa=ra||{},bb=rb||{},ca=aa.count||0,cb=bb.count||0;
@@ -2971,18 +3072,17 @@ function renderCatalogLedger(root,a,b,compare){
   }
   return tr;
  }
- for(const key of categories){
+ for(const category of categories){
+  const {key,label,a:left,b:right}=category;
   const groupA=mapA.get(key),groupB=mapB.get(key);
-  const left=catalogTotal(groupA?.rows.values()||[]);
-  const right=catalogTotal(groupB?.rows.values()||[]);
-  const label=(groupA?.name||groupB?.name||key)+' · '+key;
-  appendRow(label,left,right,0,key);
+  appendRow(label+' · '+key,left,right,0,key);
   if(!catalogOpenBoards.has(key))continue;
   const rowsA=groupA?.rows||new Map(),rowsB=groupB?.rows||new Map();
-  const codes=[...new Set([...rowsA.keys(),...rowsB.keys()])];
-  codes.sort((a,b)=>((rowsA.get(b)?.count||0)+(rowsB.get(b)?.count||0))-
-    ((rowsA.get(a)?.count||0)+(rowsB.get(a)?.count||0))||a.localeCompare(b));
-  for(const id of codes){
+  const codes=[...new Set([...rowsA.keys(),...rowsB.keys()])].map(key=>({
+   key,label:(rowsA.get(key)||rowsB.get(key)).hero_name,
+   a:rowsA.get(key),b:rowsB.get(key)
+  })).sort(catalogCompareRows);
+  for(const {key:id} of codes){
    const record=rowsA.get(id)||rowsB.get(id);
    const tr=appendRow(id+' · '+record.hero_name,rowsA.get(id),rowsB.get(id),1);
    tr.title='Код справочника '+id+' · '+record.hero_name;
@@ -2997,14 +3097,16 @@ function renderCatalogLedger(root,a,b,compare){
  const toolbar=el('div','evLedgerToolbar');
  const toggle=el('button','btn sm','Раскрыть / свернуть все борды');
  toggle.type='button';toggle.onclick=()=>{
-  const openAll=categories.some(k=>!catalogOpenBoards.has(k));
+  const openAll=categories.some(item=>!catalogOpenBoards.has(item.key));
   catalogOpenBoards.clear();
-  if(openAll)for(const k of categories)catalogOpenBoards.add(k);
+  if(openAll)for(const item of categories)catalogOpenBoards.add(item.key);
   renderHandDecomposition();
  };
  const link=el('a','btn sm','↗ Справочник 1 019 сценариев');
  link.href='/s100';link.style.textDecoration='none';
- toolbar.append(toggle,link);root.append(toolbar,table);
+ toolbar.append(toggle,link);
+ catalogSortToolbar(root,compare);
+ root.append(toolbar,table);
  const note=el('p','evLedgerFootnote',(validA&&validB?'✓ Сверка EV и N пройдена. ':'⚠ Расхождение сверки EV или N. ')+
   'Все статьи взаимоисключающие. N — число попаданий в сценарий; EV+ / EV− / Net — вклад в BB на одну симуляцию всей выбранной выборки. '+
   '«00 · До флопа» включает раздачи без вошедших соперников: им не приписывается выдуманный флоп. '+
