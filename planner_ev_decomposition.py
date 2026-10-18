@@ -206,6 +206,30 @@ def reason_for_event(event):
     return "unspecified","Причина не определена"
 
 
+def catalog_flop_case(picked, board):
+    """Map an *observed* physical 2+3 deal to Sheet 03's composite glossary.
+
+    Do not assign a fictional flop to an uncontested preflop win.
+    The 1,019 scenario IDs are defined by the same canonical classifier used
+    by the interactive /s100 catalogue.
+    """
+    if len(picked) <= 1:
+        return {"id": "PRE|NO_FLOP", "board_group": "PRE|NO_FLOP",
+                "board_name": "00 · До флопа", "hero_class": "PRE|NO_FLOP",
+                "hero_name": "Соперники не вошли · флоп не раздавался"}
+    from postflop_composite_classifier import classify_composite_flop
+    hero_cards = picked[0][1]
+    hero = "-".join(str(int(_card(c)[0].replace("T", "10").replace("J", "11").replace("Q", "12").replace("K", "13").replace("A", "14"))) + _card(c)[1]
+                    for c in hero_cards)
+    flop = "-".join(str(int(_card(c)[0].replace("T", "10").replace("J", "11").replace("Q", "12").replace("K", "13").replace("A", "14"))) + _card(c)[1]
+                    for c in board[:3])
+    value = classify_composite_flop(hero, flop)
+    return {"id": value["id"], "board_group": value["board"]["group_id"],
+            "board_name": value["board"]["group_name"],
+            "hero_class": value["hero_state"]["id"],
+            "hero_name": value["hero_state"]["name"]}
+
+
 class EVDecomposition:
     def __init__(self,hand):
         self.hand=hand
@@ -217,8 +241,11 @@ class EVDecomposition:
         self.groups=defaultdict(lambda:{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,"positive_count":0,"negative_count":0,"neutral_count":0})
         self.matchups=defaultdict(lambda:{"count":0,"wins":0,"net":0.0})
         self.reasons=defaultdict(lambda:{"count":0,"net":0.0,"label":"",**{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,"positive_count":0,"negative_count":0,"neutral_count":0}})
+        self.catalog=defaultdict(lambda:{"count":0,"net":0.0,"positive_net":0.0,"negative_net":0.0,
+                                         "positive_count":0,"negative_count":0,"neutral_count":0,
+                                         "board_group":"","board_name":"","hero_class":"","hero_name":""})
 
-    def add(self,net_bb, event, *, risk=None, flush=None, group=None, matchup=None, reason=None):
+    def add(self,net_bb, event, *, risk=None, flush=None, group=None, matchup=None, reason=None, catalog=None):
         self.n+=1
         self.ev_total+=net_bb
         e=self.event[event];e["count"]+=1;e["net"]+=net_bb
@@ -238,6 +265,22 @@ class EVDecomposition:
                 record["negative_net"]+=net_bb;record["negative_count"]+=1
             else:
                 record["neutral_count"]+=1
+        if catalog is not None:
+            item=self.catalog[catalog["id"]]
+            item["board_group"]=catalog["board_group"]
+            item["board_name"]=catalog["board_name"]
+            item["hero_class"]=catalog["hero_class"]
+            item["hero_name"]=catalog["hero_name"]
+            item["count"]+=1
+            item["net"]+=net_bb
+            if net_bb>0:
+                item["positive_net"]+=net_bb
+                item["positive_count"]+=1
+            elif net_bb<0:
+                item["negative_net"]+=net_bb
+                item["negative_count"]+=1
+            else:
+                item["neutral_count"]+=1
         if matchup:
             relation,hero_rank,rival_rank=matchup
             entry=self.matchups[(relation,hero_rank,rival_rank)]
@@ -313,7 +356,33 @@ class EVDecomposition:
                   for (rel,hero,villain),stats in self.matchups.items()]
         matchups.sort(key=lambda x:(-x["count"],x["hero"],x["villain"]))
         assert sum(g["count"] for g in grouped)==n
+        catalog_rows=[]
+        if self.catalog:
+            assert sum(item["count"] for item in self.catalog.values())==n
+            for code,item in sorted(self.catalog.items()):
+                catalog_rows.append({
+                    "id":code,"board_group":item["board_group"],
+                    "board_name":item["board_name"],
+                    "hero_class":item["hero_class"],"hero_name":item["hero_name"],
+                    "count":item["count"],
+                    "frequency_pct":round(100*item["count"]/n,3),
+                    "avg_bb":round(item["net"]/item["count"],5),
+                    "positive_count":item["positive_count"],
+                    "negative_count":item["negative_count"],
+                    "neutral_count":item["neutral_count"],
+                    "positive_ev_bb":round(item["positive_net"]/n,6),
+                    "negative_ev_bb":round(item["negative_net"]/n,6),
+                    "contribution_bb":round(item["net"]/n,6)
+                })
+            assert abs(sum(v["net"] for v in self.catalog.values())-self.ev_total)<1e-7
         return {"hand":self.hand,"samples":n,
+                "catalog_attribution":{
+                    "source":"postflop_composite_catalog_v1",
+                    "total_scenarios":1019,
+                    "samples":n,
+                    "rows":catalog_rows,
+                    "reconciled":bool(catalog_rows),
+                    "note":"Взаимоисключающие сценарии фактического флопа. PRE|NO_FLOP — победы до флопа; EV+ и EV− нормированы на полную выборку, не на число попаданий в статью."},
                 "outcome_groups":grouped,"domination_matchups":matchups,
                 "ev_bb":round(self.ev_total/n,4),
                 "events":events,"loss_exposures":risks,"flush":flush,
