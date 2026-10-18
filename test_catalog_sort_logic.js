@@ -37,7 +37,7 @@ check('label','asc',['F|a','F|b','F|c']);
 const onlyA={key:'F|a',label:'Только A',a:{count:2,contribution_bb:-0.25}};
 assert.equal(context.sortValue(onlyA,'count:b'),0);
 assert.equal(context.sortValue(onlyA,'delta'),0.25);
-assert.deepEqual(context.fields(false).map(x=>x.key),
+assert.deepEqual(Array.from(context.fields(false),x=>x.key),
  ['label','count:a','positive_ev_bb:a','negative_ev_bb:a','contribution_bb:a']);
 assert.equal(context.fields(true).length,10);
 context.configure('count:a','desc');
