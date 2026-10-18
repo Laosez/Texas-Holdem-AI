@@ -1284,6 +1284,13 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as e:
                 self.reply(400, {"error": str(e)})
             return
+        if path == "/api/postflop/composite":
+            from postflop_composite_classifier import classify_composite_request
+            try:
+                self.reply(200, classify_composite_request(payload))
+            except ValueError as e:
+                self.reply(400, {"error": str(e)})
+            return
         if path == "/api/postflop/board-texture":
             from flop_board_structure import classify_flop_request
             try:
