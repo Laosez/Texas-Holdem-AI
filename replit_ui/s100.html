@@ -1093,10 +1093,53 @@ async function classifyNumeric(){
  }
 }
 $('classify').addEventListener('click',classifyNumeric);
+
+function initUnifiedCatalog(){
+ const panel=$('scenarioLedger'),host=$('catalogStrategyControls');
+ // Preserve working strategies/context controls but show them above the one
+ // physical catalog; the archived example table remains mounted and hidden.
+ host.append(panel.querySelector('.comparisonControls'),
+             panel.querySelector('.actionsRow'),$('strategyMessage'));
+ renderCatalogStrategyPicker();
+ renderCatalogColumnChoices();
+ $('catalogColumnsToggle').addEventListener('click',()=>{
+  const root=$('catalogColumnChoices');root.hidden=!root.hidden;
+ });
+ $('catalogSort').addEventListener('change',drawCompositeCatalog);
+ $('catalogMatch').addEventListener('click',async()=>{
+  const status=$('catalogMatchStatus');status.textContent='Сопоставление пяти карт…';
+  if(!token()){status.textContent='Сначала подключитесь';return}
+  try{
+   const r=await fetch('/api/postflop/composite',{
+    method:'POST',headers:{...auth(),'Content-Type':'application/json'},
+    body:JSON.stringify({hero:$('catalogPhysicalHero').value,
+                         board:$('catalogPhysicalBoard').value})
+   });
+   const x=await r.json();
+   if(!r.ok)throw Error(x.error||'Не удалось сопоставить карты');
+   if(!compositeCatalogueLoaded)await loadCompositeCatalog();
+   if(!compositeCatalogueLoaded)throw Error('Каталог не загружен');
+   for(const id of ['catalogBoardFilter','catalogHeroFilter','catalogReviewFilter'])$(id).value='';
+   $('catalogSearch').value=x.id;
+   drawCompositeCatalog();
+   const tr=[...document.querySelectorAll('.catalogLine')]
+        .find(node=>node.dataset.compositeId===x.id);
+   if(!tr)throw Error('Код не найден среди 1 019 сценариев');
+   tr.classList.add('active');
+   tr.scrollIntoView({block:'center',behavior:'smooth'});
+   status.textContent=x.id+' · '+x.name+
+    ' · найден составной сценарий. Вероятности в строке относятся к эталонному примеру; введённые карты могут давать иные значения.';
+  }catch(e){status.textContent='Ошибка сопоставления: '+e.message}
+ });
+ for(const id of ['catalogPhysicalHero','catalogPhysicalBoard'])
+  $(id).addEventListener('keydown',e=>{if(e.key==='Enter')$('catalogMatch').click()});
+}
+initUnifiedCatalog();
+
 $('connect').addEventListener('click',()=>{
- if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}classifyNumeric();refreshComparison();loadCompositeCatalog()}
- else $('classMessage').textContent='Введите ключ доступа.';
+ if(token()){try{sessionStorage.setItem('skachkov_key',token())}catch(e){}loadCompositeCatalog()}
+ else $('catalogMatchStatus').textContent='Введите ключ доступа.';
 });
 $('key').addEventListener('keydown',e=>{if(e.key==='Enter')$('connect').click()});
-if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';refreshComparison();loadCompositeCatalog();}
+if(token()){$('connection').textContent='Ключ сохранён';$('connection').className='badge';loadCompositeCatalog();}
 </script></body></html>
