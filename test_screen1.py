@@ -438,7 +438,7 @@ class ScreenOneTests(unittest.TestCase):
     def test_analysis_page_has_expandable_position_and_barrel_reporting(self):
         page=app.ANALYSIS_UI.read_text(encoding="utf-8")
         self.assertIn("function renderScores(){",page)
-        self.assertIn("const expanded=new Set();",page)
+        self.assertIn("expanded=new Set();",page)
         self.assertIn("button.setAttribute('aria-expanded'",page)
         self.assertIn("function renderPositions(){",page)
         self.assertIn("function compatibility(a,b,pa,pb){",page)
