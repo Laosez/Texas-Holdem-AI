@@ -1,7 +1,15 @@
 """Exhaustive 46-group taxonomy: every one of the 22,100 physical flops."""
 from collections import Counter
 from itertools import combinations
+import json
+import threading
 import unittest
+import urllib.request
+import urllib.error
+from http.server import ThreadingHTTPServer
+from unittest.mock import patch
+
+import replit_simulator as app
 
 from flop_board_structure import (
     BOARD_TYPES, CONNECTION_CODE, RANK_CONNECTIONS,
@@ -89,6 +97,80 @@ class FlopBoardStructureTests(unittest.TestCase):
             with self.subTest(payload=payload):
                 with self.assertRaises(ValueError):
                     classify_flop_request(payload)
+
+    def test_catalog_examples_cover_exactly_46_groups(self):
+        # Same 12 rank templates and suit families rendered in the sheet-03 catalog.
+        patterns = [
+            ("C3", "14-13-12", "9-8-7"),
+            ("C4", "14-13-11", "9-8-6"),
+            ("C5", "14-12-10", "9-7-5"),
+            ("C2", "14-13-5", "9-8-2"),
+            ("G2", "14-12-5", "9-7-2"),
+            ("D", "14-9-4", "13-8-2"),
+        ]
+        samples = {}
+        for ace_code, rank_index in (("A",1),("N",2)):
+            for code, a, n in patterns:
+                ranks = (a if rank_index == 1 else n).split("-")
+                for suit_code, suits in (
+                    ("R",("s","h","d")),("2S",("s","s","d")),
+                    ("3S",("s","s","s")),
+                ):
+                    text = "-".join(r+s for r,s in zip(ranks,suits))
+                    samples[f"{ace_code}-{code}-{suit_code}"] = text
+        for variant,ranks in (
+            ("AA","14-14-7"),("AX","7-7-14"),
+            ("H","13-13-2"),("L","2-2-13"),
+        ):
+            for suit_code,suits in (
+                ("R",("s","h","d")),("2S",("s","h","s")),
+            ):
+                samples[f"P-{variant}-{suit_code}"] = "-".join(
+                    r+s for r,s in zip(ranks.split("-"),suits)
+                )
+        samples.update({"T-A":"14s-14h-14d","T-X":"7s-7h-7d"})
+        self.assertEqual(len(samples),46)
+        for code,board in samples.items():
+            with self.subTest(code=code):
+                self.assertEqual(classify_flop_request({"board":board})["group_id"], code)
+
+    def test_authenticated_http_board_classifier_and_sheet_ui(self):
+        with patch.object(app,"TOKEN","flop_board_test_key"):
+            server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+            thread=threading.Thread(target=server.serve_forever,daemon=True)
+            thread.start()
+            url=f"http://127.0.0.1:{server.server_address[1]}"
+            def post(body,authorized=True):
+                headers={"Content-Type":"application/json"}
+                if authorized:
+                    headers["X-Runner-Key"]="flop_board_test_key"
+                return urllib.request.urlopen(urllib.request.Request(
+                    url+"/api/postflop/board-texture",
+                    data=json.dumps(body).encode(),headers=headers),timeout=10)
+            try:
+                with self.assertRaises(urllib.error.HTTPError) as unauthorized:
+                    post({"board":"9s-8h-6d"},authorized=False)
+                self.assertEqual(unauthorized.exception.code,401)
+                with post({"board":"9s-8h-6d"}) as r:
+                    data=json.load(r)
+                    self.assertEqual(r.status,200)
+                    self.assertEqual(data["group_id"],"N-C4-R")
+                with post({"board":"14s-13s-2d"}) as r:
+                    self.assertEqual(json.load(r)["group_id"],"A-C2-2S")
+                with self.assertRaises(urllib.error.HTTPError) as invalid:
+                    post({"board":"14-13-2"})
+                self.assertEqual(invalid.exception.code,400)
+                ui=(app.ROOT/"replit_ui/s100.html").read_text(encoding="utf-8")
+                for item in (
+                    'id="flopTextureClassifier"','id="textureBoard"',
+                    'id="classifyTexture"','id="board46Catalog"',
+                    'id="board46Rows"',"/api/postflop/board-texture",
+                ):
+                    self.assertIn(item,ui)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
 
     def test_partition_all_22100_physical_flops_into_exactly_46_groups(self):
         deck = [(r,s) for r in range(2,15) for s in "shdc"]
