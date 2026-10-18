@@ -97,6 +97,34 @@ class RiverAttributionTests(unittest.TestCase):
                          ("C06","one_pair","board_pair"))
         self.assertEqual(d["sign"],"profit")
 
+    def test_pair_rank_kicker_and_different_categories_are_distinct_causes(self):
+        board=[c("A","d"),c("7","h"),c("5","c"),c("4","d"),c("3","c")]
+        # HERO AA versus villain KK: same final one-pair category, rank gap.
+        rank=[("HERO",[c("A","s"),c("Q","s")],None),
+              ("V1",[c("K","s"),c("K","h")],None)]
+        r=classify_attribution(rank,board,"showdown_1_win",2.0,"river",
+                                ("HERO","V1"),("HERO",))
+        self.assertEqual(r["cause"],"C05")
+        # HERO top pair vs villain two pairs: actual category gap.
+        gap=[("HERO",[c("A","s"),c("Q","s")],None),
+             ("V1",[c("K","s"),c("K","h")],None)]
+        paired_board=[c("A","d"),c("7","h"),c("7","c"),c("4","d"),c("3","c")]
+        v=classify_attribution(gap,paired_board,"showdown_2_loss",-2.0,"river",
+                               ("HERO","V1"),("V1",))
+        self.assertEqual(v["cause"],"C04")
+        self.assertEqual(v["sign"],"loss")
+        # Multiway split/side-pot payout conflicts are labelled explicitly.
+        conflict=classify_attribution(gap,paired_board,"showdown_2_win",1.0,"river",
+                                       ("HERO","V1"),("HERO",))
+        self.assertEqual(conflict["cause"],"C08")
+
+    def test_paired_uncontested_reconciles_in_both_strategies(self):
+        q=sim.calculate_paired(request(never=True,paired=True,trials=50),workers=1)
+        left=verify(q["a"]["decomposition"],50)
+        right=verify(q["b"]["decomposition"],50)
+        self.assertEqual({(r["cause"],r["board_id"]) for r in left},{("C01","B00")})
+        self.assertEqual(left,right)
+
     def test_fold_at_flop_does_not_invent_river_texture(self):
         board=[c("A","h"),c("7","h"),c("2","h"),c("9","h"),c("K","h")]
         picked=[("HERO",[c("Q","s"),c("J","s")],None),
