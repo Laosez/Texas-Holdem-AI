@@ -14,6 +14,7 @@ from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
 from postflop_composite_classifier import classify_composite_flop
+from postflop_catalog_metrics import POSITIONS, hand_class, calculate_example_metrics
 import replit_simulator as app
 
 
@@ -43,13 +44,36 @@ class CompositeCatalogTests(unittest.TestCase):
                 classified=classify_composite_flop(row["hero"],row["board"])
                 self.assertEqual(classified["id"],row["id"])
                 self.assertEqual(classified["hero_state"]["name"],row["hero_name"])
+                h=tuple((int(tok[:-1]),tok[-1]) for tok in row["hero"].split("-"))
+                self.assertEqual(row["hole_name"],hand_class(h))
+                self.assertTrue(0<=row["hero_improve"]<=1)
+                self.assertEqual(set(row["opp_contact"]),{"any",*POSITIONS})
+                self.assertTrue(all(x is not None and 0<=x<=1 for x in row["opp_contact"].values()))
+
+    def test_sampled_probabilities_reconcile_with_exact_runout_and_range_engagement(self):
+        # Recalculate across all 46 board groups and diverse HERO classes.
+        chosen={}
+        for row in self.rows:
+            chosen.setdefault(row["board_group"],row)
+        for row in self.rows[::43]:
+            chosen[row["id"]]=row
+        self.assertGreaterEqual(len(chosen),46)
+        for row in chosen.values():
+            with self.subTest(id=row["id"]):
+                recomputed=calculate_example_metrics(row["hero"],row["board"])
+                self.assertAlmostEqual(row["hero_improve"],recomputed["hero_improve"],places=7)
+                for key,expected in recomputed["opponent_contact"].items():
+                    self.assertAlmostEqual(row["opp_contact"][key],expected,places=7)
 
     def test_sheet_three_catalog_stays_separate_from_action_sampling(self):
         html=(app.ROOT/"replit_ui/s100.html").read_text(encoding="utf-8")
         for marker in ('id="compositeCatalog"','id="catalogRows"',
                        'id="catalogBoardFilter"','id="catalogHeroFilter"',
                        'id="catalogReviewFilter"','id="catalogSearch"',
-                       'id="catalogReset"','catalogMarkStorage',
+                       'id="catalogReset"','id="catalogOpponentRange"',
+                       'Карманная рука HERO','Название борда',
+                       'Усиление к риверу','Опп. пара+ / дро',
+                       'catalogMarkStorage',
                        'localStorage.setItem','/api/postflop/composite-catalog'):
             self.assertIn(marker,html)
         self.assertIn('id="scenarioLedger"',html)
