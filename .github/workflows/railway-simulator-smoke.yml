@@ -35,7 +35,7 @@ jobs:
           python-version: '3.11'
       - name: Unit tests
         run: |
-          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_gto_postflop_v3 test_gto_postflop_v4 test_s100_scenarios test_s100_third_sheet test_postflop_numeric_classifier test_flop_board_structure test_postflop_composite_classifier test_postflop_strategy_compare test_ev_decomposition test_plan_ev_workflow -v
+          python -m unittest test_replit_simulator test_screen1 test_a17_position_ranges test_reliability test_planner test_planner_http test_planner_ui_restore test_planner_ui_colors_ev test_planner_postflop_ev test_planner_hero_postflop_ui test_gto_postflop_v2 test_gto_postflop_v3 test_gto_postflop_v4 test_s100_scenarios test_s100_third_sheet test_postflop_numeric_classifier test_flop_board_structure test_postflop_composite_classifier test_composite_census_research test_postflop_strategy_compare test_ev_decomposition test_plan_ev_workflow -v
       - name: Verify Screen 1 JavaScript syntax
         run: |
           python - <<'PY'
