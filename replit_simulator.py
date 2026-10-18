@@ -32,6 +32,7 @@ import planner_core
 ROOT = Path(__file__).resolve().parent
 UI = ROOT / "replit_ui" / "index.html"
 PLAN_UI = ROOT / "replit_ui" / "plan.html"
+ANALYSIS_UI = ROOT / "replit_ui" / "analysis.html"
 OUT = Path(os.environ.get("POKER_DATA_DIR", str(ROOT / "output" / "replit_runs"))).resolve()
 PORT = int(os.environ.get("PORT", "3000"))
 TOKEN = os.environ.get("POKER_RUNNER_KEY", "").strip()
@@ -451,67 +452,127 @@ def _read_rows(file: Path) -> list[dict]:
 
 
 def stats_for_folder(folder: Path) -> dict:
-    """Actual observed preflop metrics and placement data; never infer bb/100."""
+    """Reconstruct audited totals and optional seat/table-size scopes from real CSV."""
+    import math
     observed = {}
-    for row in _read_rows(folder / "summary_all.csv"):
-        profile = row.get("bot", "")
-        if not profile:
-            continue
-        observed[profile] = {
-            metric: (float(row[metric + "_pct"]) if row.get(metric + "_pct", "") not in ("", None) else None)
-            for metric in ("vpip", "pfr", "rfi", "threebet", "fourbet")
-        }
-        observed[profile]["hands_observed"] = int(row.get("hands_observed") or 0)
-    # Optional versioned telemetry: legacy archives remain readable.
-    postflop_columns = ("flop_af", "turn_af", "river_af",
-                        "flop_cbet", "turn_cbet", "river_cbet", "cbet",
-                        "fold_to_bet", "check_raise", "wsd", "net_bb_100")
-    preflop_columns = ("vpip", "pfr", "rfi", "threebet", "fourbet")
-    positional = {}
+    positions = {"10", "9", "8", "7", "6", "5", "4", "3", "SB", "BB"}
+    pre_metrics = {"vpip": "hands_observed", "pfr": "hands_observed",
+                   "rfi": "rfi_opportunities", "threebet": "threebet_opportunities",
+                   "fourbet": "fourbet_opportunities"}
+    post_metrics = ("flop_af", "turn_af", "river_af", "flop_cbet", "turn_cbet",
+                    "river_cbet", "cbet", "fold_to_bet", "check_raise", "wsd",
+                    "net_bb_100")
+    post_raw = tuple(f"{st}_{col}" for st in ("flop", "turn", "river")
+                     for col in ("aggressive", "calls", "cbet_n", "cbet_opp")) + (
+        "cbet_n", "cbet_opp", "fold_to_bet_n", "fold_to_bet_opp",
+        "check_raise_n", "check_raise_opp", "wsd_n", "wsd_opp",
+        "net_bb_units", "net_hands")
 
-    # Aggregates are exported independently (small 9-seat tables). Reading
-    # 169-hand matrices on every /api/runs/<id> poll would be wasteful.
-    for row in _read_rows(folder / "summary_position_all.csv"):
-        name, position = row.get("bot"), row.get("position")
-        if not name or position not in ("10","9","8","7","6","5","4","3","SB","BB"):
-            continue
-        count = int(row.get("hands_observed") or 0)
-        if count == 0:
-            continue
-        record = {"position": position, "hands_observed": count}
-        for metric in preflop_columns:
-            try:
-                value = row.get(metric + "_pct")
-                record[metric] = float(value) if value not in ("", None) else None
-            except (TypeError, ValueError):
-                record[metric] = None
-        positional[(name, position)] = record
+    def finite(value):
+        try:
+            number = float(value) if value not in ("", None) else None
+            return number if number is not None and math.isfinite(number) else None
+        except (TypeError, ValueError):
+            return None
 
-    for row in _read_rows(folder / "postflop_position_summary.csv"):
-        name, position = row.get("bot"), row.get("position")
-        record = positional.get((name, position))
+    def pre(row):
+        count = finite(row.get("hands_observed"))
+        if count is None or count <= 0:
+            return None
+        record = {"hands_observed": int(count)}
+        raw = {}
+        for metric, denom in pre_metrics.items():
+            record[metric] = finite(row.get(metric + "_pct"))
+            n, opportunity = finite(row.get(metric + "_n")), finite(row.get(denom))
+            if n is not None and opportunity is not None:
+                raw[metric + "_n"] = n
+                raw[denom] = opportunity
+        if raw:
+            record["pre_raw"] = raw
+        return record
+
+    def attach_post(record, row):
         if record is None:
-            continue
-        for metric in postflop_columns:
-            try:
-                value = row.get(metric)
-                record[metric] = float(value) if value not in ("", None) else None
-            except (TypeError, ValueError):
-                record[metric] = None
+            return
+        for metric in post_metrics:
+            if metric in row:
+                record[metric] = finite(row.get(metric))
+        raw = {col: value for col in post_raw
+               if (value := finite(row.get(col))) is not None}
+        if raw:
+            record["post_raw"] = raw
+
+    # Original all-seat records stay available to imported/legacy archives.
+    for row in _read_rows(folder / "summary_all.csv"):
+        name = row.get("bot")
+        record = pre(row)
+        if name and record:
+            observed[name] = record
     for row in _read_rows(folder / "postflop_summary.csv"):
         name = row.get("bot")
-        if not name:
+        if name:
+            attach_post(observed.setdefault(name, {}), row)
+
+    for row in _read_rows(folder / "summary_position_all.csv"):
+        name, pos = row.get("bot"), row.get("position")
+        record = pre(row)
+        if name and pos in positions and record:
+            observed.setdefault(name, {}).setdefault("positions", {})[pos] = record
+    for row in _read_rows(folder / "postflop_position_summary.csv"):
+        name, pos = row.get("bot"), row.get("position")
+        record = observed.get(name, {}).get("positions", {}).get(pos)
+        attach_post(record, row)
+
+    # Compact table-size breakdown: only available where the original exporter
+    # collected it. n2..n9 exists historically at total level; new position
+    # CSVs are strictly optional.
+    for size in range(2, 10):
+        for row in _read_rows(folder / f"summary_n{size}.csv"):
+            name = row.get("bot")
+            record = pre(row)
+            if name and record:
+                observed.setdefault(name, {}).setdefault("stages", {})[
+                    str(size)] = {"total": record, "positions": {}}
+        for row in _read_rows(folder / f"summary_position_n{size}.csv"):
+            name, pos = row.get("bot"), row.get("position")
+            record = pre(row)
+            stage = observed.get(name, {}).get("stages", {}).get(str(size))
+            if stage and pos in positions and record:
+                stage["positions"][pos] = record
+
+    stage_raw = {}
+    for row in _read_rows(folder / "postflop_position_stage_summary.csv"):
+        name, pos = row.get("bot"), row.get("position")
+        try:
+            size = int(row.get("table_size") or 0)
+        except (TypeError, ValueError):
             continue
-        stats = observed.setdefault(name, {})
-        for metric in postflop_columns:
-            value = row.get(metric)
-            try:
-                number = float(value) if value not in (None, "") else None
-            except (ValueError, TypeError):
-                number = None
-            stats[metric] = number if number is not None and __import__("math").isfinite(number) else None
-    for (name, position), record in positional.items():
-        observed.setdefault(name, {}).setdefault("positions", {})[position] = record
+        stage = observed.get(name, {}).get("stages", {}).get(str(size))
+        if not stage or pos not in positions:
+            continue
+        record = stage["positions"].get(pos)
+        if record is None:
+            continue
+        attach_post(record, row)
+        pool = stage_raw.setdefault((name, size), {})
+        for key, value in record.get("post_raw", {}).items():
+            pool[key] = pool.get(key, 0) + value
+
+    # Regenerate stage total postflop ratios from numerators/denominators.
+    # Never average percentage values from different positions.
+    for (name, size), raw in stage_raw.items():
+        total = observed[name]["stages"][str(size)]["total"]
+        total["post_raw"] = raw
+        for street in ("flop", "turn", "river"):
+            bets, calls = raw.get(street + "_aggressive", 0), raw.get(street + "_calls", 0)
+            total[street + "_af"] = round(bets / calls, 4) if calls else None
+        for metric in ("flop_cbet", "turn_cbet", "river_cbet", "cbet",
+                       "fold_to_bet", "check_raise", "wsd"):
+            n, opp = raw.get(metric + "_n", 0), raw.get(metric + "_opp", 0)
+            total[metric] = round(100 * n / opp, 4) if opp else None
+        net_hands = raw.get("net_hands", 0)
+        total["net_bb_100"] = round(100 * raw.get("net_bb_units", 0) / net_hands, 4) if net_hands else None
+
     placement = {}
     for row in _read_rows(folder / "tournament_players.csv"):
         if row.get("completed") != "1":
@@ -520,7 +581,7 @@ def stats_for_folder(folder: Path) -> dict:
         entry = placement.setdefault(name, {"places": [], "top3": 0})
         try:
             place = int(row.get("position") or 0)
-        except ValueError:
+        except (TypeError, ValueError):
             continue
         if place < 1:
             continue
@@ -528,9 +589,9 @@ def stats_for_folder(folder: Path) -> dict:
         entry["top3"] += int(place <= 3)
     for name, data in placement.items():
         result = observed.setdefault(name, {})
-        positions = data["places"]
-        result["top3_pct"] = round(data["top3"] / len(positions) * 100, 2) if positions else None
-        result["median_position"] = statistics.median(positions) if positions else None
+        places = data["places"]
+        result["top3_pct"] = round(data["top3"] / len(places) * 100, 2) if places else None
+        result["median_position"] = statistics.median(places) if places else None
     return observed
 
 
@@ -1151,8 +1212,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path in ("/", "/plan", "/s100"):
+        if path in ("/", "/plan", "/s100", "/analysis"):
             html = ((ROOT / "replit_ui" / "s100.html") if path == "/s100"
+                    else ANALYSIS_UI if path == "/analysis"
                     else PLAN_UI if path == "/plan" else UI).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
