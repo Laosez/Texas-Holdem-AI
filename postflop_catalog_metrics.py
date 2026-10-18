@@ -120,3 +120,147 @@ def calculate_example_metrics(hero_text,board_text):
             "flop_category":flop_category,
             "opponent_contact":opp,
             "turn_river_combinations":1081}
+
+
+# Explicit independent questions. Every key has a precise, testable event.
+HERO_GOALS = (
+    "improve_category",    # Existing baseline: stronger MADE-HAND category than flop
+    "new_pair_either",     # At least one new board card matches either HERO rank
+    "new_pair_high",       # At least one new board card matches higher HERO rank
+    "new_pair_low",        # At least one new board card matches lower HERO rank
+    "top_pair_plus",      # On river: own top board rank paired OR overpair OR >=2 pairs
+    "pair_plus",          # Final made category pair+, includes board-only pairs
+    "two_pair_plus",
+    "trips_plus",
+    "straight_plus",
+    "flush_plus",
+    "full_house_plus",
+)
+VILLAIN_GOALS = (
+    "pair_or_draw",       # Backward compatible union
+    "private_pair",       # Pocket pair or matches a flop rank; board-only pair excluded
+    "top_pair_overpair",  # Best board rank matched, pair above board, or trips via pocket
+    "two_pair_plus",     # Category >= two pair, requires private participation
+    "trips_plus",        # Category >= three of a kind, requires private participation
+    "flush_draw",        # Four suited cards, no made flush
+    "straight_draw",     # At least four in five-rank window, no made straight
+    "any_draw",
+    "no_contact",        # None of those pair/draw events
+)
+RANGE_KEYS = ("any",)+POSITIONS
+
+
+def _hero_goal_hit(goal, hero, flop, runout, flop_category, river_category):
+    board = flop+runout
+    hi=max(r for r,_ in hero)
+    lo=min(r for r,_ in hero)
+    river_ranks={r for r,_ in board}
+    if goal=="improve_category":
+        return river_category>flop_category
+    if goal=="new_pair_either":
+        return bool({r for r,_ in runout}&{hi,lo})
+    if goal=="new_pair_high":
+        return any(r==hi for r,s in runout)
+    if goal=="new_pair_low":
+        return any(r==lo for r,s in runout)
+    if goal=="pair_plus":
+        return river_category>=1
+    if goal=="top_pair_plus":
+        # The pocket pair may be an overpair; an own matched board card
+        # must match the HIGHEST RANK of the final 5-card board.
+        own_top_pair = any(r==max(river_ranks) for r,s in hero
+                           if r in river_ranks)
+        pocket_overpair=(hi==lo and hi>max(river_ranks))
+        return river_category>=2 or own_top_pair or pocket_overpair
+    category_floor={
+        "two_pair_plus":2, "trips_plus":3, "straight_plus":4,
+        "flush_plus":5, "full_house_plus":6,
+    }.get(goal)
+    if category_floor is None:
+        raise ValueError("Неизвестная цель усиления HERO")
+    return river_category>=category_floor
+
+
+def _villain_goal_flags(hole, board):
+    hole_ranks=[r for r,s in hole]
+    board_ranks={r for r,s in board}
+    highest=max(board_ranks)
+    is_pocket=hole_ranks[0]==hole_ranks[1]
+    matches=bool(set(hole_ranks)&board_ranks)
+    private_pair=is_pocket or matches
+    all_cards=hole+board
+    category=made_category(all_cards)
+    flush_draw=any(n==4 for n in Counter(s for r,s in all_cards).values()) and category<5
+    rankset=set(r for r,s in all_cards)
+    straight_draw=(category<4 and
+                   any(len(window&rankset)>=4 for window in STREETS))
+    draw=flush_draw or straight_draw
+    board_has_trips=len(board_ranks)==1
+    trip_on_board_only=board_has_trips and not private_pair
+    top_pair_overpair=(
+        (is_pocket and hole_ranks[0]>highest) or
+        (matches and highest in hole_ranks) or
+        (board_has_trips and matches)
+    )
+    flags={
+        "private_pair":private_pair,
+        "top_pair_overpair":top_pair_overpair,
+        "two_pair_plus":category>=2 and not trip_on_board_only,
+        "trips_plus":category>=3 and not trip_on_board_only,
+        "flush_draw":flush_draw,
+        "straight_draw":straight_draw,
+        "any_draw":draw,
+        "pair_or_draw":private_pair or draw,
+        "no_contact":not(private_pair or draw),
+    }
+    return flags
+
+
+def calculate_goal_metrics(hero_text, board_text):
+    """Exact goal-conditioned rates for one real HERO + flop example.
+
+    HERO: all C(47,2) turn/river runouts; no opponent range is specified.
+    Villain: all C(47,2) physical hole hands, weighted by chosen PC 80bb
+    RFI raise chart (or uniformly random). Hero blockers are excluded.
+    Hero runout probabilities are NOT opponent-range conditional.
+    """
+    hero=tuple(parse_physical_hero(hero_text))
+    board=tuple(parse_physical_flop(board_text))
+    if len(set(hero+board))!=5:
+        raise ValueError("HERO и флоп не могут содержать одну физическую карту дважды")
+    excluded=set(hero+board)
+    rest=tuple((r,s) for r in range(2,15) for s in "shdc" if (r,s) not in excluded)
+    flop_cat=made_category(hero+board)
+    hits=dict.fromkeys(HERO_GOALS,0)
+    villain_hits={goal:dict.fromkeys(RANGE_KEYS,0) for goal in VILLAIN_GOALS}
+    denominators=dict.fromkeys(RANGE_KEYS,0)
+    count=0
+    for a,b in combinations(rest,2):
+        hole=(a,b)
+        count+=1
+        cat=made_category(hero+board+hole)
+        for goal in HERO_GOALS:
+            hits[goal]+=_hero_goal_hit(goal,hero,board,hole,flop_cat,cat)
+        flags=_villain_goal_flags(hole,board)
+        weights={"any":1}
+        cls=hand_class(hole)
+        for pos in POSITIONS:
+            weights[pos]=PC_WEIGHTS[pos][cls]  # quarter units
+        for pos,w in weights.items():
+            denominators[pos]+=w
+            if w:
+                for goal in VILLAIN_GOALS:
+                    if flags[goal]:
+                        villain_hits[goal][pos]+=w
+    if count!=1081:
+        raise AssertionError("Ожидаются C(47,2)=1081 физических сочетаний")
+    return {
+        "hero_goals":{goal:hits[goal]/count for goal in HERO_GOALS},
+        "villain_goals":{
+            goal:{pos:(villain_hits[goal][pos]/denominators[pos]
+                       if denominators[pos] else None)
+                  for pos in RANGE_KEYS}
+            for goal in VILLAIN_GOALS
+        },
+        "runouts":count,
+    }
