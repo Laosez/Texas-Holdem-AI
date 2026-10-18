@@ -2905,6 +2905,115 @@ function renderCompareBalanceLedger(root,a,b){
  root.append(registry.table);
 }
 
+
+/* The /s100 dictionary uses the same classified physical flop for every
+   rollout; summary EV is weighted over ALL Monte Carlo samples, never only
+   the samples in one catalogue bucket. */
+function catalogRowsByBoard(report){
+ const map=new Map();
+ for(const row of report?.catalog_attribution?.rows||[]){
+  const key=row.board_group;
+  if(!map.has(key))map.set(key,{name:row.board_name,rows:new Map()});
+  map.get(key).rows.set(row.id,row);
+ }
+ return map;
+}
+function catalogTotal(items){
+ const total={count:0,positive_ev_bb:0,negative_ev_bb:0,contribution_bb:0};
+ for(const item of items){
+  for(const key of Object.keys(total))total[key]+=Number(item?.[key])||0;
+ }
+ return total;
+}
+function renderCatalogLedger(root,a,b,compare){
+ root.append(el('h4','evLedgerSubheading','Справочник 1 019 сценариев флопа · структура борда → HERO'));
+ if((a&&!a.catalog_attribution?.reconciled)||(b&&!b.catalog_attribution?.reconciled)){
+  root.append(el('p','handDecompEmpty','В текущем расчёте нет кодов справочника. Запусти новый Monte Carlo; по старой агрегированной статистике классификация не восстанавливается.'));
+  return;
+ }
+ if(compare&&(!a||!b)){
+  root.append(el('p','handDecompEmpty','Ожидается полный расчёт обеих сторон для справочника.'));
+  return;
+ }
+ const mapA=catalogRowsByBoard(a),mapB=catalogRowsByBoard(b);
+ const categories=[...new Set([...mapA.keys(),...mapB.keys()])]
+   .sort((x,y)=>x==='PRE|NO_FLOP'?-1:y==='PRE|NO_FLOP'?1:x.localeCompare(y));
+ const columns=compare?
+  ['Статья справочника','N A','N B','% A','% B','EV+ A','EV+ B','EV− A','EV− B','Net A','Net B','Δ (B−A)']:
+  ['Статья справочника','N','%','EV+','EV−','Net'];
+ const {table,body}=makeEvLedger(columns);
+ table.classList.add('catalogLedgerReport');
+ const value=(data,n)=>data?evLedgerFormat(n):'—';
+ function appendRow(label,ra,rb,level=0,groupKey=null){
+  const aa=ra||{},bb=rb||{},ca=aa.count||0,cb=bb.count||0;
+  const cells=compare?[
+   a?String(ca):'—',b?String(cb):'—',
+   a?ledgerSamplePct(ca,a.samples):'—',b?ledgerSamplePct(cb,b.samples):'—',
+   value(a,aa.positive_ev_bb||0),value(b,bb.positive_ev_bb||0),
+   value(a,aa.negative_ev_bb||0),value(b,bb.negative_ev_bb||0),
+   value(a,aa.contribution_bb||0),value(b,bb.contribution_bb||0),
+   a&&b?evLedgerFormat((bb.contribution_bb||0)-(aa.contribution_bb||0)):'—'
+  ]:[
+   a?String(ca):'—',a?ledgerSamplePct(ca,a.samples):'—',
+   value(a,aa.positive_ev_bb||0),value(a,aa.negative_ev_bb||0),
+   value(a,aa.contribution_bb||0)
+  ];
+  const tr=decompRow(body,label,cells,groupKey?'evLedgerSub':'evLedgerDetail',level);
+  if(groupKey){
+   const expanded=catalogOpenBoards.has(groupKey);
+   const button=el('button','abDisclosure');
+   button.type='button';button.setAttribute('aria-expanded',String(expanded));
+   button.setAttribute('aria-label',(expanded?'Свернуть ':'Развернуть ')+'сценарии '+label);
+   button.append(el('span','abChevron',expanded?'▾':'▸'),el('span','',label));
+   button.onclick=()=>{if(expanded)catalogOpenBoards.delete(groupKey);
+    else catalogOpenBoards.add(groupKey);renderHandDecomposition()};
+   tr.firstChild.replaceChildren(button);
+  }
+  return tr;
+ }
+ for(const key of categories){
+  const groupA=mapA.get(key),groupB=mapB.get(key);
+  const left=catalogTotal(groupA?.rows.values()||[]);
+  const right=catalogTotal(groupB?.rows.values()||[]);
+  const label=(groupA?.name||groupB?.name||key)+' · '+key;
+  appendRow(label,left,right,0,key);
+  if(!catalogOpenBoards.has(key))continue;
+  const rowsA=groupA?.rows||new Map(),rowsB=groupB?.rows||new Map();
+  const codes=[...new Set([...rowsA.keys(),...rowsB.keys()])];
+  codes.sort((a,b)=>((rowsA.get(b)?.count||0)+(rowsB.get(b)?.count||0))-
+    ((rowsA.get(a)?.count||0)+(rowsB.get(a)?.count||0))||a.localeCompare(b));
+  for(const id of codes){
+   const record=rowsA.get(id)||rowsB.get(id);
+   const tr=appendRow(id+' · '+record.hero_name,rowsA.get(id),rowsB.get(id),1);
+   tr.title='Код справочника '+id+' · '+record.hero_name;
+  }
+ }
+ const allA=catalogTotal(a?.catalog_attribution?.rows||[]);
+ const allB=catalogTotal(b?.catalog_attribution?.rows||[]);
+ const last=appendRow('ЧИСТЫЙ EV · ИТОГО',allA,allB);
+ last.classList.add('evLedgerTotal');
+ const validA=!a||(allA.count===a.samples&&Math.abs(allA.contribution_bb-a.ev_bb)<.002);
+ const validB=!b||(allB.count===b.samples&&Math.abs(allB.contribution_bb-b.ev_bb)<.002);
+ const toolbar=el('div','evLedgerToolbar');
+ const toggle=el('button','btn sm','Раскрыть / свернуть все борды');
+ toggle.type='button';toggle.onclick=()=>{
+  const openAll=categories.some(k=>!catalogOpenBoards.has(k));
+  catalogOpenBoards.clear();
+  if(openAll)for(const k of categories)catalogOpenBoards.add(k);
+  renderHandDecomposition();
+ };
+ const link=el('a','btn sm','↗ Справочник 1 019 сценариев');
+ link.href='/s100';link.style.textDecoration='none';
+ toolbar.append(toggle,link);root.append(toolbar,table);
+ const note=el('p','evLedgerFootnote',(validA&&validB?'✓ Сверка EV и N пройдена. ':'⚠ Расхождение сверки EV или N. ')+
+  'Все статьи взаимоисключающие. N — число попаданий в сценарий; EV+ / EV− / Net — вклад в BB на одну симуляцию всей выбранной выборки. '+
+  '«00 · До флопа» включает раздачи без вошедших соперников: им не приписывается выдуманный флоп. '+
+  'Сумма по статьям = EV всей руки (погрешность округления до 0,002 BB). '+
+  (compare?'Δ(B−A) при разных стартовых руках НЕ является изолированным эффектом стратегии. ':'')+
+  'Код F|… совпадает со справочником на листе 03.');
+ note.classList.toggle('isWarning',!validA||!validB);root.append(note);
+}
+
 function selectedAbBreakdown(side,selection){
  if(side==='b'&&!decompSideRequest('b'))
   return {valid:false,data:null,samples:null,proportion:null,ci95:null};
