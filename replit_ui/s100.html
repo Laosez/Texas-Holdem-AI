@@ -102,7 +102,7 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
 
 /* Separate analytical catalog: 1,019 physically reachable composite classes.
    Do not attach bot-frequency columns to this table. */
-.catalogBar{display:grid;grid-template-columns:minmax(210px,2fr) repeat(4,minmax(125px,1fr));gap:9px;margin:13px 0}
+.catalogBar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:13px 0}
 .catalogLedger{min-width:1650px;font-variant-numeric:tabular-nums;font-size:12px}
 .catalogLedger .catalogGroup td{position:static!important;background:#254b70!important;color:#edf6ff;font-weight:800;padding:11px 13px;letter-spacing:.2px}
 .catalogLedger .catalogGroup td:first-child{position:static!important}
@@ -151,6 +151,30 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
   <div class="field"><label for="catalogBoardFilter">Структура борда</label><select id="catalogBoardFilter"><option value="">Все 46 структур</option></select></div>
   <div class="field"><label for="catalogHeroFilter">Попадание HERO</label><select id="catalogHeroFilter"><option value="">Все классы HERO</option></select></div>
   <div class="field"><label for="catalogReviewFilter">Просмотр</label><select id="catalogReviewFilter"><option value="">Все сценарии</option><option value="new">Не просмотрены</option><option value="done">Просмотрены</option></select></div>
+  <div class="field"><label for="catalogHeroGoal">Цель HERO · к риверу</label><select id="catalogHeroGoal">
+    <option value="new_pair_either">Поймать любой номинал HERO (A или K для AK)</option>
+    <option value="new_pair_high">Поймать старший номинал HERO</option>
+    <option value="new_pair_low">Поймать младший номинал HERO</option>
+    <option value="top_pair_plus">Топ-пара / оверпара или две пары+</option>
+    <option value="pair_plus">Любая пара+ (включая общую)</option>
+    <option value="two_pair_plus">Две пары или сильнее</option>
+    <option value="trips_plus">Трипс / сет или сильнее</option>
+    <option value="straight_plus">Стрит или сильнее</option>
+    <option value="flush_plus">Флеш или сильнее</option>
+    <option value="full_house_plus">Фулл-хаус или сильнее</option>
+    <option value="improve_category">Выше категории руки на флопе · прежний расчёт</option>
+   </select></div>
+  <div class="field"><label for="catalogVillainGoal">Попадание оппонента · флоп</label><select id="catalogVillainGoal">
+    <option value="pair_or_draw">Собственная пара или прямое дро</option>
+    <option value="private_pair">Собственная пара · без общего совпадения</option>
+    <option value="top_pair_overpair">Топ-пара / оверпара</option>
+    <option value="two_pair_plus">Две пары+ с участием оппонента</option>
+    <option value="trips_plus">Трипс / сет+ с участием оппонента</option>
+    <option value="flush_draw">Флеш-дро</option>
+    <option value="straight_draw">Стрит-дро</option>
+    <option value="any_draw">Любое прямое дро</option>
+    <option value="no_contact">Не попал и нет прямого дро</option>
+   </select></div>
   <div class="field"><label for="catalogOpponentRange">Диапазон оппонента</label><select id="catalogOpponentRange"><option value="any">100% · случайные две карты</option><option value="UTG">PC GTO 80bb · UTG · RFI</option><option value="UTG1">PC GTO 80bb · UTG+1 · RFI</option><option value="LJ">PC GTO 80bb · LJ · RFI</option><option value="HJ">PC GTO 80bb · HJ · RFI</option><option value="CO">PC GTO 80bb · CO · RFI</option><option value="BTN">PC GTO 80bb · BTN · RFI</option><option value="SB">PC GTO 80bb · SB · рейз</option></select></div>
  </div>
  <div class="tableMeta" style="margin-bottom:11px">
@@ -159,9 +183,9 @@ header{padding-top:17px}.brand strong{font-size:22px}.right{width:100%}.right in
  </div>
  <div id="catalogSelected" class="catalogSelected" hidden></div>
  <div class="tablewrap" style="max-height:75vh">
-  <table class="catalogLedger"><thead><tr><th>№</th><th>Код сценария</th><th>Борд</th><th>Название борда</th><th>HERO</th><th>Карманная рука HERO</th><th>Попадание HERO</th><th title="Точная вероятность, что категория готовой руки HERO к риверу станет старше, чем на флопе, при случайных тёрне и ривере" style="text-align:right">Усиление к риверу</th><th title="Вероятность, что у одного оппонента на флопе есть карманная пара, совпадение ранга с бордом или прямое стрит-/флеш-дро; диапазон выбирается выше" style="text-align:right">Опп. пара+ / дро</th><th style="text-align:right">Частота класса</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
+  <table class="catalogLedger"><thead><tr><th>№</th><th>Код сценария</th><th>Борд</th><th>Название борда</th><th>HERO</th><th>Карманная рука HERO</th><th>Попадание HERO</th><th id="catalogHeroHeader" title="Выберите цель HERO над таблицей; точно по 1 081 возможной паре карт тёрна–ривера" style="text-align:right">Цель HERO · к риверу</th><th id="catalogVillainHeader" title="Попадание одного оппонента на флопе при выбранном диапазоне; известные карты исключены" style="text-align:right">Оппонент · на флопе</th><th style="text-align:right">Частота класса</th><th style="text-align:center">Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Укажите ключ доступа и загрузите каталог.</td></tr></tbody></table>
  </div>
- <p class="summary"><strong>Важно:</strong> обе вероятности рассчитаны для <strong>конкретных пяти карт в строке</strong>, а не усреднены по всем раздачам этого составного класса. «Усиление» — переход в более высокую категорию готовой пятикарточной комбинации к риверу по всем 1 081 вариантам двух следующих карт (включая улучшения общих карт); это <strong>не вероятность выигрыша и не прирост EV</strong>. «Опп. пара+ / дро» — вероятность для <strong>одного</strong> оппонента с учётом пяти известных карт: собственная карманная пара, совпадение с бордом или прямое четырёхкарточное стрит-/флеш-дро; общая пара на борде и бэкдоры сами по себе не считаются. Режимы PC GTO 80bb используют реальные частоты рейза RFI по позиции, без поправок на постфлоп-действия. Частота класса — доля всех равномерно сданных HERO + флопов, не вероятность выигрыша. Отметки просмотра хранятся только в этом браузере; старая таблица GTO/LAG остаётся ниже.</p>
+ <p class="summary"><strong>Выбирайте цель отдельно для HERO и оппонента.</strong> Для HERO — точная вероятность достижения выбранного результата <strong>к риверу</strong> по всем 1 081 тёрнам/риверам после пяти известных карт. «Поймать A или K» означает, что хотя бы одна карта тёрна/ривера совпадёт с соответствующим карманным рангом; это не обязательно выигрыш и не всегда топ-пара. Цели «Пара+», «Две пары+» и т. д. проверяют итоговую категорию <strong>включая комбинации общих карт и уже готовые попадания</strong>; «Выше категории» отдельно требует изменения относительно флопа. Для оппонента — событие <strong>у одного игрока именно на флопе</strong> при выбранном диапазоне с учётом блокеров HERO. «Собственная пара» — карманная пара или совпадение одной из карманных карт с номиналом флопа; общая пара без личного совпадения не считается. Флеш-/стрит-дро означает прямое 4-карточное дро, без бэкдора. <strong>Это показатели физического примера конкретной строки, не средние значения по составному классу, не equity и не EV.</strong> Частота класса показана отдельно. Отметки просмотра сохраняются только в этом браузере; действующая таблица GTO/LAG остаётся ниже.</p>
 </section>
 <section class="panel" id="numericClassifier">
  <div class="heading"><h2><span class="index">00 / </span>Постфлоп · План</h2><span class="badge">Одна улица → один сценарий</span></div>
@@ -681,6 +705,8 @@ function catalogGroupSort(a,b){
 }
 function drawCompositeCatalog(){
  if(!compositeCatalogueLoaded)return;
+ $("catalogHeroHeader").textContent=$("catalogHeroGoal").selectedOptions[0].textContent;
+ $("catalogVillainHeader").textContent=$("catalogVillainGoal").selectedOptions[0].textContent;
  const search=$("catalogSearch").value.trim().toLowerCase();
  const words=search.split(/\s+/).filter(Boolean);
  const boardCode=$("catalogBoardFilter").value;
@@ -719,12 +745,15 @@ function drawCompositeCatalog(){
   const heroLabel=document.createElement("td");heroLabel.textContent=row.hole_name;
   const hit=document.createElement("td");hit.textContent=row.hero_name;
   const stronger=document.createElement("td");stronger.className="probability";
-  stronger.textContent=(100*row.hero_improve).toFixed(1)+"%";
-  stronger.title="Смена категории готовой руки к риверу · точный перебор 1 081 вариантов следующих карт для этого примера";
+  const heroGoal=$("catalogHeroGoal").value;
+  const heroGoalValue=row.hero_goals?.[heroGoal];
+  stronger.textContent=heroGoalValue===null||heroGoalValue===undefined?"—":(100*heroGoalValue).toFixed(1)+"%";
+  stronger.title="HERO "+row.hole_name+" · конкретные карты "+row.hero+" · точный перебор 1 081 тёрн/ривер";
   const contact=document.createElement("td");contact.className="probability";
-  const contactValue=row.opp_contact[$("catalogOpponentRange").value];
+  const villainGoal=$("catalogVillainGoal").value;
+  const contactValue=row.villain_goals?.[villainGoal]?.[$("catalogOpponentRange").value];
   contact.textContent=contactValue===null||contactValue===undefined?"—":(100*contactValue).toFixed(1)+"%";
-  contact.title="Пара с участием карманных карт или прямое стрит-/флеш-дро одного оппонента · учтены блокеры и выбранный диапазон";
+  contact.title="Вероятность выбранного события у одного оппонента на флопе при выбранном диапазоне и блокерах HERO";
   const chance=document.createElement("td");chance.className="probability";
   chance.textContent=(100*row.deals/25989600).toFixed(4)+"%";
   chance.title=row.deals.toLocaleString("ru-RU")+" / 25 989 600 физических раздач";
@@ -785,6 +814,7 @@ async function loadCompositeCatalog(){
   const data=await response.json();
   if(!response.ok)throw Error(data.error||"Ошибка загрузки каталога");
   if(!Array.isArray(data.rows)||data.rows.length!==1019)throw Error("Каталог неполный");
+  if(data.rows.some(r=>!r.hero_goals||!r.villain_goals))throw Error("Нет расчётов для выбранных целей HERO / оппонента");
   compositeCatalogRows=data.rows.slice().sort((a,b)=>
    catalogGroupSort(a.board_group,b.board_group)||
    a.hero_name.localeCompare(b.hero_name,"ru")||
@@ -806,7 +836,7 @@ async function loadCompositeCatalog(){
   $("catalogStatus").textContent="Не удалось загрузить каталог: "+err.message;
  }
 }
-for(const id of ["catalogBoardFilter","catalogHeroFilter","catalogReviewFilter","catalogOpponentRange"]){
+for(const id of ["catalogBoardFilter","catalogHeroFilter","catalogReviewFilter","catalogOpponentRange","catalogHeroGoal","catalogVillainGoal"]){
  $(id).addEventListener("change",drawCompositeCatalog);
 }
 $("catalogSearch").addEventListener("input",drawCompositeCatalog);

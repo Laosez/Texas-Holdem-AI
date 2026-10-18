@@ -14,7 +14,7 @@ from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
 from postflop_composite_classifier import classify_composite_flop
-from postflop_catalog_metrics import POSITIONS, hand_class, calculate_example_metrics
+from postflop_catalog_metrics import POSITIONS, hand_class, calculate_example_metrics, calculate_goal_metrics, HERO_GOALS, VILLAIN_GOALS, RANGE_KEYS
 import replit_simulator as app
 
 
@@ -49,6 +49,18 @@ class CompositeCatalogTests(unittest.TestCase):
                 self.assertTrue(0<=row["hero_improve"]<=1)
                 self.assertEqual(set(row["opp_contact"]),{"any",*POSITIONS})
                 self.assertTrue(all(x is not None and 0<=x<=1 for x in row["opp_contact"].values()))
+                self.assertEqual(set(row["hero_goals"]),set(HERO_GOALS))
+                self.assertEqual(set(row["villain_goals"]),set(VILLAIN_GOALS))
+                self.assertAlmostEqual(row["hero_goals"]["improve_category"],row["hero_improve"],places=7)
+                self.assertEqual(set(row["villain_goals"]["pair_or_draw"]),set(RANGE_KEYS))
+                for pos in RANGE_KEYS:
+                    self.assertAlmostEqual(row["villain_goals"]["pair_or_draw"][pos],row["opp_contact"][pos],places=7)
+                    self.assertAlmostEqual(row["villain_goals"]["no_contact"][pos]+row["villain_goals"]["pair_or_draw"][pos],1,places=7)
+                    for goal in VILLAIN_GOALS:
+                        prob=row["villain_goals"][goal][pos]
+                        self.assertTrue(prob is None or 0<=prob<=1)
+                for goal in HERO_GOALS:
+                    self.assertTrue(0<=row["hero_goals"][goal]<=1)
 
     def test_sampled_probabilities_reconcile_with_exact_runout_and_range_engagement(self):
         # Recalculate across all 46 board groups and diverse HERO classes.
@@ -65,14 +77,35 @@ class CompositeCatalogTests(unittest.TestCase):
                 for key,expected in recomputed["opponent_contact"].items():
                     self.assertAlmostEqual(row["opp_contact"][key],expected,places=7)
 
+    def test_recomputed_selectable_goals_cover_all_46_board_types(self):
+        first_by_board={}
+        for row in self.rows:
+            first_by_board.setdefault(row["board_group"],row)
+        for row in self.rows[::109]:
+            first_by_board[row["id"]]=row
+        self.assertGreaterEqual(len(first_by_board),46)
+        for row in first_by_board.values():
+            with self.subTest(id=row["id"]):
+                exact=calculate_goal_metrics(row["hero"],row["board"])
+                for goal in HERO_GOALS:
+                    self.assertAlmostEqual(exact["hero_goals"][goal],row["hero_goals"][goal],places=7)
+                for goal in VILLAIN_GOALS:
+                    for pos in RANGE_KEYS:
+                        expected=exact["villain_goals"][goal][pos]
+                        actual=row["villain_goals"][goal][pos]
+                        if expected is None: self.assertIsNone(actual)
+                        else: self.assertAlmostEqual(expected,actual,places=7)
+
     def test_sheet_three_catalog_stays_separate_from_action_sampling(self):
         html=(app.ROOT/"replit_ui/s100.html").read_text(encoding="utf-8")
         for marker in ('id="compositeCatalog"','id="catalogRows"',
                        'id="catalogBoardFilter"','id="catalogHeroFilter"',
                        'id="catalogReviewFilter"','id="catalogSearch"',
                        'id="catalogReset"','id="catalogOpponentRange"',
+                       'id="catalogHeroGoal"','id="catalogVillainGoal"',
                        'Карманная рука HERO','Название борда',
-                       'Усиление к риверу','Опп. пара+ / дро',
+                       'Цель HERO · к риверу','Оппонент · на флопе',
+                       'id="catalogHeroGoal"','id="catalogVillainGoal"',
                        'catalogMarkStorage',
                        'localStorage.setItem','/api/postflop/composite-catalog'):
             self.assertIn(marker,html)
