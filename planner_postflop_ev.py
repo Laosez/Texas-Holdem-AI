@@ -376,7 +376,7 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
     # matrix runs compact and avoid coupling existing benchmark callers.
     decomposition = None
     if payload["hand"] and not disabled:
-        from planner_ev_decomposition import EVDecomposition
+        from planner_ev_decomposition import EVDecomposition, catalog_flop_case
         decomposition = EVDecomposition(payload["hand"])
     per_entrant_decomp = ([EVDecomposition(payload["hand"]) for _ in range(len(src) + 1)]
                           if decomposition is not None else None)
@@ -424,8 +424,9 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                     entry_ev_sq[0] += uncontested ** 2
                     fold_win_total += 1
                     if decomposition:
-                        decomposition.add(uncontested,"uncontested")
-                        per_entrant_decomp[0].add(uncontested,"uncontested")
+                        catalog=catalog_flop_case(picked,board)
+                        decomposition.add(uncontested,"uncontested",catalog=catalog)
+                        per_entrant_decomp[0].add(uncontested,"uncontested",catalog=catalog)
                 entry_pots[0] += _uncontested_pot_bb(
                     payload["hero_position"],payload["hero_stack_bb"])
                 samples += 1
@@ -450,11 +451,12 @@ def calculate(raw, progress=None, *, _hands=None, _return_raw=False,
                 ev_squared_total += chip_ev ** 2
                 if decomposition:
                     event,risk,flush,group,matchup,reason = rollout[2]
+                    catalog=catalog_flop_case(picked,board)
                     decomposition.add(chip_ev,event,risk=risk,flush=flush,
-                                      group=group,matchup=matchup,reason=reason)
+                                      group=group,matchup=matchup,reason=reason,catalog=catalog)
                     per_entrant_decomp[entrants].add(
                         chip_ev,event,risk=risk,flush=flush,
-                        group=group,matchup=matchup,reason=reason)
+                        group=group,matchup=matchup,reason=reason,catalog=catalog)
                 ev_total += chip_ev
                 showdown_total += at_showdown
                 fold_win_total += bool(not at_showdown and chip_ev > 0)
@@ -565,7 +567,7 @@ def _single_parallel(raw, progress, workers, batch_size=256):
     entry_pots = [0.] * len(entry_counts)
     entry_ev_sum = [0.] * len(entry_counts)
     entry_ev_sq = [0.] * len(entry_counts)
-    from planner_ev_decomposition import EVDecomposition
+    from planner_ev_decomposition import EVDecomposition, catalog_flop_case
     decomposition = EVDecomposition(payload["hand"]) if not disabled else None
     per_entrant_decomp = ([EVDecomposition(payload["hand"]) for _ in range(len(src) + 1)]
                           if decomposition is not None else None)
@@ -606,7 +608,7 @@ def _single_parallel(raw, progress, workers, batch_size=256):
                 produced += len(batch)
             batch, task = pending.pop(0)
             outcomes = task.result()
-            for (picked, _, _), (share, net, showdown, pot, classified) in zip(batch, outcomes):
+            for (picked, board, _), (share, net, showdown, pot, classified) in zip(batch, outcomes):
                 entrants = len(picked) - 1
                 preflop_lines[_preflop_line(picked,payload["hero_position"])]+=1
                 entry_counts[entrants] += 1
@@ -628,11 +630,12 @@ def _single_parallel(raw, progress, workers, batch_size=256):
                         showdown_total += showdown
                         fold_win_total += bool(not showdown and net > 0)
                     event, risk, flush, group, matchup, reason = classified
+                    catalog=catalog_flop_case(picked,board)
                     decomposition.add(net, event, risk=risk, flush=flush,
-                                      group=group, matchup=matchup, reason=reason)
+                                      group=group, matchup=matchup, reason=reason,catalog=catalog)
                     per_entrant_decomp[entrants].add(
                         net,event,risk=risk,flush=flush,
-                        group=group,matchup=matchup,reason=reason)
+                        group=group,matchup=matchup,reason=reason,catalog=catalog)
                 completed += 1
             if progress:
                 progress(completed, n)
@@ -723,7 +726,7 @@ class _PairedSide:
         self.preflop_lines={"hero_rfi":0,"isolation_raise":0,"walk":0}
         self.eq_total = self.accepted = 0
 
-    def add(self, entrants, share, outcome, line):
+    def add(self, entrants, share, outcome, line, catalog):
         net, showdown, pot, classified = outcome
         self.preflop_lines[line]+=1
         self.counts[entrants] += 1
@@ -742,8 +745,8 @@ class _PairedSide:
         event, risk, flush, group, matchup, reason = classified
         options = dict(risk=risk, flush=flush, group=group,
                        matchup=matchup, reason=reason)
-        self.decomp.add(net, event, **options)
-        self.by_n[entrants].add(net, event, **options)
+        self.decomp.add(net, event, catalog=catalog, **options)
+        self.by_n[entrants].add(net, event, catalog=catalog, **options)
 
     def result(self):
         n, hand = self.n, self.hand
@@ -813,11 +816,13 @@ def calculate_paired(raw, progress=None, *, workers=1, batch_size=128):
 
     def add_batch(outcomes, cases):
         nonlocal processed, total_diff, total_sq
-        for (picked, _, _), (share, outcome_a, outcome_b) in zip(cases, outcomes):
+        from planner_ev_decomposition import catalog_flop_case
+        for (picked, board, _), (share, outcome_a, outcome_b) in zip(cases, outcomes):
             entrants = len(picked)-1
             line=_preflop_line(picked,payload["hero_position"])
-            a_side.add(entrants, share, outcome_a,line)
-            b_side.add(entrants, share, outcome_b,line)
+            catalog=catalog_flop_case(picked,board)
+            a_side.add(entrants, share, outcome_a,line,catalog)
+            b_side.add(entrants, share, outcome_b,line,catalog)
             difference = outcome_b[0]-outcome_a[0]
             total_diff += difference
             total_sq += difference*difference
