@@ -2510,7 +2510,7 @@ function decompSortHeader(label,key,detail=false){
 let decompReportMode='bdr';
 const catalogOpenBoards=new Set();
 const reasonBoardExpanded=new Set(['sign:profit','sign:loss','sign:neutral']);
-const riverFilters={sign:'all',suit:'all',rank:'all',straight:'all',street:'all',origin:'all'};
+const riverFilters={sign:'all',suit:'all',rank:'all',straight:'all',street:'all',origin:'all',holeUse:'all'};
 let riverSort='impact',riverDescending=true;
 let catalogSortColumn='count:a',catalogSortDirection='desc';
 const CATALOG_SORT_FIELDS=[
@@ -3140,6 +3140,7 @@ const RIVER_FILTERS=[
  {key:'rank',label:'Структура рангов',items:[['all','Все'],['unpaired','Неспаренный'],['one_pair','Пара'],['two_pair','Две пары'],['trips','Тройка'],['full_house','Фулл-хаус'],['quads','Каре']]},
  {key:'straight',label:'Стрит-опасность',items:[['all','Все'],['disconnected','Разрозненный'],['connected','Связный'],['four','4 к стриту'],['made','Стрит на борде']]},
  {key:'street',label:'Последняя улица',items:[['all','Все'],['preflop','Префлоп'],['flop','Флоп'],['turn','Тёрн'],['river','Ривер']]},
+ {key:'holeUse',label:'Карты HERO в лучшей пятёрке',items:[['all','Любое'],['0','0 карт HERO'],['1','1 карта HERO'],['2','2 карты HERO']]},
  {key:'origin',label:'Происхождение HERO',items:[['all','Все'],['unavailable','Без вскрытия'],['own_pair','Своя пара'],['pocket_pair','Карманная пара'],['board_pair','Пара борда'],['two_pair_own','Две свои пары'],['two_pair_mixed','Своя + пара борда'],['two_pair_board','Общие две пары'],['set','Сет'],['trips','Трипс'],['board_trips','Тройка борда'],['straight','Стрит'],['flush','Флеш'],['full_house','Фулл-хаус'],['quads','Каре'],['straight_flush','Стрит-флеш'],['high_card','Старшая карта']]}
 ];
 function riverPass(row){
@@ -3148,6 +3149,7 @@ function riverPass(row){
   (riverFilters.rank==='all'||row.rank_texture===riverFilters.rank)&&
   (riverFilters.straight==='all'||row.straight===riverFilters.straight)&&
   (riverFilters.street==='all'||row.street===riverFilters.street)&&
+  (riverFilters.holeUse==='all'||row.hero_hole_use===Number(riverFilters.holeUse))&&
   (riverFilters.origin==='all'||row.origin===riverFilters.origin);
 }
 function riverEmpty(){return {count:0,positive_ev_bb:0,negative_ev_bb:0,contribution_bb:0}}
