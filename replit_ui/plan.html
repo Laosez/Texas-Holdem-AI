@@ -3032,6 +3032,11 @@ function renderCatalogLedger(root,a,b,compare){
   return;
  }
  const mapA=catalogRowsByBoard(a),mapB=catalogRowsByBoard(b);
+ // A/B mode can change without resetting the previous user-selected sort.
+ // Clamp hidden B-only columns before sorting, not after rendering.
+ if(!catalogSortFields(compare).some(item=>item.key===catalogSortColumn)){
+  catalogSortColumn='count:a';catalogSortDirection='desc';
+ }
  const categories=[...new Set([...mapA.keys(),...mapB.keys()])].map(key=>{
   const groupA=mapA.get(key),groupB=mapB.get(key);
   return {key,label:groupA?.name||groupB?.name||key,
