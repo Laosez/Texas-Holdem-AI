@@ -1477,8 +1477,13 @@ def restore_history():
             if checkpoint_dir.is_dir() and job.get("progress"):
                 saved = len(list(checkpoint_dir.glob("*.json.gz")))
                 job["progress"]["done"] = max(job["progress"].get("done", 0), saved)
-            if job.get("report") and not job.get("stats"):
-                job["stats"] = stats_for_folder(manifest.parent)
+            if job.get("report"):
+                # Refresh derived analysis views after an application upgrade.
+                # Raw CSV files are authoritative; historic job.json stats may
+                # predate newly available position / table-size metrics.
+                updated_stats = stats_for_folder(manifest.parent)
+                if updated_stats:
+                    job["stats"] = updated_stats
             perf = manifest.parent / "performance.json"
             if perf.is_file() and not job.get("performance"):
                 job["performance"] = json.loads(perf.read_text(encoding="utf-8"))
