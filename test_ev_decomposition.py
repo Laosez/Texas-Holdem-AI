@@ -389,7 +389,9 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertIn("const abOpenSections=new Set(['gain','loss']);",s)
         self.assertIn("const abOpenReasons=new Set();",s)
         self.assertIn("button.setAttribute('aria-expanded',String(disclosure.open));",s)
-        self.assertIn("if(!settings)continue;",s)
+        self.assertIn("if(!settings)return;",s)
+        self.assertIn("Promise.allSettled(sides.map(calculateSide))",s)
+        self.assertIn("statuses[side]='очередь'",s)
         self.assertNotIn("renderDominationMatchups(",s)
         self.assertIn("renderHandDecomposition();",s)
 
