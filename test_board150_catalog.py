@@ -139,6 +139,37 @@ class RiverBoard150Tests(unittest.TestCase):
                 self.assertIn(keyword,page)
         self.assertNotIn("['opps','Опп. на вскрытии',4]",page)
 
+    def test_sf_zero_display_can_be_omitted_without_colliding_codes(self):
+        compact=[r["id"].replace(" · SF0","") for r in ROWS]
+        self.assertEqual(len(compact),150)
+        self.assertEqual(len(set(compact)),150)
+        self.assertEqual(sum(r["sf"]=="SF0" for r in ROWS),68)
+        self.assertEqual(len(set(r["id"].split(" · SF")[0]+" · "+r["a"]
+                                 for r in ROWS)),106)
+
+    def test_flat_report_outcome_multiselect_minimum_n_and_hidden_showdown_column(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        required=[
+            "const FLAT_ALL_OUTCOMES=['W1','L1','W2','L2','W3','L3','T1','X1']",
+            "const flatVisibleOutcomes=new Set(FLAT_ALL_OUTCOMES)",
+            "for(const n of [0,10,20,50,100,200,500,1000,2000])",
+            "flatVisibleOutcomes.has(r.dims[5])",
+            "(compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN",
+            "showdownChoice==='all'||r.dims[4]===Number(showdownChoice)",
+            "for(const i of [0,1,2,3,5])",
+            "dims.colSpan=5",
+            "title.colSpan=5",
+            "root.classList.toggle('flatReportHost',decompReportMode==='board150')",
+            "flatBoardDisplayCode(r.dims[i])",
+        ]
+        for needle in required:
+            with self.subTest(needle=needle):
+                self.assertIn(needle,page)
+        self.assertNotIn("{key:'showdown',label:'Опп. на вскрытии',dimension:4}",page)
+        self.assertNotIn("['Тип исхода',5]",page)
+        self.assertIn("function compactBoardCode(code)",(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8"))
+        self.assertIn("row.id,compactBoardCode(row.id)",(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8"))
+
     def test_authenticated_catalog_and_classify_api(self):
         with patch.object(app,"TOKEN","board150_key"):
             server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
