@@ -929,6 +929,11 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .flatBdrMinN{width:auto;min-width:118px;flex:0 0 auto;padding:8px 9px;font-size:11px}
 .flatBdrOutcomePicker:not([open]) .flatBdrOutcomePanel{display:none}
 
+
+/* Multi-select category pickers share the same BDR filter visual language. */
+.flatBdrCategoryPicker .flatBdrOutcomePanel{min-width:270px}
+.flatBdrCategoryPicker .flatBdrOutcomeSummary{min-width:140px}
+.handDecompCombinedChart .handDecompChartCanvas svg{max-height:300px}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · сравнение</small></span></a></div>
@@ -3611,6 +3616,10 @@ function riverReportHead(table,compare){
 let flatReportSort='netA',flatReportDescending=false;
 const FLAT_ALL_OUTCOMES=['W1','L1','W2','L2','W3','L3','T1','X1'];
 const flatVisibleOutcomes=new Set(FLAT_ALL_OUTCOMES);
+const flatAllCategories=[null,...Array.from({length:9},(_,i)=>i)];
+const flatVisibleHeroCategories=new Set(flatAllCategories);
+const flatVisibleVillainCategories=new Set(flatAllCategories);
+function flatBoardShape(code){return String(code||'').replace(/^(FLOP|TURN)\|/,'')}
 let flatMinN=0;
 function flatBoardDisplayCode(code){return String(code||'').replace(' · SF0','')}
 const FLAT_OUTCOMES={W1:'Победа до вскрытия',L1:'Проигрыш до вскрытия',
@@ -3628,11 +3637,11 @@ const FLAT_COLUMNS=[
  {key:'countA',label:'N',group:'abValueA'},
  {key:'freqA',label:'%',group:'abValueA'},
  {key:'netA',label:'Σ Net BB',group:'abValueA'},
- {key:'avgA',label:'Ср. BB',group:'abValueA'},
+ {key:'avgA',label:'EV, BB',group:'abValueA'},
  {key:'countB',label:'N',group:'abValueB'},
  {key:'freqB',label:'%',group:'abValueB'},
  {key:'netB',label:'Σ Net BB',group:'abValueB'},
- {key:'avgB',label:'Ср. BB',group:'abValueB'},
+ {key:'avgB',label:'EV, BB',group:'abValueB'},
  {key:'deltaNet',label:'Δ Σ BB',group:'abDelta'}
 ];
 function flatBdrValue(row,key,totals){
@@ -3660,6 +3669,70 @@ function flatBdrFormat(value,digits=2){
  if(!Number.isFinite(value))return '—';
  return (value>0?'+':'')+value.toLocaleString('ru-RU',{minimumFractionDigits:digits,maximumFractionDigits:digits});
 }
+function renderFlatShowdownEvChart(rows,compare,selection){
+ const container=$('handDecompChartAB');
+ container.replaceChildren();
+ const ns='http://www.w3.org/2000/svg';
+ const data=Array.from({length:9},(_,k)=>{
+  const matches=rows.filter(r=>r.dims[4]===k);
+  const totals={a:{n:0,net:0},b:{n:0,net:0}};
+  for(const row of matches)for(const side of ['a','b']){
+   totals[side].n+=row[side].n;totals[side].net+=row[side].net;
+  }
+  return {k,a:totals.a,b:totals.b};
+ });
+ const observed=data.flatMap(d=>['a',...(compare?['b']:[])].map(side=>
+  d[side].n?d[side].net/d[side].n:null).filter(v=>v!==null));
+ const note=document.querySelector('.handDecompCombinedChart .handDecompChartNote');
+ if(note)note.textContent='EV = Σ Net BB / N по фактически дошедшим до вскрытия · '+
+  '0 = без вскрытия · график показывает 0–8, выбранный фильтр выделен · без ДИ.';
+ if(!observed.length){
+  container.append(el('div','chartEmpty','Для выбранных фильтров нет наблюдений EV. Убери порог N или включи дополнительные исходы.'));
+  container.setAttribute('aria-label','EV: для выбранных фильтров нет данных');
+  return;
+ }
+ const svg=document.createElementNS(ns,'svg');
+ svg.setAttribute('viewBox','0 0 940 250');
+ svg.setAttribute('role','img');
+ const minObserved=Math.min(0,...observed),maxObserved=Math.max(0,...observed);
+ const pad=Math.max(.2,(maxObserved-minObserved)*.16);
+ const min=minObserved-pad,max=maxObserved+pad;
+ const x=k=>85+k*100,y=v=>190-(v-min)/(max-min)*145;
+ function node(tag,attrs,content,parent=svg){
+  const result=document.createElementNS(ns,tag);
+  for(const [key,value] of Object.entries(attrs||{}))result.setAttribute(key,String(value));
+  if(content!==undefined&&content!==null)result.textContent=content;
+  parent.append(result);return result;
+ }
+ const zero=y(0);
+ node('line',{x1:58,x2:920,y1:zero,y2:zero,stroke:'#87a1ba',
+  'stroke-width':1,'stroke-dasharray':'4 5'});
+ const title=node('title',{},'EV A/B по количеству оппонентов на вскрытии. Финансовый результат в BB на раздачу.');
+ const descriptor=[];
+ for(const d of data){
+  const xpos=x(d.k),selected=selection!=='all'&&Number(selection)===d.k;
+  if(selected)node('rect',{x:xpos-43,y:26,width:86,height:182,rx:8,
+   fill:'#80b3f3','fill-opacity':.11,stroke:'#80b3f3','stroke-opacity':.42});
+  node('text',{x:xpos,y:228,'font-size':12,fill:selected?'#f0f7ff':'#b1c9e1',
+   'text-anchor':'middle'},String(d.k));
+  for(const [side,color,offset] of [['a','#8dc5f4',-11],...(compare?[['b','#cfb3f2',11]]:[])]){
+   if(!d[side].n)continue;
+   const ev=d[side].net/d[side].n,xx=xpos+offset;
+   const dot=node('circle',{cx:xx,cy:y(ev),r:5.4,fill:color,stroke:'#10283f','stroke-width':1.6});
+   const label=side.toUpperCase()+' · '+d.k+' на вскрытии · EV '+ev.toFixed(3)+
+    ' BB · N '+d[side].n;
+   node('title',{},label,dot);
+   node('text',{x:xx,y:y(ev)-12,'font-size':11,fill:color,
+    'text-anchor':'middle'},(ev>0?'+':'')+ev.toFixed(2));
+   descriptor.push(label);
+  }
+ }
+ node('text',{x:48,y:zero+4,fill:'#a3bdd3','font-size':11,'text-anchor':'end'},'0');
+ node('text',{x:920,y:19,fill:'#b9d0e4','font-size':12,'text-anchor':'end'},'EV · BB/раздачу');
+ container.setAttribute('aria-label','EV по оппонентам на вскрытии: '+descriptor.join('; '));
+ container.append(svg);
+}
+
 function renderFlatBoard150(root,a,b,compare){
  root.append(el('h4','evLedgerSubheading','Финансовый регистр · структура борда × комбинации × исход'));
  if(!a?.river_attribution?.reconciled||(compare&&!b?.river_attribution?.reconciled)){
@@ -3685,25 +3758,83 @@ function renderFlatBoard150(root,a,b,compare){
   }
  }
  const rows=[...index.values()];
- const filters=[['Улица',0],['Тип борда',1],['HERO',2],['Оппонент',3]];
  const controls=el('div','flatBdrToolbar');
  const filterWrap=el('div','flatBdrFilters');
- const selected={};
+ const selected={0:'__all__',1:'__all__'};
  const selectNodes=[];
  const fmtDim=(v,i)=>i===0?({preflop:'Префлоп',flop:'Флоп',turn:'Тёрн',river:'Ривер'}[v]||v):
   i===1?riverBoardDescription(v):i===2||i===3?(v===null?'—':FLAT_HANDS[v]||'—'):
   i===4?String(v):FLAT_OUTCOMES[v]||v;
- for(const [label,i] of filters){
-  const select=el('select','flatBdrFilter');
-  select.setAttribute('aria-label','Фильтр: '+label);
-  const values=[...new Set(rows.map(r=>r.dims[i]))].sort((x,y)=>String(x).localeCompare(String(y),'ru'));
-  for(const value of ['__all__',...values]){
-   const op=el('option','',value==='__all__'?label+' · все':fmtDim(value,i));
-   op.value=JSON.stringify(value);select.append(op);
-  }
-  select.onchange=()=>{selected[i]=JSON.parse(select.value);paint()};
-  filterWrap.append(select);selectNodes.push(select);
+ // The street is chosen independently: remove Flop/Turn/River from board options.
+ const streetSelect=el('select','flatBdrFilter');
+ streetSelect.setAttribute('aria-label','Фильтр: Улица');
+ for(const [value,label] of [['__all__','Улица · все'],['preflop','Префлоп'],
+  ['flop','Флоп'],['turn','Тёрн'],['river','Ривер']]){
+  const op=el('option','',label);op.value=JSON.stringify(value);streetSelect.append(op);
  }
+ const boardSelect=el('select','flatBdrFilter');
+ boardSelect.setAttribute('aria-label','Фильтр: Тип борда');
+ const boardOptionLabel=code=>{
+  const full=riverBoardDescription(code);
+  return full.replace(/^(Флоп|Тёрн|Ривер) · /,'');
+ };
+ function rebuildBoardChoices(){
+  const street=selected[0];
+  const candidate=rows.filter(r=>street==='__all__'||r.dims[0]===street);
+  const codes=new Map();
+  for(const row of candidate){
+   const code=flatBoardShape(row.dims[1]);
+   if(!codes.has(code))codes.set(code,boardOptionLabel(row.dims[1]));
+  }
+  const previous=selected[1];
+  boardSelect.replaceChildren();
+  const all=el('option','','Тип борда · все');
+  all.value=JSON.stringify('__all__');boardSelect.append(all);
+  for(const [code,label] of [...codes].sort((a,b)=>a[1].localeCompare(b[1],'ru'))){
+   const op=el('option','',label);
+   op.value=JSON.stringify(code);op.title='Класс: '+flatBoardDisplayCode(code);
+   boardSelect.append(op);
+  }
+  selected[1]=codes.has(previous)?previous:'__all__';
+  boardSelect.value=JSON.stringify(selected[1]);
+ }
+ streetSelect.onchange=()=>{selected[0]=JSON.parse(streetSelect.value);rebuildBoardChoices();paint()};
+ boardSelect.onchange=()=>{selected[1]=JSON.parse(boardSelect.value);paint()};
+ filterWrap.append(streetSelect,boardSelect);
+ selectNodes.push(streetSelect,boardSelect);
+ rebuildBoardChoices();
+ // Multi-select for made-hand categories, including unrevealed cards.
+ function createCategoryPicker(label,field,selectedSet){
+  const picker=el('details','flatBdrOutcomePicker flatBdrCategoryPicker');
+  const summary=el('summary','flatBdrOutcomeSummary','');
+  const panel=el('div','flatBdrOutcomePanel');
+  const actions=el('div','flatBdrOutcomeActions');
+  const all=el('button','btn sm','Все'),none=el('button','btn sm','Ни одного');
+  all.type=none.type='button';
+  const checks=new Map();
+  function refresh(){
+   summary.textContent=label+' · '+selectedSet.size+'/'+flatAllCategories.length;
+   for(const [value,check] of checks)check.checked=selectedSet.has(value);
+   paint();
+  }
+  all.onclick=()=>{for(const value of flatAllCategories)selectedSet.add(value);refresh()};
+  none.onclick=()=>{selectedSet.clear();refresh()};
+  actions.append(all,none);panel.append(actions);
+  for(const value of flatAllCategories){
+   const row=el('label','flatBdrOutcomeOption');
+   const check=el('input');check.type='checkbox';check.checked=selectedSet.has(value);
+   check.onchange=()=>{if(check.checked)selectedSet.add(value);else selectedSet.delete(value);refresh()};
+   checks.set(value,check);
+   row.append(check,el('span','',value===null?'— · комбинация не раскрыта':FLAT_HANDS[value]));
+   panel.append(row);
+  }
+  picker.append(summary,panel);
+  summary.textContent=label+' · '+selectedSet.size+'/'+flatAllCategories.length;
+  filterWrap.append(picker);
+  return refresh;
+ }
+ const syncHero=createCategoryPicker('HERO',2,flatVisibleHeroCategories);
+ const syncVillain=createCategoryPicker('Оппонент',3,flatVisibleVillainCategories);
  // Outcome selection is a multi-select, unlike ordinary single-value dimensions.
  const outcomeChooser=el('details','flatBdrOutcomePicker');
  const outcomeSummary=el('summary','flatBdrOutcomeSummary','');
@@ -3743,9 +3874,9 @@ function renderFlatBoard150(root,a,b,compare){
  const tools=el('div','flatBdrTools');
  const sort=el('select','flatBdrSort');
  sort.setAttribute('aria-label','Сортировка финансового регистра');
- const sortOptions=[['netA','Σ Net BB · A'],['avgA','Среднее BB · A'],
+ const sortOptions=[['netA','Σ Net BB · A'],['avgA','EV, BB · A'],
   ['countA','Частота · A'],...(compare?[['netB','Σ Net BB · B'],
-  ['avgB','Среднее BB · B'],['deltaNet','Δ Σ BB · B−A']]:[]),
+  ['avgB','EV, BB · B'],['deltaNet','Δ Σ BB · B−A']]:[]),
   ['board','Тип борда']];
  for(const [key,label] of sortOptions){const op=el('option','',label);op.value=key;sort.append(op)}
  if(!sortOptions.some(item=>item[0]===flatReportSort))flatReportSort='netA';
@@ -3757,7 +3888,10 @@ function renderFlatBoard150(root,a,b,compare){
  const reset=el('button','btn sm','Сбросить фильтры');
  reset.type='button';
  reset.onclick=()=>{for(const select of selectNodes)select.value=JSON.stringify('__all__');
-  for(const [,i] of filters)selected[i]='__all__';
+  selected[0]=selected[1]='__all__';rebuildBoardChoices();
+  flatVisibleHeroCategories.clear();flatVisibleVillainCategories.clear();
+  for(const value of flatAllCategories){flatVisibleHeroCategories.add(value);flatVisibleVillainCategories.add(value)}
+  syncHero();syncVillain();
   flatMinN=0;minN.value='0';FLAT_ALL_OUTCOMES.forEach(k=>flatVisibleOutcomes.add(k));
   outcomeSummary.textContent='Исходы · '+flatVisibleOutcomes.size+'/'+FLAT_ALL_OUTCOMES.length;
   for(const [key,check] of outcomeChecks)check.checked=flatVisibleOutcomes.has(key);
@@ -3769,7 +3903,7 @@ function renderFlatBoard150(root,a,b,compare){
  root.append(legend);
  const kpis=el('div','flatBdrKpis');
  for(const [key,label] of [['n','Наблюдений A'],['a','Σ Net BB · A'],
-  ...(compare?[['b','Σ Net BB · B'],['delta','Δ B−A']]:[])]) {
+  ['ev','EV · A, BB'],...(compare?[['b','Σ Net BB · B'],['evB','EV · B, BB'],['delta','Δ B−A']]:[])]) {
   const tile=el('div','flatBdrKpi');
   tile.append(el('span','',label),el('strong',''));
   tile.dataset.metric=key;kpis.append(tile);
@@ -3822,12 +3956,18 @@ function renderFlatBoard150(root,a,b,compare){
     (active?(flatReportDescending?' ↓':' ↑'):' ↕');
   }
   const showdownChoice=$('handDecompOpponentCount').value;
-  const filtered=rows.filter(r=>
-   (showdownChoice==='all'||r.dims[4]===Number(showdownChoice))&&
+  // Shared selection for the accounting register and EV chart.
+  const eligible=rows.filter(r=>
    flatVisibleOutcomes.has(r.dims[5])&&
+   flatVisibleHeroCategories.has(r.dims[2])&&
+   flatVisibleVillainCategories.has(r.dims[3])&&
    (compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN&&
-   filters.every(([,i])=>selected[i]===undefined||selected[i]==='__all__'||
-      selected[i]===r.dims[i]));
+   (selected[0]==='__all__'||selected[0]===r.dims[0])&&
+   (selected[1]==='__all__'||selected[1]===flatBoardShape(r.dims[1])));
+  // Chart retains all showdown counts, even if the table drills into one count.
+  renderFlatShowdownEvChart(eligible,compare,showdownChoice);
+  const filtered=eligible.filter(r=>
+   showdownChoice==='all'||r.dims[4]===Number(showdownChoice));
   filtered.sort((x,y)=>{
    const a=flatBdrValue(x,flatReportSort,totals),b=flatBdrValue(y,flatReportSort,totals);
    const cmp=typeof a==='string'?String(a).localeCompare(String(b),'ru'):a-b;
@@ -3840,9 +3980,9 @@ function renderFlatBoard150(root,a,b,compare){
   const delta=acc.b.net-acc.a.net;
   for(const tile of kpis.children){
    const name=tile.dataset.metric;
-   const value=name==='n'?acc.a.n:name==='a'?acc.a.net:name==='b'?acc.b.net:delta;
+   const value=name==='n'?acc.a.n:name==='a'?acc.a.net:name==='ev'?(acc.a.n?acc.a.net/acc.a.n:null):name==='b'?acc.b.net:name==='evB'?(acc.b.n?acc.b.net/acc.b.n:null):delta;
    const valueNode=tile.lastChild;
-   valueNode.textContent=name==='n'?value.toLocaleString('ru-RU'):flatBdrFormat(value);
+   valueNode.textContent=name==='n'?value.toLocaleString('ru-RU'):value===null?'—':flatBdrFormat(value,name.startsWith('ev')?3:2);
    valueNode.className=name==='n'?'':amountClass(value);
   }
   tbody.replaceChildren();
@@ -3889,8 +4029,10 @@ function renderFlatBoard150(root,a,b,compare){
    makeCell(totalRow,flatBdrFormat(delta),'flatBdrNum flatBdrMoney flatBdrDelta '+amountClass(delta));}
   tfoot.append(totalRow);
   const isFiltered=showdownChoice!=='all'||flatMinN>0||
-   flatVisibleOutcomes.size!==FLAT_ALL_OUTCOMES.length||filters.some(([,i])=>
-   selected[i]!==undefined&&selected[i]!=='__all__');
+   flatVisibleOutcomes.size!==FLAT_ALL_OUTCOMES.length||
+   flatVisibleHeroCategories.size!==flatAllCategories.length||
+   flatVisibleVillainCategories.size!==flatAllCategories.length||
+   selected[0]!=='__all__'||selected[1]!=='__all__';
   const fullA=[...index.values()].reduce((v,r)=>v+r.a.n,0);
   const fullB=[...index.values()].reduce((v,r)=>v+r.b.n,0);
   const good=fullA===a.samples&&(!compare||fullB===b.samples);
@@ -4167,6 +4309,8 @@ function renderHandDecomposition(){
  const flatMode=decompReportMode==='board150';
  // The same selector controls showdown count in the flat report, but actual entrants in legacy BDR.
  const opponentPicker=$('handDecompOpponentCount');
+ const opponentLabel=document.querySelector('label[for="handDecompOpponentCount"]');
+ if(opponentLabel)opponentLabel.textContent=flatMode?'Оппонентов на вскрытии':'Число соперников';
  opponentPicker.setAttribute('aria-label',flatMode?'Число оппонентов на вскрытии':'Число вошедших соперников в отчёте');
  const opponentHint=$('handDecompOpponentHint');
  if(opponentHint)opponentHint.textContent=flatMode?
@@ -4203,6 +4347,12 @@ function renderHandDecomposition(){
  $('handDecompSamplesB').textContent=right.samples!==null?right.samples.toLocaleString('ru-RU'):'—';
  $('handDecompSampleBWrap').classList.toggle('hidden',!compare);
  renderOpponentEvComparison(fullA,fullB);
+ // The legacy graphic is entrants-based; Board150 replaces it with a graph of
+ // actual showdown participants from the same rows as the financial register.
+ const chartHeading=document.querySelector('.handDecompCombinedChart .handDecompChartTitle > span');
+ if(chartHeading)chartHeading.textContent=flatMode?
+  'EV по числу оппонентов на вскрытии · BB/раздачу':
+  'EV по числу вошедших соперников · общая шкала';
  const formatStratum=(x,tag)=>tag+': '+
   (x.samples===null?'ожидается расчёт':x.samples.toLocaleString('ru-RU')+' раздач'+
    (selection!=='all'&&!flatMode?' ('+(x.proportion??0).toFixed(2)+'%)':'')+
