@@ -640,6 +640,8 @@ def write_json(path, payload):
 # This precise digest allows completed 450-tournament checkpoints to be resumed
 # after the memory fix; any other historical source is rejected.
 LEGACY_EXPORTER_SHA256 = "c95b365dd2af4051db541b27781b94e9ccbd113477ca6c3740fcbd6c9b5d40b2"
+# Exact exporter that created pre-disk-reserve checkpoints in production.
+PRE_STORAGE_FIX_EXPORTER_SHA256 = "4c8d51ea7819a274c1f974b5743f9ba40b77b525ef20153ac540bc53887e8c34"
 
 
 def checkpoint_config_key(args, names, source_sha256=None):
@@ -733,10 +735,14 @@ def main():
                 # Explicitly allow only the verified pre-aggregation-fix exporter.
                 # Each per-tournament checkpoint still has to match this config
                 # key AND the full task tuple before any result is reused.
-                legacy_key = checkpoint_config_key(a, names, LEGACY_EXPORTER_SHA256)
-                if stored.get("config_key") == legacy_key:
-                    config_key = legacy_key
-                    print("[resume] Compatible legacy checkpoint version verified; using memory-safe export",flush=True)
+                approved = {
+                    checkpoint_config_key(a, names, digest): digest
+                    for digest in (LEGACY_EXPORTER_SHA256, PRE_STORAGE_FIX_EXPORTER_SHA256)
+                }
+                stored_key = stored.get("config_key")
+                if stored_key in approved:
+                    config_key = stored_key
+                    print("[resume] Audited prior exporter source verified; preserving checkpoint compatibility",flush=True)
                 else:
                     p.error("Checkpoint configuration or exporter source version changed; use a new session")
         else:
