@@ -21,6 +21,12 @@ assert.match(plan,/function riverReportHead\(table,compare\)/);
 assert.match(plan,/function riverBoardDescription\(code\)/);
 assert.match(plan,/const activeTree=\{a,b\}/);
 assert.match(plan,/window\.location\.assign\('\/s100'\)/);
+// Every clickable numeric header must map to an actual selectable sort key.
+const sortOptions=new Set([...sheet.matchAll(/<option value="([^"]+)">/g)].map(m=>m[1]));
+for(const metric of ['count','percentage','avg','positive_ev_bb','negative_ev_bb','contribution_bb'])
+ for(const side of ['a','b'])assert.ok(sortOptions.has(metric+':'+side),'missing column sort: '+metric+':'+side);
+assert.ok(sortOptions.has('delta'));
+assert.match(plan,/skachkov_postflop_view_v1','financial'/);
 const start=sheet.indexOf('const $=id=>');
 const end=sheet.indexOf('function exportCSV(){',start);
 assert.ok(start>0&&end>start);
