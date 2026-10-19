@@ -32,7 +32,7 @@ class HeroPostflopChoiceTests(unittest.TestCase):
         self.assertIn('id="heroControlDock" class="hidden"',own)
         self.assertIn('id="strategyName"',own)
         self.assertIn('id="save"',own)
-        self.assertIn('<option value="gto2" selected>GTO V2',own)
+        self.assertIn('<option value="gto200" selected>GTO 2.0',own)
         self.assertIn("function heroPositionSeatRow(position,controls){",p)
         self.assertIn("const heroControls={",p)
         self.assertIn("profile:$('heroProfile'),position:$('heroPosition')",p)
@@ -59,10 +59,10 @@ class HeroPostflopChoiceTests(unittest.TestCase):
     def test_selection_changes_ev_request_and_survives_reload(self):
         p=self.page
         self.assertIn("hero_postflop:$('heroPostflop').value",p)
-        self.assertEqual(planner_postflop_ev.PROFILE_NAMES['gto2'],'gto_postflop_v2')
+        self.assertEqual(planner_postflop_ev.PROFILE_NAMES['gto20'],'gto_postflop_20')
         self.assertIn("localStorage.getItem('skachkov_hero_postflop')",p)
         self.assertIn("localStorage.setItem('skachkov_hero_postflop'",p)
-        self.assertIn("else $('heroPostflop').value='gto2';",p)
+        self.assertIn("$('heroPostflop').value=POSTFLOP_OPTIONS.some(x=>x.value===restoredLine)?restoredLine:'gto20';",p)
         self.assertIn("refreshHeroPostflopChoice();",p)
         self.assertIn("function refreshHeroPostflopChoice(){",p)
         self.assertIn("Сборка для EV:",p)
@@ -74,7 +74,7 @@ class HeroPostflopChoiceTests(unittest.TestCase):
         p=self.page
         self.assertIn(".plannerOpponentsPanel .oppHeroSeat select{",p)
         self.assertIn("main.plannerMain{grid-template-columns:minmax(275px,1fr) minmax(0,3fr)",p)
-        self.assertIn("GTO V1 · контрольная версия",p)
-        self.assertIn("{value:'gto',label:'GTO V1'}",p)
-        self.assertIn("{value:'gto2',label:'GTO V2'}",p)
+        self.assertIn("GTO 1 · контрольная версия",p)
+        self.assertIn("{value:'gto',label:'GTO 1 · контроль'}",p)
+        self.assertIn("{value:'gto20',label:'GTO 2.0'}",p)
         self.assertIn("localStorage.getItem('skachkov_hero_postflop')",p)
