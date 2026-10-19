@@ -139,7 +139,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </div>
 <section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="/analysis">↗ Открыть в анализе</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="/analysis">↗ Открыть в анализе</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="compactCheckpoints" title="Удалить чекпойнты только завершённых сессий; отчёты и прерванные сессии не затрагиваются">Освободить место</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="trashPanel" id="trashPanel" hidden>
 <div class="trashHeader"><strong>Корзина турниров</strong><span class="muted" id="trashCount">0 сессий</span><button class="btn sm" id="trashReload" type="button">↻ Обновить</button></div>
 <div id="trashItems" class="trashItems"><p class="note">Нажми «Корзина», чтобы загрузить список.</p></div>
@@ -483,6 +483,34 @@ $('fullBackupFile').onchange=async()=>{
   feedback('Восстановлено сессий: '+data.restored_count);
  }catch(e){feedback(e.message,true)}
  finally{$('fullBackupFile').value=''}
+};
+$('compactCheckpoints').onclick=async()=>{
+ const button=$('compactCheckpoints');
+ button.disabled=true;
+ try{
+  const storage=await get('/api/storage');
+  const count=storage.compaction?.checkpoint_files||0;
+  const megabytes=(storage.compaction?.reclaimable_bytes/1048576||0).toFixed(1);
+  const free=(storage.volume?.free_bytes/1048576||0).toFixed(1);
+  if(!count){
+   alert('Можно очистить 0 завершённых чекпойнтов. Свободно '+free+
+     ' МБ. Для новых серий потребуется увеличить том Railway или вручную архивировать старые сессии.');
+   return;
+  }
+  const ok=confirm('Освободить '+megabytes+' МБ, удалив '+count+
+    ' контрольных точек ТОЛЬКО успешно завершённых сессий?\n\n'+
+    'CSV/JSON-отчёты, турнирная статистика и контрольные суммы сохранятся. '+
+    'Незавершённые серии и их чекпойнты не затрагиваются. '+
+    'Удалённые сырые чекпойнты восстановить нельзя.');
+  if(!ok)return;
+  const outcome=await get('/api/storage/compact',{method:'POST',body:JSON.stringify({confirm:true})});
+  const released=(outcome.bytes_reclaimed/1048576).toFixed(1);
+  const left=(outcome.free_bytes/1048576).toFixed(1);
+  feedback('Освобождено '+released+' МБ, обработано '+outcome.files_removed+
+    ' файлов; доступно '+left+' МБ.');
+  await refresh();
+ }catch(e){feedback(e.message,true)}
+ finally{button.disabled=false}
 };
 $('checkData').onclick=async()=>{
  try{
