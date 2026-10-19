@@ -151,7 +151,7 @@ class RiverAttributionTests(unittest.TestCase):
     def test_plan_river_report_retains_other_variants(self):
         from replit_simulator import PLAN_UI
         h=PLAN_UI.read_text(encoding="utf-8")
-        for needle in ("value=\"bdr\" selected","value=\"catalog\"","value=\"river\"",
+        for needle in ("value=\"board150\" selected","value=\"catalog\"","value=\"river\"",
                        "function renderRiverLedger(root,a,b,compare){",
                        "function renderCatalogLedger(root,a,b,compare){",
                        "function renderCompareBdrLedger(root,a,b,compare=true)",
