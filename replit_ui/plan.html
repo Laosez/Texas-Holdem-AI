@@ -4282,7 +4282,7 @@ $('equityModel').onchange=invalidateEquity;
 $('handDecompOpponentCount').onchange=renderHandDecomposition;
 $('handDecompReportVariant').onchange=()=>{
  decompReportMode=$('handDecompReportVariant').value;
- $('handDecompReportMode').textContent=decompReportMode==='catalog'?'СПРАВОЧНИК':decompReportMode==='river'?'ПРИЧИНЫ × БОРД':'БДР';
+ $('handDecompReportMode').textContent=decompReportMode==='catalog'?'СПРАВОЧНИК':decompReportMode==='river'||decompReportMode==='board150'?'ПРИЧИНЫ × БОРД':'БДР';
  renderHandDecomposition();
 };
 $('handDecompHandB').onchange=()=>{renderHandDecomposition();scheduleHandDecomposition()};
