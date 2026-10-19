@@ -1213,7 +1213,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path in ("/", "/plan", "/s100", "/analysis"):
-            html = ((ROOT / "replit_ui" / "s100.html") if path == "/s100"
+            html = ((ROOT / "replit_ui" / "river_board.html") if path == "/s100"
                     else ANALYSIS_UI if path == "/analysis"
                     else PLAN_UI if path == "/plan" else UI).read_bytes()
             self.send_response(200)
