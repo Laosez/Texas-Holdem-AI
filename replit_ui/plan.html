@@ -950,6 +950,16 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .flatBdrBoardResultLine code{color:#bcdfff;font-size:11px;font-weight:680}
 .flatBdrBoardResultLine span{font-size:10px;color:#9bb9d1}
 
+
+/* Board constructor: keep short taxonomy codes and readable poker descriptions together. */
+.flatBdrFacetPicker .flatBdrOutcomePanel{min-width:310px;max-width:min(380px,calc(100vw - 36px))}
+.flatBdrFacetPicker .flatBdrOutcomeOption{display:grid;grid-template-columns:16px 35px minmax(0,1fr);
+ align-items:start;column-gap:9px;padding:7px 8px;line-height:1.45}
+.flatBdrFacetPicker .flatBdrOutcomeOption input[type=checkbox]{margin-top:1px}
+.flatBdrFacetCode{display:inline-block;white-space:nowrap;font-size:11px;
+ font-weight:800;color:#b4d8f8;font-variant-numeric:tabular-nums}
+.flatBdrFacetHuman{white-space:normal;min-width:0;font-size:11px;color:#d6e5f1}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · сравнение</small></span></a></div>
@@ -3644,6 +3654,25 @@ const FLAT_BOARD_FACETS=[
  {key:'SF',name:'Стрит-флеш',values:[0,1,2,3,4,5]},
  {key:'A',name:'Туз',values:[0,1]}
 ];
+// Human labels follow the exact Board150 classifier (including S1/S2 and SF1/SF2).
+const FLAT_BOARD_FACET_LABELS={
+ P:['Без пары на столе','Пара на столе','Две пары на столе',
+    'Тройка на столе','Фулл-хаус на столе','Каре на столе'],
+ S:['Без выраженной стрит-угрозы','Стрит −2 · три подряд',
+    'Стрит −2 · две дырки','Стрит −1 · четыре подряд',
+    'Стрит −1 · одна дырка','Готовый стрит на столе'],
+ F:{1:'Разномастный флоп',2:'Не более двух карт одной масти',
+    3:'Три карты одной масти · флеш −2',
+    4:'Четыре карты одной масти · флеш −1',
+    5:'Пять карт одной масти · флеш на столе'},
+ SF:['Без выраженной стрит-флеш-угрозы','Стрит-флеш −2 · три подряд',
+     'Стрит-флеш −2 · две дырки','Стрит-флеш −1 · четыре подряд',
+     'Стрит-флеш −1 · одна дырка','Готовый стрит-флеш на столе'],
+ A:['Без туза на столе','С тузом на столе']
+};
+function flatBoardFacetLabel(groupKey,value){
+ return FLAT_BOARD_FACET_LABELS[groupKey]?.[value]||'';
+}
 const flatBoardFacets=Object.fromEntries(FLAT_BOARD_FACETS.map(
  group=>[group.key,new Set(group.values)]));
 function flatBoardShape(code){return String(code||'').replace(/^(FLOP|TURN)\|/,'')}
@@ -3862,7 +3891,10 @@ function renderFlatBoard150(root,a,b,compare){
    input.setAttribute('aria-label',group.key+value);
    input.onchange=()=>{if(input.checked)checked.add(value);else checked.delete(value);update()};
    boxes.set(value,input);
-   item.append(input,el('span','',group.key+value+(group.key==='F'&&value===1?' · радужный флоп':'')));
+   const code=el('strong','flatBdrFacetCode',group.key+value);
+   const explanation=el('span','flatBdrFacetHuman',flatBoardFacetLabel(group.key,value));
+   item.title=group.key+value+' · '+flatBoardFacetLabel(group.key,value);
+   item.append(input,code,explanation);
    panel.append(item);
   }
   picker.append(summary,panel);
