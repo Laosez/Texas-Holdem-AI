@@ -21,7 +21,7 @@ function harness(){
   handDecompProfileB:{value:'gto3',options:['gto2','gto3','tag'].map(value=>({value}))},
   handDecompOpponentCount:{value:'all',options:['all','1','2'].map(value=>({value}))},
   handDecompReportVariant:{value:'bdr',options:['bdr','river','catalog'].map(value=>({value}))},
-  handDecompReportMode:{textContent:'БДР'},viewOpponent:{value:'0'},
+  handDecompReportMode:{textContent:'БДР'},viewOpponent:{value:'0',options:Array.from({length:8},(_,i)=>({value:String(i)}))},
   strategyRunCacheStatus:{textContent:''}
  };
  const ctx={sessionStorage:storage,$:id=>{assert.ok(el[id],id);return el[id]},
