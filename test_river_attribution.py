@@ -158,7 +158,7 @@ class RiverAttributionTests(unittest.TestCase):
                        "RIVER_FILTERS","rank_texture","hero_hole_use",
                        "riverAdd(totals.a,r)","riverAdd(totals.b,r)",
                        "reasonBoardExpanded","Ср. BB",
-                       "if(decompReportMode==='river'){"):
+                       "if(decompReportMode==='river'||decompReportMode==='board150'){"):
             self.assertIn(needle,h)
 
 
