@@ -120,7 +120,7 @@ class RiverBoard150Tests(unittest.TestCase):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         required=(
             "function renderFlatBoard150(root,a,b,compare){",
-            "class=\"handDecompOpponentHint\"",
+            "id=\"handDecompOpponentHint\"",
             "flatMode?'all':selection",
             "showdownChoice==='all'||r.dims[4]===Number(showdownChoice)",
             "opponentPicker.setAttribute('aria-label',flatMode?",
@@ -130,7 +130,7 @@ class RiverBoard150Tests(unittest.TestCase):
             "Σ Net BB",
             "ИТОГО · ВЫБРАННЫЕ СЦЕНАРИИ",
             "record.net+=r.contribution_bb*totals[side]",
-            "record.n?record.net/record.n",
+            "record.n?flatBdrFormat(record.net/record.n,3)",
             "if(flatReportSort===col.key)",
             "const filtered=rows.filter(",
         )
