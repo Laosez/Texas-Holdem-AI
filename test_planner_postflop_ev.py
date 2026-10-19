@@ -53,7 +53,7 @@ class PostflopEVTests(unittest.TestCase):
     def test_9max_fixed_seats_keep_blinds_on_real_sb_bb(self):
         """Inactive blinds post, fold and cannot transfer obligations to UTG."""
         from core.engine import Table
-        raw = setup(hero="gto3", hand="T6s")
+        raw = setup(hero="gto20", hand="T6s")
         raw["hero_position"] = "9"
         active = dict(raw["opponents"][0], position="8", entry_mode="always")
         sb = dict(raw["opponents"][0], position="SB", entry_mode="never")
@@ -83,7 +83,7 @@ class PostflopEVTests(unittest.TestCase):
 
         with patch.object(Table, "play_hand", spy):
             net, showdown, classified, pot = post._play_case(
-                picked, board, "gto3", "9", 20, 77, detail=True, metrics=True)
+                picked, board, "gto20", "9", 20, 77, detail=True, metrics=True)
         self.assertEqual(capture["ring"], [
             "FOLD_3", "FOLD_SB", "FOLD_BB", "HERO", "V1",
             "FOLD_7", "FOLD_6", "FOLD_5", "FOLD_4"])
@@ -107,7 +107,7 @@ class PostflopEVTests(unittest.TestCase):
 
     def test_paired_physical_deal_is_prepared_once_per_trial(self):
         import random
-        raw=setup(hero="gto3",profile="tag",hand="T6s",trials=50)
+        raw=setup(hero="gto20",profile="tag",hand="T6s",trials=50)
         raw["hero_postflop_b"]="lag"
         with patch("planner_postflop_ev._physical_deal",
                    wraps=post._physical_deal) as prepared:
@@ -121,7 +121,7 @@ class PostflopEVTests(unittest.TestCase):
         ranges,_=eq.build_ranges(raw["opponents"],"selected")
         picked,board=post._draw_case("T6s",ranges,raw["opponents"],random.Random(42))
         fixed=post._physical_deal(picked,board,raw["hero_position"],2026)
-        for strategy in ("gto3","lag"):
+        for strategy in ("gto20","lag"):
             params=(picked,board,strategy,raw["hero_position"],20,2026)
             self.assertEqual(
                 post._play_case(*params,detail=True,metrics=True),
@@ -129,7 +129,7 @@ class PostflopEVTests(unittest.TestCase):
 
     def test_paired_multi_process_2000_cases(self):
         """Exercise spawn-based worker path, not just the 50-trial inline path."""
-        raw=setup(hero="gto3",hand="AQs",entry="never",trials=2000)
+        raw=setup(hero="gto20",hand="AQs",entry="never",trials=2000)
         raw["hero_postflop_b"]="tag"
         report=post.calculate_parallel(raw,workers=2)
         self.assertEqual(report["comparison"]["samples"],2000)
@@ -198,7 +198,7 @@ class PostflopEVTests(unittest.TestCase):
         self.assertEqual(post._uncontested_pot_bb("3",100),4.0)
         self.assertEqual(post._uncontested_pot_bb("SB",100),3.5)
         self.assertEqual(post._uncontested_pot_bb("BB",100),1.5)
-        raw=setup(hero="gto3",hand="AQs",entry="never",trials=50)
+        raw=setup(hero="gto20",hand="AQs",entry="never",trials=50)
         result=post.calculate_parallel(raw,workers=1)
         self.assertEqual(result["preflop_line_counts"]["hero_rfi"],50)
         self.assertEqual(result["entry_pot_bb"][0],
@@ -206,8 +206,8 @@ class PostflopEVTests(unittest.TestCase):
                                                   raw.get("hero_stack_bb",100)))
 
     def test_paired_same_policy_shares_deals_and_has_zero_delta(self):
-        raw = setup(hero="gto3",profile="tag",hand="AQs",trials=50)
-        raw["hero_postflop_b"] = "gto3"
+        raw = setup(hero="gto20",profile="tag",hand="AQs",trials=50)
+        raw["hero_postflop_b"] = "gto20"
         with patch("planner_postflop_ev._draw_case",wraps=post._draw_case) as draw:
             result = post.calculate_parallel(raw,workers=1)
         self.assertEqual(draw.call_count, 50)
@@ -224,7 +224,7 @@ class PostflopEVTests(unittest.TestCase):
         self.assertEqual(result["a"]["equity"],unpaired["equity"])
 
     def test_paired_different_policies_delta_and_conditional_strata(self):
-        raw = setup(hero="gto3",profile="tag",hand="T6s",trials=50)
+        raw = setup(hero="gto20",profile="tag",hand="T6s",trials=50)
         raw["hero_postflop_b"] = "tag"
         result = post.calculate_parallel(raw,workers=2)
         pair = result["comparison"]
@@ -243,7 +243,7 @@ class PostflopEVTests(unittest.TestCase):
 
     def test_paired_request_rejects_invalid_shapes(self):
         raw=setup()
-        raw["hero_postflop_b"]="gto3"
+        raw["hero_postflop_b"]="gto20"
         raw["hand"]=None
         with self.assertRaises(ValueError):
             post.validate_request(raw)
