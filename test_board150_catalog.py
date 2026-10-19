@@ -165,6 +165,35 @@ class RiverBoard150Tests(unittest.TestCase):
                 self.assertIn(needle,page)
         self.assertNotIn("const boardSelect=el('select','flatBdrFilter')",page)
 
+    def test_board_facet_checkbox_human_names_follow_canonical_taxonomy(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        for label in (
+            "const FLAT_BOARD_FACET_LABELS={",
+            "'Без пары на столе'","'Пара на столе'","'Две пары на столе'",
+            "'Тройка на столе'","'Фулл-хаус на столе'","'Каре на столе'",
+            "'Без выраженной стрит-угрозы'",
+            "'Стрит −2 · три подряд'","'Стрит −2 · две дырки'",
+            "'Стрит −1 · четыре подряд'","'Стрит −1 · одна дырка'",
+            "'Готовый стрит на столе'",
+            "1:'Разномастный флоп'",
+            "2:'Не более двух карт одной масти'",
+            "3:'Три карты одной масти · флеш −2'",
+            "4:'Четыре карты одной масти · флеш −1'",
+            "5:'Пять карт одной масти · флеш на столе'",
+            "'Без выраженной стрит-флеш-угрозы'",
+            "'Стрит-флеш −2 · три подряд'",
+            "'Стрит-флеш −2 · две дырки'",
+            "'Стрит-флеш −1 · четыре подряд'",
+            "'Стрит-флеш −1 · одна дырка'",
+            "'Готовый стрит-флеш на столе'",
+            "'Без туза на столе'","'С тузом на столе'",
+            "function flatBoardFacetLabel(groupKey,value){",
+            "const explanation=el('span','flatBdrFacetHuman',flatBoardFacetLabel(group.key,value))",
+            "item.append(input,code,explanation)",
+        ):
+            with self.subTest(label=label):
+                self.assertIn(label,page)
+
     def test_board_facet_runtime_and_hidden_showdown_aggregation(self):
         """Execute deployed JS helpers, including multiple values and precise sums."""
         if not shutil.which("node"):
