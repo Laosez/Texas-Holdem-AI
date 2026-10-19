@@ -2,6 +2,8 @@
 from collections import Counter
 from pathlib import Path
 import json
+import shutil
+import subprocess
 import random
 import unittest
 from unittest.mock import patch
@@ -122,7 +124,7 @@ class RiverBoard150Tests(unittest.TestCase):
             "function renderFlatBoard150(root,a,b,compare){",
             "id=\"handDecompOpponentHint\"",
             "flatMode?'all':selection",
-            "showdownChoice==='all'||r.dims[4]===Number(showdownChoice)",
+            "if(showdownChoice!=='all'&&row.dims[4]!==Number(showdownChoice))continue;",
             "opponentPicker.setAttribute('aria-label',flatMode?",
             "flatBdrGroup abValueA",
             "flatBdrGroup abValueB",
@@ -132,7 +134,7 @@ class RiverBoard150Tests(unittest.TestCase):
             "record.net+=r.contribution_bb*totals[side]",
             "record.n?flatBdrFormat(record.net/record.n,3)",
             "if(flatReportSort===col.key)",
-            "const filtered=eligible.filter(",
+            "const grouped=flatAggregateVisible(eligible,showdownChoice)",
         )
         for keyword in required:
             with self.subTest(keyword=keyword):
@@ -142,27 +144,72 @@ class RiverBoard150Tests(unittest.TestCase):
     def test_board_filters_use_separate_street_and_poker_category_multiselect(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         for needle in (
-            "function flatBoardShape(code)",
+            "const FLAT_BOARD_FACETS=[",
+            "{key:'P',name:'Парность',values:[0,1,2,3,4,5]}",
+            "{key:'S',name:'Стрит',values:[0,1,2,3,4,5]}",
+            "{key:'F',name:'Флеш',values:[1,2,3,4,5]}",
+            "{key:'SF',name:'Стрит-флеш',values:[0,1,2,3,4,5]}",
+            "{key:'A',name:'Туз',values:[0,1]}",
+            "const boardFacetWrap=el('div','flatBdrFacetGroup')",
+            "flatBoardFacetsMatch(r.dims[1])",
+            "function flatAggregateVisible(rows,showdownChoice='all')",
             "const streetSelect=el('select','flatBdrFilter')",
-            "const boardSelect=el('select','flatBdrFilter')",
-            "return full.replace(/^(Флоп|Тёрн|Ривер) · /,'')",
-            "function rebuildBoardChoices(){",
-            "flatBoardShape(row.dims[1])",
-            "selected[1]===flatBoardShape(r.dims[1])",
-            "function createCategoryPicker(label,field,selectedSet)",
-            "const syncHero=createCategoryPicker('HERO',2,flatVisibleHeroCategories)",
-            "const syncVillain=createCategoryPicker('Оппонент',3,flatVisibleVillainCategories)",
             "flatVisibleHeroCategories.has(r.dims[2])",
             "flatVisibleVillainCategories.has(r.dims[3])",
+            "function refreshDerivedBoards(){",
+            "boardSummary.textContent='Подобрано типов борда: '",
+            "const syncHero=createCategoryPicker('HERO',2,flatVisibleHeroCategories)",
+            "const syncVillain=createCategoryPicker('Оппонент',3,flatVisibleVillainCategories)",
         ):
             with self.subTest(needle=needle):
                 self.assertIn(needle,page)
+        self.assertNotIn("const boardSelect=el('select','flatBdrFilter')",page)
+
+    def test_board_facet_runtime_and_hidden_showdown_aggregation(self):
+        """Execute deployed JS helpers, including multiple values and precise sums."""
+        if not shutil.which("node"):
+            self.skipTest("Node.js unavailable")
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        part=page.split("const FLAT_BOARD_FACETS=[",1)[1].split(
+            "/* End pure Board150 filter and aggregation helpers. */",1)[0]
+        js="const FLAT_BOARD_FACETS=["+part+'''
+const assert=(v,msg)=>{if(!v)throw Error(msg)};
+const board='P1 · S2 · F2 · SF0 · A0';
+assert(flatBoardFacetsMatch(board),'all facets');
+assert(flatBoardFacetsMatch('PRE|NO_BOARD'),'preflop preserved by default');
+flatBoardFacets.P.clear();flatBoardFacets.P.add(1);
+flatBoardFacets.S.clear();flatBoardFacets.S.add(0);flatBoardFacets.S.add(2);
+assert(flatBoardFacetsMatch(board),'multiple values within S');
+assert(flatBoardFacetsMatch('P1 · S0 · F2 · SF0 · A0'),'S0');
+assert(!flatBoardFacetsMatch('P1 · S1 · F2 · SF0 · A0'),'excluded S1');
+assert(!flatBoardFacetsMatch('P0 · S2 · F2 · SF0 · A0'),'excluded P0');
+assert(!flatBoardFacetsMatch('PRE|NO_BOARD'),'no preflop for partial facets');
+flatBoardFacets.F.clear();flatBoardFacets.F.add(3);
+assert(!flatBoardFacetsMatch(board),'exclude F2');
+assert(flatBoardFacetsMatch('P1 · S2 · F3 · SF0 · A0'),'F3');
+assert(flatBoardParts('FLOP|P0 · S0 · F1 · SF0 · A0').F===1,'rainbow flop F1');
+const d=['river',board,2,2,1,'L3'];
+const make=(n,net,opps)=>({dims:[d[0],d[1],d[2],d[3],opps,d[5]],
+ a:{n,net},b:{n,net:net/2}});
+const rows=[make(6,-420,1),make(5,-340,2)];
+const merged=flatAggregateVisible(rows,'all');
+assert(merged.length===1,'one row per visible scenario');
+assert(merged[0].a.n===11,'sum N');
+assert(merged[0].a.net===-760,'sum net BB');
+assert(merged[0].a.net/merged[0].a.n===-760/11,'weighted EV');
+assert(merged[0].a.n>=10&&rows.every(r=>r.a.n<10),'N threshold after aggregation');
+assert(flatAggregateVisible(rows,'1').length===1,'single showdown count');
+assert(flatAggregateVisible(rows,'1')[0].a.n===6,'count 1 only');
+assert(flatAggregateVisible(rows,'2')[0].a.net===-340,'count 2 only');
+'''
+        run=subprocess.run(["node","-e",js],capture_output=True,text=True,timeout=15)
+        self.assertEqual(run.returncode,0,run.stderr)
 
     def test_flat_ev_graph_uses_sample_weighted_net_and_original_chart_preserved(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         for needle in (
             "function renderFlatShowdownEvChart(rows,compare,selection)",
-            "renderFlatShowdownEvChart(eligible,compare,showdownChoice)",
+            "renderFlatShowdownEvChart(chartRows,compare,showdownChoice)",
             "totals[side].n+=row[side].n",
             "totals[side].net+=row[side].net",
             "d[side].net/d[side].n",
@@ -192,7 +239,7 @@ class RiverBoard150Tests(unittest.TestCase):
             "for(const n of [0,10,20,50,100,200,500,1000,2000])",
             "flatVisibleOutcomes.has(r.dims[5])",
             "(compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN",
-            "showdownChoice==='all'||r.dims[4]===Number(showdownChoice)",
+            "if(showdownChoice!=='all'&&row.dims[4]!==Number(showdownChoice))continue;",
             "for(const i of [0,1,2,3,5])",
             "dims.colSpan=5",
             "title.colSpan=5",
