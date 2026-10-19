@@ -1233,6 +1233,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         if planner_api.get_route(self,path):
             return
+        if path == "/api/postflop/board150-catalog":
+            catalog = ROOT / "data" / "postflop_board150_catalog.json"
+            try:
+                self.reply(200, json.loads(catalog.read_text(encoding="utf-8")))
+            except (OSError,ValueError):
+                self.reply(503, {"error": "Каталог P/S/F/SF/A недоступен"})
+            return
         if path == "/api/postflop/composite-catalog":
             # Small reviewed static JSON; generated offline from the exact census.
             catalog = ROOT / "data" / "postflop_composite_catalog.json"
@@ -1388,6 +1395,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, compare_request(payload))
             except ValueError as e:
                 self.reply(400, {"error": str(e)})
+            return
+        if path == "/api/postflop/board150-classify":
+            from postflop_board150 import classify_request
+            try:
+                self.reply(200, classify_request(payload))
+            except (ValueError,TypeError) as exc:
+                self.reply(400, {"error": str(exc)})
             return
         if path == "/api/postflop/composite":
             from postflop_composite_classifier import classify_composite_request
