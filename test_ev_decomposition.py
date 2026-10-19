@@ -358,7 +358,7 @@ class EVDecompositionTests(unittest.TestCase):
         self.assertIn("const output=await pollPostflop(settings,epoch",s)
         self.assertIn("function renderHandDecomposition(){",s)
         self.assertIn("evLedgerTable",s)
-        self.assertIn("let decompReportMode='bdr';",s)
+        self.assertIn("let decompReportMode='board150';",s)
         self.assertIn("function renderBdrLedger(root,data)",s)
         self.assertIn("function renderBalanceLedger(root,data)",s)
         self.assertIn("function renderCompareBdrLedger(root,a,b,compare=true)",s)

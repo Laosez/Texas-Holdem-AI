@@ -88,16 +88,23 @@ class RiverBoard150Tests(unittest.TestCase):
         page=(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8")
         server=(app.ROOT/"replit_simulator.py").read_text(encoding="utf-8")
         plan=(app.ROOT/"replit_ui/plan.html").read_text(encoding="utf-8")
-        for x in ("id=\"board150Catalog\"","id=\"board150Report\"",
-                  "skachkov_board150_report_v1","/api/postflop/board150-catalog",
+        for x in ("id=\"board150Catalog\"","/api/postflop/board150-catalog",
                   "/api/postflop/board150-classify",
-                  "function reportTree(){","function drawReport(){"):
+                  "function boardTitle(row){", "boardName", "Название борда",
+                  "function drawCatalog(){"):
             self.assertIn(x,page)
+        for forbidden in ("id=\"board150Report\"","id=\"viewFinancial\"",
+                          "function reportTree(){","function drawReport(){",
+                          "skachkov_board150_report_v1","reportSummary"):
+            self.assertNotIn(forbidden,page)
         self.assertIn('"river_board.html") if path == "/s100"',server)
         self.assertNotIn('1 019',page)
-        self.assertIn('<option value="board150">Справочник 150',plan)
+        self.assertIn('<option value="board150" selected>Причины → 150 типов борда',plan)
         self.assertIn('<option value="catalog" hidden>',plan)
-        self.assertIn('↗ Отчёт на листе 03 · Постфлоп',plan)
+        self.assertIn('↗ Справочник 150 бордов',plan)
+        self.assertNotIn('↗ Отчёт на листе 03 · Постфлоп',plan)
+        self.assertIn('function riverBoardDescription(code){',plan)
+        self.assertIn('function board150Parts(code){',plan)
         self.assertIn('record.board_code||record.board_id',plan)
         self.assertIn('renderRiverLedger(root,a,b,compare)',plan)
 

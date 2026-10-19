@@ -833,6 +833,11 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompRows .riverLedgerReport td:not(:first-child){white-space:nowrap}
 .handDecompRows .riverLedgerReport .evLedgerSection{background:rgba(49,83,116,.37)}
 .handDecompRows .riverLedgerReport .evLedgerSub{background:rgba(39,68,94,.20)}
+
+.handDecompRows .riverLedgerReport .evLedgerLevel2 .evLedgerArticle{color:#e8f3ff;font-weight:650;font-size:11px;min-width:390px}
+.handDecompRows .riverLedgerReport .riverBoardCode{margin-top:3px;font-size:10px;font-weight:500;letter-spacing:.15px;color:#92b0cb}
+.handDecompRows .riverLedgerReport .abDisclosure{align-items:flex-start;line-height:1.5;white-space:normal}
+.handDecompRows .riverLedgerReport .abDisclosure .abChevron{flex:0 0 14px;margin-top:2px}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · сравнение</small></span></a></div>
@@ -992,7 +997,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
      <option value="8">8 · мультипот</option>
     </select>
    </div>
-   <div class="field handDecompFormat"><label class="simFieldLabel" for="handDecompReportVariant">Форма отчёта</label><span id="handDecompReportMode" class="handDecompFormatValue">БДР</span><select id="handDecompReportVariant" aria-label="Переключить форму отчёта"><option value="bdr" selected>БДР · причины</option><option value="board150">Справочник 150 · P/S/F/SF/A</option><option value="catalog" hidden>Архив · 1 019 флопов</option><option value="river" hidden>Архив · причины / тип борда</option></select></div>
+   <div class="field handDecompFormat"><label class="simFieldLabel" for="handDecompReportVariant">Форма отчёта</label><span id="handDecompReportMode" class="handDecompFormatValue">ПРИЧИНЫ × БОРД</span><select id="handDecompReportVariant" aria-label="Переключить форму отчёта"><option value="board150" selected>Причины → 150 типов борда · БДР</option><option value="bdr">БДР · причины (прежний)</option><option value="catalog" hidden>Архив · 1 019 флопов</option><option value="river" hidden>Архив · причины / тип борда</option></select></div>
    <div class="field handDecompSampleTop"><span class="simFieldLabel">Выборка · A / B</span>
     <div class="handDecompSampleValues">
      <span class="sampleA"><span class="sampleMark">A</span><strong id="handDecompSamples">—</strong></span>
@@ -2701,11 +2706,11 @@ function decompSortHeader(label,key,detail=false){
  return th;
 }
 
-let decompReportMode='bdr';
+let decompReportMode='board150';
 const catalogOpenBoards=new Set();
 const reasonBoardExpanded=new Set(['sign:profit','sign:loss','sign:neutral']);
 let riverSampleTotals={a:1,b:1};
-const riverFilters={sign:'all',suit:'all',rank:'all',straight:'all',street:'all',origin:'all',holeUse:'all'};
+const riverFilters={sign:'all',p:'all',s:'all',f:'all',sf:'all',a:'all',street:'all',origin:'all',holeUse:'all'};
 let riverSort='impact',riverDescending=true;
 let catalogSortColumn='count:a',catalogSortDirection='desc';
 const CATALOG_SORT_FIELDS=[
@@ -3331,18 +3336,28 @@ function renderCatalogLedger(root,a,b,compare){
 const RIVER_SIGN_LABELS={profit:'01 · ПРИБЫЛЬ',loss:'02 · УБЫТКИ',neutral:'03 · НУЛЕВОЙ РЕЗУЛЬТАТ'};
 const RIVER_FILTERS=[
  {key:'sign',label:'Результат',items:[['all','Все'],['profit','Прибыль'],['loss','Убытки'],['neutral','Ноль']]},
- {key:'suit',label:'Масть борда',items:[['all','Все'],['S0','S0 · без борда'],['S1','S1 · радуга'],['S2','S2'],['S3','S3 · три одной масти'],['S4','S4 · четыре одной масти'],['S5','S5 · флеш борда']]},
- {key:'rank',label:'Структура рангов',items:[['all','Все'],['unpaired','Неспаренный'],['one_pair','Пара'],['two_pair','Две пары'],['trips','Тройка'],['full_house','Фулл-хаус'],['quads','Каре']]},
- {key:'straight',label:'Стрит-опасность',items:[['all','Все'],['disconnected','Разрозненный'],['connected','Связный'],['four','4 к стриту'],['made','Стрит на борде']]},
+ {key:'p',label:'Парность · P',items:[['all','Все'],['P0','P0 · Без пары'],['P1','P1 · Пара'],['P2','P2 · Две пары'],['P3','P3 · Тройка'],['P4','P4 · Фулл-хаус'],['P5','P5 · Каре']]},
+ {key:'s',label:'Стрит · S',items:[['all','Все'],['S0','S0 · Нет угрозы'],['S1','S1 · −2 подряд'],['S2','S2 · Две дырки'],['S3','S3 · −1 подряд'],['S4','S4 · Одна дырка'],['S5','S5 · На борде']]},
+ {key:'f',label:'Флеш · F',items:[['all','Все'],['F1','F1 · 1s'],['F2','F2 · 2s'],['F3','F3 · Флеш −2 (3s)'],['F4','F4 · Флеш −1 (4s)'],['F5','F5 · На борде (5s)']]},
+ {key:'sf',label:'Стрит-флеш · SF',items:[['all','Все'],['SF0','SF0 · Нет угрозы'],['SF1','SF1 · −2 подряд'],['SF2','SF2 · Две дырки'],['SF3','SF3 · −1 подряд'],['SF4','SF4 · Одна дырка'],['SF5','SF5 · На борде']]},
+ {key:'a',label:'Туз · A',items:[['all','Все'],['A0','Без туза'],['A1','С тузом']]},
  {key:'street',label:'Последняя улица',items:[['all','Все'],['preflop','Префлоп'],['flop','Флоп'],['turn','Тёрн'],['river','Ривер']]},
- {key:'holeUse',label:'Карты HERO в лучшей пятёрке',items:[['all','Любое'],['0','0 карт HERO'],['1','1 карта HERO'],['2','2 карты HERO']]},
+ {key:'holeUse',label:'Карты HERO',items:[['all','Любое'],['0','0 в лучшей пятёрке'],['1','1 в лучшей пятёрке'],['2','2 в лучшей пятёрке']]},
  {key:'origin',label:'Происхождение HERO',items:[['all','Все'],['unavailable','Без вскрытия'],['own_pair','Своя пара'],['pocket_pair','Карманная пара'],['board_pair','Пара борда'],['two_pair_own','Две свои пары'],['two_pair_mixed','Своя + пара борда'],['two_pair_board','Общие две пары'],['set','Сет'],['trips','Трипс'],['board_trips','Тройка борда'],['straight','Стрит'],['flush','Флеш'],['full_house','Фулл-хаус'],['quads','Каре'],['straight_flush','Стрит-флеш'],['high_card','Старшая карта']]}
 ];
+function board150Parts(code){
+ if(code==='PRE|NO_BOARD'||!code)return null;
+ const m=code.match(/P(\d) · S(\d) · F(\d) · SF(\d) · A(\d)$/);
+ if(!m)return null;
+ return {p:'P'+m[1],s:'S'+m[2],f:'F'+m[3],
+  sf:'SF'+m[4],a:'A'+m[5]};
+}
 function riverPass(row){
+ const code=board150Parts(row.board_code);
+ for(const field of ['p','s','f','sf','a']){
+  if(riverFilters[field]!=='all'&&(!code||code[field]!==riverFilters[field]))return false;
+ }
  return (riverFilters.sign==='all'||row.sign===riverFilters.sign)&&
-  (riverFilters.suit==='all'||row.suit===riverFilters.suit)&&
-  (riverFilters.rank==='all'||row.rank_texture===riverFilters.rank)&&
-  (riverFilters.straight==='all'||row.straight===riverFilters.straight)&&
   (riverFilters.street==='all'||row.street===riverFilters.street)&&
   (riverFilters.holeUse==='all'||row.hero_hole_use===Number(riverFilters.holeUse))&&
   (riverFilters.origin==='all'||row.origin===riverFilters.origin);
@@ -3453,15 +3468,24 @@ function riverControls(root,compare,active){
  root.append(toolbar);
 }
 function riverBoardDescription(code){
- if(code==='PRE|NO_BOARD')return 'До флопа · общие карты не открывались';
+ if(code==='PRE|NO_BOARD')return 'Префлоп · Общие карты не открывались';
  const m=code?.match(/P(\d) · S(\d) · F(\d) · SF(\d) · A(\d)$/);
- if(!m)return '';
+ if(!m)return 'Неизвестная структура борда';
  const [,p,s,f,sf,a]=m.map(Number);
- const pairs=['Без пары','Одна пара','Две пары','Тройка','Фулл-хаус','Каре'];
- const straight=['Без угрозы','Стрит −2','Две дырки','Стрит −1','Одна дырка','Стрит на борде'];
- const straightFlush=['Без угрозы','Стрит-флеш −2','Две дырки','Стрит-флеш −1','Одна дырка','Стрит-флеш на борде'];
- const prefix=code.startsWith('FLOP|')?'Флоп · ':code.startsWith('TURN|')?'Тёрн · ':'Ривер · ';
- return prefix+pairs[p]+' · '+straight[s]+' · '+f+'s · '+straightFlush[sf]+' · '+(a?'с тузом':'без туза');
+ const pairs=['Неспаренный стол','Пара на столе','Две пары на столе',
+  'Тройка на столе','Фулл-хаус на столе','Каре на столе'];
+ const straight=['','стрит −2 (три подряд)','стрит −2 (две дырки)',
+  'стрит −1 (четыре подряд)','стрит −1 (одна дырка)','готовый стрит'];
+ const suited=['','стрит-флеш −2 (три подряд)','стрит-флеш −2 (две дырки)',
+  'стрит-флеш −1 (четыре подряд)','стрит-флеш −1 (одна дырка)','готовый стрит-флеш'];
+ const components=[pairs[p]];
+ if(s)components.push(straight[s]);
+ if(f>=3)components.push(f===3?'флеш −2 (3s)':f===4?'флеш −1 (4s)':'готовый флеш (5s)');
+ if(sf)components.push(suited[sf]);
+ if(!s&&f<=2&&!sf)components.push('сухой по стриту и флешу');
+ components.push(a?'с тузом':'без туза');
+ const prefix=code.startsWith('FLOP|')?'Флоп':code.startsWith('TURN|')?'Тёрн':'Ривер';
+ return prefix+' · '+components.join(' · ');
 }
 function riverReportHead(table,compare){
  const thead=table.querySelector('thead');thead.replaceChildren();
@@ -3506,19 +3530,9 @@ function renderRiverLedger(root,a,b,compare){
   root.append(el('p','handDecompEmpty','Старый расчёт не содержит кода P/S/F/SF/A. Запусти новую симуляцию — старым записям нельзя приписывать выдуманный ривер.'));
   return;
  }
- const send=el('button','btn sm primary','↗ Отчёт на листе 03 · Постфлоп');
- send.type='button';send.onclick=()=>{
-  try{
-   const snapshot={version:'river_board_150_v1',hand:selected,
-    profile:postflopName($('heroPostflop').value),
-    a:{samples:a.samples,ev_bb:a.ev_bb,rows:a.river_attribution.rows},
-    b:compare&&b?{samples:b.samples,ev_bb:b.ev_bb,rows:b.river_attribution.rows}:null};
-   sessionStorage.setItem('skachkov_board150_report_v1',JSON.stringify(snapshot));
-   sessionStorage.setItem('skachkov_postflop_view_v1','financial');
-   window.location.assign('/s100');
-  }catch(e){msg('Не удалось передать отчёт: '+e.message,true)}
- };
- root.append(send);
+ const glossary=el('a','btn sm','↗ Справочник 150 бордов');
+ glossary.href='/s100';glossary.title='На листе 03 только справочник, без финансового отчёта';
+ root.append(glossary);
  if(!compare&&(riverSort.endsWith(':b')||riverSort==='delta'))riverSort='impact';
  riverSampleTotals={a:a?.samples||1,b:b?.samples||1};
  // Snapshot is used only for disclosure actions, not for recomputation.
@@ -3540,22 +3554,25 @@ function renderRiverLedger(root,a,b,compare){
    evLedgerFormat(node.b.contribution_bb-node.a.contribution_bb)];
  }
  function put(node,level,cls){
-  const tr=decompRow(body,node.label,columns(node),cls,level);
-  if(level===2&&node.label.includes('P')){
-   const cell=tr.firstChild;
-   const sub=el('div','riverBoardHumanName',riverBoardDescription(node.label));
-   cell.append(sub);
-   tr.title=node.label+' · '+riverBoardDescription(node.label);
-  }
+  // Human name is the primary article; the technical identifier is subordinate.
+  const name=level===2?riverBoardDescription(node.label):node.label;
+  const tr=decompRow(body,name,columns(node),cls,level);
+  const cell=tr.firstChild;
   if(node.children.size){
    const isOpen=reasonBoardExpanded.has(node.key);
    const button=el('button','abDisclosure');
    button.type='button';button.setAttribute('aria-expanded',String(isOpen));
-   button.append(el('span','abChevron',isOpen?'▾':'▸'),el('span','',node.label));
+   button.append(el('span','abChevron',isOpen?'▾':'▸'),el('span','',name));
    button.onclick=()=>{if(isOpen)reasonBoardExpanded.delete(node.key);
     else reasonBoardExpanded.add(node.key);renderHandDecomposition()};
-   tr.firstChild.replaceChildren(button);
-   if(isOpen)for(const child of riverOrdered(node.children.values()))
+   cell.replaceChildren(button);
+  }
+  if(level===2){
+   cell.append(el('div','riverBoardCode',node.label));
+   tr.title=name+' · '+node.label;
+  }
+  if(node.children.size&&reasonBoardExpanded.has(node.key)){
+   for(const child of riverOrdered(node.children.values()))
     put(child,level+1,level===0?'evLedgerSub':'evLedgerDetail');
   }
  }
