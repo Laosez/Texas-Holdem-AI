@@ -11,7 +11,7 @@ import planner_equity as eq
 def request(hand="K4s",trials=250):
     return {
         "model":"selected","trials":trials,"cycles":1,
-        "hero_postflop":"gto2","hero_position":"3","hero_stack_bb":20,
+        "hero_postflop":"gto20","hero_position":"3","hero_stack_bb":20,
         "opponents":[{"profile":"builtin:any_two","position":"9","scenario":"rfi",
           "players":9,"selector":"active","entry_mode":"always",
           "entry_pct":100,"postflop":"lag"}],
@@ -72,7 +72,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
     def test_direct_engine_pot_callback_is_exact(self):
         from core.engine import Table,Seat
         from bots import create_bot
-        bot=create_bot("split:pc_gto_80bb:gto_postflop_v2")
+        bot=create_bot("split:pc_gto_80bb:gto_postflop_20")
         tbl=Table(rng=random.Random(42))
         pot=[]
         tbl.on_hand_pot=lambda hand_id,chips,bb:pot.append((chips,bb))
@@ -109,11 +109,11 @@ class PlanEVWorkflowTests(unittest.TestCase):
             {"profile":"builtin:a17_v5","position":seat,
              "scenario":"vs_open" if seat=="BB" else "rfi","players":9,
              "selector":"active","entry_mode":"range" if i<3 else "never",
-             "entry_pct":100 if i<3 else 0,"postflop":"gto2"}
+             "entry_pct":100 if i<3 else 0,"postflop":"gto20"}
             for i,seat in enumerate(positions)
         ]
         payload={"model":"selected","hand":"AKs","trials":50,"cycles":1,
-                 "hero_postflop":"gto2","hero_position":"3","hero_stack_bb":20,
+                 "hero_postflop":"gto20","hero_position":"3","hero_stack_bb":20,
                  "opponents":opponents}
         result=post.calculate(payload)
         self.assertEqual(len(result["entry_n_samples"]),9)
