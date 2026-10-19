@@ -272,7 +272,8 @@ class PlanHttpTests(unittest.TestCase):
             "if(!preserveEdits()){if(hero)setHeroFields(hero);return}",
             "const prior=selectedValue===undefined?control.value:selectedValue;"):
             self.assertIn(literal,page)
-        self.assertIn("useBbDefenseWhenRfi();renderOpponents();invalidateEquity();loadHero({contextChange:true});loadVillain()",page)
+        self.assertIn("useBbDefenseWhenRfi();\n void loadHero({contextChange:true}).then(()=>loadVillain());",page)
+        self.assertIn("stashStrategyRun();\n invalidateEquity({refresh:false});\n preserveCurrentSlot();",page)
         self.assertIn("BB против открытия: используется GTO Fixed",page)
         self.assertIn("На BB нет RFI",page)
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
