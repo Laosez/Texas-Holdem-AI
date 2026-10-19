@@ -825,6 +825,13 @@ def worker(job: dict) -> None:
                     reason = ("Экспортёр завершился по SIGKILL (вероятный OOM: "
                               "недостаточно RAM на Railway). Контрольные точки "
                               "сохранены; можно возобновить после исправления.")
+                elif exit_code != 0 and any(
+                        ("No space left on device" in line or "Railway /data:" in line)
+                        for line in job["log"]):
+                    reason = ("На Railway закончилось место для контрольных точек турниров. "
+                              "Открой «Освободить место» в разделе сессий; "
+                              "незавершённые контрольные точки сохраняются. "
+                              "Если места не хватит, увеличь том poker-results.")
                 elif exit_code != 0:
                     reason = f"Экспортёр завершился с кодом {exit_code}; см. последние строки журнала."
                 else:
@@ -911,7 +918,8 @@ def resume_run(run_id: str) -> dict:
         # checks each legacy checkpoint's exact configuration and task tuple.
         current_fingerprint = strategy_fingerprint()
         prior_fingerprint = strategy_fingerprint("c95b365dd2af4051db541b27781b94e9ccbd113477ca6c3740fcbd6c9b5d40b2")
-        if job.get("strategy_fingerprint") not in (current_fingerprint, prior_fingerprint):
+        pre_storage_fingerprint = strategy_fingerprint("4c8d51ea7819a274c1f974b5743f9ba40b77b525ef20153ac540bc53887e8c34")
+        if job.get("strategy_fingerprint") not in (current_fingerprint, prior_fingerprint, pre_storage_fingerprint):
             raise RuntimeError("Версия старой сессии неизвестна или изменилась; безопасное продолжение невозможно. Скачай ZIP для архива.")
         job["cancelled"] = False
         job["status"] = "running"
