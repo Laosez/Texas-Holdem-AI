@@ -125,7 +125,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         for needle in (
             "let decompReportMode='board150';",
-            'id="handDecompReportMode" class="handDecompFormatValue">ПРИЧИНЫ × БОРД</span>',
+            'id="handDecompReportMode" class="handDecompFormatValue">ПЛОСКИЙ РЕГИСТР</span>',
             "function renderBdrLedger(root,data){",
             "function renderBalanceLedger(root,data){",
             "function renderCompareBdrLedger(root,a,b,compare=true){",
