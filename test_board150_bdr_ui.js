@@ -34,8 +34,8 @@ const code=plan.slice(start,end);
 const ctx={};
 vm.createContext(ctx);
 vm.runInContext(
- 'let riverFilters='+JSON.stringify(initial)+';'+
- "let riverSort='impact',riverDescending=true,riverSampleTotals={a:20,b:20};\n"+
+ 'var riverFilters='+JSON.stringify(initial)+';'+
+ "var riverSort='impact',riverDescending=true,riverSampleTotals={a:20,b:20};\n"+
  code+"\nthis.methods={parts:board150Parts,pass:riverPass,tree:riverTree,"+
  "title:riverBoardDescription,ordered:riverOrdered,val:riverSortValue};",ctx);
 const m=ctx.methods;
