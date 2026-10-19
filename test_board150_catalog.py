@@ -99,7 +99,7 @@ class RiverBoard150Tests(unittest.TestCase):
             self.assertNotIn(forbidden,page)
         self.assertIn('"river_board.html") if path == "/s100"',server)
         self.assertNotIn('1 019',page)
-        self.assertIn('<option value="board150" selected>Причины → 150 типов борда',plan)
+        self.assertIn('<option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход',plan)
         self.assertIn('<option value="catalog" hidden>',plan)
         self.assertIn('↗ Справочник 150 бордов',plan)
         self.assertNotIn('↗ Отчёт на листе 03 · Постфлоп',plan)
