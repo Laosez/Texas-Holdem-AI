@@ -934,6 +934,22 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .flatBdrCategoryPicker .flatBdrOutcomePanel{min-width:270px}
 .flatBdrCategoryPicker .flatBdrOutcomeSummary{min-width:140px}
 .handDecompCombinedChart .handDecompChartCanvas svg{max-height:300px}
+
+/* The P/S/F/SF/A facets replace a huge list of 150 codes. */
+.flatBdrFacetGroup{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.flatBdrFacetPicker{min-width:107px}
+.flatBdrFacetPicker .flatBdrOutcomeSummary{min-width:110px;padding:8px 10px}
+.flatBdrFacetPicker .flatBdrOutcomePanel{min-width:225px;max-width:290px}
+.flatBdrBoardResults{width:100%;border-top:1px solid rgba(122,157,188,.18);
+ margin-top:3px;padding:6px 0 0;color:#a5c5df;font-size:11px}
+.flatBdrBoardResultsSummary{cursor:pointer;user-select:none;font-weight:650}
+.flatBdrBoardResultsList{max-height:260px;overflow:auto;display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px;margin:9px 0 4px}
+.flatBdrBoardResultLine{display:flex;flex-direction:column;gap:2px;background:#10263c;
+ border:1px solid #33536e;border-radius:6px;padding:6px 9px;line-height:1.4}
+.flatBdrBoardResultLine code{color:#bcdfff;font-size:11px;font-weight:680}
+.flatBdrBoardResultLine span{font-size:10px;color:#9bb9d1}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · сравнение</small></span></a></div>
@@ -3619,7 +3635,51 @@ const flatVisibleOutcomes=new Set(FLAT_ALL_OUTCOMES);
 const flatAllCategories=[null,...Array.from({length:9},(_,i)=>i)];
 const flatVisibleHeroCategories=new Set(flatAllCategories);
 const flatVisibleVillainCategories=new Set(flatAllCategories);
+/* Board150 faceted filter: each P/S/F/SF/A group is a union, all five are an intersection. */
+const FLAT_BOARD_FACETS=[
+ {key:'P',name:'Парность',values:[0,1,2,3,4,5]},
+ {key:'S',name:'Стрит',values:[0,1,2,3,4,5]},
+ // F1 occurs on rainbow flops; river five-card boards always have F2..F5.
+ {key:'F',name:'Флеш',values:[1,2,3,4,5]},
+ {key:'SF',name:'Стрит-флеш',values:[0,1,2,3,4,5]},
+ {key:'A',name:'Туз',values:[0,1]}
+];
+const flatBoardFacets=Object.fromEntries(FLAT_BOARD_FACETS.map(
+ group=>[group.key,new Set(group.values)]));
 function flatBoardShape(code){return String(code||'').replace(/^(FLOP|TURN)\|/,'')}
+function flatBoardParts(code){
+ const match=flatBoardShape(code).match(/^P([0-5]) · S([0-5]) · F([1-5]) · SF([0-5]) · A([01])$/);
+ if(!match)return null;
+ return {P:Number(match[1]),S:Number(match[2]),F:Number(match[3]),
+  SF:Number(match[4]),A:Number(match[5])};
+}
+function flatBoardFilterActive(){
+ return FLAT_BOARD_FACETS.some(group=>flatBoardFacets[group.key].size!==group.values.length);
+}
+function flatBoardFacetsMatch(code){
+ const parts=flatBoardParts(code);
+ // Preflop has no board; include it only with all P/S/F/SF/A facets selected.
+ if(!parts)return !flatBoardFilterActive()&&code==='PRE|NO_BOARD';
+ return FLAT_BOARD_FACETS.every(group=>flatBoardFacets[group.key].has(parts[group.key]));
+}
+// Aggregate by VISIBLE report dimensions. The hidden showdown-count facet must
+// never create duplicate rows, and N threshold is applied only after this roll-up.
+function flatAggregateVisible(rows,showdownChoice='all'){
+ const grouped=new Map();
+ for(const row of rows){
+  if(showdownChoice!=='all'&&row.dims[4]!==Number(showdownChoice))continue;
+  const dims=row.dims.slice();if(showdownChoice==='all')dims[4]=null;
+  const key=JSON.stringify(dims);
+  if(!grouped.has(key))grouped.set(key,{dims,a:{n:0,net:0},b:{n:0,net:0}});
+  const record=grouped.get(key);
+  for(const side of ['a','b']){
+   record[side].n+=row[side].n;
+   record[side].net+=row[side].net;
+  }
+ }
+ return [...grouped.values()];
+}
+/* End pure Board150 filter and aggregation helpers. */
 let flatMinN=0;
 function flatBoardDisplayCode(code){return String(code||'').replace(' · SF0','')}
 const FLAT_OUTCOMES={W1:'Победа до вскрытия',L1:'Проигрыш до вскрытия',
@@ -3772,37 +3832,75 @@ function renderFlatBoard150(root,a,b,compare){
   ['flop','Флоп'],['turn','Тёрн'],['river','Ривер']]){
   const op=el('option','',label);op.value=JSON.stringify(value);streetSelect.append(op);
  }
- const boardSelect=el('select','flatBdrFilter');
- boardSelect.setAttribute('aria-label','Фильтр: Тип борда');
- const boardOptionLabel=code=>{
-  const full=riverBoardDescription(code);
-  return full.replace(/^(Флоп|Тёрн|Ривер) · /,'');
- };
- function rebuildBoardChoices(){
-  const street=selected[0];
-  const candidate=rows.filter(r=>street==='__all__'||r.dims[0]===street);
-  const codes=new Map();
-  for(const row of candidate){
-   const code=flatBoardShape(row.dims[1]);
-   if(!codes.has(code))codes.set(code,boardOptionLabel(row.dims[1]));
+ // P/S/F/SF/A constructor replaces the 150-item single-choice board dropdown.
+ const boardFacetWrap=el('div','flatBdrFacetGroup');
+ boardFacetWrap.setAttribute('aria-label','Конструктор бордов P S F SF A');
+ const facetSummaries=[];
+ const boardFacetsChecks={};
+ for(const group of FLAT_BOARD_FACETS){
+  const picker=el('details','flatBdrOutcomePicker flatBdrFacetPicker');
+  const summary=el('summary','flatBdrOutcomeSummary','');
+  const panel=el('div','flatBdrOutcomePanel');
+  const actions=el('div','flatBdrOutcomeActions');
+  const all=el('button','btn sm','Все'),none=el('button','btn sm','Ни одного');
+  all.type=none.type='button';
+  const checked=flatBoardFacets[group.key];
+  const boxes=new Map();
+  const values=group.values.filter(value=>group.key!=='F'||value!==1||
+   rows.some(r=>flatBoardParts(r.dims[1])?.F===1));
+  function update(){
+   summary.textContent=group.key+' · '+group.name+' '+checked.size+'/'+group.values.length;
+   for(const [value,box] of boxes)box.checked=checked.has(value);
+   paint();
   }
-  const previous=selected[1];
-  boardSelect.replaceChildren();
-  const all=el('option','','Тип борда · все');
-  all.value=JSON.stringify('__all__');boardSelect.append(all);
-  for(const [code,label] of [...codes].sort((a,b)=>a[1].localeCompare(b[1],'ru'))){
-   const op=el('option','',label);
-   op.value=JSON.stringify(code);op.title='Класс: '+flatBoardDisplayCode(code);
-   boardSelect.append(op);
+  all.onclick=()=>{group.values.forEach(v=>checked.add(v));update()};
+  none.onclick=()=>{checked.clear();update()};
+  actions.append(all,none);panel.append(actions);
+  for(const value of values){
+   const item=el('label','flatBdrOutcomeOption');
+   const input=el('input');input.type='checkbox';input.checked=checked.has(value);
+   input.setAttribute('aria-label',group.key+value);
+   input.onchange=()=>{if(input.checked)checked.add(value);else checked.delete(value);update()};
+   boxes.set(value,input);
+   item.append(input,el('span','',group.key+value+(group.key==='F'&&value===1?' · радужный флоп':'')));
+   panel.append(item);
   }
-  selected[1]=codes.has(previous)?previous:'__all__';
-  boardSelect.value=JSON.stringify(selected[1]);
+  picker.append(summary,panel);
+  boardFacetWrap.append(picker);
+  boardFacetsChecks[group.key]=boxes;
+  facetSummaries.push(()=>{summary.textContent=group.key+' · '+group.name+
+   ' '+checked.size+'/'+group.values.length;
+   for(const [value,box] of boxes)box.checked=checked.has(value)});
  }
- streetSelect.onchange=()=>{selected[0]=JSON.parse(streetSelect.value);rebuildBoardChoices();paint()};
- boardSelect.onchange=()=>{selected[1]=JSON.parse(boardSelect.value);paint()};
- filterWrap.append(streetSelect,boardSelect);
- selectNodes.push(streetSelect,boardSelect);
- rebuildBoardChoices();
+ streetSelect.onchange=()=>{selected[0]=JSON.parse(streetSelect.value);paint()};
+ filterWrap.append(streetSelect,boardFacetWrap);
+ selectNodes.push(streetSelect);
+ const availableBoards=el('details','flatBdrBoardResults');
+ const boardSummary=el('summary','flatBdrBoardResultsSummary','Типы бордов · все');
+ const boardResults=el('div','flatBdrBoardResultsList');
+ availableBoards.append(boardSummary,boardResults);
+ function refreshDerivedBoards(){
+  const structures=new Map();
+  const candidates=rows.filter(r=>
+   (selected[0]==='__all__'||r.dims[0]===selected[0])&&
+   flatBoardFacetsMatch(r.dims[1]));
+  for(const row of candidates){
+   const code=flatBoardShape(row.dims[1]);
+   if(!structures.has(code)){
+    const full=riverBoardDescription(row.dims[1]);
+    structures.set(code,full.replace(/^(Флоп|Тёрн|Ривер) · /,''));
+   }
+  }
+  boardSummary.textContent='Подобрано типов борда: '+structures.size+' ▾';
+  boardResults.replaceChildren();
+  for(const [code,label] of [...structures].sort((a,b)=>a[0].localeCompare(b[0],'ru'))){
+   const line=el('div','flatBdrBoardResultLine');
+   line.append(el('code','',flatBoardDisplayCode(code)),el('span','',label));
+   boardResults.append(line);
+  }
+  if(!structures.size)boardResults.append(el('span','','Нет подходящих типов на выбранной улице и в текущей выборке.'));
+ }
+ filterWrap.append(availableBoards);
  // Multi-select for made-hand categories, including unrevealed cards.
  function createCategoryPicker(label,field,selectedSet){
   const picker=el('details','flatBdrOutcomePicker flatBdrCategoryPicker');
@@ -3888,7 +3986,12 @@ function renderFlatBoard150(root,a,b,compare){
  const reset=el('button','btn sm','Сбросить фильтры');
  reset.type='button';
  reset.onclick=()=>{for(const select of selectNodes)select.value=JSON.stringify('__all__');
-  selected[0]=selected[1]='__all__';rebuildBoardChoices();
+  selected[0]='__all__';
+  for(const group of FLAT_BOARD_FACETS){
+   flatBoardFacets[group.key].clear();
+   for(const value of group.values)flatBoardFacets[group.key].add(value);
+  }
+  facetSummaries.forEach(refresh=>refresh());
   flatVisibleHeroCategories.clear();flatVisibleVillainCategories.clear();
   for(const value of flatAllCategories){flatVisibleHeroCategories.add(value);flatVisibleVillainCategories.add(value)}
   syncHero();syncVillain();
@@ -3899,7 +4002,8 @@ function renderFlatBoard150(root,a,b,compare){
  tools.append(sort,direction,reset);controls.append(tools);root.append(controls);
  const legend=el('p','flatBdrLegend',
   'Число оппонентов на вскрытии задаётся верхним переключателем «Число соперников»; '+ 
-  'в таблице оно не дублируется. Фильтры исходов и N действуют на финансовые итоги.');
+  'в таблице оно не дублируется. Отметь нужные P / S / F / SF / A: между группами действует И, внутри группы — ИЛИ. '+ 
+  'Совместимые борды подбираются автоматически. N применяется после объединения скрытых оппонентов.');
  root.append(legend);
  const kpis=el('div','flatBdrKpis');
  for(const [key,label] of [['n','Наблюдений A'],['a','Σ Net BB · A'],
@@ -3956,18 +4060,22 @@ function renderFlatBoard150(root,a,b,compare){
     (active?(flatReportDescending?' ↓':' ↑'):' ↕');
   }
   const showdownChoice=$('handDecompOpponentCount').value;
-  // Shared selection for the accounting register and EV chart.
+  refreshDerivedBoards();
+  // First select the physical board facets, HERO, opponent and outcomes.
+  // Then collapse the hidden showdown dimension for the visible financial register.
   const eligible=rows.filter(r=>
    flatVisibleOutcomes.has(r.dims[5])&&
    flatVisibleHeroCategories.has(r.dims[2])&&
    flatVisibleVillainCategories.has(r.dims[3])&&
-   (compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN&&
    (selected[0]==='__all__'||selected[0]===r.dims[0])&&
-   (selected[1]==='__all__'||selected[1]===flatBoardShape(r.dims[1])));
-  // Chart retains all showdown counts, even if the table drills into one count.
-  renderFlatShowdownEvChart(eligible,compare,showdownChoice);
-  const filtered=eligible.filter(r=>
-   showdownChoice==='all'||r.dims[4]===Number(showdownChoice));
+   flatBoardFacetsMatch(r.dims[1]));
+  // Showdown chart keeps counts 0..8 separate; threshold applies after grouping.
+  const chartRows=eligible.filter(r=>
+   (compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN);
+  renderFlatShowdownEvChart(chartRows,compare,showdownChoice);
+  const grouped=flatAggregateVisible(eligible,showdownChoice);
+  const filtered=grouped.filter(r=>
+   (compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN);
   filtered.sort((x,y)=>{
    const a=flatBdrValue(x,flatReportSort,totals),b=flatBdrValue(y,flatReportSort,totals);
    const cmp=typeof a==='string'?String(a).localeCompare(String(b),'ru'):a-b;
@@ -4032,15 +4140,15 @@ function renderFlatBoard150(root,a,b,compare){
    flatVisibleOutcomes.size!==FLAT_ALL_OUTCOMES.length||
    flatVisibleHeroCategories.size!==flatAllCategories.length||
    flatVisibleVillainCategories.size!==flatAllCategories.length||
-   selected[0]!=='__all__'||selected[1]!=='__all__';
+   selected[0]!=='__all__'||flatBoardFilterActive();
   const fullA=[...index.values()].reduce((v,r)=>v+r.a.n,0);
   const fullB=[...index.values()].reduce((v,r)=>v+r.b.n,0);
   const good=fullA===a.samples&&(!compare||fullB===b.samples);
   status.textContent=(good?'✓ Контроль числа наблюдений пройден. ':'⚠ Расхождение числа наблюдений. ')+
-   'Показано '+filtered.length+' из '+rows.length+' сценариев; N ≥ '+flatMinN+
+   'Показано '+filtered.length+' сгруппированных сценариев из '+rows.length+' исходных; N ≥ '+flatMinN+
    ' ('+(compare?'A или B':'A')+'); исходов '+flatVisibleOutcomes.size+'/'+FLAT_ALL_OUTCOMES.length+'. '+
    (isFiltered?'Итог относится только к отбору; ': 'Итог относится к полной выборке; ')+
-   'Σ Net BB — сумма по N; Ср. BB — средневзвешенный результат на раздачу. '+
+   'Σ Net BB — сумма по N; EV, BB — средневзвешенный результат на раздачу. '+
    'Карты соперника отсутствуют без вскрытия. Раздел банка и сайд-поты выделены отдельно.';
   status.classList.toggle('isWarning',!good);
  }
