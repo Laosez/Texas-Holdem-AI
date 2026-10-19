@@ -243,7 +243,7 @@ function reportTree(){
 function order(nodes){
  const sort=$("reportSort").value,items=[...nodes];
  const val=node=>{
-  if(sort==="loss")return node.a.negative_ev_bb;
+  if(sort==="loss")return -node.a.negative_ev_bb;
   if(sort==="net")return node.a.contribution_bb;
   if(sort==="count")return node.a.count;
   return Math.abs(node.a.contribution_bb);
