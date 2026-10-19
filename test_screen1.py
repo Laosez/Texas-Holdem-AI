@@ -327,7 +327,7 @@ class ScreenOneTests(unittest.TestCase):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
                          {"a17_preflop", "pc_gto_80bb", "random"})
-        expected=("gto_postflop_v1","gto_postflop_v2","gto_postflop_v3","gto_postflop_v4","s100_postflop_v1","tag_postflop_v1","lag_postflop_v1",
+        expected=("gto_postflop_v1","gto_postflop_20","s100_postflop_v1","tag_postflop_v1","lag_postflop_v1",
                   "chaser_postflop_v1","trapper_postflop_v1","random")
         self.assertEqual(tuple(catalog["postflop_strategies"]),expected)
         self.assertEqual(app.POSTFLOP_CHOICES,set(expected))
@@ -346,7 +346,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(split.preflop_name,"pc_gto_80bb")
         self.assertEqual(split.postflop_name,"gto")
         page=app.UI.read_text(encoding="utf-8")
-        self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_v2','gto_postflop_v3','gto_postflop_v4','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
+        self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
         self.assertNotIn('id="compareFivePost"',page)
         self.assertNotIn('id="compareOldGto"',page)
         self.assertIn("root.append(botBulkRow());",page)
@@ -394,8 +394,8 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("random", catalog["preflop_strategies"])
         self.assertIn("random", catalog["postflop_strategies"])
         rows = [
-            {"pre": "a17_preflop", "post": "gto_postflop_v2"},
-            {"pre": "pc_gto_80bb", "post": "gto_postflop_v2"},
+            {"pre": "a17_preflop", "post": "gto_postflop_20"},
+            {"pre": "pc_gto_80bb", "post": "gto_postflop_20"},
         ] + [{"pre": "random", "post": "random"} for _ in range(7)]
         request = app.validate_config({
             "bots": rows, "seat_mode": "rotate",
@@ -404,8 +404,8 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(request["tournaments"], 900)
         self.assertEqual(request["seat_mode"], "rotate")
         self.assertEqual(request["preflop_protocol"], "standard_v1")
-        self.assertEqual(request["players"][0], "P1=split:a17_preflop:gto_postflop_v2")
-        self.assertEqual(request["players"][1], "P2=split:pc_gto_80bb:gto_postflop_v2")
+        self.assertEqual(request["players"][0], "P1=split:a17_preflop:gto_postflop_20")
+        self.assertEqual(request["players"][1], "P2=split:pc_gto_80bb:gto_postflop_20")
         self.assertEqual(
             request["players"][2:],
             [f"P{i}=split:random:random" +
