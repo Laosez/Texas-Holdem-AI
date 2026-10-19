@@ -627,7 +627,7 @@ def completed_checkpoint_stats(folder: Path) -> dict:
         return {"files": 0, "bytes": 0}
     files = [p for p in directory.iterdir()
              if p.is_file() and not p.is_symlink()
-             and re.fullmatch(r"[0-9]{6}\\.json\\.gz", p.name)]
+             and re.fullmatch(r"[0-9]{6}\.json\.gz", p.name)]
     return {"files": len(files), "bytes": sum(p.stat().st_size for p in files)}
 
 
@@ -645,7 +645,7 @@ def compact_completed_checkpoints(folder: Path) -> dict:
     removed = 0
     for path in directory.iterdir():
         if (path.is_file() and not path.is_symlink() and
-                re.fullmatch(r"[0-9]{6}\\.json\\.gz", path.name)):
+                re.fullmatch(r"[0-9]{6}\.json\.gz", path.name)):
             freed += path.stat().st_size
             path.unlink()
             removed += 1
