@@ -4070,8 +4070,9 @@ function renderFlatBoard150(root,a,b,compare){
    (selected[0]==='__all__'||selected[0]===r.dims[0])&&
    flatBoardFacetsMatch(r.dims[1]));
   // Showdown chart keeps counts 0..8 separate; threshold applies after grouping.
-  const chartRows=eligible.filter(r=>
-   (compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN);
+  const chartRows=Array.from({length:9},(_,count)=>
+    flatAggregateVisible(eligible,String(count))).flat().filter(r=>
+     (compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN);
   renderFlatShowdownEvChart(chartRows,compare,showdownChoice);
   const grouped=flatAggregateVisible(eligible,showdownChoice);
   const filtered=grouped.filter(r=>
