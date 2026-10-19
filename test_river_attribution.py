@@ -118,6 +118,23 @@ class RiverAttributionTests(unittest.TestCase):
                                        ("HERO","V1"),("HERO",))
         self.assertEqual(conflict["cause"],"C08")
 
+    def test_flat_showdown_dimensions_count_only_revealed_opponents(self):
+        board=[c("A","d"),c("7","h"),c("5","c"),c("4","d"),c("3","c")]
+        picked=[("HERO",[c("A","s"),c("Q","s")],None),
+                ("V1",[c("K","s"),c("J","s")],None),
+                ("V2",[c("9","c"),c("8","d")],None)]
+        win=classify_attribution(picked,board,"showdown_1_win",6,"river",
+                                 ("HERO","V1","V2"),("HERO",))
+        self.assertEqual(win["showdown_opponents"],2)
+        self.assertEqual(win["hero"]["category"],1)
+        self.assertEqual(win["villain_category"],0)
+        self.assertEqual(win["outcome_code"],"W2")
+        # Unrevealed cards must never be used to infer an opponent's actual hand.
+        fold=classify_attribution(picked,board,"fold_turn",-2,"turn")
+        self.assertEqual(fold["showdown_opponents"],0)
+        self.assertIsNone(fold["villain_category"])
+        self.assertEqual(fold["outcome_code"],"L1")
+
     def test_paired_uncontested_reconciles_in_both_strategies(self):
         q=sim.calculate_paired(request(never=True,paired=True,trials=50),workers=1)
         left=verify(q["a"]["decomposition"],50)
