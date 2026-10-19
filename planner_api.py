@@ -261,8 +261,8 @@ def start_postflop_ev(raw,busy=False):
     # Pin to exact current range revisions + policy implementation hashes.
     digest=hashlib.sha256()
     for name in ("planner_postflop_ev.py","planner_eval_fast.py","core/fast_eval.py","bots/postflop_profiles.py",
-                 "bots/postflop_archetypes_v1.py","bots/gto_postflop_v2.py",
-                 "bots/gto_postflop_v3.py","bots/gto_postflop_v4.py","bots/s100_postflop.py",
+                 "bots/postflop_archetypes_v1.py","bots/gto_postflop_20.py",
+                 "bots/s100_postflop.py",
                  "strategy_catalog/s100_v1.json","planner_ev_decomposition.py",
                  "core/engine.py"):
         digest.update((core.ROOT/name).read_bytes())
