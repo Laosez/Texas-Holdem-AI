@@ -67,6 +67,15 @@ jobs:
           Path("/tmp/poker_s100_ui.js").write_text(code, encoding="utf-8")
           PY
           node --check /tmp/poker_s100_ui.js
+      - name: Verify new Postflop Board150 JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          html = Path("replit_ui/river_board.html").read_text(encoding="utf-8")
+          code = html.split("<script>", 1)[1].split("</script>", 1)[0]
+          Path("/tmp/poker_board150_ui.js").write_text(code, encoding="utf-8")
+          PY
+          node --check /tmp/poker_board150_ui.js
       - name: Verify Screen 4 Analysis JavaScript syntax
         run: |
           python - <<'PY'
