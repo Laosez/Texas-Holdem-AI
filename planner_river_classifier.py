@@ -74,8 +74,9 @@ def _sequence(board):
 
 
 def board_texture(board_ids, street):
+    from postflop_board150 import classify_board
     if street=="preflop":
-        return {"id":"B00","label":BOARDS["B00"],"street":"preflop",
+        return {"id":"B00","catalog_id":"PRE|NO_BOARD","label":BOARDS["B00"],"street":"preflop",
                 "suit":"S0","rank_texture":"unpaired","straight":"disconnected",
                 "board_cards":0}
     limit={"flop":3,"turn":4,"river":5}[street]
@@ -104,7 +105,8 @@ def board_texture(board_ids, street):
     elif s==3:category="B03"
     elif straight=="four":category="B01"
     else:category="B11"
-    return {"id":category,"label":BOARDS[category],"street":street,
+    canonical=classify_board(board_ids[:limit],street)
+    return {"id":category,"catalog_id":canonical["id"],"label":BOARDS[category],"street":street,
             "suit":suit,"rank_texture":rank,"straight":straight,
             "board_cards":len(visible)}
 
