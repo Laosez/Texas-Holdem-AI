@@ -1213,7 +1213,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path in ("/", "/plan", "/s100", "/analysis"):
-            html = ((ROOT / "replit_ui" / "s100.html") if path == "/s100"
+            html = ((ROOT / "replit_ui" / "river_board.html") if path == "/s100"
                     else ANALYSIS_UI if path == "/analysis"
                     else PLAN_UI if path == "/plan" else UI).read_bytes()
             self.send_response(200)
@@ -1232,6 +1232,13 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed():
             return
         if planner_api.get_route(self,path):
+            return
+        if path == "/api/postflop/board150-catalog":
+            catalog = ROOT / "data" / "postflop_board150_catalog.json"
+            try:
+                self.reply(200, json.loads(catalog.read_text(encoding="utf-8")))
+            except (OSError,ValueError):
+                self.reply(503, {"error": "Каталог P/S/F/SF/A недоступен"})
             return
         if path == "/api/postflop/composite-catalog":
             # Small reviewed static JSON; generated offline from the exact census.
@@ -1388,6 +1395,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, compare_request(payload))
             except ValueError as e:
                 self.reply(400, {"error": str(e)})
+            return
+        if path == "/api/postflop/board150-classify":
+            from postflop_board150 import classify_request
+            try:
+                self.reply(200, classify_request(payload))
+            except (ValueError,TypeError) as exc:
+                self.reply(400, {"error": str(exc)})
             return
         if path == "/api/postflop/composite":
             from postflop_composite_classifier import classify_composite_request

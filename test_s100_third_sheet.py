@@ -85,9 +85,11 @@ class S100ThirdSheetTests(unittest.TestCase):
                 for path in ("/", "/plan", "/s100"):
                     status, document = request(path, auth=False)
                     self.assertEqual(status, 200)
-                    self.assertIn(b'STRATEGY EXPERIMENTS', document)
+                    self.assertIn(b'SKACHKOV', document)
                 _, page = request("/s100", auth=False)
                 self.assertIn(b'aria-current="page"', page)
+                self.assertIn(b'POSTFLOP BOARD CATALOG', page)
+                self.assertIn(b'/api/postflop/board150-catalog', page)
                 with self.assertRaises(urllib.error.HTTPError) as denied:
                     request("/api/s100", auth=False)
                 self.assertEqual(denied.exception.code, 401)

@@ -976,7 +976,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
      <option value="8">8 · мультипот</option>
     </select>
    </div>
-   <div class="field handDecompFormat"><label class="simFieldLabel" for="handDecompReportVariant">Форма отчёта</label><span id="handDecompReportMode" class="handDecompFormatValue">БДР</span><select id="handDecompReportVariant" aria-label="Переключить форму отчёта"><option value="bdr" selected>БДР · причины</option><option value="catalog">По справочнику · флоп</option><option value="river">Причины → тип борда · V1</option></select></div>
+   <div class="field handDecompFormat"><label class="simFieldLabel" for="handDecompReportVariant">Форма отчёта</label><span id="handDecompReportMode" class="handDecompFormatValue">БДР</span><select id="handDecompReportVariant" aria-label="Переключить форму отчёта"><option value="bdr" selected>БДР · причины</option><option value="board150">Справочник 150 · P/S/F/SF/A</option><option value="catalog" hidden>Архив · 1 019 флопов</option><option value="river">Причины → тип борда · V1</option></select></div>
    <div class="field handDecompSampleTop"><span class="simFieldLabel">Выборка · A / B</span>
     <div class="handDecompSampleValues">
      <span class="sampleA"><span class="sampleMark">A</span><strong id="handDecompSamples">—</strong></span>
@@ -1599,7 +1599,7 @@ function restoreStrategyRun(key){
  selectValue('handDecompReportVariant',r.decompVariant);
  decompReportMode=$('handDecompReportVariant').value;
  $('handDecompReportMode').textContent=
-  decompReportMode==='catalog'?'СПРАВОЧНИК':decompReportMode==='river'?'ПРИЧИНЫ × БОРД':'БДР';
+  decompReportMode==='catalog'?'СПРАВОЧНИК':decompReportMode==='river'||decompReportMode==='board150'?'ПРИЧИНЫ × БОРД':'БДР';
  const context=postflopMatrixContext();
  const valid=!v.matrixContextKey||v.matrixContextKey===context;
  if(valid){
@@ -3347,9 +3347,10 @@ function riverTree(a,b){
    const causeKey='cause:'+record.sign+':'+record.cause;
    let cause=sign.children.get(causeKey);
    if(!cause){cause=riverNode(causeKey,record.cause+' · '+record.cause_name);sign.children.set(causeKey,cause)}
-   const boardKey='board:'+record.sign+':'+record.cause+':'+record.board_id;
+   const boardCode=record.board_code||record.board_id;
+   const boardKey='board:'+record.sign+':'+record.cause+':'+boardCode;
    let board=cause.children.get(boardKey);
-   if(!board){board=riverNode(boardKey,record.board_id+' · '+record.board_name);cause.children.set(boardKey,board)}
+   if(!board){board=riverNode(boardKey,boardCode);cause.children.set(boardKey,board)}
    const leafKey=['leaf',record.origin,record.detail,record.street,record.suit,
      record.rank_texture,record.straight,record.hero_hole_use].join('|');
    let leaf=board.children.get(leafKey);
@@ -3412,7 +3413,7 @@ function riverControls(root,compare){
  root.append(toolbar);
 }
 function renderRiverLedger(root,a,b,compare){
- root.append(el('h4','evLedgerSubheading','Результат → причина → последний открытый борд'));
+ root.append(el('h4','evLedgerSubheading','Прибыль / убытки → причина → код P/S/F/SF/A · последняя открытая улица'));
  if((a&&!a.river_attribution?.reconciled)||(b&&!b.river_attribution?.reconciled)){
   root.append(el('p','handDecompEmpty','Нет новой классификации в этих данных. Запусти новый Monte Carlo; старые агрегаты не содержат последний фактически открытый борд.'));
   return;
@@ -3421,6 +3422,23 @@ function renderRiverLedger(root,a,b,compare){
   root.append(el('p','handDecompEmpty','Для сопоставления нужны завершённые результаты обеих сторон.'));
   return;
  }
+ if((a?.river_attribution?.rows||[]).some(r=>!r.board_code)||
+    (b?.river_attribution?.rows||[]).some(r=>!r.board_code)){
+  root.append(el('p','handDecompEmpty','Старый расчёт не содержит кода P/S/F/SF/A. Запусти новую симуляцию — старым записям нельзя приписывать выдуманный ривер.'));
+  return;
+ }
+ const send=el('button','btn sm primary','↗ Отчёт на листе 03 · Постфлоп');
+ send.type='button';send.onclick=()=>{
+  try{
+   const snapshot={version:'river_board_150_v1',hand:selected,
+    profile:postflopName($('heroPostflop').value),
+    a:{samples:a.samples,ev_bb:a.ev_bb,rows:a.river_attribution.rows},
+    b:compare&&b?{samples:b.samples,ev_bb:b.ev_bb,rows:b.river_attribution.rows}:null};
+   sessionStorage.setItem('skachkov_board150_report_v1',JSON.stringify(snapshot));
+   window.location.assign('/s100');
+  }catch(e){msg('Не удалось передать отчёт: '+e.message,true)}
+ };
+ root.append(send);
  if(!compare&&['netB','delta'].includes(riverSort))riverSort='impact';
  riverControls(root,compare);
  const tree=riverTree(a,b);
@@ -3474,7 +3492,7 @@ function renderRiverLedger(root,a,b,compare){
  const info=el('p','evLedgerFootnote',
   (okA&&okB?'✓ Сверка N и EV пройдена. ':'⚠ Несовпадение общей суммы N/EV. ')+
   'Строки без вскрытия не сравниваются с неоткрытыми руками соперников. '+
-  'Борд: реальная последняя улица, а не заранее сгенерированный ривер. '+
+  'Борд: точный код P/S/F/SF/A; на флопе/тёрне код помечен улицей, без выдуманного ривера. '+
   'S3 — три одной масти, S4 — четыре, S5 — готовый флеш борда. '+
   'Происхождение пары, трипса, стрита и флеша определяется независимо от класса победителя. '+
   'EV±/Net приведены к полному N каждой стороны; Ср. BB — условный результат в статье. '+
@@ -3742,7 +3760,7 @@ function renderHandDecomposition(){
   renderCatalogLedger(root,a,b,compare);
   return;
  }
- if(decompReportMode==='river'){
+ if(decompReportMode==='river'||decompReportMode==='board150'){
   renderRiverLedger(root,a,b,compare);
   return;
  }
