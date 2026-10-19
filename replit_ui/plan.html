@@ -1142,48 +1142,66 @@ function heroContextMessage(doc){
 }
 async function loadHero({contextChange=false}={}){
  if(loadingSource)return;
- // There is no BB RFI. Redirect to BB vs opponent RFI instead of an
- // empty matrix. Preserve the saved strategy identity and all other slots.
  useBbDefenseWhenRfi();
  const profile=$('heroProfile').value;
  const same=hero&&(hero.ref||hero.id||'builtin:a17_v5')===profile;
  if(!contextChange||!same){
   if(!preserveEdits()){if(hero)setHeroFields(hero);return}
+  const previousKey=activeStrategyRunKey;
+  stashStrategyRun();
+  const lastParts=strategyRunParts(lastRunKeyByProfile.get(profile));
+  // Invalidate BEFORE the async fetch. Any unfinished previous run must not
+  // write into the new strategy, even if its HTTP response arrives later.
+  invalidateEquity({refresh:false});
   loadingSource=true;
   try{
    const stored=findSaved(profile);
    if(stored){
     $('players').value='9';
-    // Nine fixed seats always use 9-max saved strategy contexts.
     renderPositions($('heroPosition'),stored.position);
     $('heroScenario').value=stored.scenario;
+   }
+   if(lastParts){
+    renderPositions($('heroPosition'),lastParts[2]);
+    $('heroScenario').value=lastParts[3];
+    if([...$('heroPostflop').options].some(o=>o.value===lastParts[1]))
+     $('heroPostflop').value=lastParts[1];
    }
    useBbDefenseWhenRfi();
    const doc=await getSource(profile,$('heroPosition').value,$('heroScenario').value,
                              Number($('players').value),Number($('stack').value));
    hero=doc;hero.contexts=hero.contexts||{};
    dirty=false;undos=[];brushTarget=1;bulkSelected.clear();brushMode='inspect';
-   invalidateEquity();setHeroFields(doc);renderOpponents();paintEditor();renderAll();msg(heroContextMessage(doc));
-  }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
-  finally{loadingSource=false}
+   setHeroFields(doc);
+   const restored=chooseStrategyRun(profile,$('heroPostflop').value,doc.position,doc.scenario);
+   renderOpponents();paintEditor();renderAll();renderHandDecomposition();
+   msg((restored?'Из кэша · ':'')+heroContextMessage(doc));
+  }catch(e){
+   if(hero){
+    setHeroFields(hero);
+    if(previousKey)restoreStrategyRun(previousKey);
+    renderOpponents();renderAll();
+   }
+   msg(e.message,true);
+  }finally{loadingSource=false}
   return;
  }
- // Context change: never discard the draft or replace the saved strategy ID.
+ // Context change: keep the editable strategy identity, but cache the old
+ // position/scenario separately from the newly selected position/scenario.
  const position=$('heroPosition').value,scenario=$('heroScenario').value;
  const players=Number($('players').value),stack=Number($('stack').value);
  const key=slotKey(players,position,scenario);
+ stashStrategyRun();
+ invalidateEquity({refresh:false});
  preserveCurrentSlot();
  let slot=hero.contexts[key],origin=null;
  loadingSource=true;
  try{
   if(!slot){
-   // Unedited positions start from this profile's original strategy.
-   // The original source / boxes / identity are shared across slots.
    const base=hero.base_profile||'builtin:a17_v5';
    const baseline=await getSource(base,position,scenario,players,stack);
    slot={hands:copy(baseline.hands),stack_bb:stack};
-   hero.contexts[key]=slot;
-   origin=baseline.range_origin||null;
+   hero.contexts[key]=slot;origin=baseline.range_origin||null;
    dirty=true;
   }else if(position==='BB'&&scenario==='vs_open'
             &&['builtin:a17_v5','builtin:a17_legacy','builtin:pc_gto_80bb'].includes(hero.base_profile))
@@ -1191,8 +1209,10 @@ async function loadHero({contextChange=false}={}){
   hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
         hands:copy(slot.hands),range_origin:origin};
   undos=[];bulkSelected.clear();selectedBoxes.clear();brushMode='inspect';
-  invalidateEquity();setHeroFields(hero);renderOpponents();paintEditor();renderAll();
-  msg(heroContextMessage(hero)+(dirty?' · Есть изменения в других позициях.':''));
+  setHeroFields(hero);
+  const restored=chooseStrategyRun(profile,$('heroPostflop').value,hero.position,hero.scenario);
+  renderOpponents();paintEditor();renderAll();renderHandDecomposition();
+  msg((restored?'Из кэша · ':'')+heroContextMessage(hero)+(dirty?' · Есть изменения в других позициях.':''));
  }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
  finally{loadingSource=false}
 }
@@ -3778,6 +3798,7 @@ async function calculateHandDecomposition(){
    handDecompPairedSignature=requestSignature;
    handDecompPreflopStats=output.a.preflop_line_counts||null;
    acceptSingleHandMatrixResult(aSettings.hand,output.a,aSettings);
+   stashStrategyRun();
    $('handDecompStatus').textContent='Готово · парный A/B · '+aSettings.hand+
     ' · '+aSettings.trials.toLocaleString('ru-RU')+' прогонов · '+
     postflopName(aSettings.hero_postflop)+' / '+postflopName(bSettings.hero_postflop);
@@ -3833,6 +3854,7 @@ async function calculateHandDecomposition(){
       ?output.decomposition_by_opponents:null;
     handDecompBSignature=signature;
    }
+   stashStrategyRun();
    statuses[side]='готово · '+(output.cpu_workers||1)+' CPU';showProgress();
    renderHandDecomposition();
   };
@@ -4065,6 +4087,7 @@ function renderAll(){drawBoxes();drawMatrices();refreshComparison();drawEquitySt
 async function connect(){
  try{
   const data=await api('/api/plan/catalog');meta=data;
+  loadStrategyRunCache();
   const storedLine=localStorage.getItem('skachkov_hero_postflop');
   if(POSTFLOP_OPTIONS.some(x=>x.value===storedLine))$('heroPostflop').value=storedLine;
   else $('heroPostflop').value='gto2'; // V2 stays default; prior choices persist.
@@ -4093,14 +4116,26 @@ async function connect(){
 $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
 $('pasteMatrix').onclick=pasteMatrixSettings;
-$('heroProfile').onchange=()=>{localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);invalidateEquity();loadHero()};
+$('heroProfile').onchange=()=>{
+ localStorage.setItem('skachkov_last_plan_profile',$('heroProfile').value);
+ void loadHero();
+};
 $('heroPostflop').onchange=()=>{
- localStorage.setItem('skachkov_hero_postflop',$('heroPostflop').value);
+ if(!hero)return;
+ const line=$('heroPostflop').value;
+ stashStrategyRun();
+ invalidateEquity({refresh:false});
+ const key=strategyRunKey(hero.ref||hero.id||'builtin:a17_v5',line,hero.position,hero.scenario);
+ restoreStrategyRun(key);
+ localStorage.setItem('skachkov_hero_postflop',line);
  $('handDecompProfileA').textContent=postflopName($('heroPostflop').value);
  refreshHeroPostflopChoice();
- invalidateEquity();
+ renderOpponents();renderAll();renderHandDecomposition();
 };
-$('heroPosition').onchange=()=>{useBbDefenseWhenRfi();renderOpponents();invalidateEquity();loadHero({contextChange:true});loadVillain()};
+$('heroPosition').onchange=()=>{
+ useBbDefenseWhenRfi();
+ void loadHero({contextChange:true}).then(()=>loadVillain());
+};
 $('heroScenario').onchange=()=>{useBbDefenseWhenRfi();loadHero({contextChange:true})};
 $('players').onchange=()=>{renderPositions($('heroPosition'));loadHero({contextChange:true})};
 $('stack').onchange=()=>{if(hero){hero.stack_bb=Number($('stack').value);noteDirty();drawMatrices()}};
@@ -4238,6 +4273,11 @@ $('delete').onclick=async()=>{
  }finally{button.disabled=!hero||hero.readonly}
 };
 let computingAll=false;
+$('clearStrategyRunCache').onclick=()=>{
+ strategyRunCache.clear();lastRunKeyByProfile.clear();
+ try{sessionStorage.removeItem(STRATEGY_RUN_CACHE_KEY)}catch(_){}
+ strategyRunStatus('Архив очищен · текущая симуляция остаётся открыта');
+};
 $('computeAll').onclick=async()=>{
  if(computingAll||!hero)return;
  computingAll=true;$('computeAll').disabled=true;
@@ -4245,6 +4285,7 @@ $('computeAll').onclick=async()=>{
  try{
   const matrix=await calculateFullPostflop(currentPeople());
   if(!matrix||!acceptCompleteMatrixResult(matrix,startedAt,context))return;
+  stashStrategyRun();
   huComparisonHand='';
   drawEquityStats();drawMatrices();drawBoxes();
   // HU comparisons for this specific selected hand, not 8x169 extra rollouts.
