@@ -10,7 +10,7 @@ import replit_simulator as app
 def request(*, never=False, paired=False, trials=50):
     data={
         "model":"selected","hand":"K4s","trials":trials,"cycles":1,
-        "hero_postflop":"gto2","hero_position":"3","hero_stack_bb":20,
+        "hero_postflop":"gto20","hero_position":"3","hero_stack_bb":20,
         "opponents":[{"profile":"builtin:any_two","position":"9","scenario":"rfi",
           "players":9,"selector":"active","entry_mode":"never" if never else "always",
           "entry_pct":100,"postflop":"lag"}],
