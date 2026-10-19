@@ -21,6 +21,7 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 import os
+import shutil
 import time
 
 from core.table_order import position_labels
@@ -665,11 +666,27 @@ def task_checkpoint(task, checkpoint_dir, config_key):
                 return data["result"]
         except (OSError, EOFError, ValueError, KeyError):
             path.unlink(missing_ok=True)
+    # Reserve space for the HTTP runner's job.json and simulation logs.
+    # On a small Railway volume, refuse a new checkpoint before exhausting it.
+    reserve = 24 * 1024 * 1024
+    free_before = shutil.disk_usage(checkpoint_dir).free
+    if free_before < reserve:
+        raise RuntimeError(
+            f"Railway /data: свободно {free_before//1048576} МБ. "
+            "Требуется резерв 24 МБ. Чекпойнты сохранены: "
+            "освободи место через управление хранилищем или увеличь том."
+        )
     result = run_one(task)
     payload = {"config_key": config_key, "task": task, "result": result}
     temporary = path.with_suffix(".partial")
     try:
-        with gzip.open(temporary, "wt", encoding="utf-8", compresslevel=3) as stream:
+        free = shutil.disk_usage(checkpoint_dir).free
+        if free < reserve:
+            raise RuntimeError(
+                f"Railway /data: осталось {free//1048576} МБ перед записью "
+                "чекпойнта; выполнение остановлено, чтобы не потерять журнал."
+            )
+        with gzip.open(temporary, "wt", encoding="utf-8", compresslevel=6) as stream:
             json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"))
         os.replace(temporary, path)
     finally:
