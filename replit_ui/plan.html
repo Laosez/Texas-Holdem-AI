@@ -908,6 +908,26 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 @media(max-width:850px){.flatBdrToolbar{align-items:stretch}.flatBdrFilters{width:100%}
  .flatBdrTools{width:100%}.flatBdrSort{min-width:145px}.flatBdrKpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+
+/* Compact multi-outcome and N significance filters. */
+.flatBdrOutcomePicker{position:relative;min-width:156px;font-size:11px;color:#dbe9f6}
+.flatBdrOutcomeSummary{list-style:none;cursor:pointer;user-select:none;background:#0e2032;
+ border:1px solid #395572;border-radius:7px;padding:8px 12px;white-space:nowrap}
+.flatBdrOutcomeSummary::-webkit-details-marker{display:none}
+.flatBdrOutcomeSummary::after{content:' ▾';color:#92b8d5}
+.flatBdrOutcomePicker[open] .flatBdrOutcomeSummary{border-color:#7baaf7}
+.flatBdrOutcomePanel{position:absolute;z-index:20;top:calc(100% + 5px);left:0;
+ background:#162c43;border:1px solid #53708c;border-radius:9px;
+ box-shadow:0 14px 35px rgba(0,0,0,.48);padding:10px;min-width:320px;max-width:calc(100vw - 40px)}
+.flatBdrOutcomeActions{display:flex;justify-content:flex-end;gap:6px;margin-bottom:7px}
+.flatBdrOutcomeOption{display:flex;align-items:center;gap:9px;padding:6px 7px;
+ cursor:pointer;color:#d4e4f0;font-size:11px;font-weight:500;margin:0;border-radius:5px}
+.flatBdrOutcomeOption:hover{background:#29445e}
+.flatBdrOutcomeOption input[type=checkbox]{width:15px;height:15px;min-width:15px;
+ padding:0;margin:0;accent-color:#83b5e9}
+.flatBdrMinN{width:auto;min-width:118px;flex:0 0 auto;padding:8px 9px;font-size:11px}
+.flatBdrOutcomePicker:not([open]) .flatBdrOutcomePanel{display:none}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · сравнение</small></span></a></div>
@@ -3588,6 +3608,10 @@ function riverReportHead(table,compare){
 
 /* Flat financial register — single ledger, BDR accounting styling, no nested tree. */
 let flatReportSort='netA',flatReportDescending=false;
+const FLAT_ALL_OUTCOMES=['W1','L1','W2','L2','W3','L3','T1','X1'];
+const flatVisibleOutcomes=new Set(FLAT_ALL_OUTCOMES);
+let flatMinN=0;
+function flatBoardDisplayCode(code){return String(code||'').replace(' · SF0','')}
 const FLAT_OUTCOMES={W1:'Победа до вскрытия',L1:'Проигрыш до вскрытия',
  W2:'Победа старшей комбинацией',L2:'Проигрыш младшей комбинацией',
  W3:'Победа доминированием',L3:'Проигрыш под доминацией',
@@ -3599,7 +3623,6 @@ const FLAT_COLUMNS=[
  {key:'board',label:'Тип борда',dimension:1},
  {key:'hero',label:'HERO',dimension:2},
  {key:'villain',label:'Оппонент',dimension:3},
- {key:'showdown',label:'Опп. на вскрытии',dimension:4},
  {key:'outcome',label:'Тип исхода',dimension:5},
  {key:'countA',label:'N',group:'abValueA'},
  {key:'freqA',label:'%',group:'abValueA'},
@@ -3680,6 +3703,41 @@ function renderFlatBoard150(root,a,b,compare){
   select.onchange=()=>{selected[i]=JSON.parse(select.value);paint()};
   filterWrap.append(select);selectNodes.push(select);
  }
+ // Outcome selection is a multi-select, unlike ordinary single-value dimensions.
+ const outcomeChooser=el('details','flatBdrOutcomePicker');
+ const outcomeSummary=el('summary','flatBdrOutcomeSummary','');
+ const outcomePanel=el('div','flatBdrOutcomePanel');
+ const outcomeActions=el('div','flatBdrOutcomeActions');
+ const enableAll=el('button','btn sm','Все');
+ const disableAll=el('button','btn sm','Ни одного');
+ for(const button of [enableAll,disableAll])button.type='button';
+ const outcomeChecks=new Map();
+ function syncOutcomes(){
+  outcomeSummary.textContent='Исходы · '+flatVisibleOutcomes.size+'/'+FLAT_ALL_OUTCOMES.length;
+  for(const [key,check] of outcomeChecks)check.checked=flatVisibleOutcomes.has(key);
+  paint();
+ }
+ enableAll.onclick=()=>{FLAT_ALL_OUTCOMES.forEach(key=>flatVisibleOutcomes.add(key));syncOutcomes()};
+ disableAll.onclick=()=>{flatVisibleOutcomes.clear();syncOutcomes()};
+ outcomeActions.append(enableAll,disableAll);outcomePanel.append(outcomeActions);
+ for(const code of FLAT_ALL_OUTCOMES){
+  const label=el('label','flatBdrOutcomeOption');
+  const check=el('input');check.type='checkbox';check.checked=flatVisibleOutcomes.has(code);
+  check.onchange=()=>{if(check.checked)flatVisibleOutcomes.add(code);
+    else flatVisibleOutcomes.delete(code);syncOutcomes()};
+  outcomeChecks.set(code,check);
+  label.append(check,el('span','',code+' · '+FLAT_OUTCOMES[code]));outcomePanel.append(label);
+ }
+ outcomeChooser.append(outcomeSummary,outcomePanel);
+ filterWrap.append(outcomeChooser);
+ const minN=el('select','flatBdrMinN');
+ minN.setAttribute('aria-label','Минимальное число наблюдений N в строке');
+ for(const n of [0,10,20,50,100,200,500,1000,2000]){
+  const op=el('option','',n?'N ≥ '+n:'Любое N');op.value=String(n);minN.append(op);
+ }
+ minN.value=String(flatMinN);
+ minN.onchange=()=>{flatMinN=Number(minN.value);paint()};
+ filterWrap.append(minN);
  controls.append(filterWrap);
  const tools=el('div','flatBdrTools');
  const sort=el('select','flatBdrSort');
@@ -3687,7 +3745,7 @@ function renderFlatBoard150(root,a,b,compare){
  const sortOptions=[['netA','Σ Net BB · A'],['avgA','Среднее BB · A'],
   ['countA','Частота · A'],...(compare?[['netB','Σ Net BB · B'],
   ['avgB','Среднее BB · B'],['deltaNet','Δ Σ BB · B−A']]:[]),
-  ['showdown','Число на вскрытии'],['board','Тип борда']];
+  ['board','Тип борда']];
  for(const [key,label] of sortOptions){const op=el('option','',label);op.value=key;sort.append(op)}
  if(!sortOptions.some(item=>item[0]===flatReportSort))flatReportSort='netA';
  sort.value=flatReportSort;
@@ -3698,11 +3756,15 @@ function renderFlatBoard150(root,a,b,compare){
  const reset=el('button','btn sm','Сбросить фильтры');
  reset.type='button';
  reset.onclick=()=>{for(const select of selectNodes)select.value=JSON.stringify('__all__');
-  for(const [,i] of filters)selected[i]='__all__';paint()};
+  for(const [,i] of filters)selected[i]='__all__';
+  flatMinN=0;minN.value='0';FLAT_ALL_OUTCOMES.forEach(k=>flatVisibleOutcomes.add(k));
+  outcomeSummary.textContent='Исходы · '+flatVisibleOutcomes.size+'/'+FLAT_ALL_OUTCOMES.length;
+  for(const [key,check] of outcomeChecks)check.checked=flatVisibleOutcomes.has(key);
+  paint()};
  tools.append(sort,direction,reset);controls.append(tools);root.append(controls);
  const legend=el('p','flatBdrLegend',
-  'Число оппонентов на вскрытии выбирается верхним переключателем «Число соперников». '+
-  '0 означает завершение без вскрытия. Итоги и среднее пересчитываются по видимым строкам.');
+  'Число оппонентов на вскрытии задаётся верхним переключателем «Число соперников»; '+ 
+  'в таблице оно не дублируется. Фильтры исходов и N действуют на финансовые итоги.');
  root.append(legend);
  const kpis=el('div','flatBdrKpis');
  for(const [key,label] of [['n','Наблюдений A'],['a','Σ Net BB · A'],
@@ -3718,7 +3780,7 @@ function renderFlatBoard150(root,a,b,compare){
  const thead=el('thead');
  const top=el('tr','flatBdrTop');
  const dims=el('th','flatBdrGroup flatBdrGroupDimensions','СЦЕНАРИЙ РОЗЫГРЫША');
- dims.colSpan=6;dims.scope='colgroup';top.append(dims);
+ dims.colSpan=5;dims.scope='colgroup';top.append(dims);
  const aHead=el('th','flatBdrGroup abValueA','СТРАТЕГИЯ A');
  aHead.scope='colgroup';aHead.colSpan=4;top.append(aHead);
  if(compare){
@@ -3761,6 +3823,8 @@ function renderFlatBoard150(root,a,b,compare){
   const showdownChoice=$('handDecompOpponentCount').value;
   const filtered=rows.filter(r=>
    (showdownChoice==='all'||r.dims[4]===Number(showdownChoice))&&
+   flatVisibleOutcomes.has(r.dims[5])&&
+   (compare?Math.max(r.a.n,r.b.n):r.a.n)>=flatMinN&&
    filters.every(([,i])=>selected[i]===undefined||selected[i]==='__all__'||
       selected[i]===r.dims[i]));
   filtered.sort((x,y)=>{
@@ -3783,17 +3847,17 @@ function renderFlatBoard150(root,a,b,compare){
   tbody.replaceChildren();
   for(const r of filtered){
    const tr=el('tr','flatBdrDataRow');
-   for(let i=0;i<6;i++){
+   for(const i of [0,1,2,3,5]){
     if(i===1){
      const board=el('div','flatBdrBoardName',fmtDim(r.dims[i],i));
-     const code=el('div','flatBdrBoardCode',r.dims[i]);
+     const code=el('div','flatBdrBoardCode',flatBoardDisplayCode(r.dims[i]));code.title='Полный код: '+r.dims[i];
      const holder=el('div','flatBdrBoardCell');holder.append(board,code);
      makeCell(tr,'','flatBdrDim flatBdrBoard',holder);
     }else if(i===5){
      const tag=el('span','flatBdrOutcome '+(r.dims[i]?.startsWith('W')?'isWin':
       r.dims[i]?.startsWith('L')?'isLoss':'isOther'),fmtDim(r.dims[i],i));
      makeCell(tr,'','flatBdrDim',tag);
-    }else makeCell(tr,fmtDim(r.dims[i],i),'flatBdrDim'+(i===4?' flatBdrOppCount':''));
+    }else makeCell(tr,fmtDim(r.dims[i],i),'flatBdrDim');
    }
    const amount=(value,kind)=>flatBdrFormat(value,kind==='avg'?3:2);
    function sideCells(side,total){
@@ -3812,7 +3876,7 @@ function renderFlatBoard150(root,a,b,compare){
   }
   tfoot.replaceChildren();
   const totalRow=el('tr','flatBdrTotal');
-  const title=el('td','', 'ИТОГО · ВЫБРАННЫЕ СЦЕНАРИИ');title.colSpan=6;totalRow.append(title);
+  const title=el('td','', 'ИТОГО · ВЫБРАННЫЕ СЦЕНАРИИ');title.colSpan=5;totalRow.append(title);
   function sumCells(side,total){
    const record=acc[side];
    makeCell(totalRow,String(record.n),'flatBdrNum');
@@ -3823,13 +3887,15 @@ function renderFlatBoard150(root,a,b,compare){
   sumCells('a',totals.a);if(compare){sumCells('b',totals.b);
    makeCell(totalRow,flatBdrFormat(delta),'flatBdrNum flatBdrMoney flatBdrDelta '+amountClass(delta));}
   tfoot.append(totalRow);
-  const isFiltered=showdownChoice!=='all'||filters.some(([,i])=>
+  const isFiltered=showdownChoice!=='all'||flatMinN>0||
+   flatVisibleOutcomes.size!==FLAT_ALL_OUTCOMES.length||filters.some(([,i])=>
    selected[i]!==undefined&&selected[i]!=='__all__');
   const fullA=[...index.values()].reduce((v,r)=>v+r.a.n,0);
   const fullB=[...index.values()].reduce((v,r)=>v+r.b.n,0);
   const good=fullA===a.samples&&(!compare||fullB===b.samples);
   status.textContent=(good?'✓ Контроль числа наблюдений пройден. ':'⚠ Расхождение числа наблюдений. ')+
-   'Показано '+filtered.length+' из '+rows.length+' сценариев. '+
+   'Показано '+filtered.length+' из '+rows.length+' сценариев; N ≥ '+flatMinN+
+   ' ('+(compare?'A или B':'A')+'); исходов '+flatVisibleOutcomes.size+'/'+FLAT_ALL_OUTCOMES.length+'. '+
    (isFiltered?'Итог относится только к отбору; ': 'Итог относится к полной выборке; ')+
    'Σ Net BB — сумма по N; Ср. BB — средневзвешенный результат на раздачу. '+
    'Карты соперника отсутствуют без вскрытия. Раздел банка и сайд-поты выделены отдельно.';
