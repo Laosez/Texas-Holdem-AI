@@ -105,9 +105,9 @@ class TestStreetSplitBot(unittest.TestCase):
         import os
         from unittest.mock import patch
         with patch.dict(os.environ, {"POKER_PREFLOP_PROTOCOL": "standard_v1"}):
-            bot = create_bot("split:random:gto_postflop_v2")
+            bot = create_bot("split:random:gto_postflop_20")
             self.assertEqual(bot.preflop_name, "random")
-            self.assertEqual(bot.postflop_name, "gto_postflop_v2")
+            self.assertEqual(bot.postflop_name, "gto_postflop_20")
             self.assertEqual(bot.act(SimpleNamespace(
                 street="preflop",legal_actions=[{"type":"check"}])), Action("check"))
 
