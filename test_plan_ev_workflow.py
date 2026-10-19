@@ -124,8 +124,8 @@ class PlanEVWorkflowTests(unittest.TestCase):
     def test_accounting_report_variants_and_fixed_seat_grid(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         for needle in (
-            "let decompReportMode='bdr';",
-            'id="handDecompReportMode" class="handDecompFormatValue">БДР</span>',
+            "let decompReportMode='board150';",
+            'id="handDecompReportMode" class="handDecompFormatValue">ПРИЧИНЫ × БОРД</span>',
             "function renderBdrLedger(root,data){",
             "function renderBalanceLedger(root,data){",
             "function renderCompareBdrLedger(root,a,b,compare=true){",
