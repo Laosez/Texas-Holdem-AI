@@ -993,11 +993,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <label for="heroPostflop">Постфлоп · моя стратегия</label>
    <a href="/s100" style="display:inline-block;margin:4px 0 6px;color:#9ac9f4;text-decoration:underline;font-size:12px">Перейти на лист 03 · Постфлоп План ↗</a>
    <select id="heroPostflop">
-    <option value="gto2" selected>GTO V2 · исправленные мелкие пары</option>
-    <option value="gto3">GTO V3 · эксперимент Kxs/кикер/дро</option>
-    <option value="gto4">GTO V4 · исправление сильных двух пар</option>
+    <option value="gto20" selected>GTO 2.0 · сила руки относительно борда</option>
     <option value="s100">S100 · 100 сценариев человека и бота</option>
-    <option value="gto">GTO V1 · контрольная версия</option>
+    <option value="gto">GTO 1 · контрольная версия</option>
     <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
     <option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
     <option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
@@ -1133,7 +1131,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
     <span class="handDecompMatchTitle">РУКА A · ОСНОВНАЯ</span>
     <span id="handDecompHandA" class="handDecompBigHand">AQs</span>
     <div class="handDecompProfileBlock"><span class="simFieldLabel">Стратегия A</span>
-     <span id="handDecompProfileA" class="handDecompFixedStrategy">GTO V2</span>
+     <span id="handDecompProfileA" class="handDecompFixedStrategy">GTO 2.0</span>
     </div>
     <span class="handDecompHint">Выбрана в матрице · стратегия из настроек HERO</span>
     <div class="handDecompSideMetrics">
@@ -1179,8 +1177,7 @@ const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
- {value:'gto',label:'GTO V1'}, {value:'gto2',label:'GTO V2'},
- {value:'gto3',label:'GTO V3 · эксперимент'}, {value:'gto4',label:'GTO V4 · эксперимент'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
+ {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
  {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
  {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
  {value:'none',label:'Не учитывать'}
@@ -1188,10 +1185,8 @@ const POSTFLOP_OPTIONS=[
 const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||'Не учитывать';
 const HERO_LINE_DESCRIPTIONS={
  s100:'S100 V1: единая классификация 100 постфлоп-ситуаций и таблица Fold/Call/Bet/Raise для человека и бота. Экспериментальные частоты, не solver GTO.',
- gto4:'Эксперимент GTO V4: сохраняет старшие две пары из обеих карманных карт на спаренном борде (AQ на A-Q-7-7), сохраняя осторожность V3 с общей парой. Не solver; сравни EV на одинаковых раздачах.',
- gto3:'Эксперимент GTO V3: кикер, пара + дро, спаренный борд. Предварительный A/B: против LAG EV может снизиться; сравни EV, исходное showdown Equity останется прежним.',
- gto2:'GTO V2: корректная оценка 22–66 на спаренном борде. Используется для расчёта EV.',
- gto:'GTO V1: исходная постфлоп-эвристика, сохранена для сравнения с V2.',
+ gto20:'GTO 2.0: относительная сила R0–R4 с учётом пар и угроз на борде. Эвристика, не GTO-солвер; сравни EV с GTO 1 на одинаковых раздачах.',
+ gto:'GTO 1: исходная контрольная постфлоп-эвристика, сохранена без изменений.',
  tag:'TAG V1: дисциплинированный розыгрыш с упором на вэлью.',
  lag:'LAG V1: более агрессивные ставки, полублефы и давление.',
  chaser:'Chaser V1: модель соперника с повышенным интересом к дро.',
@@ -2778,8 +2773,8 @@ function populateDecompSelectors(){
   {value:'=',label:'= · та же рука A'},
   ...HANDS.map(hand=>({value:hand,label:hand}))],'-');
  const profiles=POSTFLOP_OPTIONS.filter(profile=>profile.value!=='none');
- const current=profiles.some(p=>p.value===$('heroPostflop').value)?$('heroPostflop').value:'gto2';
- refill($('handDecompProfileB'),profiles,current==='gto3'?'gto2':'gto3');
+ const current=profiles.some(p=>p.value===$('heroPostflop').value)?$('heroPostflop').value:'gto20';
+ refill($('handDecompProfileB'),profiles,current==='gto20'?'gto':'gto20');
  $('handDecompProfileB').disabled=true;
 }
 const DECOMP_LABELS={
@@ -4928,8 +4923,10 @@ async function connect(){
   const data=await api('/api/plan/catalog');meta=data;
   loadStrategyRunCache();
   const storedLine=localStorage.getItem('skachkov_hero_postflop');
-  if(POSTFLOP_OPTIONS.some(x=>x.value===storedLine))$('heroPostflop').value=storedLine;
-  else $('heroPostflop').value='gto2'; // V2 stays default; prior choices persist.
+  // Retired V2/V3/V4 stored IDs migrate to the new Board Relative GTO 2.0.
+  const restoredLine=['gto2','gto3','gto4'].includes(storedLine)?'gto20':storedLine;
+  $('heroPostflop').value=POSTFLOP_OPTIONS.some(x=>x.value===restoredLine)?restoredLine:'gto20';
+  if(restoredLine!==storedLine)localStorage.setItem('skachkov_hero_postflop',restoredLine);
   refreshHeroPostflopChoice();
   populateDecompSelectors();
   const previousStack=localStorage.getItem('skachkov_plan_sim_stack_bb');
