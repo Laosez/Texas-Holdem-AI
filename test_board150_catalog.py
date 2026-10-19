@@ -80,6 +80,14 @@ class RiverBoard150Tests(unittest.TestCase):
             self.assertEqual(sum(row["count"] for row in data["rows"]),50)
             self.assertAlmostEqual(sum(row["contribution_bb"] for row in data["rows"]),
                                    report["ev_bb"],delta=.004)
+            self.assertTrue(all(r["outcome_code"] in
+                                {"W1","L1","W2","L2","W3","L3","T1","X1"}
+                                for r in data["rows"]))
+            self.assertTrue(all(0 <= r["showdown_opponents"] <= 1
+                                for r in data["rows"]))
+            self.assertTrue(all((r["villain_category"] is None) ==
+                                (r["showdown_opponents"] == 0)
+                                for r in data["rows"]))
             self.assertTrue(all("board_code" in r for r in data["rows"]))
             self.assertTrue(all(r["board_code"].startswith(("PRE|","FLOP|","TURN|","P"))
                                 for r in data["rows"]))
@@ -107,6 +115,29 @@ class RiverBoard150Tests(unittest.TestCase):
         self.assertIn('function board150Parts(code){',plan)
         self.assertIn('record.board_code||record.board_id',plan)
         self.assertIn('renderRiverLedger(root,a,b,compare)',plan)
+
+    def test_flat_bdr_is_sortable_and_uses_shared_showdown_selector(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        required=(
+            "function renderFlatBoard150(root,a,b,compare){",
+            "class=\"handDecompOpponentHint\"",
+            "flatMode?'all':selection",
+            "showdownChoice==='all'||r.dims[4]===Number(showdownChoice)",
+            "opponentPicker.setAttribute('aria-label',flatMode?",
+            "flatBdrGroup abValueA",
+            "flatBdrGroup abValueB",
+            "flatBdrGroup abDelta",
+            "Σ Net BB",
+            "ИТОГО · ВЫБРАННЫЕ СЦЕНАРИИ",
+            "record.net+=r.contribution_bb*totals[side]",
+            "record.n?record.net/record.n",
+            "if(flatReportSort===col.key)",
+            "const filtered=rows.filter(",
+        )
+        for keyword in required:
+            with self.subTest(keyword=keyword):
+                self.assertIn(keyword,page)
+        self.assertNotIn("['opps','Опп. на вскрытии',4]",page)
 
     def test_authenticated_catalog_and_classify_api(self):
         with patch.object(app,"TOKEN","board150_key"):
