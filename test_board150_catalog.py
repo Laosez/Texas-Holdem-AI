@@ -132,12 +132,49 @@ class RiverBoard150Tests(unittest.TestCase):
             "record.net+=r.contribution_bb*totals[side]",
             "record.n?flatBdrFormat(record.net/record.n,3)",
             "if(flatReportSort===col.key)",
-            "const filtered=rows.filter(",
+            "const filtered=eligible.filter(",
         )
         for keyword in required:
             with self.subTest(keyword=keyword):
                 self.assertIn(keyword,page)
         self.assertNotIn("['opps','Опп. на вскрытии',4]",page)
+
+    def test_board_filters_use_separate_street_and_poker_category_multiselect(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        for needle in (
+            "function flatBoardShape(code)",
+            "const streetSelect=el('select','flatBdrFilter')",
+            "const boardSelect=el('select','flatBdrFilter')",
+            "return full.replace(/^(Флоп|Тёрн|Ривер) · /,'')",
+            "function rebuildBoardChoices(){",
+            "flatBoardShape(row.dims[1])",
+            "selected[1]===flatBoardShape(r.dims[1])",
+            "function createCategoryPicker(label,field,selectedSet)",
+            "const syncHero=createCategoryPicker('HERO',2,flatVisibleHeroCategories)",
+            "const syncVillain=createCategoryPicker('Оппонент',3,flatVisibleVillainCategories)",
+            "flatVisibleHeroCategories.has(r.dims[2])",
+            "flatVisibleVillainCategories.has(r.dims[3])",
+        ):
+            with self.subTest(needle=needle):
+                self.assertIn(needle,page)
+
+    def test_flat_ev_graph_uses_sample_weighted_net_and_original_chart_preserved(self):
+        page=app.PLAN_UI.read_text(encoding="utf-8")
+        for needle in (
+            "function renderFlatShowdownEvChart(rows,compare,selection)",
+            "renderFlatShowdownEvChart(eligible,compare,showdownChoice)",
+            "totals[side].n+=row[side].n",
+            "totals[side].net+=row[side].net",
+            "d[side].net/d[side].n",
+            "0 = без вскрытия",
+            "EV, BB",
+            "case 'avgA':return x.n?x.net/x.n:0",
+            "case 'avgB':return y.n?y.net/y.n:0",
+            "renderOpponentEvComparison(fullA,fullB)",
+            "Оппонентов на вскрытии",
+        ):
+            with self.subTest(needle=needle):
+                self.assertIn(needle,page)
 
     def test_sf_zero_display_can_be_omitted_without_colliding_codes(self):
         compact=[r["id"].replace(" · SF0","") for r in ROWS]
