@@ -22,7 +22,7 @@ def create_bot(btype: str) -> BotAdapter:
       smart              SmartBot (heuristic)
       split:pre:post      Independent street bases, e.g. split:gto:tag_punisher
       gto_fixed           Legacy GTO charts with correct facing-raise boundary
-      gto_postflop_v1, lag_postflop_v1
+      gto_postflop_v1, gto_postflop_20, lag_postflop_v1
                           GTO-inspired and LAG postflop-only profiles (not solver GTO)
       pc_gto_80bb        80bb PokerCoaching RFI (25% steps); other preflop uses GTO Fixed
       a17_preflop         A17 2–9-max positional RFI; SB raises A01-A16
@@ -106,17 +106,9 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.s100_postflop import S100PostflopBot
         return S100PostflopBot()
 
-    if btype == "gto_postflop_v4":
-        from bots.gto_postflop_v4 import GTOPostflopV4Bot
-        return GTOPostflopV4Bot()
-
-    if btype == "gto_postflop_v3":
-        from bots.gto_postflop_v3 import GTOPostflopV3Bot
-        return GTOPostflopV3Bot()
-
-    if btype == "gto_postflop_v2":
-        from bots.gto_postflop_v2 import GTOPostflopV2Bot
-        return GTOPostflopV2Bot()
+    if btype == "gto_postflop_20":
+        from bots.gto_postflop_20 import GTOPostflop20Bot
+        return GTOPostflop20Bot()
 
     if btype in ("gto_postflop_v1","lag_postflop_v1"):
         from bots.postflop_profiles import PostflopProfileBot
