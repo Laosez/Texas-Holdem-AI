@@ -21,12 +21,12 @@ function harness(){
   handDecompProfileB:{value:'gto3',options:['gto2','gto3','tag'].map(value=>({value}))},
   handDecompOpponentCount:{value:'all',options:['all','1','2'].map(value=>({value}))},
   handDecompReportVariant:{value:'bdr',options:['bdr','river','catalog'].map(value=>({value}))},
-  handDecompReportMode:{textContent:'БДР'},viewOpponent:{value:'0',options:Array.from({length:8},(_,i)=>({value:String(i)}))},
+  handDecompReportMode:{textContent:'БДР'},handDecompProfileA:{textContent:'GTO V2'},viewOpponent:{value:'0',options:Array.from({length:8},(_,i)=>({value:String(i)}))},
   strategyRunCacheStatus:{textContent:''}
  };
  const ctx={sessionStorage:storage,$:id=>{assert.ok(el[id],id);return el[id]},
   HANDS:['AQs','AA'],copy:x=>JSON.parse(JSON.stringify(x)),
-  refreshHeroPostflopChoice:()=>{},
+  refreshHeroPostflopChoice:()=>{},postflopName:line=>line,
   hero:{ref:'pre:A',position:'3',scenario:'rfi',players:9},selected:'AQs',
   opponents:[{profile:'villain:A',position:'9'},...Array.from({length:7},(_,i)=>({profile:'noop',position:String(i+1)}))],
   equityResults:{filter:{equity:{AQs:55},ev_bb:{AQs:1.25}},actual:null,any:null},
