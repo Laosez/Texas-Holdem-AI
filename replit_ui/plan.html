@@ -838,6 +838,76 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 .handDecompRows .riverLedgerReport .riverBoardCode{margin-top:3px;font-size:10px;font-weight:500;letter-spacing:.15px;color:#92b0cb}
 .handDecompRows .riverLedgerReport .abDisclosure{align-items:flex-start;line-height:1.5;white-space:normal}
 .handDecompRows .riverLedgerReport .abDisclosure .abChevron{flex:0 0 14px;margin-top:2px}
+
+/* Flat Board150 register: same hierarchy of A/B/Δ financial columns as the BDR,
+   but every accounting scenario stays on one row. */
+.handDecompOppHint{display:block;margin-top:5px;font-size:10px;line-height:1.35;color:#91afc9}
+.flatBdrToolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+ padding:10px 12px;margin:10px 0 8px;background:#12263b;border:1px solid #35516d;border-radius:9px}
+.flatBdrFilters{display:flex;gap:7px;flex-wrap:wrap;flex:1}
+.flatBdrFilter{width:auto;min-width:122px;max-width:230px;flex:0 1 auto;background:#0e2032;
+ padding:8px 9px;font-size:11px}
+.flatBdrTools{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.flatBdrSort{width:auto;min-width:165px;font-size:11px;padding:8px}
+.flatBdrTools button{font-size:11px;white-space:nowrap}
+.flatBdrLegend{font-size:11px;line-height:1.5;color:#9db9d3;margin:2px 0 11px}
+.flatBdrKpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:6px 0 12px}
+.flatBdrKpi{display:flex;flex-direction:column;gap:5px;background:#102338;border:1px solid #304b67;
+ border-radius:7px;padding:10px 13px}
+.flatBdrKpi span{color:#9eb9d1;font-size:10px;letter-spacing:.3px;text-transform:uppercase}
+.flatBdrKpi strong{font-size:19px;font-weight:650;font-variant-numeric:tabular-nums;color:#e6f0fc}
+.flatBdrKpi .isPositive{color:#88d4ac}.flatBdrKpi .isNegative{color:#eba7aa}
+.flatBdrViewport{width:100%;max-width:100%;overflow:auto;max-height:650px;border:1px solid #39516a;
+ border-radius:7px;scrollbar-color:#50718d #13273b}
+.handDecompRows .flatBdrTable{width:100%;min-width:1230px;border-collapse:separate;border-spacing:0;
+ font-size:12px;line-height:1.35;font-variant-numeric:tabular-nums}
+.handDecompRows .flatBdrTable th,.handDecompRows .flatBdrTable td{
+ padding:9px 11px;border-bottom:1px solid #29425b;border-right:1px solid rgba(81,111,137,.12);
+ white-space:nowrap;vertical-align:middle}
+.handDecompRows .flatBdrTable th{color:#c5dbeb;background:#172e46}
+.handDecompRows .flatBdrTable .flatBdrTop th{position:sticky;top:0;z-index:3;
+ height:35px;background:#1b344d;border-bottom:1px solid #57728d;font-size:10px;
+ text-align:center;letter-spacing:1px;font-weight:800}
+.handDecompRows .flatBdrTable .flatBdrTop .flatBdrGroupDimensions{text-align:left;color:#b4cbe0}
+.handDecompRows .flatBdrTable .flatBdrTop .abValueA{background:#203b54;color:#a9d5fa}
+.handDecompRows .flatBdrTable .flatBdrTop .abValueB{background:#352e52;color:#dcc2f5}
+.handDecompRows .flatBdrTable .flatBdrTop .abDelta{background:#244539;color:#b9e3ce}
+.handDecompRows .flatBdrTable .flatBdrSub th{position:sticky;top:35px;z-index:3;
+ height:36px;background:#193049}
+.handDecompRows .flatBdrTable .flatBdrSub th.abValueA{background:#17354b}
+.handDecompRows .flatBdrTable .flatBdrSub th.abValueB{background:#302a46}
+.handDecompRows .flatBdrTable .flatBdrSub th.abDelta{background:#203e36}
+.flatBdrSortHead{display:block;width:100%;background:none;color:inherit;border:0;padding:2px 0;
+ font:inherit;font-size:11px;font-weight:670;text-align:right;cursor:pointer;white-space:nowrap}
+.flatBdrDimension .flatBdrSortHead{text-align:left}
+.flatBdrSortHead:hover{color:#fff}
+.handDecompRows .flatBdrTable th[aria-sort=ascending],
+.handDecompRows .flatBdrTable th[aria-sort=descending]{color:#fff;box-shadow:inset 0 -2px #89b8eb}
+.flatBdrTable .flatBdrDataRow:nth-child(even){background:rgba(31,54,77,.31)}
+.flatBdrTable .flatBdrDataRow:hover{background:rgba(66,103,136,.29)}
+.handDecompRows .flatBdrTable td.flatBdrNum{text-align:right}
+.handDecompRows .flatBdrTable .flatBdrDim{color:#d0e1ef}
+.handDecompRows .flatBdrTable .flatBdrOppCount{text-align:center;font-weight:700;color:#e2ebf4}
+.flatBdrTable .flatBdrBoard{min-width:180px;max-width:300px}
+.flatBdrBoardCell{max-width:275px;white-space:normal}
+.flatBdrBoardName{font-size:11px;line-height:1.35;white-space:normal;color:#d7e7f4}
+.flatBdrBoardCode{margin-top:3px;font-size:10px;color:#84aecf;white-space:nowrap}
+.flatBdrOutcome{display:inline-block;font-weight:600;font-size:11px}
+.flatBdrOutcome.isWin{color:#a5dbbe}.flatBdrOutcome.isLoss{color:#e8b4b4}
+.flatBdrOutcome.isOther{color:#bac7df}
+.flatBdrTable .flatBdrMoney{font-weight:650}
+.flatBdrTable .flatBdrMoney.isPositive{color:#9bd9b3}
+.flatBdrTable .flatBdrMoney.isNegative{color:#efaeb3}
+.flatBdrTable .flatBdrMoney.isNeutral{color:#b9ccdc}
+.flatBdrTable td.flatBdrDelta{background:rgba(45,103,77,.08)}
+.handDecompRows .flatBdrTable tfoot .flatBdrTotal{position:sticky;bottom:0;background:#233a50;
+ font-weight:800;color:#fff;z-index:2}
+.handDecompRows .flatBdrTable tfoot td{border-top:2px solid #708da9;
+ border-bottom:0;background:#233a50;padding:11px}
+.flatBdrStatus{margin:12px 0 0}
+@media(max-width:850px){.flatBdrToolbar{align-items:stretch}.flatBdrFilters{width:100%}
+ .flatBdrTools{width:100%}.flatBdrSort{min-width:145px}.flatBdrKpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><div class="right"><span id="connection" class="badge">Не подключено</span><input id="key" aria-label="Ключ управления" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" style="width:190px"><button class="btn sm" id="connect">Подключиться</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><div class="tab current"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></div><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · сравнение</small></span></a></div>
@@ -995,9 +1065,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
      <option value="6">6 · мультипот</option>
      <option value="7">7 · мультипот</option>
      <option value="8">8 · мультипот</option>
-    </select>
+    </select><small id="handDecompOpponentHint" class="handDecompOppHint">Фильтр по числу на вскрытии · без нового расчёта</small>
    </div>
-   <div class="field handDecompFormat"><label class="simFieldLabel" for="handDecompReportVariant">Форма отчёта</label><span id="handDecompReportMode" class="handDecompFormatValue">ПРИЧИНЫ × БОРД</span><select id="handDecompReportVariant" aria-label="Переключить форму отчёта"><option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход</option><option value="bdr">БДР · причины (прежний)</option><option value="catalog" hidden>Архив · 1 019 флопов</option><option value="river" hidden>Архив · причины / тип борда</option></select></div>
+   <div class="field handDecompFormat"><label class="simFieldLabel" for="handDecompReportVariant">Форма отчёта</label><span id="handDecompReportMode" class="handDecompFormatValue">ПЛОСКИЙ РЕГИСТР</span><select id="handDecompReportVariant" aria-label="Переключить форму отчёта"><option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход</option><option value="bdr">БДР · причины (прежний)</option><option value="catalog" hidden>Архив · 1 019 флопов</option><option value="river" hidden>Архив · причины / тип борда</option></select></div>
    <div class="field handDecompSampleTop"><span class="simFieldLabel">Выборка · A / B</span>
     <div class="handDecompSampleValues">
      <span class="sampleA"><span class="sampleMark">A</span><strong id="handDecompSamples">—</strong></span>
@@ -3516,119 +3586,256 @@ function riverReportHead(table,compare){
  thead.append(first);if(compare)thead.append(second);
 }
 
-/* Flat financial register: observed last board, actual showdown hands, opponents and outcome. */
-let flatReportSort='net',flatReportDescending=false;
+/* Flat financial register — single ledger, BDR accounting styling, no nested tree. */
+let flatReportSort='netA',flatReportDescending=false;
 const FLAT_OUTCOMES={W1:'Победа до вскрытия',L1:'Проигрыш до вскрытия',
  W2:'Победа старшей комбинацией',L2:'Проигрыш младшей комбинацией',
  W3:'Победа доминированием',L3:'Проигрыш под доминацией',
- T1:'Раздел банка',X1:'Сайд-пот / несовпадение исхода'};
+ T1:'Раздел банка',X1:'Сайд-пот / особый исход'};
 const FLAT_HANDS=['Старшая карта','Одна пара','Две пары','Сет / трипс',
  'Стрит','Флеш','Фулл-хаус','Каре','Стрит-флеш'];
+const FLAT_COLUMNS=[
+ {key:'street',label:'Улица',dimension:0},
+ {key:'board',label:'Тип борда',dimension:1},
+ {key:'hero',label:'HERO',dimension:2},
+ {key:'villain',label:'Оппонент',dimension:3},
+ {key:'showdown',label:'Опп. на вскрытии',dimension:4},
+ {key:'outcome',label:'Тип исхода',dimension:5},
+ {key:'countA',label:'N',group:'abValueA'},
+ {key:'freqA',label:'%',group:'abValueA'},
+ {key:'netA',label:'Σ Net BB',group:'abValueA'},
+ {key:'avgA',label:'Ср. BB',group:'abValueA'},
+ {key:'countB',label:'N',group:'abValueB'},
+ {key:'freqB',label:'%',group:'abValueB'},
+ {key:'netB',label:'Σ Net BB',group:'abValueB'},
+ {key:'avgB',label:'Ср. BB',group:'abValueB'},
+ {key:'deltaNet',label:'Δ Σ BB',group:'abDelta'}
+];
+function flatBdrValue(row,key,totals){
+ const x=row.a,y=row.b;
+ switch(key){
+  case 'street':return row.dims[0];
+  case 'board':return row.dims[1];
+  case 'hero':return row.dims[2]===null?-1:row.dims[2];
+  case 'villain':return row.dims[3]===null?-1:row.dims[3];
+  case 'showdown':return row.dims[4];
+  case 'outcome':return row.dims[5];
+  case 'countA':return x.n;
+  case 'freqA':return 100*x.n/totals.a;
+  case 'netA':return x.net;
+  case 'avgA':return x.n?x.net/x.n:0;
+  case 'countB':return y.n;
+  case 'freqB':return 100*y.n/totals.b;
+  case 'netB':return y.net;
+  case 'avgB':return y.n?y.net/y.n:0;
+  case 'deltaNet':return y.net-x.net;
+  default:return 0;
+ }
+}
+function flatBdrFormat(value,digits=2){
+ if(!Number.isFinite(value))return '—';
+ return (value>0?'+':'')+value.toLocaleString('ru-RU',{minimumFractionDigits:digits,maximumFractionDigits:digits});
+}
 function renderFlatBoard150(root,a,b,compare){
- root.append(el('h4','evLedgerSubheading','Плоский регистр · борд / HERO / оппонент / вскрытие / исход'));
+ root.append(el('h4','evLedgerSubheading','Финансовый регистр · структура борда × комбинации × исход'));
  if(!a?.river_attribution?.reconciled||(compare&&!b?.river_attribution?.reconciled)){
-  root.append(el('p','handDecompEmpty','Нужна новая симуляция A/B для плоской аналитики.'));return;
+  root.append(el('p','handDecompEmpty','Нужны новые расчёты Monte Carlo для плоского отчёта A/B.'));return;
  }
  const ar=a.river_attribution.rows||[],br=b?.river_attribution?.rows||[];
- if([...ar,...br].some(r=>r.outcome_code===undefined||r.villain_category===undefined)){
-  root.append(el('p','handDecompEmpty','В кэше данные старой версии. Перезапусти Monte Carlo для комбинации оппонента и числа игроков на вскрытии.'));return;
+ if([...ar,...br].some(r=>r.outcome_code===undefined||r.villain_category===undefined||
+     r.showdown_opponents===undefined||!r.board_code)){
+  root.append(el('p','handDecompEmpty','В кэше результаты старой схемы. Перезапусти Monte Carlo для комбинаций на вскрытии.'));return;
  }
  const totals={a:a.samples||1,b:b?.samples||1};
  const index=new Map();
- for(const [side,rows] of [['a',ar],['b',br]]){
-  for(const r of rows){
-   const dims=[r.street,r.board_code,r.hero_category,r.villain_category,r.showdown_opponents,r.outcome_code];
+ for(const [side,values] of [['a',ar],['b',br]]){
+  for(const r of values){
+   const dims=[r.street,r.board_code,r.hero_category,r.villain_category,
+    r.showdown_opponents,r.outcome_code];
    const key=JSON.stringify(dims);
    if(!index.has(key))index.set(key,{dims,a:{n:0,net:0},b:{n:0,net:0}});
-   const item=index.get(key)[side];item.n+=r.count;item.net+=r.contribution_bb*totals[side];
+   const record=index.get(key)[side];
+   record.n+=r.count;
+   // The API exports EV contribution per simulated hand: undo that denominator.
+   record.net+=r.contribution_bb*totals[side];
   }
  }
- const controls=el('div','evLedgerToolbar');
- const filters=[['street','Улица',0],['board','Тип борда',1],['hero','HERO',2],
-  ['villain','Оппонент',3],['opps','Опп. на вскрытии',4],['outcome','Исход',5]];
  const rows=[...index.values()];
- const fmtDim=(v,i)=>i===0?({preflop:'Префлоп',flop:'Флоп',turn:'Тёрн',river:'Ривер'}[v]||v):
-  i===1?riverBoardDescription(v):i===2||i===3?
-  (v===null?'—':FLAT_HANDS[v]||'—'):i===4?String(v):FLAT_OUTCOMES[v]||v;
+ const filters=[['Улица',0],['Тип борда',1],['HERO',2],['Оппонент',3],['Тип исхода',5]];
+ const controls=el('div','flatBdrToolbar');
+ const filterWrap=el('div','flatBdrFilters');
  const selected={};
- for(const [key,label,i] of filters){
-  const select=el('select','',null);
-  select.setAttribute('aria-label',label);
+ const selectNodes=[];
+ const fmtDim=(v,i)=>i===0?({preflop:'Префлоп',flop:'Флоп',turn:'Тёрн',river:'Ривер'}[v]||v):
+  i===1?riverBoardDescription(v):i===2||i===3?(v===null?'—':FLAT_HANDS[v]||'—'):
+  i===4?String(v):FLAT_OUTCOMES[v]||v;
+ for(const [label,i] of filters){
+  const select=el('select','flatBdrFilter');
+  select.setAttribute('aria-label','Фильтр: '+label);
   const values=[...new Set(rows.map(r=>r.dims[i]))].sort((x,y)=>String(x).localeCompare(String(y),'ru'));
   for(const value of ['__all__',...values]){
-   const option=el('option','',value==='__all__'?label+': все':fmtDim(value,i));
-   option.value=JSON.stringify(value);select.append(option);
+   const op=el('option','',value==='__all__'?label+' · все':fmtDim(value,i));
+   op.value=JSON.stringify(value);select.append(op);
   }
   select.onchange=()=>{selected[i]=JSON.parse(select.value);paint()};
-  select.style.width='auto';select.style.maxWidth='185px';controls.append(select);
+  filterWrap.append(select);selectNodes.push(select);
  }
- const sort=el('select','');
- sort.setAttribute('aria-label','Сортировка финансовых показателей');
- for(const [key,label] of [['net','Σ Net BB A'],['avg','Средний Net BB A'],['count','Частота A'],
-  ['netB','Σ Net BB B'],['avgB','Средний Net BB B'],['delta','Δ Net BB B−A'],['board','Борд']]){
-  if(!compare&&['netB','avgB','delta'].includes(key))continue;
-  const opt=el('option','',label);opt.value=key;sort.append(opt);
+ controls.append(filterWrap);
+ const tools=el('div','flatBdrTools');
+ const sort=el('select','flatBdrSort');
+ sort.setAttribute('aria-label','Сортировка финансового регистра');
+ const sortOptions=[['netA','Σ Net BB · A'],['avgA','Среднее BB · A'],
+  ['countA','Частота · A'],...(compare?[['netB','Σ Net BB · B'],
+  ['avgB','Среднее BB · B'],['deltaNet','Δ Σ BB · B−A']]:[]),
+  ['showdown','Число на вскрытии'],['board','Тип борда']];
+ for(const [key,label] of sortOptions){const op=el('option','',label);op.value=key;sort.append(op)}
+ if(!sortOptions.some(item=>item[0]===flatReportSort))flatReportSort='netA';
+ sort.value=flatReportSort;
+ sort.onchange=()=>{flatReportSort=sort.value;flatReportDescending=flatReportSort.startsWith('count');paint()};
+ const direction=el('button','btn sm',flatReportDescending?'↓':'↑');
+ direction.type='button';direction.title='Изменить направление сортировки';
+ direction.onclick=()=>{flatReportDescending=!flatReportDescending;paint()};
+ const reset=el('button','btn sm','Сбросить фильтры');
+ reset.type='button';
+ reset.onclick=()=>{for(const select of selectNodes)select.value=JSON.stringify('__all__');
+  for(const [,i] of filters)selected[i]='__all__';paint()};
+ tools.append(sort,direction,reset);controls.append(tools);root.append(controls);
+ const legend=el('p','flatBdrLegend',
+  'Число оппонентов на вскрытии выбирается верхним переключателем «Число соперников». '+
+  '0 означает завершение без вскрытия. Итоги и среднее пересчитываются по видимым строкам.');
+ root.append(legend);
+ const kpis=el('div','flatBdrKpis');
+ for(const [key,label] of [['n','Наблюдений A'],['a','Σ Net BB · A'],
+  ...(compare?[['b','Σ Net BB · B'],['delta','Δ B−A']]:[])]) {
+  const tile=el('div','flatBdrKpi');
+  tile.append(el('span','',label),el('strong',''));
+  tile.dataset.metric=key;kpis.append(tile);
  }
- sort.value=flatReportSort; if(![...sort.options].some(o=>o.value===sort.value))sort.value='net';
- flatReportSort=sort.value;
- sort.onchange=()=>{flatReportSort=sort.value;paint()};
- const direction=el('button','btn sm',flatReportDescending?'↓ Убывание':'↑ Возрастание');
- direction.onclick=()=>{flatReportDescending=!flatReportDescending;direction.textContent=flatReportDescending?'↓ Убывание':'↑ Возрастание';paint()};
- controls.append(sort,direction);root.append(controls);
- const summary=el('p','small','');
- const wrap=el('div','evLedgerTableWrap');
- wrap.style.overflowX='auto';
- const table=el('table','riverLedgerReport');
- table.style.width='100%';table.style.minWidth=compare?'1340px':'920px';
- const thead=el('thead'),head=el('tr');
- for(const name of ['Улица','Тип борда','HERO','Оппонент','Опп. на вскрытии','Исход',
-  'N A','Частота A %','Σ Net BB A','Среднее BB A',...(compare?
-   ['N B','Частота B %','Σ Net BB B','Среднее BB B','Δ Σ BB']:[])]){
-  const th=el('th','',name);head.append(th);
+ root.append(kpis);
+ const viewport=el('div','flatBdrViewport');
+ const table=el('table','riverLedgerReport flatBdrTable');
+ const columns=FLAT_COLUMNS.filter(c=>compare||!['countB','freqB','netB','avgB','deltaNet'].includes(c.key));
+ const thead=el('thead');
+ const top=el('tr','flatBdrTop');
+ const dims=el('th','flatBdrGroup flatBdrGroupDimensions','СЦЕНАРИЙ РОЗЫГРЫША');
+ dims.colSpan=6;dims.scope='colgroup';top.append(dims);
+ const aHead=el('th','flatBdrGroup abValueA','СТРАТЕГИЯ A');
+ aHead.scope='colgroup';aHead.colSpan=4;top.append(aHead);
+ if(compare){
+  const bHead=el('th','flatBdrGroup abValueB','СТРАТЕГИЯ B');
+  bHead.scope='colgroup';bHead.colSpan=4;top.append(bHead);
+  const dHead=el('th','flatBdrGroup abDelta','СРАВНЕНИЕ');
+  dHead.scope='colgroup';top.append(dHead);
  }
- thead.append(head);table.append(thead);
- const tbody=el('tbody');table.append(tbody);wrap.append(table);root.append(summary,wrap);
- function metric(row){
-  const x=row.a,y=row.b;
-  switch(flatReportSort){
-   case 'avg':return x.n?x.net/x.n:0;
-   case 'count':return x.n;
-   case 'netB':return y.net;
-   case 'avgB':return y.n?y.net/y.n:0;
-   case 'delta':return y.net-x.net;
-   case 'board':return row.dims[1];
-   default:return x.net;
-  }
+ const second=el('tr','flatBdrSub');
+ for(const col of columns){
+  const th=el('th','flatBdrHead '+(col.group||'flatBdrDimension')+(col.dimension===1?' flatBdrBoard':''));
+  th.scope='col';th.dataset.sort=col.key;
+  const button=el('button','flatBdrSortHead',col.label);
+  button.type='button';button.title='Сортировать: '+col.label;
+  if(col.key==='showdown')button.title+='; фильтр задаётся сверху';
+  button.onclick=()=>{if(flatReportSort===col.key)flatReportDescending=!flatReportDescending;
+   else{flatReportSort=col.key;flatReportDescending=col.key.startsWith('count')||col.key.startsWith('freq')}
+   if(sortOptions.some(x=>x[0]===flatReportSort))sort.value=flatReportSort;paint()};
+  th.append(button);second.append(th);
  }
+ thead.append(top,second);table.append(thead);
+ const tbody=el('tbody'),tfoot=el('tfoot');
+ table.append(tbody,tfoot);viewport.append(table);root.append(viewport);
+ const status=el('p','evLedgerFootnote flatBdrStatus','');
+ root.append(status);
+ function makeCell(tr,text,cls,content){
+  const cell=el('td',cls||'',text);
+  if(content)cell.replaceChildren(content);
+  tr.append(cell);return cell;
+ }
+ function amountClass(n){return n>0.000001?'isPositive':n<-.000001?'isNegative':'isNeutral'}
  function paint(){
-  tbody.replaceChildren();
-  const filtered=rows.filter(r=>r.dims.every((v,i)=>selected[i]===undefined||
-   selected[i]==='__all__'||selected[i]===v));
+  direction.textContent=flatReportDescending?'↓ По убыванию':'↑ По возрастанию';
+  for(const th of second.children){
+   const key=th.dataset.sort,active=key===flatReportSort;
+   th.setAttribute('aria-sort',active?(flatReportDescending?'descending':'ascending'):'none');
+   th.firstChild.textContent=FLAT_COLUMNS.find(x=>x.key===key).label+
+    (active?(flatReportDescending?' ↓':' ↑'):' ↕');
+  }
+  const showdownChoice=$('handDecompOpponentCount').value;
+  const filtered=rows.filter(r=>
+   (showdownChoice==='all'||r.dims[4]===Number(showdownChoice))&&
+   filters.every(([,i])=>selected[i]===undefined||selected[i]==='__all__'||
+      selected[i]===r.dims[i]));
   filtered.sort((x,y)=>{
-   const xx=metric(x),yy=metric(y);const order=typeof xx==='string'?
-    xx.localeCompare(yy,'ru'):xx-yy;
-   return (flatReportDescending?-order:order)||JSON.stringify(x.dims).localeCompare(JSON.stringify(y.dims));
+   const a=flatBdrValue(x,flatReportSort,totals),b=flatBdrValue(y,flatReportSort,totals);
+   const cmp=typeof a==='string'?String(a).localeCompare(String(b),'ru'):a-b;
+   return (flatReportDescending?-cmp:cmp)||JSON.stringify(x.dims).localeCompare(JSON.stringify(y.dims));
   });
-  const sum=(side)=>filtered.reduce((z,r)=>z+r[side].net,0);
-  summary.textContent='Строк: '+filtered.length+' · Σ A: '+sum('a').toFixed(2)+' BB'+
-   (compare?' · Σ B: '+sum('b').toFixed(2)+' BB · Δ: '+(sum('b')-sum('a')).toFixed(2)+' BB':'')+
-   ' · результаты по выбранным фильтрам';
+  const acc={a:{n:0,net:0},b:{n:0,net:0}};
+  for(const row of filtered)for(const side of ['a','b']){
+   acc[side].n+=row[side].n;acc[side].net+=row[side].net;
+  }
+  const delta=acc.b.net-acc.a.net;
+  for(const tile of kpis.children){
+   const name=tile.dataset.metric;
+   const value=name==='n'?acc.a.n:name==='a'?acc.a.net:name==='b'?acc.b.net:delta;
+   const valueNode=tile.lastChild;
+   valueNode.textContent=name==='n'?value.toLocaleString('ru-RU'):flatBdrFormat(value);
+   valueNode.className=name==='n'?'':amountClass(value);
+  }
+  tbody.replaceChildren();
   for(const r of filtered){
-   const tr=el('tr');const cells=[...r.dims.map((v,i)=>fmtDim(v,i)),
-    r.a.n,(100*r.a.n/totals.a).toFixed(2),
-    r.a.net.toFixed(2),r.a.n?(r.a.net/r.a.n).toFixed(3):'—',
-    ...(compare?[r.b.n,(100*r.b.n/totals.b).toFixed(2),
-     r.b.net.toFixed(2),r.b.n?(r.b.net/r.b.n).toFixed(3):'—',
-     (r.b.net-r.a.net).toFixed(2)]:[])];
-   for(const val of cells)tr.append(el('td','',String(val)));
+   const tr=el('tr','flatBdrDataRow');
+   for(let i=0;i<6;i++){
+    if(i===1){
+     const board=el('div','flatBdrBoardName',fmtDim(r.dims[i],i));
+     const code=el('div','flatBdrBoardCode',r.dims[i]);
+     const holder=el('div','flatBdrBoardCell');holder.append(board,code);
+     makeCell(tr,'','flatBdrDim flatBdrBoard',holder);
+    }else if(i===5){
+     const tag=el('span','flatBdrOutcome '+(r.dims[i]?.startsWith('W')?'isWin':
+      r.dims[i]?.startsWith('L')?'isLoss':'isOther'),fmtDim(r.dims[i],i));
+     makeCell(tr,'','flatBdrDim',tag);
+    }else makeCell(tr,fmtDim(r.dims[i],i),'flatBdrDim'+(i===4?' flatBdrOppCount':''));
+   }
+   const amount=(value,kind)=>flatBdrFormat(value,kind==='avg'?3:2);
+   function sideCells(side,total){
+    const record=r[side],avg=record.n?record.net/record.n:null;
+    makeCell(tr,String(record.n),'flatBdrNum');
+    makeCell(tr,(100*record.n/total).toFixed(2)+'%','flatBdrNum');
+    makeCell(tr,amount(record.net,'net'),'flatBdrNum flatBdrMoney '+amountClass(record.net));
+    makeCell(tr,avg===null?'—':amount(avg,'avg'),
+      'flatBdrNum flatBdrMoney '+amountClass(avg));
+   }
+   sideCells('a',totals.a);
+   if(compare){sideCells('b',totals.b);
+    makeCell(tr,amount(r.b.net-r.a.net,'net'),
+      'flatBdrNum flatBdrMoney flatBdrDelta '+amountClass(r.b.net-r.a.net))}
    tbody.append(tr);
   }
+  tfoot.replaceChildren();
+  const totalRow=el('tr','flatBdrTotal');
+  const title=el('td','', 'ИТОГО · ВЫБРАННЫЕ СЦЕНАРИИ');title.colSpan=6;totalRow.append(title);
+  function sumCells(side,total){
+   const record=acc[side];
+   makeCell(totalRow,String(record.n),'flatBdrNum');
+   makeCell(totalRow,(100*record.n/total).toFixed(2)+'%','flatBdrNum');
+   makeCell(totalRow,flatBdrFormat(record.net),'flatBdrNum flatBdrMoney '+amountClass(record.net));
+   makeCell(totalRow,record.n?flatBdrFormat(record.net/record.n,3):'—','flatBdrNum flatBdrMoney');
+  }
+  sumCells('a',totals.a);if(compare){sumCells('b',totals.b);
+   makeCell(totalRow,flatBdrFormat(delta),'flatBdrNum flatBdrMoney flatBdrDelta '+amountClass(delta));}
+  tfoot.append(totalRow);
+  const isFiltered=showdownChoice!=='all'||filters.some(([,i])=>
+   selected[i]!==undefined&&selected[i]!=='__all__');
+  const fullA=[...index.values()].reduce((v,r)=>v+r.a.n,0);
+  const fullB=[...index.values()].reduce((v,r)=>v+r.b.n,0);
+  const good=fullA===a.samples&&(!compare||fullB===b.samples);
+  status.textContent=(good?'✓ Контроль числа наблюдений пройден. ':'⚠ Расхождение числа наблюдений. ')+
+   'Показано '+filtered.length+' из '+rows.length+' сценариев. '+
+   (isFiltered?'Итог относится только к отбору; ': 'Итог относится к полной выборке; ')+
+   'Σ Net BB — сумма по N; Ср. BB — средневзвешенный результат на раздачу. '+
+   'Карты соперника отсутствуют без вскрытия. Раздел банка и сайд-поты выделены отдельно.';
+  status.classList.toggle('isWarning',!good);
  }
  paint();
- root.append(el('p','evLedgerFootnote',
-  'Σ Net BB = сумма net-результатов наблюдений; средний BB = Σ/N внутри строки. '+
-  'Сайд-поты с конфликтом результата помечены отдельно. Оппонент — сильнейший из дошедших до вскрытия; '+
-  'без вскрытия его карты неизвестны. Нет двойного учёта раздач.'));
 }
 
 function renderRiverLedger(root,a,b,compare){
@@ -3890,8 +4097,21 @@ function renderHandDecomposition(){
  $('handDecompProfileB').disabled=!compare;
  $('handDecompCardB').classList.toggle('isDisabled',!compare);
  const selection=$('handDecompOpponentCount').value;
- const left=selectedAbBreakdown('a',selection);
- const right=compare?selectedAbBreakdown('b',selection):{valid:false,data:null,samples:null,ci95:null,proportion:null};
+ const flatMode=decompReportMode==='board150';
+ // The same selector controls showdown count in the flat report, but actual entrants in legacy BDR.
+ const opponentPicker=$('handDecompOpponentCount');
+ opponentPicker.setAttribute('aria-label',flatMode?'Число оппонентов на вскрытии':'Число вошедших соперников в отчёте');
+ const opponentHint=$('handDecompOpponentHint');
+ if(opponentHint)opponentHint.textContent=flatMode?
+  'Фильтр по числу на вскрытии · без нового расчёта':
+  'Число вошедших в раздачу · условный EV';
+ for(const op of opponentPicker.options||[]){
+  if(op.value==='all')op.textContent=flatMode?'Все вскрытия · 0–8':'Все сценарии · 0–8';
+  else if(op.value==='0')op.textContent=flatMode?'0 · без вскрытия':'0 · без соперников';
+  else op.textContent=op.value+(flatMode?' · на вскрытии':Number(op.value)===1?' · HU':' · мультипот');
+ }
+ const left=selectedAbBreakdown('a',flatMode?'all':selection);
+ const right=compare?selectedAbBreakdown('b',flatMode?'all':selection):{valid:false,data:null,samples:null,ci95:null,proportion:null};
  const a=left.data,b=right.data;
  const bChoice=$('handDecompHandB').value;
  const bHand=compare?(bChoice==='='?selected:bChoice):'—';
@@ -3918,7 +4138,7 @@ function renderHandDecomposition(){
  renderOpponentEvComparison(fullA,fullB);
  const formatStratum=(x,tag)=>tag+': '+
   (x.samples===null?'ожидается расчёт':x.samples.toLocaleString('ru-RU')+' раздач'+
-   (selection!=='all'?' ('+(x.proportion??0).toFixed(2)+'%)':'')+
+   (selection!=='all'&&!flatMode?' ('+(x.proportion??0).toFixed(2)+'%)':'')+
    (Number.isFinite(x.ci95)?' · 95% ±'+x.ci95.toFixed(3)+' BB':''));
  const pairedResult=compare&&selected===bHand&&
   handDecompPairedSignature===decompRequestSignature()
@@ -3961,7 +4181,7 @@ function renderHandDecomposition(){
  $('handDecompStratumInfo').textContent=(compare
   ?(selected===bHand?'Одна рука, две стратегии':'Разные стартовые руки и стратегии')
   :'Одна выбранная рука')+' · '+
-  (selection==='all'?'все сценарии':selection+' соп.')+' · '+
+  (selection==='all'?'все сценарии':flatMode?'на вскрытии '+selection+' соп.':selection+' вошедших соп.')+' · '+
   formatStratum(left,'A')+(compare?'; '+formatStratum(right,'B'):'')+
   '. Переключение N не запускает новый Monte Carlo.';
  const root=$('handDecompRows');root.replaceChildren();
