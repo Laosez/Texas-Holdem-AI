@@ -910,6 +910,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 
 
 /* Compact multi-outcome and N significance filters. */
+.handDecompRows.flatReportHost{overflow:visible}
 .flatBdrOutcomePicker{position:relative;min-width:156px;font-size:11px;color:#dbe9f6}
 .flatBdrOutcomeSummary{list-style:none;cursor:pointer;user-select:none;background:#0e2032;
  border:1px solid #395572;border-radius:7px;padding:8px 12px;white-space:nowrap}
@@ -3684,7 +3685,7 @@ function renderFlatBoard150(root,a,b,compare){
   }
  }
  const rows=[...index.values()];
- const filters=[['Улица',0],['Тип борда',1],['HERO',2],['Оппонент',3],['Тип исхода',5]];
+ const filters=[['Улица',0],['Тип борда',1],['HERO',2],['Оппонент',3]];
  const controls=el('div','flatBdrToolbar');
  const filterWrap=el('div','flatBdrFilters');
  const selected={};
@@ -4251,6 +4252,7 @@ function renderHandDecomposition(){
   formatStratum(left,'A')+(compare?'; '+formatStratum(right,'B'):'')+
   '. Переключение N не запускает новый Monte Carlo.';
  const root=$('handDecompRows');root.replaceChildren();
+ root.classList.toggle('flatReportHost',decompReportMode==='board150');
  if(decompReportMode==='bdr')ledgerControls(root);
  if(!a&&!b){
   root.append(el('p','handDecompEmpty',left.valid&&(!compare||right.valid)
