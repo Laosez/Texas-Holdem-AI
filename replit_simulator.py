@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_v2", "gto_postflop_v3", "gto_postflop_v4", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -95,7 +95,7 @@ def available_postflop(name: str) -> bool:
 # Blank means INCOMPLETE, never automatic inheritance.
 DEFAULT_BOT_ROWS = [
     {"pre": "a17_preflop", "post": "gto_postflop_v1"},
-    {"pre": "pc_gto_80bb", "post": "gto_postflop_v2"},
+    {"pre": "pc_gto_80bb", "post": "gto_postflop_20"},
     {"pre": "pc_gto_80bb", "post": "tag_postflop_v1"},
     {"pre": "pc_gto_80bb", "post": "lag_postflop_v1"},
     {"pre": "pc_gto_80bb", "post": "chaser_postflop_v1"},
@@ -226,7 +226,7 @@ def strategy_catalog():
                     "features": ["100 Monte Carlo equity trials per decision", "C-bet", "draw", "semi-bluff", "check-raise", "river bluff"],
                 },
                 "gto_postflop_v1": {
-                    "label": "GTO Postflop V1 (GTO-inspired, не solver)",
+                    "label": "GTO 1 · контроль (GTO-inspired, не solver)",
                     "model": "heuristic",
                     "features": ["value", "C-bet", "draw", "semi-bluff", "check-raise", "river blockers", "multiway", "SPR"]
                 },
@@ -236,23 +236,12 @@ def strategy_catalog():
                     "features": ["100 unique states", "same JSON catalog human+bot",
                                  "hand/board classifier", "pot odds", "IP/OOP context", "multiway"]
                 },
-                "gto_postflop_v4": {
-                    "label": "GTO Postflop V4 · настоящие старшие две пары (эксперимент, не solver)",
+                "gto_postflop_20": {
+                    "label": "GTO 2.0 · сила руки относительно борда (эвристика, не solver)",
                     "model": "heuristic",
-                    "features": ["V3 baseline", "preserve both hole-card top pairs on paired boards",
-                                 "no change to shared-pair protection", "multiway", "kicker", "draw"]
-                },
-                "gto_postflop_v3": {
-                    "label": "GTO Postflop V3 · эксперимент Kxs/кикер/дро (не solver)",
-                    "model": "heuristic",
-                    "features": ["V2 baseline", "board-relative two pair", "top-pair kicker",
-                                 "pair+draw decisions", "multiway"]
-                },
-                "gto_postflop_v2": {
-                    "label": "GTO Postflop V2 · исправление мелких пар (не solver)",
-                    "model": "heuristic",
-                    "features": ["V1 action frequencies", "22–66 paired-board two-pair correction",
-                                 "board-relative overpairs", "multiway scaling"]
+                    "features": ["R0–R4 board-relative hand strength", "shared board-pair discount",
+                                 "genuine two-pair exception", "wet board caution",
+                                 "same V1 betting engine for controlled EV comparisons"]
                 },
                 "lag_postflop_v1": {
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",
