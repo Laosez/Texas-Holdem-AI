@@ -33,54 +33,11 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 .match{border:1px solid #43678a;background:#10273e;padding:12px;border-radius:9px;margin:10px 0;line-height:1.8}
 .match strong{font-size:16px;color:#bde2ff;display:block}
 .note{font-size:11px;color:#a2bed9;line-height:1.7}.error{color:#ffa8b5}.good{color:#91e0c3}
-.report-table{min-width:1120px}.report-table .report-group td{background:#264967!important;font-weight:800;position:static!important}
-.report-table .report-cause td{background:#1d3953!important;position:static!important;font-weight:700}
-.report-table .report-total td{background:#203d59!important;font-weight:800;position:static!important}
-.report-table td:first-child{min-width:320px;white-space:normal}.report-table th:first-child{min-width:320px}
-.report-table button{background:transparent;color:inherit;border:0;font:inherit;text-align:left;cursor:pointer;padding:0;font-weight:inherit}
-.report-table .positive{color:#88ddbb}.report-table .negative{color:#ffadb7}
-.sectionActions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.spacer{flex:1}
 @media(max-width:1140px){.filters{grid-template-columns:repeat(4,minmax(120px,1fr))}.filters>label:first-child{grid-column:span 2}}
 @media(max-width:650px){header,.nav,main,footer{width:calc(100% - 22px)}.nav .tab{padding:8px 6px;gap:4px}.nav .tab small{display:none}.nav .tab b{font-size:13px}.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.filters>label:first-child{grid-column:span 2}.panel{padding:13px}}
 
-/* Shared BDR visual language with Sheet 02: grouped financial headers, levels and controls. */
-.panel[hidden]{display:none!important}
-.viewSwitch{display:flex;gap:7px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #375575;padding:0 0 12px}
-.viewTab{padding:10px 15px;border-radius:7px;border:1px solid #385c7e;background:#10263e;color:#b7d0e8;font-weight:750;cursor:pointer}
-.viewTab.isActive{background:#325b7d;border-color:#86b6dc;color:white;box-shadow:inset 0 -2px #a0d0fb}
-.viewSwitchHelp{font-size:11px;color:#9db8d5;margin-left:auto}
-.reportWrap{max-width:100%;border-color:#3c5c7b}
-.report-table{width:100%;min-width:1020px;font-size:12px}
-.report-table th{padding:8px 10px;background:#19364f}
-.report-table thead tr:first-child .abGroupHeader{text-align:center;background:#254866;border-bottom:0;font-weight:750}
-.report-table thead .abGroupHeader.isA{color:#b4dafa}
-.report-table thead .abGroupHeader.isB{color:#dfccfb}
-.report-table thead .abGroupHeader.isDelta{color:#bbd7e9}
-.report-table thead .abSubHeader{background:#203e5a;font-size:11px}
-.report-table th button.sortColumn{border:none;background:none;color:inherit;font-weight:750;white-space:nowrap;padding:0;cursor:pointer}
-.report-table th[aria-sort=ascending] button,.report-table th[aria-sort=descending] button{color:#fff;text-decoration:underline}
-.report-table th:not(:first-child),.report-table td:not(:first-child){text-align:right;white-space:nowrap}
-.report-table td{padding:8px 10px}
-.report-table td:first-child{min-width:345px;white-space:normal}
-.report-table .report-group td{background:#244763!important;color:#f0f7ff;font-size:12px;letter-spacing:.18px;font-weight:800}
-.report-table .report-group.gain td:first-child{box-shadow:inset 3px 0 #60b996}
-.report-table .report-group.loss td:first-child{box-shadow:inset 3px 0 #c9868c}
-.report-table .report-cause td{background:#19374f!important;color:#d7eafc;font-weight:700}
-.report-table .report-board td{font-weight:450;color:#c6dcf1}
-.report-table .report-total td{background:#25435c!important;color:#f1f9ff;font-weight:750;border-top:1px solid #85aec8}
-.report-table .report-article{position:static;background:none!important}
-.report-table .articleLabel{display:flex;align-items:flex-start;gap:8px}
-.report-table .articleText{min-width:0;white-space:normal}
-.report-table .articleCode{font-size:11px;font-weight:750;color:#cde3fb;overflow-wrap:anywhere}
-.report-table .articleDesc{font-size:10px;color:#9db9d4;margin-top:2px;font-weight:450}
-.report-table .disclose{min-width:16px;display:inline-flex;gap:8px;align-items:center}
-.report-table .disclose .chevron{color:#a7c9e4;width:15px}
-.report-table .positive,.report-table .negative{font-weight:450}
-.report-table .num{font-variant-numeric:tabular-nums}
-.report-table .report-group .positive,.report-table .report-group .negative,
-.report-table .report-total .positive,.report-table .report-total .negative{font-weight:750}
-.reportMissingB{display:none!important}
-@media(max-width:650px){.viewSwitchHelp{width:100%;margin-left:0}.viewTab{flex:1;padding:9px 6px;font-size:11px}.report-table td:first-child{min-width:280px}}
+.boardName{min-width:310px;max-width:460px;white-space:normal;color:#e3f2ff;font-weight:600}
+#catalogRows td:nth-child(2){min-width:210px}
 </style></head>
 <body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>POSTFLOP BOARD CATALOG</strong></div>
@@ -89,13 +46,8 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <button class="btn sm" type="button" id="connect">Подключиться</button></div></header>
 <nav class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Монте-Карло</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп</strong><small>150 бордов · EV</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Сессии</small></span></a></nav>
 <main>
-<div class="viewSwitch" role="tablist" aria-label="Представление постфлопа">
- <button id="viewFinancial" type="button" class="viewTab" role="tab" aria-controls="board150Report" aria-selected="false">01 · Финансовый вид · БДР</button>
- <button id="viewCatalog" type="button" class="viewTab isActive" role="tab" aria-controls="board150Catalog" aria-selected="true">02 · Справочник 150 бордов</button>
- <span class="viewSwitchHelp">Один справочник · два представления, расчёты сохраняются</span>
-</div>
-<section class="panel" id="board150Catalog" role="tabpanel" aria-labelledby="viewCatalog">
-<div class="heading"><h2>03 / Справочник физических бордов ривера</h2><span class="badge" id="catalogTotal">150 классов</span></div>
+<section class="panel" id="board150Catalog">
+<div class="heading"><h2>03 / Справочник 150 типов борда</h2><span class="badge" id="catalogTotal">150 классов</span></div>
 <p class="note">Один физический ривер-борд → один составной идентификатор <strong>P · S · F · SF · A</strong>. Точные частоты относятся к случайному пятикарточному борду, без учёта известных карт HERO. Парность — 6 структур, стрит — 6, флеш — 4, стрит-флеш — 6, туз — 2. Физически достижимы только 150 комбинаций из 1 728 формальных.</p>
 <div class="tools" style="margin:13px 0"><label style="min-width:260px;flex:1">Борд · 5 физических карт<input id="boardInput" value="5s-6s-7s-8s-8d" autocomplete="off" placeholder="As-Kh-9c-5d-2c"></label><button class="btn primary" type="button" id="boardClassify">Классифицировать</button><button class="btn" id="catalogExport" type="button">CSV · 150 кодов</button></div>
 <div id="classifyResult" class="match" role="status">Пример: P1 · S3 · F4 · SF3 · A0</div>
@@ -109,69 +61,32 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <label>Сортировать<select id="catalogSort"><option value="id">Код · P/S/F/SF/A</option><option value="deals_desc">Частота ↓</option><option value="deals_asc">Частота ↑</option><option value="code_desc">Код ↓</option></select></label>
 </div>
 <div class="statbar"><span id="catalogStatus">Загрузка каталога…</span><span id="checkedStatus"></span><span id="catalogShares"></span><button class="btn sm ghost" type="button" id="catalogReset">Сбросить отметки</button></div>
-<div class="tablewrap"><table><thead><tr><th>№</th><th>Идентификатор</th><th>Физический пример</th><th>Парность</th><th>Стрит</th><th>Флеш</th><th>Стрит-флеш</th><th>Туз</th><th class="num">Число бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Подключение к каталогу…</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>№</th><th>Идентификатор</th><th>Название борда</th><th>Физический пример</th><th>Парность</th><th>Стрит</th><th>Флеш</th><th>Стрит-флеш</th><th>Туз</th><th class="num">Число бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="12">Подключение к каталогу…</td></tr></tbody></table></div>
 <p class="caption">Коды S1/S3 означают 3/4 подряд, S2/S4 — соответственно три/четыре ранга в пятиранговом окне с внутренними пропусками. Стрит-флеш требует одну и ту же масть. Туз одновременно допускает wheel A-2-3-4-5. Класс не учитывает HERO, поэтому частота борда не является шансом победы.</p>
-</section>
-<section class="panel" id="board150Report" role="tabpanel" aria-labelledby="viewFinancial" hidden>
-<div class="heading"><h2>03 / Финансовая декомпозиция · БДР</h2><span class="badge" id="reportBadge">Нет расчёта</span></div>
-<p class="note">Основной расчёт и декомпозиция остаются на листе <strong>02 · План</strong>; здесь открывается сохранённое финансовое представление того же EV. Отчёт использует последний актуальный расчёт выбранной руки с листа «02 · План». Для вскрытия классифицируется ривер; для фолда — только последняя реально открытая улица. Показатели не пересчитываются при переключении группировок. Разницу комбинаций и кикеры определяет движок по реальному вскрытию.</p>
-<div class="sectionActions" style="margin:12px 0"><a class="btn" style="text-decoration:none" href="/plan">↗ К симулятору</a><button class="btn primary" type="button" id="loadPlanReport">Обновить из Плана</button><button class="btn ghost" type="button" id="clearPlanReport">Очистить отчёт</button><span class="spacer"></span><label>Результат<select id="reportSign"><option value="">Все</option><option value="loss">Убытки</option><option value="profit">Прибыль</option><option value="neutral">Ноль</option></select></label><label>Сортировка<select id="reportSort"><option value="impact">По |EV| · влияние</option><option value="label">Код / название</option>
-<option value="count:a">N · A</option><option value="percentage:a">% · A</option><option value="avg:a">Ср. BB · A</option><option value="positive_ev_bb:a">EV+ · A</option><option value="negative_ev_bb:a">EV− · A</option><option value="contribution_bb:a">Net · A</option>
-<option value="count:b">N · B</option><option value="percentage:b">% · B</option><option value="avg:b">Ср. BB · B</option><option value="positive_ev_bb:b">EV+ · B</option><option value="negative_ev_bb:b">EV− · B</option><option value="contribution_bb:b">Net · B</option><option value="delta">Δ(B−A)</option></select></label><button id="reportSortDirection" class="btn sm" type="button">↓ По убыванию</button><button id="reportExpandAll" class="btn sm ghost" type="button">Раскрыть всё</button><button id="reportCollapseAll" class="btn sm ghost" type="button">Свернуть всё</button></div>
-<div class="statbar" id="reportSummary">Ожидается расчёт Monte Carlo на листе «План».</div>
-<div class="tablewrap reportWrap" style="max-height:75vh"><table class="report-table" id="financialLedger"><thead id="reportHead"><tr><th>Статья</th><th class="num">N</th><th class="num">%</th><th class="num">Ср. BB</th><th class="num">EV+</th><th class="num">EV−</th><th class="num">Net</th></tr></thead><tbody id="reportRows"><tr><td colspan="7">Для отчёта сначала выполните симуляцию на листе «План».</td></tr></tbody></table></div>
-<p class="caption" id="reportFootnote">N и EV сверяются с полной выборкой, включая фолды до ривера. Фильтры P/S/F/SF/A применяются и к отчёту, а строка полной выборки остаётся отдельной. EV — наблюдаемый финансовый вклад, не доказанная ошибка стратегии.</p>
 </section>
 </main><footer class="small" style="margin-bottom:28px">SKACHKOV / POKER SYSTEM · Каталог P/S/F/SF/A · River V1 · 2 598 960 физических бордов.</footer>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const REPORT_KEY="skachkov_board150_report_v1";
 const REVIEW_KEY="skachkov_board150_review_v1";
-let rows=[],report=null,checked={},openGroups=new Set(["sign:loss","sign:profit","sign:neutral"]);
-let activeView='catalog',reportDirection='desc';
-function setView(view){
- activeView=view==='financial'?'financial':'catalog';
- for(const [id,name] of [['board150Report','financial'],['board150Catalog','catalog']]){
-  const active=name===activeView,btn=$(name==='financial'?'viewFinancial':'viewCatalog');
-  $(id).hidden=!active;btn.classList.toggle('isActive',active);
-  btn.setAttribute('aria-selected',String(active));btn.tabIndex=active?0:-1;
- }
- try{sessionStorage.setItem('skachkov_postflop_view_v1',activeView)}catch(_){}
-}
+let rows=[],checked={};
 const shortNames={
  p:["Без пары","Пара","Две пары","Тройка","Фулл-хаус","Каре"],
  s:["Нет угрозы","−2 подряд","2 дырки","−1 подряд","1 дырка","Стрит"],
  f:{"F2":"2s · нет флеша","F3":"3s · флеш −2","F4":"4s · флеш −1","F5":"5s · флеш"},
  sf:["Нет угрозы","−2 подряд","2 дырки","−1 подряд","1 дырка","Стрит-флеш"]
 };
-const signLabels={loss:"02 · УБЫТКИ",profit:"01 · ПРИБЫЛЬ",neutral:"03 · БЕЗ ИЗМЕНЕНИЯ"};
-const sumEmpty=()=>({count:0,positive_ev_bb:0,negative_ev_bb:0,contribution_bb:0});
 function el(tag,cls,text){
  const node=document.createElement(tag);
  if(cls)node.className=cls;
  if(text!==undefined)node.textContent=String(text);
  return node;
 }
-function fmt(value,digits=3){
- const n=Number(value)||0;return (n>0?"+":"")+n.toFixed(digits);
-}
-function add(dst,src){for(const key of ["count","positive_ev_bb","negative_ev_bb","contribution_bb"])dst[key]+=Number(src?.[key])||0}
 function filters(){return Object.fromEntries(["P","S","F","SF","A"].map(k=>[k,$("filter"+k).value]))}
 function matches(row){
  const f=filters();
  return (!f.P||row.p===f.P)&&(!f.S||row.s===f.S)&&(!f.F||row.f===f.F)&&
   (!f.SF||row.sf===f.SF)&&(!f.A||row.a===f.A);
-}
-function matchesCode(code){
- if(!code)return false;
- if(code==="PRE|NO_BOARD")return !Object.values(filters()).some(Boolean);
- // Earlier streets have their own namespace and may introduce F1.
- const body=code.replace(/^(FLOP|TURN)\|/,"");
- const match=body.match(/^P(\d) · S(\d) · F(\d) · SF(\d) · A(\d)$/);
- if(!match)return false;
- const [p,s,f,sf,a]=match.slice(1);
- return matches({p:"P"+p,s:"S"+s,f:"F"+f,sf:"SF"+sf,a:"A"+a});
 }
 function sortByNumericCode(a,b){
  const ma=a.match(/\d+/g).map(Number),mb=b.match(/\d+/g).map(Number);
@@ -189,20 +104,41 @@ function initFilters(){
  for(const [key,values] of configs){
   const select=$("filter"+key);
   for(const [value,label] of values){const opt=el("option","",value+" · "+label);opt.value=value;select.append(opt)}
-  select.onchange=()=>{drawCatalog();drawReport()};
+  select.onchange=drawCatalog;
  }
 }
+
+// Human titles keep full discriminating P/S/F/SF/A information but avoid raw
+// notation as the only thing a poker player can read.
+function boardTitle(row){
+ const p=Number(row.p.slice(1)),st=Number(row.s.slice(1));
+ const f=Number(row.f.slice(1)),sf=Number(row.sf.slice(2));
+ const pairs=['Неспаренный стол','Пара на столе','Две пары на столе',
+  'Тройка на столе','Фулл-хаус на столе','Каре на столе'];
+ const straight=['','стрит −2 (три подряд)','стрит −2 (две дырки)',
+  'стрит −1 (четыре подряд)','стрит −1 (одна дырка)','готовый стрит'];
+ const straightFlush=['','стрит-флеш −2 (три подряд)','стрит-флеш −2 (две дырки)',
+  'стрит-флеш −1 (четыре подряд)','стрит-флеш −1 (одна дырка)','готовый стрит-флеш'];
+ const components=[pairs[p]];
+ if(st)components.push(straight[st]);
+ if(f>=3)components.push(f===3?'флеш −2 (3s)':f===4?'флеш −1 (4s)':'готовый флеш (5s)');
+ if(sf)components.push(straightFlush[sf]);
+ if(!st&&f<=2&&!sf)components.push('сухой по стриту и флешу');
+ components.push(row.a==='A1'?'с тузом':'без туза');
+ return components.join(' · ');
+}
+
 function drawCatalog(){
  const query=$("catalogSearch").value.trim().toLowerCase(),sort=$("catalogSort").value;
  const found=rows.filter(row=>matches(row)&&(!query||
-  [row.id,row.example,row.summary].some(v=>v.toLowerCase().includes(query))));
+  [row.id,row.example,row.summary,boardTitle(row)].some(v=>v.toLowerCase().includes(query))));
  found.sort((a,b)=>sort==="deals_desc"?b.deals-a.deals||sortByNumericCode(a.id,b.id):
   sort==="deals_asc"?a.deals-b.deals||sortByNumericCode(a.id,b.id):
   sort==="code_desc"?sortByNumericCode(b.id,a.id):sortByNumericCode(a.id,b.id));
  const body=$("catalogRows");const frag=document.createDocumentFragment();
  for(const row of found){
   const tr=el("tr");
-  for(const value of [row.ordinal,row.id,row.example,
+  for(const value of [row.ordinal,row.id,boardTitle(row),row.example,
     row.p+" · "+shortNames.p[Number(row.p.slice(1))],
     row.s+" · "+shortNames.s[Number(row.s.slice(1))],
     row.f+" · "+shortNames.f[row.f],
@@ -211,6 +147,7 @@ function drawCatalog(){
     row.probability_pct.toFixed(5)+"%"]){
     const td=el("td","",value);
     if(value===row.id)td.classList.add("code");
+    if(value===boardTitle(row))td.classList.add("boardName");
     tr.append(td);
   }
   const review=el("td");const cb=el("input");cb.type="checkbox";cb.checked=!!checked[row.id];
@@ -222,7 +159,7 @@ function drawCatalog(){
   };review.append(cb);tr.append(review);frag.append(tr);
  }
  body.replaceChildren(frag);
- if(!found.length){const tr=el("tr"),td=el("td","","По выбранным фильтрам кодов нет");td.colSpan=11;tr.append(td);body.append(tr)}
+ if(!found.length){const tr=el("tr"),td=el("td","","По выбранным фильтрам кодов нет");td.colSpan=12;tr.append(td);body.append(tr)}
  renderCatalogStatus(found);
 }
 function renderCatalogStatus(found){
@@ -239,7 +176,6 @@ async function loadCatalog(){
   if(data.reachable_codes!==150||data.rows?.length!==150||
       data.rows.reduce((n,r)=>n+r.deals,0)!==2598960)throw Error("Не прошла сверка 150 кодов / 2 598 960 бордов");
   rows=data.rows;
-  if(report)drawReport();
   $("connection").textContent="Каталог загружен";$("connection").className="badge ok";
   $("catalogTotal").textContent=rows.length+" типов · 2 598 960 бордов";
   drawCatalog();
@@ -262,221 +198,13 @@ async function classify(){
       "Код относится к флопу или тёрну, а не к 150 типам ривера"));
   $("catalogSearch").value=found.id;
   for(const f of ["P","S","F","SF","A"])$("filter"+f).value="";
-  drawCatalog();drawReport();
+  drawCatalog();
  }catch(e){status.replaceChildren(el("span","error",e.message))}
-}
-function loadReport(){
- try{
-  const value=JSON.parse(sessionStorage.getItem(REPORT_KEY)||"null");
-  if(value?.version!=="river_board_150_v1"||!value.a?.rows?.length||
-     !value.a.rows.every(r=>typeof r.board_code==="string"))throw Error("Нет совместимого расчёта. Выполните новую симуляцию на листе 02 и нажмите «Отчёт на листе 03».");
-  report=value;drawReport();
-  if(!sessionStorage.getItem('skachkov_postflop_view_v1'))setView('financial');
- }catch(e){report=null;$("reportBadge").textContent="Нет расчёта";$("reportSummary").textContent=e.message;
-  $("reportRows").replaceChildren();const tr=el("tr"),td=el("td","",e.message);
-  td.colSpan=7;tr.append(td);$("reportRows").append(tr)}
-}
-function reportTree(){
- const roots=new Map();
- for(const [side,source] of [["a",report.a],["b",report.b]]){
-  for(const row of source?.rows||[]){
-   if(($("reportSign").value&&row.sign!==$("reportSign").value)||!matchesCode(row.board_code))continue;
-   const signKey="sign:"+row.sign;
-   let sign=roots.get(signKey);
-   if(!sign){sign={key:signKey,label:signLabels[row.sign]||row.sign,a:sumEmpty(),b:sumEmpty(),children:new Map()};roots.set(signKey,sign)}
-   const causeKey=signKey+":"+row.cause;
-   let cause=sign.children.get(causeKey);
-   if(!cause){cause={key:causeKey,label:row.cause+" · "+row.cause_name,a:sumEmpty(),b:sumEmpty(),children:new Map()};sign.children.set(causeKey,cause)}
-   const boardKey=causeKey+":"+row.board_code;
-   let board=cause.children.get(boardKey);
-   if(!board){
-    board={key:boardKey,label:row.board_code,a:sumEmpty(),b:sumEmpty(),children:new Map()};
-    cause.children.set(boardKey,board);
-   }
-   for(const node of [sign,cause,board])add(node[side],row);
-  }
- }
- return roots;
-}
-
-const FINANCE_COLS=[
- {key:'count:a',name:'N',group:'a'},
- {key:'percentage:a',name:'%',group:'a'},
- {key:'avg:a',name:'Ср. BB',group:'a'},
- {key:'positive_ev_bb:a',name:'EV+',group:'a'},
- {key:'negative_ev_bb:a',name:'EV−',group:'a'},
- {key:'contribution_bb:a',name:'Net EV',group:'a'},
- {key:'count:b',name:'N',group:'b'},
- {key:'percentage:b',name:'%',group:'b'},
- {key:'avg:b',name:'Ср. BB',group:'b'},
- {key:'positive_ev_bb:b',name:'EV+',group:'b'},
- {key:'negative_ev_bb:b',name:'EV−',group:'b'},
- {key:'contribution_bb:b',name:'Net EV',group:'b'},
- {key:'delta',name:'Δ (B−A)',group:'delta'}
-];
-function reportCols(){
- return FINANCE_COLS.filter(c=>report?.b||c.group==='a');
-}
-function columnValue(node,key){
- if(key==='label')return node.label;
- if(key==='impact')return Math.max(Math.abs(node.a.contribution_bb),Math.abs(node.b.contribution_bb));
- if(key==='delta')return node.b.contribution_bb-node.a.contribution_bb;
- const [metric,side]=key.split(':'),stats=node[side]||sumEmpty(),source=report?.[side];
- if(metric==='percentage')return source?.samples?stats.count/source.samples*100:0;
- if(metric==='avg')return stats.count&&source?.samples?
-   stats.contribution_bb*source.samples/stats.count:0;
- return Number(stats[metric])||0;
-}
-function changeReportSort(key){
- const selector=$('reportSort');
- if(selector.value===key)reportDirection=reportDirection==='asc'?'desc':'asc';
- else{selector.value=key;reportDirection=key==='label'||key.startsWith('negative_ev_bb:')?'asc':'desc'}
- drawReport();
-}
-function order(nodes){
- const key=$('reportSort').value,dir=reportDirection==='asc'?1:-1;
- return [...nodes].sort((a,b)=>{
-  const x=columnValue(a,key),y=columnValue(b,key);
-  const diff=key==='label'?String(x).localeCompare(String(y),'ru'):x-y;
-  return dir*diff||a.key.localeCompare(b.key,'ru');
- });
-}
-function readableCode(code){
- if(code==='PRE|NO_BOARD')return 'До флопа · общие карты не открывались';
- const [prefix,p,s,f,sf,a]=[
-  code.startsWith('FLOP|')?'Флоп · ':code.startsWith('TURN|')?'Тёрн · ':'Ривер · ',
-  ...(code.match(/P(\d) · S(\d) · F(\d) · SF(\d) · A(\d)$/)||[]).slice(1).map(Number)
- ];
- if([p,s,f,sf,a].some(n=>!Number.isFinite(n)))return '';
- const rank=shortNames.p[p]||'Неизвестная парность';
- const straight=shortNames.s[s]||'';
- const flush=shortNames.f['F'+f]||f+'s';
- const straightFlush=shortNames.sf[sf]||'';
- return prefix+rank+' · '+straight+' · '+flush+' · '+straightFlush+' · '+(a?'с тузом':'без туза');
-}
-function renderReportHead(){
- const hasB=!!report?.b,head=$('reportHead');head.replaceChildren();
- const fields=reportCols();
- const top=el('tr'),bottom=el('tr');
- const article=el('th','','Статья');article.rowSpan=hasB?2:1;article.scope='col';top.append(article);
- if(hasB){
-  for(const [group,label,len] of [['a','СТРАТЕГИЯ A',6],['b','СТРАТЕГИЯ B',6],['delta','СРАВНЕНИЕ',1]]){
-   const cell=el('th','abGroupHeader is'+group.charAt(0).toUpperCase()+group.slice(1),label);
-   cell.colSpan=len;cell.scope='colgroup';top.append(cell);
-  }
- }
- for(const field of fields){
-  const cell=el('th','abSubHeader num');
-  cell.scope='col';cell.dataset.sort=field.key;
-  cell.setAttribute('aria-sort',$('reportSort').value===field.key?
-    (reportDirection==='asc'?'ascending':'descending'):'none');
-  const button=el('button','sortColumn',field.name+
-    ($('reportSort').value===field.key?(reportDirection==='asc'?' ↑':' ↓'):' ↕'));
-  button.type='button';button.title='Сортировать по '+field.name;
-  button.onclick=()=>changeReportSort(field.key);cell.append(button);
-  (hasB?bottom:top).append(cell);
- }
- if(!hasB){head.append(top);return}
- // Make the leftmost article label stick with the top row.
- head.append(top,bottom);
-}
-function collectGroupKeys(tree){
- const keys=[];
- function visit(node){
-  if(node.children?.size){keys.push(node.key);for(const child of node.children.values())visit(child)}
- }
- for(const node of tree.values())visit(node);
- return keys;
-}
-function drawReport(){
- if(!report){$('reportSummary').textContent='Сначала запустите Monte Carlo на листе 02 и передайте результат сюда.';return}
- // B-only metrics do not exist in single-strategy mode.
- if(!report.b&&['count:b','percentage:b','avg:b','positive_ev_bb:b',
-     'negative_ev_bb:b','contribution_bb:b','delta'].includes($('reportSort').value))
-   $('reportSort').value='impact';
- $('reportSort').querySelectorAll('option').forEach(option=>{
-  option.disabled=!report.b&&(option.value.endsWith(':b')||option.value==='delta');
- });
- $('reportSortDirection').textContent=reportDirection==='asc'?'↑ По возрастанию':'↓ По убыванию';
- renderReportHead();
- const roots=reportTree(),body=$('reportRows'),fragment=document.createDocumentFragment();
- const fields=reportCols(),hasB=!!report.b;
- const pct=(n,total)=>total?(100*n/total).toFixed(1)+'%':'0.0%';
- function value(node,col){
-  const key=col.key;
-  if(key==='delta')return fmt(node.b.contribution_bb-node.a.contribution_bb);
-  const [metric,side]=key.split(':'),stats=node[side],source=report[side];
-  if(metric==='percentage')return pct(stats.count,source.samples);
-  if(metric==='avg')return stats.count?fmt(columnValue(node,key)):'—';
-  if(metric==='count')return String(stats.count);
-  return fmt(stats[metric]);
- }
- function append(node,level=0,cls=''){
-  const tr=el('tr',cls+(level===2?' report-board':'')),label=el('td','report-article');
-  label.style.paddingLeft=(12+level*20)+'px';
-  const content=el('div','articleLabel'),name=el('div','articleText');
-  if(node.children?.size){
-   const expanded=openGroups.has(node.key);
-   const button=el('button','disclose');
-   button.type='button';button.setAttribute('aria-expanded',String(expanded));
-   button.setAttribute('aria-label',(expanded?'Свернуть ':'Развернуть ')+node.label);
-   button.append(el('span','chevron',expanded?'▾':'▸'),el('span','',node.label));
-   button.onclick=()=>{if(expanded)openGroups.delete(node.key);else openGroups.add(node.key);drawReport()};
-   content.append(button);
-  }else{
-   if(level===2){
-    name.append(el('div','articleCode',node.label),
-      el('div','articleDesc',readableCode(node.label)));
-   }else name.append(el('div','',node.label));
-   content.append(name);
-  }
-  label.append(content);tr.append(label);
-  for(const col of fields){
-   const v=value(node,col),td=el('td','num',v);
-   if(v.startsWith('-')&&v!=='—')td.classList.add('negative');
-   else if(v.startsWith('+'))td.classList.add('positive');
-   tr.append(td);
-  }
-  fragment.append(tr);
-  if(node.children?.size&&openGroups.has(node.key)){
-   for(const child of order(node.children.values()))
-    append(child,level+1,level===0?'report-cause':'');
-  }
- }
- for(const sign of ['profit','loss','neutral']){
-  const node=roots.get('sign:'+sign);
-  if(node)append(node,0,'report-group '+(sign==='loss'?'loss':sign==='profit'?'gain':''));
- }
- const shown={label:'ПОКАЗАНО · С УЧЁТОМ ФИЛЬТРОВ',a:sumEmpty(),b:sumEmpty()};
- for(const group of roots.values()){add(shown.a,group.a);add(shown.b,group.b)}
- append(shown,0,'report-total');
- const overall={label:'ВСЯ ВЫБОРКА · КОНТРОЛЬ EV',a:sumEmpty(),b:sumEmpty()};
- for(const r of report.a.rows)add(overall.a,r);
- for(const r of report.b?.rows||[])add(overall.b,r);
- append(overall,0,'report-total');
- body.replaceChildren(fragment);
- const validA=overall.a.count===report.a.samples&&
-  Math.abs(overall.a.contribution_bb-report.a.ev_bb)<.005;
- const validB=!hasB||overall.b.count===report.b.samples&&
-  Math.abs(overall.b.contribution_bb-report.b.ev_bb)<.005;
- $('reportBadge').textContent=report.hand+' · '+report.profile+
-  (hasB?' · A/B':' · A')+' · N='+report.a.samples;
- $('reportSummary').replaceChildren(
-  el('strong',validA&&validB?'good':'error',validA&&validB?'✓ Сверка N и EV':'⚠ Расхождение N/EV'),
-  el('span','','Итого A: '+fmt(report.a.ev_bb)+' BB'+
-   (hasB?' · B: '+fmt(report.b.ev_bb)+' BB · Δ: '+fmt(report.b.ev_bb-report.a.ev_bb)+' BB':'')),
-  el('span','','Показано: '+shown.a.count+'/'+report.a.samples+
-     ' раздач · '+fmt(shown.a.contribution_bb)+' BB'));
- $('reportFootnote').textContent=
-  'Причины и борды вложены как статьи БДР. Сортировка применяется внутри каждой группы, итоговые строки остаются последними. '+
-  '150 классов относятся только к физическому риверу. PRE|NO_BOARD / FLOP|… / TURN|… учитываются отдельно на реальной улице. '+
-  'Ср. BB — условный результат статьи; EV+/EV−/Net — вклад относительно полного числа симуляций каждой стороны. '+
-  'Вероятность физического борда из справочника не равна частоте у HERO. Отрицательный EV сам по себе не доказывает ошибку решения.';
 }
 function exportCSV(){
  if(!rows.length)return;
- const header=["№","Код","Пример","P","S","F","SF","A","Число бордов","Вероятность %"];
- const csv=[header,...rows.map(r=>[r.ordinal,r.id,r.example,r.p,r.s,r.f,r.sf,r.a,r.deals,r.probability_pct])]
+ const header=["№","Код","Название борда","Пример","P","S","F","SF","A","Число бордов","Вероятность %"];
+ const csv=[header,...rows.map(r=>[r.ordinal,r.id,boardTitle(r),r.example,r.p,r.s,r.f,r.sf,r.a,r.deals,r.probability_pct])]
   .map(cols=>cols.map(x=>'"'+String(x).replaceAll('"','""')+'"').join(";")).join("\r\n");
  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
  const url=URL.createObjectURL(blob),link=el("a");
@@ -493,22 +221,4 @@ $("catalogSearch").oninput=drawCatalog;
 $("catalogSort").onchange=drawCatalog;
 $("catalogExport").onclick=exportCSV;
 $("catalogReset").onclick=()=>{if(!confirm("Сбросить отметки изучения 150 кодов?"))return;checked={};try{localStorage.removeItem(REVIEW_KEY)}catch(_){}drawCatalog()};
-$("loadPlanReport").onclick=loadReport;
-$("clearPlanReport").onclick=()=>{try{sessionStorage.removeItem(REPORT_KEY)}catch(_){}report=null;loadReport()};
-$("reportSign").onchange=drawReport;
-$("reportSort").onchange=()=>{
- reportDirection=$("reportSort").value==="label"||
-  $("reportSort").value.startsWith("negative_ev_bb:")?"asc":"desc";
- drawReport();
-};
-$("reportSortDirection").onclick=()=>{reportDirection=reportDirection==='asc'?'desc':'asc';drawReport()};
-$("reportExpandAll").onclick=()=>{if(!report)return;
- for(const key of collectGroupKeys(reportTree()))openGroups.add(key);
- drawReport();
-};
-$("reportCollapseAll").onclick=()=>{openGroups.clear();drawReport()};
-$("viewCatalog").onclick=()=>setView('catalog');
-$("viewFinancial").onclick=()=>setView('financial');
-try{setView(sessionStorage.getItem('skachkov_postflop_view_v1')||'catalog')}catch(_){setView('catalog')}
-loadReport();if($("key").value)loadCatalog();
 </script></body></html>
