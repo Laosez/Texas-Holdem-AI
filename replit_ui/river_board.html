@@ -48,7 +48,7 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <main>
 <section class="panel" id="board150Catalog">
 <div class="heading"><h2>03 / Справочник 150 типов борда</h2><span class="badge" id="catalogTotal">150 классов</span></div>
-<p class="note">Один физический ривер-борд → один составной идентификатор <strong>P · S · F · SF · A</strong>. Точные частоты относятся к случайному пятикарточному борду, без учёта известных карт HERO. Парность — 6 структур, стрит — 6, флеш — 4, стрит-флеш — 6, туз — 2. Физически достижимы только 150 комбинаций из 1 728 формальных.</p>
+<p class="note">Один физический ривер-борд → один составной идентификатор <strong>P · S · F · SF · A</strong>. При SF0 часть SF скрывается только на экране; полный код сохранён в данных и CSV. Точные частоты относятся к случайному пятикарточному борду, без учёта известных карт HERO. Парность — 6 структур, стрит — 6, флеш — 4, стрит-флеш — 6, туз — 2. Физически достижимы только 150 комбинаций из 1 728 формальных.</p>
 <div class="tools" style="margin:13px 0"><label style="min-width:260px;flex:1">Борд · 5 физических карт<input id="boardInput" value="5s-6s-7s-8s-8d" autocomplete="off" placeholder="As-Kh-9c-5d-2c"></label><button class="btn primary" type="button" id="boardClassify">Классифицировать</button><button class="btn" id="catalogExport" type="button">CSV · 150 кодов</button></div>
 <div id="classifyResult" class="match" role="status">Пример: P1 · S3 · F4 · SF3 · A0</div>
 <div class="filters">
@@ -110,6 +110,7 @@ function initFilters(){
 
 // Human titles keep full discriminating P/S/F/SF/A information but avoid raw
 // notation as the only thing a poker player can read.
+function compactBoardCode(code){return String(code||'').replace(' · SF0','')}
 function boardTitle(row){
  const p=Number(row.p.slice(1)),st=Number(row.s.slice(1));
  const f=Number(row.f.slice(1)),sf=Number(row.sf.slice(2));
@@ -131,14 +132,14 @@ function boardTitle(row){
 function drawCatalog(){
  const query=$("catalogSearch").value.trim().toLowerCase(),sort=$("catalogSort").value;
  const found=rows.filter(row=>matches(row)&&(!query||
-  [row.id,row.example,row.summary,boardTitle(row)].some(v=>v.toLowerCase().includes(query))));
+  [row.id,compactBoardCode(row.id),row.example,row.summary,boardTitle(row)].some(v=>v.toLowerCase().includes(query))));
  found.sort((a,b)=>sort==="deals_desc"?b.deals-a.deals||sortByNumericCode(a.id,b.id):
   sort==="deals_asc"?a.deals-b.deals||sortByNumericCode(a.id,b.id):
   sort==="code_desc"?sortByNumericCode(b.id,a.id):sortByNumericCode(a.id,b.id));
  const body=$("catalogRows");const frag=document.createDocumentFragment();
  for(const row of found){
   const tr=el("tr");
-  for(const value of [row.ordinal,row.id,boardTitle(row),row.example,
+  for(const value of [row.ordinal,compactBoardCode(row.id),boardTitle(row),row.example,
     row.p+" · "+shortNames.p[Number(row.p.slice(1))],
     row.s+" · "+shortNames.s[Number(row.s.slice(1))],
     row.f+" · "+shortNames.f[row.f],
@@ -146,7 +147,7 @@ function drawCatalog(){
     row.a==="A1"?"Есть":"Нет",row.deals.toLocaleString("ru-RU"),
     row.probability_pct.toFixed(5)+"%"]){
     const td=el("td","",value);
-    if(value===row.id)td.classList.add("code");
+    if(value===compactBoardCode(row.id)){td.classList.add("code");td.title="Полный код: "+row.id}
     if(value===boardTitle(row))td.classList.add("boardName");
     tr.append(td);
   }
@@ -191,7 +192,8 @@ async function classify(){
   const found=await response.json();
   if(!response.ok)throw Error(found.error||"Ошибка классификации");
   const row=rows.find(x=>x.id===found.id);
-  status.replaceChildren(el("strong","",found.id),
+  status.title="Полный код: "+found.id;
+  status.replaceChildren(el("strong","",compactBoardCode(found.id)),
     el("span","",found.label),
     el("div","small",row?
       "Частота "+row.probability_pct.toFixed(5)+"% · "+row.deals.toLocaleString("ru-RU")+" физических бордов":
