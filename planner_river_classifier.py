@@ -226,6 +226,25 @@ def classify_attribution(picked, board_ids, event, net_bb, street, players=(), w
             else:
                 code=_same_category_cause(hhole+visible,vhole+visible,hcat)
                 detail=CAUSES[code]+" · "+_CAT[hcat]
+    # Opponent cards are observable only when a showdown occurred.
+    is_showdown=event.startswith("showdown_")
+    showdown_players=[hand for pid,hand,_ in picked
+                      if pid!="HERO" and pid in players] if is_showdown else []
+    villain_category=None
+    if showdown_players:
+        visible=cards(board_ids[:5])
+        strongest=max(showdown_players,key=lambda h:eval_hand(cards(h),visible))
+        villain_category=eval_hand(cards(strongest),visible)>>24
+    outcome=("W1" if event in ("uncontested","win_without_showdown") else
+             "L1" if event.startswith("fold_") else
+             "T1" if code=="C07" else
+             "X1" if code=="C08" else
+             ("W3" if hero["category"]==villain_category else "W2")
+             if "HERO" in winners else
+             ("L3" if hero["category"]==villain_category else "L2"))
     sign="profit" if net_bb>0 else "loss" if net_bb<0 else "neutral"
     return {"cause":code,"cause_name":CAUSES[code],"detail":detail,
-            "sign":sign,"board":board,"hero":hero}
+            "sign":sign,"board":board,"hero":hero,
+            "villain_category":villain_category,
+            "showdown_opponents":len(showdown_players),
+            "outcome_code":outcome}
