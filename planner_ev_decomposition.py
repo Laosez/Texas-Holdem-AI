@@ -274,7 +274,9 @@ class EVDecomposition:
             key=(attribution["sign"],attribution["cause"],
                  bd["id"],bd["catalog_id"],bd["street"],bd["suit"],bd["rank_texture"],
                  bd["straight"],hero["origin"],hero["category"],
-                 hero["hole_use"],attribution["detail"])
+                 hero["hole_use"],attribution["detail"],
+                 attribution.get("villain_category"),attribution.get("showdown_opponents",0),
+                 attribution.get("outcome_code","X1"))
             cell=self.river[key]
             cell["count"]+=1
             cell["net"]+=net_bb
@@ -402,7 +404,7 @@ class EVDecomposition:
             assert sum(item["count"] for item in self.river.values())==n
             assert abs(sum(item["net"] for item in self.river.values())-self.ev_total)<1e-7
             for key,item in sorted(self.river.items(),key=lambda p:str(p[0])):
-                sign,cause,board_id,board_code,street,suit,rank_texture,straight,origin,category,hole_use,detail=key
+                sign,cause,board_id,board_code,street,suit,rank_texture,straight,origin,category,hole_use,detail,villain_category,showdown_opponents,outcome_code=key
                 river_rows.append({
                     "sign":sign,"cause":cause,"cause_name":CAUSES[cause],
                     "board_id":board_id,"board_name":BOARDS[board_id],
@@ -411,7 +413,9 @@ class EVDecomposition:
                     "rank_texture":rank_texture,"straight":straight,
                     "origin":origin,"origin_name":ORIGINS[origin],
                     "hero_category":category,"hero_hole_use":hole_use,
-                    "detail":detail,"count":item["count"],
+                    "detail":detail,"villain_category":villain_category,
+                    "showdown_opponents":showdown_opponents,"outcome_code":outcome_code,
+                    "count":item["count"],
                     "positive_count":item["positive_count"],
                     "negative_count":item["negative_count"],
                     "neutral_count":item["neutral_count"],
