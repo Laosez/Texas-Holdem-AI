@@ -50,7 +50,7 @@ class PostflopProfileTests(unittest.TestCase):
         self.assertIn("function bulkChangeBots(street,value){",ui)
         self.assertIn("root.append(botBulkRow());",ui)
         self.assertIn('id="postflopModels"',ui)
-        self.assertIn("gto_postflop_v1:'GTO Postflop V1 (model)'",ui)
+        self.assertIn("gto_postflop_v1:'GTO 1 · контроль'",ui)
 
     def test_made_value_relative_to_board_not_board_alone(self):
         board=[("Q","h"),("Q","d"),("2","s"),("2","c"),("7","h")]
