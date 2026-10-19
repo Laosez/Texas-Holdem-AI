@@ -67,6 +67,8 @@ jobs:
           Path("/tmp/poker_s100_ui.js").write_text(code, encoding="utf-8")
           PY
           node --check /tmp/poker_s100_ui.js
+      - name: Board150 BDR financial views behavioral tests
+        run: node test_board150_bdr_ui.js
       - name: Verify new Postflop Board150 JavaScript syntax
         run: |
           python - <<'PY'
