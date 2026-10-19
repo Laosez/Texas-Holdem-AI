@@ -3514,6 +3514,7 @@ function renderRiverLedger(root,a,b,compare){
     a:{samples:a.samples,ev_bb:a.ev_bb,rows:a.river_attribution.rows},
     b:compare&&b?{samples:b.samples,ev_bb:b.ev_bb,rows:b.river_attribution.rows}:null};
    sessionStorage.setItem('skachkov_board150_report_v1',JSON.stringify(snapshot));
+   sessionStorage.setItem('skachkov_postflop_view_v1','financial');
    window.location.assign('/s100');
   }catch(e){msg('Не удалось передать отчёт: '+e.message,true)}
  };
