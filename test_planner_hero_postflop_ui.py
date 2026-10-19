@@ -66,7 +66,8 @@ class HeroPostflopChoiceTests(unittest.TestCase):
         self.assertIn("refreshHeroPostflopChoice();",p)
         self.assertIn("function refreshHeroPostflopChoice(){",p)
         self.assertIn("Сборка для EV:",p)
-        self.assertIn("refreshHeroPostflopChoice();\n invalidateEquity();",p)
+        self.assertIn("const line=$('heroPostflop').value;\n stashStrategyRun();\n invalidateEquity({refresh:false});",p)
+        self.assertIn("restoreStrategyRun(key);",p)
         self.assertIn("postflop.onchange=()=>{opponents[i].postflop=postflop.value;",p)
 
     def test_hero_v2_visible_in_wide_opponent_panel(self):
