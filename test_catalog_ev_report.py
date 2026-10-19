@@ -123,9 +123,9 @@ class CatalogEVReportTests(unittest.TestCase):
     def test_new_report_variant_switch_preserves_existing_bdr(self):
         html=app.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="handDecompReportVariant"',html)
-        self.assertIn('<option value="board150" selected>Причины → 150 типов борда',html)
+        self.assertIn('<option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход',html)
         self.assertIn('<option value="bdr">БДР · причины (прежний)',html)
-        self.assertIn('<option value="board150" selected>Причины → 150 типов борда',html)
+        self.assertIn('<option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход',html)
         self.assertIn('<option value="catalog" hidden>',html)
         self.assertIn("function renderCatalogLedger(root,a,b,compare){",html)
         self.assertIn("if(decompReportMode==='catalog'){",html)
