@@ -199,7 +199,7 @@ class EVDecompositionTests(unittest.TestCase):
     def test_conditional_ev_breakdown_reconciles_by_number_of_opponents(self):
         q = {
             "model": "selected", "hand": "K4s", "trials": 90, "cycles": 1,
-            "hero_postflop": "gto2", "hero_position": "3", "hero_stack_bb": 20,
+            "hero_postflop": "gto20", "hero_position": "3", "hero_stack_bb": 20,
             "opponents": [
                 {"profile": "builtin:a17_v5", "position": position,
                  "scenario": "rfi", "players": 9, "selector": "active",
@@ -238,7 +238,7 @@ class EVDecompositionTests(unittest.TestCase):
     def test_zero_opponents_bucket_and_empty_group_are_explicit(self):
         q = {
             "model": "selected", "hand": "T6s", "trials": 50, "cycles": 1,
-            "hero_postflop": "gto2", "hero_position": "3", "hero_stack_bb": 20,
+            "hero_postflop": "gto20", "hero_position": "3", "hero_stack_bb": 20,
             "opponents": [{
                 "profile": "builtin:any_two", "position": "9",
                 "scenario": "rfi", "players": 9, "selector": "active",
@@ -260,7 +260,7 @@ class EVDecompositionTests(unittest.TestCase):
     def test_full_engine_selected_hand_detailed_output_reconciles_to_ev(self):
         q={
             "model":"selected","hand":"K4s","trials":75,"cycles":1,
-            "hero_postflop":"gto2","hero_position":"3","hero_stack_bb":20,
+            "hero_postflop":"gto20","hero_position":"3","hero_stack_bb":20,
             "opponents":[{"profile":"builtin:any_two","position":"9","scenario":"rfi",
                  "players":9,"selector":"active","entry_mode":"always",
                  "entry_pct":100,"postflop":"lag"}]
@@ -285,7 +285,7 @@ class EVDecompositionTests(unittest.TestCase):
         ranges,_=equity.build_ranges(q["opponents"],"selected")
         import random
         picked,board=ev._draw_case("K4s",ranges,q["opponents"],random.Random(42))
-        original=ev._play_case(picked,board,"gto2","3",20,99)
+        original=ev._play_case(picked,board,"gto20","3",20,99)
         self.assertEqual(len(original),2)
 
     def test_disabled_and_all_hand_runs_do_not_generate_details(self):
