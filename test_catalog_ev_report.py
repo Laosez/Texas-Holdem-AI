@@ -125,7 +125,7 @@ class CatalogEVReportTests(unittest.TestCase):
         self.assertIn('id="handDecompReportVariant"',html)
         self.assertIn('<option value="board150" selected>Причины → 150 типов борда',html)
         self.assertIn('<option value="bdr">БДР · причины (прежний)',html)
-        self.assertIn('<option value="board150">Справочник 150',html)
+        self.assertIn('<option value="board150" selected>Причины → 150 типов борда',html)
         self.assertIn('<option value="catalog" hidden>',html)
         self.assertIn("function renderCatalogLedger(root,a,b,compare){",html)
         self.assertIn("if(decompReportMode==='catalog'){",html)
