@@ -1594,6 +1594,7 @@ function restoreStrategyRun(key){
  };
  selectValue('handDecompHandB',r.handB);
  selectValue('handDecompProfileB',r.profileB);
+ selectValue('viewOpponent',r.viewOpponent);
  selectValue('handDecompOpponentCount',r.decompOppCount);
  selectValue('handDecompReportVariant',r.decompVariant);
  decompReportMode=$('handDecompReportVariant').value;
@@ -1629,6 +1630,7 @@ function restoreStrategyRun(key){
  strategyRunCache.delete(key);strategyRunCache.set(key,entry);
  lastRunKeyByProfile.set(parts[0],key);
  refreshHeroPostflopChoice();
+ $('handDecompProfileA').textContent=postflopName($('heroPostflop').value);
  const count=Object.keys(equityResults.filter?.equity||{}).length;
  const recovered=!!handDecompResult||!!handDecompBResult;
  strategyRunStatus(count||recovered
@@ -4075,8 +4077,24 @@ async function savePlan(forceNew=false){
   hero.box_order=boxOrder(); // canonical static A01–A17 ordering
   const c=copy(hero);
   const parent=forceNew||hero.readonly?null:(hero.ref||null);
+  stashStrategyRun();
+  const previousRun=strategyRunCache.get(activeStrategyRunKey);
   const saved=await post('/api/plan/strategies',{plan:c,parent});
   hero=saved;dirty=false;undos=[];bulkSelected.clear();meta=await api('/api/plan/catalog');
+  // A new saved revision gets its own cache namespace. Its Monte Carlo
+  // context is identical to the just-saved draft, so retain the results.
+  const newRunKey=strategyRunKey(saved.ref,$('heroPostflop').value,saved.position,saved.scenario);
+  if(previousRun&&saved.ref){
+   const snapshot=copy(previousRun);
+   snapshot.settings.profile=saved.ref;
+   snapshot.settings.position=saved.position;
+   snapshot.settings.scenario=saved.scenario;
+   strategyRunCache.set(newRunKey,snapshot);
+   lastRunKeyByProfile.set(saved.ref,newRunKey);
+   while(strategyRunCache.size>STRATEGY_RUN_CACHE_LIMIT)strategyRunCache.delete(strategyRunCache.keys().next().value);
+   persistStrategyRunCache();
+  }
+  activeStrategyRunKey=newRunKey;
   refill($('heroProfile'),profileOptions(),saved.ref);
   localStorage.setItem('skachkov_last_plan_profile',saved.ref);
   setHeroFields(saved);paintEditor();renderOpponents();renderAll();
