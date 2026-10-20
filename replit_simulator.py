@@ -652,6 +652,65 @@ def compact_completed_checkpoints(folder: Path) -> dict:
     return {"files": removed, "bytes": freed}
 
 
+def storage_directory_breakdown() -> dict:
+    """Read-only inventory of /data. Never removes or opens result contents."""
+    categories = {}
+    session_details = []
+    for entry in OUT.iterdir():
+        if entry.is_symlink():
+            continue
+        size = files = checkpoints = 0
+        if entry.is_dir():
+            for root, dirs, names in os.walk(entry, followlinks=False):
+                dirs[:] = [name for name in dirs
+                           if not (Path(root) / name).is_symlink()]
+                for name in names:
+                    path = Path(root) / name
+                    if path.is_symlink():
+                        continue
+                    try:
+                        length = path.stat().st_size
+                    except OSError:
+                        continue
+                    size += length
+                    files += 1
+                    if RUN_ID_RE.fullmatch(entry.name) and "_checkpoints" in path.relative_to(entry).parts:
+                        checkpoints += length
+        elif entry.is_file():
+            try:
+                size = entry.stat().st_size
+                files = 1
+            except OSError:
+                continue
+        if RUN_ID_RE.fullmatch(entry.name):
+            category = "tournament_sessions"
+            status = RUNS.get(entry.name, {}).get("status", "unknown")
+            session_details.append({"id": entry.name, "status": status,
+                                    "bytes": size, "checkpoint_bytes": checkpoints})
+        else:
+            category = entry.name if entry.is_dir() else "_root_files"
+        bucket = categories.setdefault(category, {"bytes": 0, "files": 0, "directories": 0})
+        bucket["bytes"] += size
+        bucket["files"] += files
+        bucket["directories"] += int(entry.is_dir())
+    session_details.sort(key=lambda row: row["bytes"], reverse=True)
+    by_status = {}
+    for row in session_details:
+        group = by_status.setdefault(row["status"],
+                                     {"sessions": 0, "bytes": 0, "checkpoint_bytes": 0})
+        group["sessions"] += 1
+        group["bytes"] += row["bytes"]
+        group["checkpoint_bytes"] += row["checkpoint_bytes"]
+    return {
+        "categories": dict(sorted(categories.items(),
+                                  key=lambda kv: kv[1]["bytes"], reverse=True)),
+        "session_statuses": by_status,
+        "largest_sessions": session_details[:10],
+        "file_bytes_total": sum(x["bytes"] for x in categories.values()),
+        "note": "Logical file sizes; filesystem metadata and deleted-open files are not included",
+    }
+
+
 def storage_compaction_preview() -> dict:
     with MUTEX:
         candidates = []
@@ -1373,7 +1432,8 @@ class Handler(BaseHTTPRequestHandler):
             disk = shutil.disk_usage(OUT)
             self.reply(200, {"volume": {"total_bytes": disk.total,
                                         "used_bytes": disk.used, "free_bytes": disk.free},
-                              "compaction": storage_compaction_preview()})
+                              "compaction": storage_compaction_preview(),
+                              "breakdown": storage_directory_breakdown()})
             return
         if path == "/api/integrity":
             with MUTEX:
@@ -1615,5 +1675,9 @@ def restore_history():
 
 if __name__ == "__main__":
     restore_history()
+    try:
+        print("[storage-diagnostics] " + json.dumps(storage_directory_breakdown(), ensure_ascii=False), flush=True)
+    except OSError as exc:
+        print("[storage-diagnostics] unavailable: " + str(exc), flush=True)
     print(f"SKACHKOV simulator listening on 0.0.0.0:{PORT}; key configured: {bool(TOKEN)}")
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
