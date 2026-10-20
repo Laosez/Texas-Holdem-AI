@@ -83,6 +83,8 @@ def validate_context(players, position, scenario, stack_bb=20):
         raise ValueError("Позиция недоступна для данного формата стола")
     if scenario not in SCENARIOS:
         raise ValueError("Неизвестная префлоп-ситуация")
+    if scenario == "vs_sb_open" and position != "BB":
+        raise ValueError("Сценарий BB против SB доступен только на BB")
     if not isinstance(stack_bb, (float, int)) or not 1 <= stack_bb <= 1000:
         raise ValueError("Стек должен быть от 1 до 1000 BB")
     return position, scenario
