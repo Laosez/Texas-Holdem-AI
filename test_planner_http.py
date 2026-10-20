@@ -274,7 +274,7 @@ class PlanHttpTests(unittest.TestCase):
             self.assertIn(literal,page)
         self.assertIn("useBbDefenseWhenRfi();\n void loadHero({contextChange:true}).then(()=>loadVillain());",page)
         self.assertIn("stashStrategyRun();\n invalidateEquity({refresh:false});\n preserveCurrentSlot();",page)
-        self.assertIn("BB против открытия: используется GTO Fixed",page)
+        self.assertIn("BB против любого опен-рейза: расширенная экспериментальная защита",page)
         self.assertIn("На BB нет RFI",page)
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
@@ -357,7 +357,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_fixed_nine_positions_and_hidden_legacy_add_remove(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="addOpponent" class="btn sm hidden"',page)
-        self.assertIn("opponents=Array.from({length:8}",page)
+        self.assertIn("opponents=fixedSeatPositions().map(position=>",page)
         self.assertIn("const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];",page)
         self.assertIn("const heroSeat=normalizeFixedSeats();",page)
         self.assertIn("row.setAttribute('aria-label','Hero · моя стратегия');",page)
