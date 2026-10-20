@@ -60,6 +60,41 @@ class PlanTests(unittest.TestCase):
         bb_3bet = core.preset("builtin:a17_v5", "BB", "vs_threebet", 9)
         self.assertEqual(bb_3bet["hands"]["AA"], {"call": 50, "fourbet": 50})
 
+    def test_bb_vs_sb_raise_wider_and_explicitly_not_a_pc_response_chart(self):
+        original = core.preset("builtin:pc_gto_80bb", "BB", "vs_open", 9, 80)
+        defense = core.preset("builtin:pc_gto_80bb", "BB", "vs_sb_open", 9, 80)
+        self.assertEqual(defense["range_origin"], "bb_sb_pc_btn_proxy_v1")
+        self.assertEqual(len(defense["hands"]), 169)
+        self.assertEqual(defense["hands"]["AA"],
+                         {"fold": 0, "call": 0, "threebet": 100})
+        self.assertEqual(defense["hands"]["72o"],
+                         {"fold": 100, "call": 0, "threebet": 0})
+        self.assertEqual(defense["hands"]["87s"]["fold"], 0)
+        self.assertEqual(defense["hands"]["AKs"]["threebet"], 75)
+        self.assertTrue(all(sum(row.values()) == 100
+                            for row in defense["hands"].values()))
+        self.assertEqual(len(core.validate_plan(defense)["hands"]), 169)
+
+        def weighted_pct(doc, action=None):
+            return sum(core.COMBOS[h] * (
+                100 - row["fold"] if action is None else row[action]
+            ) / 100 for h, row in doc["hands"].items()) / 1326 * 100
+
+        self.assertAlmostEqual(weighted_pct(defense), 55.7918552, places=5)
+        self.assertAlmostEqual(weighted_pct(defense, "threebet"), 10.5279034, places=5)
+        self.assertLess(weighted_pct(original), 12)
+        self.assertGreater(weighted_pct(defense), weighted_pct(original) * 4)
+        with self.assertRaisesRegex(ValueError, "только на BB"):
+            core.preset("builtin:pc_gto_80bb", "SB", "vs_sb_open", 9, 80)
+
+    def test_bb_vs_sb_saved_context_roundtrip_does_not_change_generic_open(self):
+        source = core.preset("builtin:a17_v5", "BB", "vs_sb_open", 9, 80)
+        self.assertEqual(source["range_origin"], "bb_sb_pc_btn_proxy_v1")
+        self.assertEqual(source["hands"]["AA"]["threebet"], 100)
+        generic = core.preset("builtin:a17_v5", "BB", "vs_open", 9, 80)
+        self.assertEqual(generic["range_origin"], "gto_fixed_bb_vs_open")
+        self.assertNotEqual(source["hands"]["99"], generic["hands"]["99"])
+
     def test_one_saved_strategy_contains_multiple_positions(self):
         with tempfile.TemporaryDirectory() as td, patch.object(core, "STORE", Path(td)):
             utg=core.preset("builtin:a17_v5", "9", "rfi", 9)

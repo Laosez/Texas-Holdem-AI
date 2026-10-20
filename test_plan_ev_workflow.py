@@ -154,7 +154,7 @@ class PlanEVWorkflowTests(unittest.TestCase):
             "const heroSeat=normalizeFixedSeats();",
             "target.append(heroPositionSeatRow(heroSeat,heroControls));",
             "heroSeatPositionPicker(opp.position,false)",
-            "entry_mode:i<3?'range':'never'",
+            "entry_mode:'range'",
             "id=\"addOpponent\" class=\"btn sm hidden\"",
         ):
             self.assertIn(needle,page)

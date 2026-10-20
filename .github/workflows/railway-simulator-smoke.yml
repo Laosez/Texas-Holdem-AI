@@ -25,6 +25,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  plan-chart-bb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check Plan script syntax and chart lines
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          page=Path('replit_ui/plan.html').read_text(encoding='utf-8')
+          script=page.split('<script>',1)[1].split('</script>',1)[0]
+          Path('/tmp/plan_bet_graph.js').write_text(script,encoding='utf-8')
+          PY
+          node --check /tmp/plan_bet_graph.js
+          node test_plan_equity_chart.js
+      - name: BB vs SB and Plan editor unit tests
+        run: |
+          python -m py_compile planner_core.py
+          python -m unittest test_planner test_planner_http test_plan_ev_workflow -v
   analysis-metrics:
     runs-on: ubuntu-latest
     timeout-minutes: 10

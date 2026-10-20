@@ -993,9 +993,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <label for="heroPostflop">Постфлоп · моя стратегия</label>
    <a href="/s100" style="display:inline-block;margin:4px 0 6px;color:#9ac9f4;text-decoration:underline;font-size:12px">Перейти на лист 03 · Постфлоп План ↗</a>
    <select id="heroPostflop">
-    <option value="gto20" selected>GTO 2.0 · сила руки относительно борда</option>
+    <option value="gto20">GTO 2.0 · сила руки относительно борда</option>
     <option value="s100">S100 · 100 сценариев человека и бота</option>
-    <option value="gto">GTO 1 · контрольная версия</option>
+    <option value="gto" selected>GTO 1 · контрольная версия</option>
     <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
     <option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
     <option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
@@ -1174,7 +1174,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 'use strict';
 const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split('').flatMap((a,r)=>RANKS.split('').map((b,c)=>r===c?a+b:r<c?a+b+'s':b+a+'o'));
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
-const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
+const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_sb_open:'BB против SB Raise',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
  {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
@@ -1202,6 +1202,7 @@ function refreshHeroPostflopChoice(){
  $('heroStrategyComposition').textContent='Сборка для EV: '+range+' (префлоп) + '+postflopName(line)+' (постфлоп)';
 }
 let huComparisonRevision=0,huComparisonHand='',huComparisonTimer=null;
+let initialPlanLoad=false;
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 let matrixContextKey='',handWriteSeq=0,handWritebacks=new Map();
 const STRATEGY_RUN_CACHE_KEY='skachkov_preflop_strategy_runs_v1';
@@ -1239,13 +1240,21 @@ async function getSource(profile,position,scenario,players,stack_bb){
 function showBbRfiHint(doc){
  const bb=doc?.position==='BB';
  $('bbRfiInfo').classList.toggle('hidden',!bb);
- if(bb)$('bbRfiInfo').textContent=doc.scenario==='vs_open'
-  ?'На BB нет собственного RFI. Здесь показана защита против RFI соперника: пока одна общая эвристика GTO Fixed независимо от позиции открывшего. PC GTO BB-чарты ещё не загружены.'
-  :'На BB нет собственного RFI. Для защиты против рейза выбери ситуацию «Против открытия».';
+ if(bb)$('bbRfiInfo').textContent=doc.scenario==='vs_sb_open'
+  ?'BB против SB: расширенная экспериментальная защита из PC BTN RFI proxy. Это НЕ чарт защиты PC GTO и не GTO-солвер. Для других открытий выбери «Против открытия».'
+  :doc.scenario==='vs_open'?'BB против открытия с другой позиции: узкая эвристика Fixed GTO.'
+  :'На BB нет собственного RFI. Для защиты от SB выбери «BB против SB Raise».';
 }
 function useBbDefenseWhenRfi(){
- if($('heroPosition').value==='BB'&&$('heroScenario').value==='rfi'){
-  $('heroScenario').value='vs_open';
+ const bb=$('heroPosition').value==='BB';
+ const special=$('heroScenario').querySelector('option[value="vs_sb_open"]');
+ if(special)special.disabled=!bb;
+ if(bb&&$('heroScenario').value==='rfi'){
+  $('heroScenario').value='vs_sb_open';
+  return true;
+ }
+ if(!bb&&$('heroScenario').value==='vs_sb_open'){
+  $('heroScenario').value='rfi';
   return true;
  }
  return false;
@@ -1271,9 +1280,10 @@ function preserveCurrentSlot(){
  };
 }
 function heroContextMessage(doc){
+ if(doc.position==='BB'&&doc.scenario==='vs_sb_open')return 'BB против SB: экспериментальная защита PC BTN RFI proxy (НЕ оригинальный чарт PC GTO).';
  if(doc.position==='BB'&&doc.scenario==='vs_open'&&doc.range_origin==='gto_fixed_bb_vs_open')
   return 'BB против открытия: используется GTO Fixed, не оцифрованный PC GTO BB Defense.';
- if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&doc.scenario==='vs_open')) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
+ if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&['vs_open','vs_sb_open'].includes(doc.scenario))) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
  if(doc.position==='BB'&&doc.scenario==='rfi')
   return 'На BB нет RFI: для просмотра защиты выбери «Против открытия».';
  return 'Диапазон: '+doc.name+' · '+doc.position+' · '+SCENARIOS[doc.scenario];
@@ -1299,7 +1309,7 @@ async function loadHero({contextChange=false}={}){
     renderPositions($('heroPosition'),stored.position);
     $('heroScenario').value=stored.scenario;
    }
-   if(lastParts){
+   if(lastParts&&!initialPlanLoad){
     renderPositions($('heroPosition'),lastParts[2]);
     $('heroScenario').value=lastParts[3];
     if([...$('heroPostflop').options].some(o=>o.value===lastParts[1]))
@@ -1341,7 +1351,8 @@ async function loadHero({contextChange=false}={}){
    slot={hands:copy(baseline.hands),stack_bb:stack};
    hero.contexts[key]=slot;origin=baseline.range_origin||null;
    dirty=true;
-  }else if(position==='BB'&&scenario==='vs_open'
+  }else if(position==='BB'&&scenario==='vs_sb_open')origin='bb_sb_pc_btn_proxy_v1';
+  else if(position==='BB'&&scenario==='vs_open'
             &&['builtin:a17_v5','builtin:a17_legacy','builtin:pc_gto_80bb'].includes(hero.base_profile))
    origin='gto_fixed_bb_vs_open';
   hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
@@ -1447,13 +1458,14 @@ function normalizeFixedSeats(){
  const heroPos=$('heroPosition').value||hero?.position||'3';
  opponents=fixedSeatPositions().map((position)=>{
   const previous=fixedSeatOpponentHistory.get(position);
-  const defaultMode=FIXED_TABLE_POSITIONS.indexOf(position)<3?'range':'never';
-  return {profile:'builtin:a17_v5',position,
-   scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
+  const defaultMode='range';
+  return {profile:'builtin:pc_gto_80bb',position,
+   scenario:position==='BB'?'vs_sb_open':'rfi',players:9,selector:'active',
    postflop:'gto',entry_mode:defaultMode,
    entry_pct:defaultMode==='never'?0:100,
    ...(previous||{}),position,players:9,
-   scenario:position==='BB'?'vs_open':(previous?.scenario||'rfi')};
+   scenario:position==='BB'&&['vs_open','vs_sb_open'].includes(previous?.scenario)
+     ?previous.scenario:position==='BB'?'vs_sb_open':(previous?.scenario||'rfi')};
  });
  return heroPos;
 }
@@ -1581,7 +1593,7 @@ function renderOpponents(){
    opponents[i].profile=p.value; // Changing range must not move a fixed position.
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
+  const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).filter(([value])=>value!=='vs_sb_open'||opp.position==='BB').map(([value,label])=>({value,label})),opp.scenario);
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
@@ -1615,7 +1627,7 @@ function addOpponent(){
  return;
  if(opponents.length>=8)return;
  const fallback=['9','8','7','6','5','4','3','SB'][opponents.length];
- opponents.push({profile:'builtin:a17_v5',position:fallback,scenario:'rfi',
+ opponents.push({profile:'builtin:pc_gto_80bb',position:fallback,scenario:'rfi',
   players:9,selector:'active',postflop:'gto',entry_mode:'range',entry_pct:100});
  renderOpponents();invalidateEquity();loadVillain();
 }
@@ -2510,7 +2522,7 @@ function pasteMatrixSettings(){
 }
 function editorActions(scenario){
  if(scenario==='rfi')return ['fold','open','limp'];
- if(scenario==='vs_open')return ['fold','threebet','call'];
+ if(scenario==='vs_open'||scenario==='vs_sb_open')return ['fold','threebet','call'];
  if(scenario==='vs_threebet')return ['fold','fourbet','call'];
  if(scenario==='vs_shove')return ['fold','call'];
  return ['fold','push']; // push_fold
@@ -3791,7 +3803,19 @@ function renderFlatShowdownEvChart(rows,compare,selection){
  const zero=y(0);
  node('line',{x1:58,x2:920,y1:zero,y2:zero,stroke:'#87a1ba',
   'stroke-width':1,'stroke-dasharray':'4 5'});
- const title=node('title',{},'EV A/B по количеству оппонентов на вскрытии. Финансовый результат в BB на раздачу.');
+ node('title',{},'EV A/B по количеству оппонентов на вскрытии. Финансовый результат в BB на раздачу.');
+ // Join measured showdown buckets, using dashed bridges across missing buckets.
+ for(const [side,color,offset] of [['a','#8dc5f4',-11],...(compare?[['b','#cfb3f2',11]]:[])]){
+  let previous=null;
+  for(const d of data){
+   if(!d[side].n)continue;
+   const current={index:d.k,x:x(d.k)+offset,y:y(d[side].net/d[side].n)};
+   if(previous)node('line',{x1:previous.x,y1:previous.y,x2:current.x,y2:current.y,
+    stroke:color,'stroke-width':2.5,'stroke-linecap':'round',
+    ...(current.index-previous.index>1?{'stroke-dasharray':'5 5'}:{})});
+   previous=current;
+  }
+ }
  const descriptor=[];
  for(const d of data){
   const xpos=x(d.k),selected=selection!=='all'&&Number(selection)===d.k;
@@ -4389,19 +4413,16 @@ function renderOpponentEvComparison(chartA,chartB){
   const {key,points,color,offset}=seriesItem;
   descriptions.push(key+': '+points.map(p=>p.detail+' соп. = '+
    (p.ev===null?'нет исходов':evfmt(p.ev)+' BB (N '+nfmt(p.samples)+')')).join(', '));
-  // Missing categories break the line rather than suggesting interpolation.
-  let path=[];
-  const flush=()=>{
-   if(path.length>1)element('polyline',{points:path.join(' '),
-    fill:'none',stroke:color,'stroke-width':2.6,'stroke-linejoin':'round'});
-   path=[];
-  };
+  // Connect observed points; a gap in the sample is shown as a dashed bridge.
+  let previous=null;
   for(let i=0;i<points.length;i++){
-   const p=points[i];
-   if(p.ev===null){flush();continue}
-   path.push(xx(i)+','+yy(p.ev));
+   const p=points[i];if(p.ev===null)continue;
+   const current={index:i,x:xx(i)+(series.length===2?offset*.42:0),y:yy(p.ev)};
+   if(previous)element('line',{x1:previous.x,y1:previous.y,
+    x2:current.x,y2:current.y,stroke:color,'stroke-width':2.6,
+    'stroke-linecap':'round',...(i-previous.index>1?{'stroke-dasharray':'5 5'}:{})});
+   previous=current;
   }
-  flush();
   for(let i=0;i<points.length;i++){
    const p=points[i];if(p.ev===null)continue;
    const x=xx(i)+(series.length===2?offset*.42:0),y=yy(p.ev);
@@ -4922,32 +4943,29 @@ async function connect(){
  try{
   const data=await api('/api/plan/catalog');meta=data;
   loadStrategyRunCache();
-  const storedLine=localStorage.getItem('skachkov_hero_postflop');
-  // Retired V2/V3/V4 stored IDs migrate to the new Board Relative GTO 2.0.
-  const restoredLine=['gto2','gto3','gto4'].includes(storedLine)?'gto20':storedLine;
-  $('heroPostflop').value=POSTFLOP_OPTIONS.some(x=>x.value===restoredLine)?restoredLine:'gto20';
-  if(restoredLine!==storedLine)localStorage.setItem('skachkov_hero_postflop',restoredLine);
+  // Always initialize a new test with GTO 1, independently of saved UI choices.
+  $('heroPostflop').value='gto';
   refreshHeroPostflopChoice();
   populateDecompSelectors();
   const previousStack=localStorage.getItem('skachkov_plan_sim_stack_bb');
   if([...$('simStack').options].some(o=>o.value===previousStack))$('simStack').value=previousStack;
-  const lastPlan=localStorage.getItem('skachkov_last_plan_profile');
   const selectable=profileOptions();
-  refill($('heroProfile'),selectable,selectable.some(x=>x.value===lastPlan)?lastPlan:'builtin:a17_v5');
+  refill($('heroProfile'),selectable,'builtin:pc_gto_80bb');
   refill($('players'),Array.from({length:8},(_,i)=>({value:String(i+2),label:(i+2)+'-max'})),'9');
   refill($('heroScenario'),Object.entries(SCENARIOS).map(([value,label])=>({value,label})),'rfi');
   renderPositions($('heroPosition'),'3');
+  initialPlanLoad=true;
   fixedSeatOpponentHistory.clear();
   $('oppCount').value='8';opponents=Array.from({length:8},(_,i)=>({
-   profile:['builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two',
-            'builtin:gto_heuristic','builtin:any_two','builtin:a17_v5','builtin:any_two'][i],
-   position:['9','8','7','6','5','4','SB','BB'][i],scenario:i===7?'vs_open':'rfi',players:9,selector:'active',
-   postflop:'gto',entry_mode:i<3?'range':'never',entry_pct:i<3?100:0}));
+   profile:'builtin:pc_gto_80bb',
+   position:['9','8','7','6','5','4','SB','BB'][i],
+   scenario:i===7?'vs_sb_open':'rfi',players:9,selector:'active',
+   postflop:'gto',entry_mode:'range',entry_pct:100}));
   renderOpponents();$('viewOpponent').value='0';
   sessionStorage.setItem('skachkov_key',token());
-  await loadHero();await loadVillain();
+  await loadHero();initialPlanLoad=false;await loadVillain();
   $('connection').textContent='Подключено';$('connection').className='badge ok';
- }catch(e){$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
+ }catch(e){initialPlanLoad=false;$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
 }
 $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
