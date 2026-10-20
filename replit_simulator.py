@@ -659,6 +659,8 @@ def storage_directory_breakdown() -> dict:
     for entry in OUT.iterdir():
         if entry.is_symlink():
             continue
+        is_session = (entry.is_dir() and RUN_ID_RE.fullmatch(entry.name)
+                      and (entry / "job.json").is_file())
         size = files = checkpoints = 0
         if entry.is_dir():
             for root, dirs, names in os.walk(entry, followlinks=False):
@@ -674,7 +676,7 @@ def storage_directory_breakdown() -> dict:
                         continue
                     size += length
                     files += 1
-                    if RUN_ID_RE.fullmatch(entry.name) and "_checkpoints" in path.relative_to(entry).parts:
+                    if is_session and "_checkpoints" in path.relative_to(entry).parts:
                         checkpoints += length
         elif entry.is_file():
             try:
@@ -682,7 +684,7 @@ def storage_directory_breakdown() -> dict:
                 files = 1
             except OSError:
                 continue
-        if RUN_ID_RE.fullmatch(entry.name):
+        if is_session:
             category = "tournament_sessions"
             status = RUNS.get(entry.name, {}).get("status", "unknown")
             session_details.append({"id": entry.name, "status": status,
