@@ -331,9 +331,11 @@ function empty(){
 async function refresh(){
  const result=await get('/api/runs');sessions=result.runs||[];
  const selector=$('sessionSelect'),id=selected?.id;
+ const requested=new URLSearchParams(location.search).get('session');
  selector.replaceChildren();const nil=el('option','','— Выбрать сессию —');nil.value='';selector.append(nil);
  sessions.forEach(x=>{let o=el('option','',x.id+' · '+x.status);o.value=x.id;selector.append(o)});
- const chosen=(id&&sessions.some(x=>x.id===id))?id:(sessions[0]?.id||null);
+ const chosen=(id&&sessions.some(x=>x.id===id))?id:
+  (requested&&sessions.some(x=>x.id===requested))?requested:(sessions[0]?.id||null);
  if(chosen)present(await get('/api/runs/'+chosen));else empty();
  working=sessions.some(x=>['running','starting'].includes(x.status));valid();
 }
@@ -533,9 +535,10 @@ $('copyLog').onclick=()=>navigator.clipboard.writeText($('log').textContent).the
 // complete workspace is now a section of the Realization page.
 function loadAnalysisSession(id){
  const frame=$('analysisFrame');
- const src='/analysis?embed=1'+(id?'&session='+encodeURIComponent(id):'');
+ const src='/analysis-panel?embed=1'+(id?'&session='+encodeURIComponent(id):'');
  if(frame.dataset.src!==src){frame.dataset.src=src;frame.src=src}
 }
+if(location.hash==='#analysis')$('analysisDetails').open=true;
 $('analysisDetails').addEventListener('toggle',()=>{
  if($('analysisDetails').open)loadAnalysisSession(selected?.id||'');
 });
