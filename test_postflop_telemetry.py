@@ -101,6 +101,85 @@ class PostflopTelemetryTests(unittest.TestCase):
         self.assertEqual(bot.postflop_counts["flop_cbet_opp"],0)
         self.assertEqual(bot.postflop_counts["cbet_opp"],0)
 
+    def test_fold_to_cbet_all_three_streets_uses_faced_barrels(self):
+        bot = self.make_bot()
+        pre = [{"street": "preflop", "pid": "P2", "type": "raise"}]
+        flop = pre + [{"street": "flop", "pid": "P2", "type": "bet"}]
+        bot.observe_postflop(view("flop", flop, to_call=4,
+                                  legal=("fold", "call", "raise")),
+                             SimpleNamespace(type="call"))
+        turn = flop + [{"street": "flop", "pid": "P1", "type": "call"},
+                       {"street": "turn", "pid": "P2", "type": "bet"}]
+        bot.observe_postflop(view("turn", turn, to_call=5,
+                                  legal=("fold", "call", "raise")),
+                             SimpleNamespace(type="raise"))
+        river = turn + [{"street": "turn", "pid": "P1", "type": "call"},
+                        {"street": "river", "pid": "P2", "type": "bet"}]
+        bot.observe_postflop(view("river", river, to_call=6,
+                                  legal=("fold", "call", "raise")),
+                             SimpleNamespace(type="fold"))
+        for street, expected in (("flop", 0), ("turn", 0), ("river", 1)):
+            self.assertEqual(bot.postflop_counts[street + "_fold_to_cbet_opp"], 1)
+            self.assertEqual(bot.postflop_counts[street + "_fold_to_cbet_n"], expected)
+            self.assertEqual(bot.postflop_position_counts["3"][street + "_fold_to_cbet_opp"], 1)
+            self.assertEqual(bot.postflop_stage_counts[("3", 9)][street + "_fold_to_cbet_opp"], 1)
+        self.assertEqual(bot.postflop_counts["fold_to_bet_opp"], 3)
+        self.assertEqual(bot.postflop_counts["fold_to_bet_n"], 1)
+        # A repeated callback for the same facing decision must not inflate denominator.
+        bot.observe_postflop(view("river", river, to_call=6,
+                                  legal=("fold", "call", "raise")),
+                             SimpleNamespace(type="fold"))
+        self.assertEqual(bot.postflop_counts["river_fold_to_cbet_opp"], 1)
+
+    def test_fold_to_cbet_excludes_donk_raised_and_delayed_bets(self):
+        pre = [{"street": "preflop", "pid": "P2", "type": "raise"}]
+        histories = [
+            pre + [{"street": "flop", "pid": "P3", "type": "bet"}],  # Donk bet
+            pre + [{"street": "flop", "pid": "P2", "type": "check"},
+                   {"street": "flop", "pid": "P2", "type": "bet"}],  # Delayed stab
+            pre + [{"street": "flop", "pid": "P2", "type": "bet"},
+                   {"street": "flop", "pid": "P3", "type": "raise"}],  # Facing raise
+            pre + [{"street": "flop", "pid": "P3", "type": "bet"},
+                   {"street": "flop", "pid": "P2", "type": "raise"}],  # Not first wager
+        ]
+        for history in histories:
+            with self.subTest(history=history):
+                bot = self.make_bot()
+                bot.observe_postflop(view("flop", history, to_call=5,
+                                          legal=("fold", "call", "raise")),
+                                     SimpleNamespace(type="fold"))
+                self.assertEqual(bot.postflop_counts["flop_fold_to_cbet_opp"], 0)
+                self.assertEqual(bot.postflop_counts["fold_to_bet_opp"], 1)
+                self.assertEqual(bot.postflop_counts["fold_to_bet_n"], 1)
+
+    def test_fold_to_cbet_requires_consecutive_called_not_raised_barrels(self):
+        pre = [{"street": "preflop", "pid": "P2", "type": "raise"}]
+        flop = pre + [{"street": "flop", "pid": "P2", "type": "bet"}]
+        for previous in (
+            flop,  # Uncalled
+            flop + [{"street": "flop", "pid": "P1", "type": "raise"},
+                    {"street": "flop", "pid": "P2", "type": "call"}],
+        ):
+            with self.subTest(previous=previous):
+                bot = self.make_bot()
+                turn = previous + [{"street": "turn", "pid": "P2", "type": "bet"}]
+                bot.observe_postflop(view("turn", turn, to_call=6,
+                                          legal=("fold", "call", "raise")),
+                                     SimpleNamespace(type="fold"))
+                self.assertEqual(bot.postflop_counts["turn_fold_to_cbet_opp"], 0)
+
+    def test_fold_to_cbet_multiway_and_non_fold_response(self):
+        bot = self.make_bot()
+        pre = [{"street": "preflop", "pid": "P2", "type": "raise"}]
+        flop = pre + [{"street": "flop", "pid": "P3", "type": "check"},
+                      {"street": "flop", "pid": "P2", "type": "bet"},
+                      {"street": "flop", "pid": "P3", "type": "call"}]
+        bot.observe_postflop(view("flop", flop, to_call=7,
+                                  legal=("fold", "call", "raise")),
+                             SimpleNamespace(type="raise"))
+        self.assertEqual(bot.postflop_counts["flop_fold_to_cbet_opp"], 1)
+        self.assertEqual(bot.postflop_counts["flop_fold_to_cbet_n"], 0)
+
     def test_showdown_and_current_bb(self):
         bot = self.make_bot()
         bot.observe_hand_end(1, {"P1":18}, 6, ("P1","P2"), ("P1",))
