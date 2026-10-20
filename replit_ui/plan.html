@@ -1240,7 +1240,9 @@ async function getSource(profile,position,scenario,players,stack_bb){
 function showBbRfiHint(doc){
  const bb=doc?.position==='BB';
  $('bbRfiInfo').classList.toggle('hidden',!bb);
- if(bb)$('bbRfiInfo').textContent=['vs_open','vs_sb_open'].includes(doc.scenario)
+ if(bb)$('bbRfiInfo').textContent=doc.range_origin==='saved_explicit_bb_vs_open'
+  ?'BB против опен-рейза: сохранённая пользовательская матрица. Она не переписывается новой универсальной защитой.'
+  :['vs_open','vs_sb_open'].includes(doc.scenario)
   ?'BB против любого опен-рейза: единая расширенная экспериментальная защита PC BTN RFI proxy. Пока без зависимости от позиции агрессора, НЕ GTO-чарт ответов.'
   :'На BB нет собственного RFI. Для защиты выбери «Против опен-рейза».';
 }
@@ -1275,6 +1277,8 @@ function preserveCurrentSlot(){
  };
 }
 function heroContextMessage(doc){
+ if(doc.position==='BB'&&doc.range_origin==='saved_explicit_bb_vs_open')
+  return 'BB vs Open: сохранённый пользовательский диапазон без автоматического изменения.';
  if(doc.position==='BB'&&['vs_open','vs_sb_open'].includes(doc.scenario))
   return 'BB против любого опен-рейза: расширенная экспериментальная защита PC BTN RFI proxy (НЕ оцифрованный ответ PC GTO).';
  if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&['vs_open','vs_sb_open'].includes(doc.scenario))) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
