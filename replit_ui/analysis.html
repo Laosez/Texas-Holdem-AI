@@ -42,7 +42,6 @@ html.embedded header,html.embedded .nav,html.embedded footer{display:none}
 html.embedded main{width:100%;padding:0;margin:0;gap:12px}
 html.embedded .foot a{display:none}
 </style>
-<script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embedded')</script>
 </head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>TOURNAMENT ANALYTICS</strong></div>
 <div class="access"><input id="key" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" aria-label="Ключ доступа"><button class="btn primary" id="connect">Подключить</button></div></header>
@@ -93,6 +92,7 @@ html.embedded .foot a{display:none}
 </main><footer>SKACHKOV Poker System · 01 Реализация → 02 План → 03 Постфлоп → 04 Анализ</footer>
 <script>
 'use strict';
+if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embedded');
 const $=id=>document.getElementById(id);
 const seats=['9','8','7','6','5','4','3','SB','BB'];
 const seatNames={'9':'9 · ранняя','8':'8 · ранняя','7':'7 · средняя','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN','SB':'SB','BB':'BB'};
