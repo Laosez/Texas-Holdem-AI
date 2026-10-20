@@ -993,9 +993,9 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <label for="heroPostflop">Постфлоп · моя стратегия</label>
    <a href="/s100" style="display:inline-block;margin:4px 0 6px;color:#9ac9f4;text-decoration:underline;font-size:12px">Перейти на лист 03 · Постфлоп План ↗</a>
    <select id="heroPostflop">
-    <option value="gto20" selected>GTO 2.0 · сила руки относительно борда</option>
+    <option value="gto20">GTO 2.0 · сила руки относительно борда</option>
     <option value="s100">S100 · 100 сценариев человека и бота</option>
-    <option value="gto">GTO 1 · контрольная версия</option>
+    <option value="gto" selected>GTO 1 · контрольная версия</option>
     <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
     <option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
     <option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
@@ -1174,7 +1174,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 'use strict';
 const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split('').flatMap((a,r)=>RANKS.split('').map((b,c)=>r===c?a+b:r<c?a+b+'s':b+a+'o'));
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
-const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
+const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_sb_open:'BB против SB Raise',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
  {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
@@ -1202,6 +1202,7 @@ function refreshHeroPostflopChoice(){
  $('heroStrategyComposition').textContent='Сборка для EV: '+range+' (префлоп) + '+postflopName(line)+' (постфлоп)';
 }
 let huComparisonRevision=0,huComparisonHand='',huComparisonTimer=null;
+let initialPlanLoad=false;
 let meta=null,hero=null,villain=null,dirty=false,selected='AQs',selectedBoxes=new Set(),undos=[],opponents=[],equityResults={filter:null,actual:null,any:null},loadingSource=false,calcEpoch=0,villainEpoch=0,perOpponentData=[],comparisonEpoch=0,brushMode='inspect',brushTarget=1,bulkSelected=new Set(),brushPainting=false,brushPainted=new Set(),sliderGesture=false;
 let matrixContextKey='',handWriteSeq=0,handWritebacks=new Map();
 const STRATEGY_RUN_CACHE_KEY='skachkov_preflop_strategy_runs_v1';
@@ -1239,13 +1240,14 @@ async function getSource(profile,position,scenario,players,stack_bb){
 function showBbRfiHint(doc){
  const bb=doc?.position==='BB';
  $('bbRfiInfo').classList.toggle('hidden',!bb);
- if(bb)$('bbRfiInfo').textContent=doc.scenario==='vs_open'
-  ?'На BB нет собственного RFI. Здесь показана защита против RFI соперника: пока одна общая эвристика GTO Fixed независимо от позиции открывшего. PC GTO BB-чарты ещё не загружены.'
-  :'На BB нет собственного RFI. Для защиты против рейза выбери ситуацию «Против открытия».';
+ if(bb)$('bbRfiInfo').textContent=doc.scenario==='vs_sb_open'
+  ?'BB против SB: расширенная экспериментальная защита из PC BTN RFI proxy. Это НЕ чарт защиты PC GTO и не GTO-солвер. Для других открытий выбери «Против открытия».'
+  :doc.scenario==='vs_open'?'BB против открытия с другой позиции: узкая эвристика Fixed GTO.'
+  :'На BB нет собственного RFI. Для защиты от SB выбери «BB против SB Raise».';
 }
 function useBbDefenseWhenRfi(){
  if($('heroPosition').value==='BB'&&$('heroScenario').value==='rfi'){
-  $('heroScenario').value='vs_open';
+  $('heroScenario').value='vs_sb_open';
   return true;
  }
  return false;
@@ -1271,9 +1273,10 @@ function preserveCurrentSlot(){
  };
 }
 function heroContextMessage(doc){
+ if(doc.position==='BB'&&doc.scenario==='vs_sb_open')return 'BB против SB: экспериментальная защита PC BTN RFI proxy (НЕ оригинальный чарт PC GTO).';
  if(doc.position==='BB'&&doc.scenario==='vs_open'&&doc.range_origin==='gto_fixed_bb_vs_open')
   return 'BB против открытия: используется GTO Fixed, не оцифрованный PC GTO BB Defense.';
- if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&doc.scenario==='vs_open')) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
+ if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&['vs_open','vs_sb_open'].includes(doc.scenario))) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
  if(doc.position==='BB'&&doc.scenario==='rfi')
   return 'На BB нет RFI: для просмотра защиты выбери «Против открытия».';
  return 'Диапазон: '+doc.name+' · '+doc.position+' · '+SCENARIOS[doc.scenario];
@@ -1299,7 +1302,7 @@ async function loadHero({contextChange=false}={}){
     renderPositions($('heroPosition'),stored.position);
     $('heroScenario').value=stored.scenario;
    }
-   if(lastParts){
+   if(lastParts&&!initialPlanLoad){
     renderPositions($('heroPosition'),lastParts[2]);
     $('heroScenario').value=lastParts[3];
     if([...$('heroPostflop').options].some(o=>o.value===lastParts[1]))
@@ -1341,7 +1344,8 @@ async function loadHero({contextChange=false}={}){
    slot={hands:copy(baseline.hands),stack_bb:stack};
    hero.contexts[key]=slot;origin=baseline.range_origin||null;
    dirty=true;
-  }else if(position==='BB'&&scenario==='vs_open'
+  }else if(position==='BB'&&scenario==='vs_sb_open')origin='bb_sb_pc_btn_proxy_v1';
+  else if(position==='BB'&&scenario==='vs_open'
             &&['builtin:a17_v5','builtin:a17_legacy','builtin:pc_gto_80bb'].includes(hero.base_profile))
    origin='gto_fixed_bb_vs_open';
   hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
@@ -1447,13 +1451,14 @@ function normalizeFixedSeats(){
  const heroPos=$('heroPosition').value||hero?.position||'3';
  opponents=fixedSeatPositions().map((position)=>{
   const previous=fixedSeatOpponentHistory.get(position);
-  const defaultMode=FIXED_TABLE_POSITIONS.indexOf(position)<3?'range':'never';
-  return {profile:'builtin:a17_v5',position,
-   scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
+  const defaultMode='range';
+  return {profile:'builtin:pc_gto_80bb',position,
+   scenario:position==='BB'?'vs_sb_open':'rfi',players:9,selector:'active',
    postflop:'gto',entry_mode:defaultMode,
    entry_pct:defaultMode==='never'?0:100,
    ...(previous||{}),position,players:9,
-   scenario:position==='BB'?'vs_open':(previous?.scenario||'rfi')};
+   scenario:position==='BB'&&['vs_open','vs_sb_open'].includes(previous?.scenario)
+     ?previous.scenario:position==='BB'?'vs_sb_open':(previous?.scenario||'rfi')};
  });
  return heroPos;
 }
@@ -1581,7 +1586,7 @@ function renderOpponents(){
    opponents[i].profile=p.value; // Changing range must not move a fixed position.
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
+  const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).filter(([value])=>value!=='vs_sb_open'||opp.position==='BB').map(([value,label])=>({value,label})),opp.scenario);
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
@@ -1615,7 +1620,7 @@ function addOpponent(){
  return;
  if(opponents.length>=8)return;
  const fallback=['9','8','7','6','5','4','3','SB'][opponents.length];
- opponents.push({profile:'builtin:a17_v5',position:fallback,scenario:'rfi',
+ opponents.push({profile:'builtin:pc_gto_80bb',position:fallback,scenario:'rfi',
   players:9,selector:'active',postflop:'gto',entry_mode:'range',entry_pct:100});
  renderOpponents();invalidateEquity();loadVillain();
 }
@@ -4945,9 +4950,9 @@ async function connect(){
    postflop:'gto',entry_mode:i<3?'range':'never',entry_pct:i<3?100:0}));
   renderOpponents();$('viewOpponent').value='0';
   sessionStorage.setItem('skachkov_key',token());
-  await loadHero();await loadVillain();
+  await loadHero();initialPlanLoad=false;await loadVillain();
   $('connection').textContent='Подключено';$('connection').className='badge ok';
- }catch(e){$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
+ }catch(e){initialPlanLoad=false;$('connection').textContent='Ошибка подключения';$('connection').className='badge warn';msg(e.message,true)}
 }
 $('connect').onclick=connect;
 $('copyMatrix').onclick=copyMatrixSettings;
