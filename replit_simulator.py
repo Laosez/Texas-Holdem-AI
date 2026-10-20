@@ -25,7 +25,7 @@ from collections import deque
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, quote, urlparse
 import planner_api
 import planner_core
 
@@ -1367,10 +1367,20 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self):
-        path = urlparse(self.path).path
-        if path in ("/", "/plan", "/s100", "/analysis"):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path == "/analysis":
+            # Keep legacy bookmarks, but no longer serve a fourth page.
+            session = parse_qs(parsed.query).get("session", [""])[0]
+            target = "/?session=" + quote(session, safe="") + "#analysis" if session else "/#analysis"
+            self.send_response(302)
+            self.send_header("Location", target)
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            return
+        if path in ("/", "/plan", "/s100", "/analysis-panel"):
             html = ((ROOT / "replit_ui" / "river_board.html") if path == "/s100"
-                    else ANALYSIS_UI if path == "/analysis"
+                    else ANALYSIS_UI if path == "/analysis-panel"
                     else PLAN_UI if path == "/plan" else UI).read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -1378,7 +1388,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Security-Policy",
-                             "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+                             ("default-src 'self'; script-src 'self' 'unsafe-inline'; "
+                              "style-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; "
+                              "frame-ancestors " +
+                              ("'self'" if path == "/analysis-panel" else "'none'")))
             self.end_headers()
             self.wfile.write(html)
             return

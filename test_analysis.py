@@ -1,5 +1,8 @@
 """Regression tests for dedicated tournament analysis and exact stage aggregation."""
+import http.client
+import threading
 import tempfile
+from http.server import ThreadingHTTPServer
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,7 +19,9 @@ class TournamentAnalysisTests(unittest.TestCase):
     def test_new_workspace_route_is_registered_and_ui_safe(self):
         source = Path(app.__file__).read_text(encoding="utf-8")
         html = app.ANALYSIS_UI.read_text(encoding="utf-8")
-        self.assertIn('"/analysis"', source)
+        self.assertIn('if path == "/analysis":', source)
+        self.assertIn('"/analysis-panel"', source)
+        self.assertIn('frame-ancestors ', source)
         self.assertIn('id="sessionA"', html)
         self.assertIn('id="sessionB"', html)
         self.assertIn('id="stage"', html)
@@ -38,6 +43,40 @@ class TournamentAnalysisTests(unittest.TestCase):
         self.assertIn("turn_fold_to_cbet", html)
         self.assertIn("river_fold_to_cbet", html)
         self.assertNotIn('<a class="tab" href="/analysis">', realization)
+
+    def test_analysis_is_internal_panel_and_legacy_route_redirects(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            def fetch(path):
+                connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                try:
+                    connection.request("GET", path)
+                    response = connection.getresponse()
+                    return response.status, dict(response.getheaders()), response.read().decode("utf-8")
+                finally:
+                    connection.close()
+
+            status, headers, _ = fetch("/analysis?session=session%2F2026")
+            self.assertEqual(status, 302)
+            self.assertEqual(headers["Location"], "/?session=session%2F2026#analysis")
+            status, headers, _ = fetch("/analysis")
+            self.assertEqual(status, 302)
+            self.assertEqual(headers["Location"], "/#analysis")
+            status, headers, html = fetch("/analysis-panel?embed=1")
+            self.assertEqual(status, 200)
+            self.assertIn("frame-ancestors 'self'", headers["Content-Security-Policy"])
+            self.assertIn("flop_fold_to_cbet", html)
+            self.assertIn("river_fold_to_cbet", html)
+            status, headers, html = fetch("/")
+            self.assertEqual(status, 200)
+            self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
+            self.assertIn('id="analysisFrame"', html)
+        finally:
+            server.shutdown()
+            server.server_close()
+            worker.join(timeout=5)
 
     def test_preflop_stage_and_position_scopes_from_real_counts(self):
         with tempfile.TemporaryDirectory() as folder:

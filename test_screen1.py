@@ -431,7 +431,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn('id="openAnalysis" href="#analysis"',page)
         self.assertIn('id="analysisDetails"',page)
         self.assertIn('id="analysisFrame"',page)
-        self.assertIn("'/analysis?embed=1'",page)
+        self.assertIn("'/analysis-panel?embed=1'",page)
         self.assertNotIn('<a class="tab" href="/analysis">',page)
         self.assertIn("Второе поле не изменено.",page)
         for advanced in ('<th>VPIP</th>','<th>Turn C-bet %</th>','<th>Flop AF</th>'):
