@@ -97,16 +97,16 @@ class TournamentAnalysisTests(unittest.TestCase):
     def test_fold_to_cbet_stage_aggregation_is_ratio_of_sums(self):
         with tempfile.TemporaryDirectory() as folder:
             p = Path(folder)
-            write(p, "summary_n3.csv", "bot,hands_observed\\nP1,30\\n".replace("\\\\n", "\\n"))
+            write(p, "summary_n3.csv", "bot,hands_observed\nP1,30\n")
             write(p, "summary_position_n3.csv",
-                  "bot,position,hands_observed\\nP1,3,10\\nP1,SB,20\\n".replace("\\\\n", "\\n"))
+                  "bot,position,hands_observed\nP1,3,10\nP1,SB,20\n")
             cols = ("bot,position,table_size,"
                     "flop_fold_to_cbet_n,flop_fold_to_cbet_opp,"
                     "turn_fold_to_cbet_n,turn_fold_to_cbet_opp,"
-                    "river_fold_to_cbet_n,river_fold_to_cbet_opp\\n")
+                    "river_fold_to_cbet_n,river_fold_to_cbet_opp\n")
             write(p, "postflop_position_stage_summary.csv", cols +
-                  "P1,3,3,1,2,0,1,1,1\\n"
-                  "P1,SB,3,2,8,2,3,0,1\\n")
+                  "P1,3,3,1,2,0,1,1,1\n"
+                  "P1,SB,3,2,8,2,3,0,1\n")
             total = app.stats_for_folder(p)["P1"]["stages"]["3"]["total"]
             self.assertAlmostEqual(total["flop_fold_to_cbet"], 30)
             self.assertAlmostEqual(total["turn_fold_to_cbet"], 50)
