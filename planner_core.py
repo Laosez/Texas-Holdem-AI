@@ -237,9 +237,11 @@ def _bb_fixed_gto_vs_open(players):
 def _bb_vs_sb_open_pc_proxy():
     """Explicit, wider BB response to *SB RFI* at 80bb.
 
-    PC GTO 80bb currently provides RFI charts, not BB-vs-SB response charts.
-    This transparent experiment uses the existing PC BTN opening chart as a
-    broad defendability proxy; suited hands/pairs receive extra reach.
+    The checked-in PC GTO module only digitizes RFI charts. The original
+    source PDF (80bb, p. 17) DOES contain BB vs SB · RFI, but its 169
+    per-hand response frequencies have not been verified/digitized yet.
+    This temporary experiment uses PC BTN opening as a transparent proxy;
+    suited hands/pairs receive extra reach.
     SB's raising tiers inform 3-bet allocations, not solver frequencies.
     These percentages are assumptions to test, not the PC source solution.
     """
