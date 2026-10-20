@@ -112,7 +112,7 @@ class PostflopTelemetryTests(unittest.TestCase):
                        {"street": "turn", "pid": "P2", "type": "bet"}]
         bot.observe_postflop(view("turn", turn, to_call=5,
                                   legal=("fold", "call", "raise")),
-                             SimpleNamespace(type="raise"))
+                             SimpleNamespace(type="call"))
         river = turn + [{"street": "turn", "pid": "P1", "type": "call"},
                         {"street": "river", "pid": "P2", "type": "bet"}]
         bot.observe_postflop(view("river", river, to_call=6,
