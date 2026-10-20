@@ -93,7 +93,7 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(source["hands"]["AA"]["threebet"], 100)
         generic = core.preset("builtin:a17_v5", "BB", "vs_open", 9, 80)
         self.assertEqual(generic["range_origin"], "gto_fixed_bb_vs_open")
-        self.assertNotEqual(source["hands"]["72o"], generic["hands"]["AA"])
+        self.assertNotEqual(source["hands"]["99"], generic["hands"]["99"])
 
     def test_one_saved_strategy_contains_multiple_positions(self):
         with tempfile.TemporaryDirectory() as td, patch.object(core, "STORE", Path(td)):
