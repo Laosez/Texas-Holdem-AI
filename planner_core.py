@@ -286,11 +286,10 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
             slot = {"hands": baseline["hands"], "stack_bb": stack_bb}
             origin = baseline.get("range_origin")
         else:
-            # A saved explicit context is immutable, even if it predates the
-            # universal default. Newly inherited slots use the widened proxy.
-            origin = ("bb_generic_pc_btn_proxy_v1" if position == "BB"
-                      and scenario in ("vs_open", "vs_sb_open") and
-                      doc.get("base_profile") != "builtin:any_two" else None)
+            # Saved explicit slots are immutable, including historic narrow
+            # responses. Do not falsely label those as the current proxy.
+            origin = ("saved_explicit_bb_vs_open" if position == "BB"
+                      and scenario in ("vs_open", "vs_sb_open") else None)
         return {**doc, "players": players, "position": position,
                 "scenario": scenario, "stack_bb": slot["stack_bb"],
                 "hands": slot["hands"], "range_origin": origin,
