@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import threading
@@ -43,6 +44,83 @@ def postflop_cpu_budgets(total):
     return total-hand,hand
 
 CACHE_PATH = core.DATA_ROOT / "plan_equity_cache"
+# Hard cap for *recomputable* Plan equity/postflop JSON files, decimal MB.
+CACHE_MAX_BYTES = 200_000_000
+CACHE_FILE_RE = re.compile(r"(?:[0-9a-f]{64}|range_[0-9a-f]{64})\.json\Z")
+CACHE_TEMP_RE = re.compile(
+    r"(?:[0-9a-f]{64}\.[0-9a-f]{12}|range_[0-9a-f]{64}(?:\.[0-9a-f]{12})?)\.partial\Z"
+)
+CACHE_LOCK = threading.RLock()
+
+
+def enforce_cache_limit(protected: str | None = None) -> dict:
+    """Evict oldest completed, reproducible cache entries; never touch plans/runs.
+
+    Only canonical hashed JSON results are eligible. Active .partial files are
+    left intact; stale orphan .partial files older than one hour are reclaimed.
+    The caller may protect a just-published entry during pruning.
+    """
+    with CACHE_LOCK:
+        if not CACHE_PATH.is_dir():
+            return {"limit_bytes": CACHE_MAX_BYTES, "before_bytes": 0,
+                    "after_bytes": 0, "removed_files": 0, "reclaimed_bytes": 0}
+        entries = []
+        total = 0
+        now_ns = time.time_ns()
+        for path in CACHE_PATH.iterdir():
+            if path.is_symlink() or not path.is_file():
+                continue
+            try:
+                st = path.stat()
+            except OSError:
+                continue
+            if CACHE_TEMP_RE.fullmatch(path.name):
+                if now_ns - st.st_mtime_ns > 3_600_000_000_000:
+                    try:
+                        path.unlink()
+                    except OSError:
+                        pass
+                continue
+            if not CACHE_FILE_RE.fullmatch(path.name):
+                continue
+            total += st.st_size
+            entries.append((st.st_mtime_ns, path.name, st.st_size))
+        before = total
+        removed = 0
+        for _, name, size in sorted(entries):
+            if total <= CACHE_MAX_BYTES:
+                break
+            if name == protected:
+                continue
+            try:
+                (CACHE_PATH / name).unlink()
+            except OSError:
+                continue
+            total -= size
+            removed += 1
+        return {"limit_bytes": CACHE_MAX_BYTES, "before_bytes": before,
+                "after_bytes": total, "removed_files": removed,
+                "reclaimed_bytes": before - total}
+
+
+def _publish_cache_result(target: Path, result: dict) -> None:
+    """Atomic publish and size-bound retention across concurrent Plan tasks."""
+    payload = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if len(payload) > CACHE_MAX_BYTES:
+        # Keep the completed task in memory, but never persist an oversized file.
+        return
+    with CACHE_LOCK:
+        tmp = CACHE_PATH / (target.stem + "." + secrets.token_hex(6) + ".partial")
+        try:
+            tmp.write_bytes(payload)
+            os.replace(tmp, target)
+        finally:
+            tmp.unlink(missing_ok=True)
+        report = enforce_cache_limit(protected=target.name)
+        if report["removed_files"]:
+            print("[cache-retention] removed " + str(report["removed_files"]) +
+                  " old results; reclaimed " + str(report["reclaimed_bytes"]) +
+                  " bytes; remaining " + str(report["after_bytes"]) + " bytes", flush=True)
 
 
 def catalog():
@@ -234,13 +312,7 @@ def _schedule(identity,compute,total,executor=None):
                     with LOCK:job.update(done=done,total=goal)
                 result=compute(progress)
                 target=CACHE_PATH/(identity+".json")
-                # UUID temporary name protects the same cache from parallel writers.
-                tmp=CACHE_PATH/(identity+"."+secrets.token_hex(6)+".partial")
-                try:
-                    tmp.write_text(json.dumps(result,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
-                    os.replace(tmp,target)
-                finally:
-                    tmp.unlink(missing_ok=True)
+                _publish_cache_result(target, result)
                 with LOCK:job.update(status="completed",done=job["total"],result=result)
             except Exception as exc:
                 with LOCK:job.update(status="failed",error=str(exc))
@@ -463,14 +535,17 @@ def post_route(handler,path,payload,busy=False):
             key=hashlib.sha256(json.dumps(key_data,sort_keys=True).encode()).hexdigest()
             CACHE_PATH.mkdir(parents=True,exist_ok=True)
             target=CACHE_PATH/("range_"+key+".json")
-            if target.is_file():
-                result=json.loads(target.read_text(encoding="utf-8"))
+            try:
+                with CACHE_LOCK:
+                    result=json.loads(target.read_text(encoding="utf-8"))
+                cache_hit=True
+            except (OSError, ValueError):
+                cache_hit=False
+            if cache_hit:
                 result["cached"]=True
             else:
                 result=equity.simulate_range_equity(weights,sources,trials=trials,seed=int(key[:15],16))
-                tmp=target.with_suffix(".partial")
-                tmp.write_text(json.dumps(result,ensure_ascii=False),encoding="utf-8")
-                os.replace(tmp,target)
+                _publish_cache_result(target, result)
                 result["cached"]=False
             handler.reply(200,result)
         except (ValueError,TypeError,KeyError) as exc:
