@@ -2522,7 +2522,7 @@ function pasteMatrixSettings(){
 }
 function editorActions(scenario){
  if(scenario==='rfi')return ['fold','open','limp'];
- if(scenario==='vs_open')return ['fold','threebet','call'];
+ if(scenario==='vs_open'||scenario==='vs_sb_open')return ['fold','threebet','call'];
  if(scenario==='vs_threebet')return ['fold','fourbet','call'];
  if(scenario==='vs_shove')return ['fold','call'];
  return ['fold','push']; // push_fold
