@@ -971,7 +971,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 <summary>Диагностика поля · число соперников и размер банка</summary>
 <p class="note">Справочная статистика модели, не дополнительная настройка: сколько соперников участвовало, каков средний банк и погрешность EV. N берётся из основного селектора симуляций.</p>
 <div id="entryDistribution" class="entryDistributionTable">После Monte Carlo появятся число соперников, фактический средний банк и прогноз погрешности EV.</div><div id="entryDistributionNote" class="small" style="margin-top:5px">0 соперников — все сбросили; Equity выставления определяется при ≥1 активном сопернике.</div></details>
-<p class="note">9 позиций = Hero + 8 соперников. «Ширина диапазона» определяет вероятность входа по комбинациям с учётом блокеров; «0%» исключает место. «Стек всех игроков» задаёт одинаковую глубину для HERO и каждого вошедшего соперника в симуляции EV; не изменяет префлоп-пресеты. Модель не рассчитывает дерево префлоп-торговли и не учитывает зависимость решений соперников.</p></div>
+<p class="note">9 позиций = Hero + 8 соперников. «Ширина диапазона» определяет вероятность входа по комбинациям с учётом блокеров; «0%» исключает место. «Стек всех игроков» задаёт одинаковую глубину для HERO и каждого вошедшего соперника в симуляции EV; не изменяет префлоп-пресеты. ПРЕФЛОП MONTE CARLO: HERO делает один опен-рейз, вошедшие соперники только коллируют. 3-bet и 4-bet до флопа здесь пока НЕ моделируются, даже если частоты 3-bet записаны в справочнике. Модель не рассчитывает дерево префлоп-торговли и не учитывает зависимость решений соперников.</p></div>
 <div class="equityInsideOpponents">
 <div class="heading"><h3>Расчёт Equity против добавленных соперников</h3><span class="badge">169 рук · Multiway Monte Carlo</span></div>
 <select id="equityModel" class="hidden" aria-label="Модель Equity"><option value="selected" selected>Добавленные соперники</option></select>
@@ -5029,6 +5029,7 @@ async function connect({resetToDefaults=false}={}){
 }
 $('connect').onclick=connect;
 $('resetPlanSettings').onclick=async()=>{
+ if(loadingSource){msg('Дождись завершения загрузки стратегии перед сбросом.',true);return}
  if(dirty&&!confirm('Несохранённые изменения текущей стратегии будут отменены. Сбросить настройки теста?'))return;
  stashStrategyRun();invalidateEquity({refresh:false});
  hero=null;dirty=false;activeStrategyRunKey='';
