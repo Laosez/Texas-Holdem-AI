@@ -1298,7 +1298,7 @@ async function loadHero({contextChange=false}={}){
   loadingSource=true;
   try{
    const stored=findSaved(profile);
-   if(stored){
+   if(stored&&!initialPlanLoad){
     $('players').value='9';
     renderPositions($('heroPosition'),stored.position);
     $('heroScenario').value=stored.scenario;
