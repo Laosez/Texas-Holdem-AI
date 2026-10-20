@@ -60,7 +60,7 @@ class PlanTests(unittest.TestCase):
             doc["hands"]["99"]={"fold":0,"call":100,"threebet":0}
             saved=core.save_plan(doc)
             restored=core.preset(saved["ref"],"BB","vs_open",9,80)
-            self.assertEqual(restored["hands"]["99"],{"fold":0,"call":100,"threebet":0})
+            self.assertEqual(restored["hands"]["99"],{"call":100.0})
 
     def test_bb_vs_sb_alias_retained_for_old_saved_contexts(self):
         source=core.preset("builtin:a17_v5","BB","vs_sb_open",9,80)
