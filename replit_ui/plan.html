@@ -3796,7 +3796,19 @@ function renderFlatShowdownEvChart(rows,compare,selection){
  const zero=y(0);
  node('line',{x1:58,x2:920,y1:zero,y2:zero,stroke:'#87a1ba',
   'stroke-width':1,'stroke-dasharray':'4 5'});
- const title=node('title',{},'EV A/B по количеству оппонентов на вскрытии. Финансовый результат в BB на раздачу.');
+ node('title',{},'EV A/B по количеству оппонентов на вскрытии. Финансовый результат в BB на раздачу.');
+ // Join measured showdown buckets, using dashed bridges across missing buckets.
+ for(const [side,color,offset] of [['a','#8dc5f4',-11],...(compare?[['b','#cfb3f2',11]]:[])]){
+  let previous=null;
+  for(const d of data){
+   if(!d[side].n)continue;
+   const current={index:d.k,x:x(d.k)+offset,y:y(d[side].net/d[side].n)};
+   if(previous)node('line',{x1:previous.x,y1:previous.y,x2:current.x,y2:current.y,
+    stroke:color,'stroke-width':2.5,'stroke-linecap':'round',
+    ...(current.index-previous.index>1?{'stroke-dasharray':'5 5'}:{})});
+   previous=current;
+  }
+ }
  const descriptor=[];
  for(const d of data){
   const xpos=x(d.k),selected=selection!=='all'&&Number(selection)===d.k;
@@ -4394,19 +4406,16 @@ function renderOpponentEvComparison(chartA,chartB){
   const {key,points,color,offset}=seriesItem;
   descriptions.push(key+': '+points.map(p=>p.detail+' соп. = '+
    (p.ev===null?'нет исходов':evfmt(p.ev)+' BB (N '+nfmt(p.samples)+')')).join(', '));
-  // Missing categories break the line rather than suggesting interpolation.
-  let path=[];
-  const flush=()=>{
-   if(path.length>1)element('polyline',{points:path.join(' '),
-    fill:'none',stroke:color,'stroke-width':2.6,'stroke-linejoin':'round'});
-   path=[];
-  };
+  // Connect observed points; a gap in the sample is shown as a dashed bridge.
+  let previous=null;
   for(let i=0;i<points.length;i++){
-   const p=points[i];
-   if(p.ev===null){flush();continue}
-   path.push(xx(i)+','+yy(p.ev));
+   const p=points[i];if(p.ev===null)continue;
+   const current={index:i,x:xx(i)+(series.length===2?offset*.42:0),y:yy(p.ev)};
+   if(previous)element('line',{x1:previous.x,y1:previous.y,
+    x2:current.x,y2:current.y,stroke:color,'stroke-width':2.6,
+    'stroke-linecap':'round',...(i-previous.index>1?{'stroke-dasharray':'5 5'}:{})});
+   previous=current;
   }
-  flush();
   for(let i=0;i<points.length;i++){
    const p=points[i];if(p.ev===null)continue;
    const x=xx(i)+(series.length===2?offset*.42:0),y=yy(p.ev);
