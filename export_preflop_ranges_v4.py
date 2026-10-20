@@ -87,6 +87,7 @@ class TrackedBot:
         self.postflop_stage_counts = defaultdict(lambda: defaultdict(int))
         self.postflop_seen = set()
         self.postflop_cbet_hands = set()
+        self.postflop_fold_cbet_seen = set()
         # Only the strategy call (inner.act), not engine, view creation or
         # the preflop event observer. Time is measured in each worker process.
         self.decision_timing = defaultdict(lambda: {
@@ -223,6 +224,49 @@ class TrackedBot:
         return (any(item.get('pid') != me and item.get('type') == 'call' for item in after)
                 and not any(item.get('type') in ('raise', 'all_in') for item in after))
 
+    @staticmethod
+    def _history_cbet_pid(history, street):
+        """Identify the actual continuation bettor from public actions.
+
+        Flop: last preflop aggressor makes the first flop wager.
+        Turn/river: the same bettor's preceding C-bet was called, not raised,
+        and their new wager is the first bet of this street.
+        This reconstruction works for opponents without telemetry objects.
+        """
+        if street == 'flop':
+            raises = [e for e in history if e.get('street') == 'preflop'
+                      and e.get('type') in ('bet', 'raise', 'all_in')]
+            aggressor = raises[-1].get('pid') if raises else None
+        elif street in ('turn', 'river'):
+            prior = 'flop' if street == 'turn' else 'turn'
+            aggressor = TrackedBot._history_cbet_pid(history, prior)
+            if aggressor is None:
+                return None
+            prev = [e for e in history if e.get('street') == prior]
+            idx = next((i for i, e in enumerate(prev)
+                        if e.get('pid') == aggressor and e.get('type') == 'bet'), None)
+            if idx is None:
+                return None
+            after = prev[idx + 1:]
+            if (not any(e.get('pid') != aggressor and e.get('type') == 'call'
+                        for e in after)
+                    or any(e.get('type') in ('raise', 'all_in') for e in after)):
+                return None
+        else:
+            return None
+        if aggressor is None:
+            return None
+        current = [e for e in history if e.get('street') == street]
+        first = next((i for i, e in enumerate(current)
+                      if e.get('type') in ('bet', 'raise', 'all_in')), None)
+        if first is None or current[first].get('pid') != aggressor or current[first].get('type') != 'bet':
+            return None
+        # Delayed stab after checking is not an initial continuation bet.
+        if any(e.get('pid') == aggressor and e.get('type') == 'check'
+               for e in current[:first]):
+            return None
+        return aggressor
+
     def observe_postflop(self, view, action):
         street = getattr(view, 'street', None)
         if street not in ('flop', 'turn', 'river'):
@@ -268,6 +312,27 @@ class TrackedBot:
                         counts['cbet_n'] += int(kind == 'bet')
                 if kind == 'bet':
                     self.postflop_cbet_hands.add((hid, street))
+
+        # Fold to C-bet is distinct from generic Fold to bet. Count one
+        # genuine facing opportunity per player/hand/street, including calls
+        # or raises as non-fold responses. Do not mistake a later raise for
+        # the original continuation bet.
+        facing = int(getattr(view, 'to_call', 0) or 0) > 0 and 'fold' in legal
+        if facing and key not in self.postflop_fold_cbet_seen:
+            cbetter = self._history_cbet_pid(hist, street)
+            wagers = [i for i, h in enumerate(street_hist)
+                      if h.get('type') in ('bet', 'raise', 'all_in')]
+            is_facing_cbet = (
+                cbetter is not None and cbetter != me and len(wagers) == 1
+                and street_hist[wagers[0]].get('type') == 'bet'
+                and street_hist[wagers[0]].get('pid') == cbetter
+            )
+            if is_facing_cbet:
+                self.postflop_fold_cbet_seen.add(key)
+                field = street + '_fold_to_cbet'
+                for counts in ledgers:
+                    counts[field + '_opp'] += 1
+                    counts[field + '_n'] += int(kind == 'fold')
 
         had_checked = any(h.get('pid') == me and h.get('type') == 'check' for h in street_hist)
         for counts in ledgers:
@@ -861,10 +926,12 @@ def main():
             if position is not None:
                 post_agg_pos[(name, position)][key] += value
     post_fields = ('flop_af','turn_af','river_af','flop_cbet','turn_cbet',
-                   'river_cbet','cbet','fold_to_bet','check_raise','wsd','net_bb_100')
+                   'river_cbet','flop_fold_to_cbet','turn_fold_to_cbet',
+                   'river_fold_to_cbet','cbet','fold_to_bet','check_raise','wsd','net_bb_100')
     raw_fields = tuple(field for street in ('flop','turn','river')
                        for field in (street+'_aggressive',street+'_calls',
-                                     street+'_cbet_n',street+'_cbet_opp')) + (
+                                     street+'_cbet_n',street+'_cbet_opp',
+                                     street+'_fold_to_cbet_n',street+'_fold_to_cbet_opp')) + (
         'cbet_n','cbet_opp','fold_to_bet_n','fold_to_bet_opp',
         'check_raise_n','check_raise_opp','wsd_n','wsd_opp',
         'net_bb_units','net_hands')
@@ -874,8 +941,9 @@ def main():
         for street in ('flop','turn','river'):
             calls=c[street+'_calls']
             result[street+'_af'] = round(c[street+'_aggressive']/calls,4) if calls else None
-        for metric in ('flop_cbet','turn_cbet','river_cbet','cbet',
-                       'fold_to_bet','check_raise','wsd'):
+        for metric in ('flop_cbet','turn_cbet','river_cbet',
+                       'flop_fold_to_cbet','turn_fold_to_cbet','river_fold_to_cbet',
+                       'cbet','fold_to_bet','check_raise','wsd'):
             denom=c[metric+'_opp']
             result[metric] = round(100*c[metric+'_n']/denom,4) if denom else None
         result['net_bb_100'] = round(100*c['net_bb_units']/c['net_hands'],4) if c['net_hands'] else None
@@ -942,7 +1010,7 @@ def main():
                  'Denominator hands_observed includes every player receiving hole cards, even if no preflop action was required.',
                  'Postflop AF is (bets+raises)/calls; a zero-call sample has undefined AF and is blank.',
                  'Flop C-bet: last preflop aggressor at first available unraised flop decision. Turn and river barrels require the immediately previous qualifying barrel to be called without a raise.',
-                 'Street C-bet opportunities require a legal bet; all-in players cannot receive new opportunities. Fold to bet and Check-raise use eligible decisions.',
+                 'Street C-bet opportunities require a legal bet; all-in players cannot receive new opportunities. Fold to C-bet uses a separate per-street faced-continuation-bet denominator, while Fold to bet includes all faced bets.',
                  'W$SD credits a player winning a showdown side pot, including ties.',
                  'Net bb/100 is whole-hand net chips normalized by BB at each deal, times 100 / dealt hands; not isolated postflop EV.']
     },ensure_ascii=False,indent=2),encoding='utf-8')
