@@ -26,74 +26,50 @@ class PlanTests(unittest.TestCase):
             self.assertEqual(v5["hands"][h],{"fold":100})
             self.assertEqual(old["hands"][h],{"open":100})
 
-    def test_bb_vs_open_displays_actual_fixed_gto_defense_for_a17_and_pc(self):
-        for profile in ("builtin:a17_v5", "builtin:a17_legacy",
-                        "builtin:pc_gto_80bb"):
+    def test_universal_bb_vs_open_for_all_builtin_and_inherited_profiles(self):
+        profiles=("builtin:a17_v5","builtin:a17_legacy",
+                  "builtin:pc_gto_80bb","builtin:gto_heuristic")
+        for profile in profiles:
             for players in (2, 6, 9):
-                with self.subTest(profile=profile, players=players):
-                    chart = core.preset(profile, "BB", "vs_open", players)
-                    self.assertEqual(chart["range_origin"], "gto_fixed_bb_vs_open")
-                    self.assertEqual(len(chart["hands"]), 169)
-                    aa = chart["hands"]["AA"]
-                    self.assertAlmostEqual(aa["fold"], 4.5)
-                    self.assertAlmostEqual(aa["call"], 9.55)
-                    self.assertAlmostEqual(aa["threebet"], 85.95)
-                    nines = chart["hands"]["99"]
-                    self.assertAlmostEqual(nines["fold"], 16)
-                    self.assertAlmostEqual(nines["call"], 46.6667, places=3)
-                    self.assertAlmostEqual(nines["threebet"], 37.3333, places=3)
+                with self.subTest(profile=profile,players=players):
+                    chart=core.preset(profile,"BB","vs_open",players,80)
+                    alias=core.preset(profile,"BB","vs_sb_open",players,80)
+                    self.assertEqual(chart["range_origin"],"bb_generic_pc_btn_proxy_v1")
+                    self.assertEqual(chart["hands"],alias["hands"])
+                    self.assertEqual(len(chart["hands"]),169)
+                    self.assertEqual(chart["hands"]["AA"],
+                                     {"fold":0,"call":0,"threebet":100})
                     self.assertEqual(chart["hands"]["72o"],
-                                     {"fold": 100, "call": 0, "threebet": 0})
-                    self.assertEqual(len(core.validate_plan(chart)["hands"]), 169)
-                    self.assertTrue(all(abs(sum(row.values()) - 100) < .001
+                                     {"fold":100,"call":0,"threebet":0})
+                    self.assertEqual(chart["hands"]["AKs"]["threebet"],75)
+                    self.assertTrue(all(abs(sum(row.values())-100)<.001
                                         for row in chart["hands"].values()))
-                    weights = core.range_weights(chart)
-                    percent = sum(core.COMBOS[h] * weights.get(h, 0)
-                                  for h in core.HANDS) / 1326 * 100
-                    self.assertAlmostEqual(percent, 11.586, delta=.1)
-        # BB has no RFI: the blank matrix remains intentionally blank,
-        # rather than treating an automatic check as a Raise First In.
-        bb_rfi = core.preset("builtin:a17_v5", "BB", "rfi", 9)
-        self.assertEqual(bb_rfi["hands"], {})
-        self.assertIsNone(bb_rfi["range_origin"])
-        # Our explicit user-approved response to a 3-bet stays unchanged.
-        bb_3bet = core.preset("builtin:a17_v5", "BB", "vs_threebet", 9)
-        self.assertEqual(bb_3bet["hands"]["AA"], {"call": 50, "fourbet": 50})
+                    self.assertEqual(len(core.validate_plan(chart)["hands"]),169)
+                    weights=core.range_weights(chart)
+                    share=100*sum(core.COMBOS[h]*weights.get(h,0)
+                                  for h in core.HANDS)/1326
+                    self.assertAlmostEqual(share,55.7918552,places=5)
+        # BB has no RFI and the existing vs-threebet response is unaffected.
+        self.assertEqual(core.preset("builtin:a17_v5","BB","rfi",9)["hands"],{})
+        self.assertEqual(core.preset("builtin:a17_v5","BB","vs_threebet",9)
+                         ["hands"]["AA"],{"call":50,"fourbet":50})
 
-    def test_bb_vs_sb_raise_wider_and_explicitly_not_a_pc_response_chart(self):
-        original = core.preset("builtin:pc_gto_80bb", "BB", "vs_open", 9, 80)
-        defense = core.preset("builtin:pc_gto_80bb", "BB", "vs_sb_open", 9, 80)
-        self.assertEqual(defense["range_origin"], "bb_sb_pc_btn_proxy_v1")
-        self.assertEqual(len(defense["hands"]), 169)
-        self.assertEqual(defense["hands"]["AA"],
-                         {"fold": 0, "call": 0, "threebet": 100})
-        self.assertEqual(defense["hands"]["72o"],
-                         {"fold": 100, "call": 0, "threebet": 0})
-        self.assertEqual(defense["hands"]["87s"]["fold"], 0)
-        self.assertEqual(defense["hands"]["AKs"]["threebet"], 75)
-        self.assertTrue(all(sum(row.values()) == 100
-                            for row in defense["hands"].values()))
-        self.assertEqual(len(core.validate_plan(defense)["hands"]), 169)
+    def test_generic_bb_upgrade_is_not_silently_applied_to_saved_explicit_slots(self):
+        with tempfile.TemporaryDirectory() as folder,patch.object(core,"STORE",Path(folder)):
+            doc=core.preset("builtin:a17_v5","BB","vs_open",9,80)
+            doc["hands"]["99"]={"fold":0,"call":100,"threebet":0}
+            saved=core.save_plan(doc)
+            restored=core.preset(saved["ref"],"BB","vs_open",9,80)
+            self.assertEqual(restored["hands"]["99"],{"fold":0,"call":100,"threebet":0})
 
-        def weighted_pct(doc, action=None):
-            return sum(core.COMBOS[h] * (
-                100 - row["fold"] if action is None else row[action]
-            ) / 100 for h, row in doc["hands"].items()) / 1326 * 100
-
-        self.assertAlmostEqual(weighted_pct(defense), 55.7918552, places=5)
-        self.assertAlmostEqual(weighted_pct(defense, "threebet"), 10.5279034, places=5)
-        self.assertLess(weighted_pct(original), 12)
-        self.assertGreater(weighted_pct(defense), weighted_pct(original) * 4)
-        with self.assertRaisesRegex(ValueError, "только на BB"):
-            core.preset("builtin:pc_gto_80bb", "SB", "vs_sb_open", 9, 80)
-
-    def test_bb_vs_sb_saved_context_roundtrip_does_not_change_generic_open(self):
-        source = core.preset("builtin:a17_v5", "BB", "vs_sb_open", 9, 80)
-        self.assertEqual(source["range_origin"], "bb_sb_pc_btn_proxy_v1")
-        self.assertEqual(source["hands"]["AA"]["threebet"], 100)
-        generic = core.preset("builtin:a17_v5", "BB", "vs_open", 9, 80)
-        self.assertEqual(generic["range_origin"], "gto_fixed_bb_vs_open")
-        self.assertNotEqual(source["hands"]["99"], generic["hands"]["99"])
+    def test_bb_vs_sb_alias_retained_for_old_saved_contexts(self):
+        source=core.preset("builtin:a17_v5","BB","vs_sb_open",9,80)
+        self.assertEqual(source["range_origin"],"bb_generic_pc_btn_proxy_v1")
+        self.assertEqual(source["hands"]["AA"]["threebet"],100)
+        generic=core.preset("builtin:a17_v5","BB","vs_open",9,80)
+        self.assertEqual(source["hands"],generic["hands"])
+        with self.assertRaisesRegex(ValueError,"только на BB"):
+            core.preset("builtin:pc_gto_80bb","SB","vs_sb_open",9,80)
 
     def test_one_saved_strategy_contains_multiple_positions(self):
         with tempfile.TemporaryDirectory() as td, patch.object(core, "STORE", Path(td)):
