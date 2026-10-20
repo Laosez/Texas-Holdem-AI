@@ -1442,6 +1442,43 @@ function fixedSeatPositions(){
 }
 // Retain all nine seat configurations, even while a seat temporarily holds Hero.
 const fixedSeatOpponentHistory=new Map();
+const PLAN_SETTINGS_KEY='skachkov_plan_settings_v1';
+let planSettingsReady=false;
+function defaultPlanSeat(position){
+ return {profile:'builtin:pc_gto_80bb',position,
+  scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
+  postflop:'gto',entry_mode:'range',entry_pct:100};
+}
+function defaultPlanSettings(){
+ return {version:1,profile:'builtin:pc_gto_80bb',position:'3',
+  scenario:'rfi',postflop:'gto',simStack:'20',trials:'1000',
+  seats:FIXED_TABLE_POSITIONS.map(defaultPlanSeat)};
+}
+function readPlanSettings(){
+ try{
+  const parsed=JSON.parse(localStorage.getItem(PLAN_SETTINGS_KEY)||'null');
+  if(parsed?.version!==1||!Array.isArray(parsed.seats))return null;
+  return parsed;
+ }catch(_){return null}
+}
+function activePlanSettings(){
+ const seats=new Map([...fixedSeatOpponentHistory.values(),...opponents].map(item=>
+  [String(item.position),{...item}]));
+ return {version:1,profile:$('heroProfile').value,
+  position:$('heroPosition').value,scenario:$('heroScenario').value,
+  postflop:$('heroPostflop').value,simStack:$('simStack').value,
+  trials:$('trials').value,
+  seats:FIXED_TABLE_POSITIONS.map(position=>({
+   ...defaultPlanSeat(position),...(seats.get(position)||{}),
+   position,players:9,
+   scenario:position==='BB'?'vs_open':(seats.get(position)?.scenario||'rfi')}))
+ };
+}
+function persistPlanSettings(){
+ if(!planSettingsReady||!meta)return;
+ try{localStorage.setItem(PLAN_SETTINGS_KEY,JSON.stringify(activePlanSettings()))}
+ catch(_){msg('Не удалось сохранить настройки в браузере: переполнено хранилище.',true)}
+}
 function normalizeFixedSeats(){
  for(const opponent of opponents){
   if(FIXED_TABLE_POSITIONS.includes(String(opponent.position)))
