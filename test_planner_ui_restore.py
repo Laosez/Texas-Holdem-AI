@@ -83,8 +83,8 @@ class PlannerLayoutRecoveryTests(unittest.TestCase):
 
     def test_remembers_chosen_saved_strategy_without_touching_storage_backend(self):
         page = self.ui
-        self.assertIn("localStorage.getItem('skachkov_last_plan_profile')", page)
-        self.assertIn("localStorage.setItem('skachkov_last_plan_profile'", page)
+        self.assertIn("localStorage.getItem(PLAN_SETTINGS_KEY)", page)
+        self.assertIn("localStorage.setItem(PLAN_SETTINGS_KEY", page)
         self.assertEqual(page.count('id="heroProfile"'),1)
 
 

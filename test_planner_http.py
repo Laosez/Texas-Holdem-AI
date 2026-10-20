@@ -274,7 +274,7 @@ class PlanHttpTests(unittest.TestCase):
             self.assertIn(literal,page)
         self.assertIn("useBbDefenseWhenRfi();\n void loadHero({contextChange:true}).then(()=>loadVillain());",page)
         self.assertIn("stashStrategyRun();\n invalidateEquity({refresh:false});\n preserveCurrentSlot();",page)
-        self.assertIn("BB против открытия: используется GTO Fixed",page)
+        self.assertIn("BB против любого опен-рейза: расширенная экспериментальная защита",page)
         self.assertIn("На BB нет RFI",page)
     def test_group_palette_and_sidebar_retain_equity_and_hand_controls(self):
         page = service.PLAN_UI.read_text(encoding="utf-8")
@@ -291,24 +291,24 @@ class PlanHttpTests(unittest.TestCase):
         self.assertIn(".handBoxTag{position:absolute;",page)
 
 
-    def test_bb_rfi_automatically_uses_vs_open_not_empty_matrix(self):
+    def test_bb_rfi_auto_selects_one_universal_open_raise_response(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="bbRfiInfo"',page)
         self.assertIn("function useBbDefenseWhenRfi()",page)
-        self.assertIn("if(bb&&$('heroScenario').value==='rfi')",page)
-        self.assertIn("$('heroScenario').value='vs_sb_open';",page)
-        self.assertIn("useBbDefenseWhenRfi();\n const profile=",page)
-        self.assertIn("useBbDefenseWhenRfi();\n   const doc=",page)
-        self.assertIn("showBbRfiHint(doc);",page)
-        self.assertIn("расширенная экспериментальная защита",page)
-        self.assertIn("НЕ чарт защиты PC GTO",page)
-        chart=core.preset("builtin:pc_gto_80bb",position="BB",scenario="vs_open",
-                           players=9,stack_bb=80)
-        self.assertEqual(chart["range_origin"],"gto_fixed_bb_vs_open")
-        self.assertEqual(len(chart["hands"]),169)
-        self.assertAlmostEqual(sum(chart["hands"]["AA"].values()),100,places=2)
+        self.assertIn("if(bb&&['rfi','vs_sb_open'].includes",page)
+        self.assertIn("$('heroScenario').value='vs_open';",page)
+        self.assertNotIn("vs_sb_open:'BB против SB Raise'",page)
+        self.assertIn("против любого опен-рейза",page)
+        self.assertIn("bb_generic_pc_btn_proxy_v1",page)
+        for profile in ("builtin:a17_v5","builtin:pc_gto_80bb",
+                        "builtin:gto_heuristic"):
+            defense=core.preset(profile,position="BB",scenario="vs_open",
+                                players=9,stack_bb=80)
+            self.assertEqual(defense["range_origin"],"bb_generic_pc_btn_proxy_v1")
+            self.assertEqual(len(defense["hands"]),169)
+            self.assertEqual(defense["hands"]["AA"]["threebet"],100)
         self.assertEqual(core.preset("builtin:pc_gto_80bb",position="BB",
-                          scenario="rfi",players=9,stack_bb=80)["hands"],{})
+                         scenario="rfi",players=9,stack_bb=80)["hands"],{})
 
     def test_entry_frequency_selector_and_marginal_active_counts(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
@@ -357,7 +357,7 @@ class PlanHttpTests(unittest.TestCase):
     def test_fixed_nine_positions_and_hidden_legacy_add_remove(self):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="addOpponent" class="btn sm hidden"',page)
-        self.assertIn("opponents=Array.from({length:8}",page)
+        self.assertIn("opponents=fixedSeatPositions().map(position=>",page)
         self.assertIn("const FIXED_TABLE_POSITIONS=['9','8','7','6','5','4','3','SB','BB'];",page)
         self.assertIn("const heroSeat=normalizeFixedSeats();",page)
         self.assertIn("row.setAttribute('aria-label','Hero · моя стратегия');",page)

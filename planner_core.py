@@ -234,8 +234,8 @@ def _bb_fixed_gto_vs_open(players):
                         "threebet": round(100 * raise_, 4)}
     return result
 
-def _bb_vs_sb_open_pc_proxy():
-    """Explicit, wider BB response to *SB RFI* at 80bb.
+def _bb_vs_open_pc_proxy():
+    """Temporary universal BB response to any single opponent open-raise.
 
     The checked-in PC GTO module only digitizes RFI charts. The original
     source PDF (80bb, p. 17) DOES contain BB vs SB · RFI, but its 169
@@ -244,6 +244,8 @@ def _bb_vs_sb_open_pc_proxy():
     suited hands/pairs receive extra reach.
     SB's raising tiers inform 3-bet allocations, not solver frequencies.
     These percentages are assumptions to test, not the PC source solution.
+    The same provisional frequencies apply to UTG, HJ, BTN and SB openers,
+    pending opponent-position-specific response charts.
     """
     from bots.pc_gto_80bb_ranges import HANDS as PC_HANDS, RAISE
     btn = RAISE["BTN"]
@@ -284,11 +286,10 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
             slot = {"hands": baseline["hands"], "stack_bb": stack_bb}
             origin = baseline.get("range_origin")
         else:
-            origin = ("bb_sb_pc_btn_proxy_v1" if position == "BB" and scenario == "vs_sb_open"
-                      else "gto_fixed_bb_vs_open" if position == "BB" and scenario == "vs_open"
-                      and doc.get("base_profile") in ("builtin:a17_v5",
-                                                     "builtin:a17_legacy",
-                                                     "builtin:pc_gto_80bb") else None)
+            # Saved explicit slots are immutable, including historic narrow
+            # responses. Do not falsely label those as the current proxy.
+            origin = ("saved_explicit_bb_vs_open" if position == "BB"
+                      and scenario in ("vs_open", "vs_sb_open") else None)
         return {**doc, "players": players, "position": position,
                 "scenario": scenario, "stack_bb": slot["stack_bb"],
                 "hands": slot["hands"], "range_origin": origin,
@@ -304,17 +305,15 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
         pseudo_action = {"rfi":"open","vs_open":"call","vs_sb_open":"call","vs_threebet":"call",
                          "vs_shove":"call","push_fold":"push"}[scenario]
         hands = {h: {pseudo_action: 100} for h in HANDS}
+    elif position == "BB" and scenario in ("vs_open", "vs_sb_open"):
+        hands = _bb_vs_open_pc_proxy()
     elif profile == "builtin:gto_heuristic":
         hands = _gto_ranges(position, players) if scenario == "rfi" else {}
-    elif position == "BB" and scenario == "vs_sb_open":
-        hands = _bb_vs_sb_open_pc_proxy()
     elif profile == "builtin:pc_gto_80bb":
         from bots.pc_gto_80bb_ranges import rfi_actions
         hands = ({h: rfi_actions(h, position, players) for h in HANDS}
                  if scenario == "rfi" and position != "BB" else
-                 _bb_fixed_gto_vs_open(players) if scenario == "vs_open" and position == "BB" else {})
-    elif position == "BB" and scenario == "vs_open":
-        hands = _bb_fixed_gto_vs_open(players)
+                 {})
     elif scenario == "rfi" and position in A17_MAX_OPEN_BOX_BY_POSITION:
         cutoff = A17_MAX_OPEN_BOX_BY_POSITION[position]
         extra = A17_RFI_EXTRA_BOXES_BY_POSITION.get(position, ())
@@ -335,13 +334,9 @@ def preset(profile, position="3", scenario="rfi", players=9, stack_bb=20):
             "scenario": scenario, "stack_bb": stack_bb, "boxes": boxes,
             "box_order": list(range(1, 18)), "hands": hands,
             "base_profile": profile,
-            "range_origin": ("bb_sb_pc_btn_proxy_v1"
-                             if position == "BB" and scenario == "vs_sb_open"
-                             and profile != "builtin:any_two"
-                             else "gto_fixed_bb_vs_open"
-                             if position == "BB" and scenario == "vs_open"
-                             and profile in ("builtin:a17_v5", "builtin:a17_legacy",
-                                             "builtin:pc_gto_80bb") else None),
+            "range_origin": ("bb_generic_pc_btn_proxy_v1"
+                             if position == "BB" and scenario in ("vs_open", "vs_sb_open")
+                             and profile != "builtin:any_two" else None),
             "readonly": True, "source": "builtin"}
 
 

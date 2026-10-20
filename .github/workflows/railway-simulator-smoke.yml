@@ -43,6 +43,7 @@ jobs:
           PY
           node --check /tmp/plan_bet_graph.js
           node test_plan_equity_chart.js
+          node test_plan_settings.js
       - name: BB vs SB and Plan editor unit tests
         run: |
           python -m py_compile planner_core.py
