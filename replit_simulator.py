@@ -1678,6 +1678,11 @@ def restore_history():
 if __name__ == "__main__":
     restore_history()
     try:
+        cache_report = planner_api.enforce_cache_limit()
+        print("[cache-retention] startup " + json.dumps(cache_report), flush=True)
+    except OSError as exc:
+        print("[cache-retention] startup failed: " + str(exc), flush=True)
+    try:
         print("[storage-diagnostics] " + json.dumps(storage_directory_breakdown(), ensure_ascii=False), flush=True)
     except OSError as exc:
         print("[storage-diagnostics] unavailable: " + str(exc), flush=True)
