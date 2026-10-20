@@ -3,7 +3,7 @@
 <style>
 :root{color-scheme:dark;--bg:#081221;--surface:#14243a;--line:#314660;--fg:#ecf5ff;--muted:#9ab0ca;--accent:#7baaf7}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 60% -35%,#27507a,transparent 70%),var(--bg);font:13px/1.5 Inter,system-ui,sans-serif;color:var(--fg)}
-header,.nav,main,footer{width:min(1510px,96%);margin:auto}header{padding:23px 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-weight:850;font-size:11px;letter-spacing:2px;color:#92baf1}.brand strong{display:block;color:white;font-size:25px;letter-spacing:-.6px}.small{color:var(--muted);font-size:11px}.nav{display:grid;grid-template-columns:repeat(4,1fr);background:#101d30;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px}.tab{border-right:1px solid var(--line);padding:13px 12px;display:flex;gap:9px;color:#91a4bc;text-decoration:none}.tab:last-child{border-right:0}.tab.current{background:#1d3b60;color:#fff;box-shadow:inset 0 -3px #7ca9fa}.tab b{font-size:19px}.tab strong{display:block;font-size:13px}.tab small{font-size:10px}
+header,.nav,main,footer{width:min(1510px,96%);margin:auto}header{padding:23px 0 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-weight:850;font-size:11px;letter-spacing:2px;color:#92baf1}.brand strong{display:block;color:white;font-size:25px;letter-spacing:-.6px}.small{color:var(--muted);font-size:11px}.nav{display:grid;grid-template-columns:repeat(3,1fr);background:#101d30;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px}.tab{border-right:1px solid var(--line);padding:13px 12px;display:flex;gap:9px;color:#91a4bc;text-decoration:none}.tab:last-child{border-right:0}.tab.current{background:#1d3b60;color:#fff;box-shadow:inset 0 -3px #7ca9fa}.tab b{font-size:19px}.tab strong{display:block;font-size:13px}.tab small{font-size:10px}
 main.simulatorLayout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start;width:min(1920px,calc(100% - 28px));max-width:none;margin-inline:auto}
 .simulatorLayout .topColumn{min-width:0;height:clamp(440px,calc((100vw - 48px)/2),700px);overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#3a5471 #102137;align-content:start;padding-bottom:2px}
 .simulatorLayout .resultsPanel{grid-column:1/-1;min-width:0}
@@ -72,7 +72,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .simulatorLayout .parametersColumn,.simulatorLayout .strategiesColumn{grid-column:1/-1}
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><span id="connection" class="badge">Нет соединения</span></header>
-<div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Результаты · позиции</small></span></a></div>
+<div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a></div>
 <main class="simulatorLayout"><div class="column topColumn parametersColumn">
 <section class="panel"><div class="heading"><h2><span class="index">01 / </span>Параметры турнира</h2><button class="btn sm outline" id="preset">Контроль V3</button></div>
 <div class="fields">
@@ -139,7 +139,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </div>
 <section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="/analysis">↗ Открыть в анализе</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="compactCheckpoints" title="Удалить чекпойнты только завершённых сессий; отчёты и прерванные сессии не затрагиваются">Освободить место</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="#analysis">↓ Анализ сессии</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="compactCheckpoints" title="Удалить чекпойнты только завершённых сессий; отчёты и прерванные сессии не затрагиваются">Освободить место</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="trashPanel" id="trashPanel" hidden>
 <div class="trashHeader"><strong>Корзина турниров</strong><span class="muted" id="trashCount">0 сессий</span><button class="btn sm" id="trashReload" type="button">↻ Обновить</button></div>
 <div id="trashItems" class="trashItems"><p class="note">Нажми «Корзина», чтобы загрузить список.</p></div>
@@ -150,9 +150,14 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table class="statsTable"><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="9">Нет результатов</td></tr></tbody></table></div>
-<p class="note">Только итоговые показатели турнира. Подробные префлоп-частоты, Flop/Turn/River C-bet, агрессию, разбивку по позициям и сравнение сессий смотри на листе <a href="/analysis" style="color:#b3d7ff">04 · Анализ</a>. ДИ Уилсона рассчитывается по завершённым турнирам. BB/100 — итог всей раздачи в текущих BB.</p>
+<p class="note">Итоговые показатели турнира. Подробные C-bet и Fold to C-bet на всех улицах, позиционная статистика и сравнение сессий теперь расположены ниже на этом же листе — в разделе «Анализ турниров». ДИ Уилсона рассчитывается по завершённым турнирам. BB/100 — итог всей раздачи в текущих BB.</p>
 </section>
-</main><footer>SKACHKOV Poker System · Legacy Engine · Railway Volume /data · Реализация → Проверка → Анализ → План</footer>
+<section class="panel" id="analysis" style="grid-column:1/-1;min-width:0">
+<details id="analysisDetails"><summary style="cursor:pointer;font-weight:800;font-size:16px;color:#c9e2ff;padding:4px 0">▾ 04 / Анализ турниров · C-bet / Fold to C-bet · позиции · сравнение</summary>
+<p class="note">Статистика берётся из фактических действий в выбранной сессии, включая числители и знаменатели возможностей. Для старых сессий неизвестные показатели не подменяются нулём.</p>
+<iframe id="analysisFrame" title="Анализ турниров" loading="lazy" style="display:block;width:100%;height:1500px;min-height:700px;border:0;background:transparent" referrerpolicy="same-origin"></iframe>
+</details></section>
+</main><footer>SKACHKOV Poker System · 01 Реализация (включая анализ) → 02 План → 03 Постфлоп</footer>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -296,7 +301,7 @@ function renderLeaderboard(s){
 }
 function present(s){
  selected=s;if(!s)return;
- $('openAnalysis').href='/analysis?session='+encodeURIComponent(s.id);
+ $('openAnalysis').href='#analysis';if($('analysisDetails').open)loadAnalysisSession(s.id);
  const active=['running','starting'].includes(s.status);
  $('runStatus').textContent=({running:'Выполняется',starting:'Запускается',completed:'Завершена',imported:'Загружена',failed:'Ошибка',cancelled:'Остановлена',interrupted:'Прервана'})[s.status]||s.status;
  $('runStatus').className='badge'+(['completed','imported'].includes(s.status)?' ok':['failed','interrupted'].includes(s.status)?' fail':'');
@@ -321,7 +326,7 @@ function present(s){
 function empty(){
  selected=null;['completed','hands','hps','started'].forEach(id=>$(id).textContent='—');
  $('fill').style.width='0';$('progress').textContent='Нет данных';$('eta').textContent='';$('runStatus').textContent='—';$('sessionProtocol').textContent='Префлоп: —';
- $('leader').replaceChildren();$('openAnalysis').href='/analysis';$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;$('resume').disabled=true;working=false;valid();
+ $('leader').replaceChildren();$('openAnalysis').href='#analysis';if($('analysisDetails').open)loadAnalysisSession('');$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;$('resume').disabled=true;working=false;valid();
 }
 async function refresh(){
  const result=await get('/api/runs');sessions=result.runs||[];
@@ -524,6 +529,27 @@ $('checkData').onclick=async()=>{
  }catch(e){feedback(e.message,true)}
 };
 $('copyLog').onclick=()=>navigator.clipboard.writeText($('log').textContent).then(()=>feedback('Журнал скопирован')).catch(()=>feedback('Копирование недоступно',true));
+// Keep the legacy /analysis endpoint as a compatibility source while its
+// complete workspace is now a section of the Realization page.
+function loadAnalysisSession(id){
+ const frame=$('analysisFrame');
+ const src='/analysis?embed=1'+(id?'&session='+encodeURIComponent(id):'');
+ if(frame.dataset.src!==src){frame.dataset.src=src;frame.src=src}
+}
+$('analysisDetails').addEventListener('toggle',()=>{
+ if($('analysisDetails').open)loadAnalysisSession(selected?.id||'');
+});
+$('openAnalysis').addEventListener('click',()=>{
+ $('analysisDetails').open=true;
+ loadAnalysisSession(selected?.id||'');
+});
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==$('analysisFrame').contentWindow)return;
+ if(event.data?.type!=='skachkov-analysis-height')return;
+ const height=Number(event.data.height);
+ if(Number.isFinite(height)&&height>=250&&height<30000)
+   $('analysisFrame').style.height=Math.ceil(height+20)+'px';
+});
 $('key').value=sessionStorage.getItem('skachkov_key')||'';reset();if(token())connect();
 setInterval(()=>{if(token()&&sessions.some(x=>['running','starting'].includes(x.status)))refresh().catch(e=>feedback(e.message,true))},4000);
 setInterval(()=>{if(token()&&!sessions.some(x=>['running','starting'].includes(x.status)))refresh().catch(e=>feedback(e.message,true))},60000);

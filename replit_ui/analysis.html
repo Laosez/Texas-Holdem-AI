@@ -35,7 +35,14 @@ tbody tr:nth-child(even) td{background:#15283b}tbody tr:nth-child(even) td:first
 footer{color:#758daa;font-size:11px;margin:13px auto 40px}
 @media(max-width:950px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:1fr}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:580px){.filters,.comparisonFilters{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.tab{padding:9px 4px;gap:3px;justify-content:center}.tab b{font-size:14px}.tab strong{font-size:11px}.tab small{display:none}.access{width:100%}.barRow{grid-template-columns:82px minmax(0,1fr) 82px}.panel{padding:13px}}
-</style></head><body>
+</style>
+<style>
+html.embedded body{background:transparent}
+html.embedded header,html.embedded .nav,html.embedded footer{display:none}
+html.embedded main{width:100%;padding:0;margin:0;gap:12px}
+html.embedded .foot a{display:none}
+</style>
+</head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>TOURNAMENT ANALYTICS</strong></div>
 <div class="access"><input id="key" type="password" autocomplete="off" placeholder="POKER_RUNNER_KEY" aria-label="Ключ доступа"><button class="btn primary" id="connect">Подключить</button></div></header>
 <div class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Эксперименты</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Сценарии</small></span></a><a class="tab current" aria-current="page" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Турниры · позиции · сравнение</small></span></a></div>
@@ -63,11 +70,11 @@ footer{color:#758daa;font-size:11px;margin:13px auto 40px}
 <p class="note">RFI, 3-bet и 4-bet имеют разные знаменатели возможностей. Наведи курсор на процент, чтобы увидеть фактический счётчик, если он сохранён.</p></div></details></section>
 <section class="panel"><details open><summary><span class="index">03 / </span><span class="sectionTitle">Postflop</span><span class="sectionMeta">Три барреля · агрессия</span></summary><div class="sectionBody">
 <div class="bars" id="barrels"></div>
-<div class="tableScroll"><table><thead><tr><th>Улица</th><th>C-bet %</th><th>Возможностей</th><th>AF</th><th>Bet + Raise</th><th>Call</th></tr></thead><tbody id="postflop"><tr><td colspan="6">Нет данных</td></tr></tbody></table></div>
+<div class="tableScroll"><table><thead><tr><th>Улица</th><th>C-bet %</th><th>C-bet · n / opp</th><th>Fold to C-bet %</th><th>Fold to C-bet · n / opp</th><th>AF</th><th>Bet + Raise</th><th>Call</th></tr></thead><tbody id="postflop"><tr><td colspan="8">Нет данных</td></tr></tbody></table></div>
 <div class="tableScroll" style="margin-top:12px"><table><thead><tr><th>Метрика</th><th>Значение</th><th>Наблюдений</th></tr></thead><tbody id="postOther"></tbody></table></div>
-<p class="note">Turn/River C-bet требуют колла предыдущего барреля без рейза. AF — отношение агрессивных действий к коллам, не процент. BB/100 — результат всей раздачи, а не отдельной улицы.</p></div></details></section></div>
+<p class="note">C-bet: успешные продолженные ставки / фактические возможности префлоп-агрессора (turn/river — последовательные баррели после колла без рейза). Fold to C-bet: фолды / случаи, когда игрок столкнулся именно с этим баррелем, не с произвольной ставкой. Для прежних сессий отсутствующие счётчики показываются как «—». AF — отношение агрессивных действий к коллам, не процент; BB/100 — результат всей раздачи.</p></div></details></section></div>
 <section class="panel"><details open><summary><span class="index">04 / </span><span class="sectionTitle">Позиционная аналитика</span><span class="sectionMeta">Фактические позиции в каждой раздаче</span></summary><div class="sectionBody">
-<div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>Flop C-bet</th><th>Turn C-bet</th><th>River C-bet</th><th>Flop AF</th><th>Net bb/100</th></tr></thead><tbody id="positionTable"></tbody></table></div>
+<div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>Flop C-bet</th><th>Turn C-bet</th><th>River C-bet</th><th>Flop Fold to C-bet</th><th>Turn Fold to C-bet</th><th>River Fold to C-bet</th><th>Flop AF</th><th>Net bb/100</th></tr></thead><tbody id="positionTable"></tbody></table></div>
 <p class="note">При «Все размеры» SB включает и HU button/SB; UTG/MP определяются текущим размером стола. Для строгого сравнения выбирай конкретный размер.</p></div></details></section>
 <section class="panel" id="compare"><details open><summary><span class="index">05 / </span><span class="sectionTitle">Сравнение стратегий / сессий</span><span class="sectionMeta">A → B · Δ</span></summary><div class="sectionBody">
 <div class="comparisonFilters">
@@ -77,7 +84,7 @@ footer{color:#758daa;font-size:11px;margin:13px auto 40px}
 <div id="compareNotice" class="comparisonNotice">Выбери сессию B для сравнения. Дельта описательная, не доказательство превосходства стратегии.</div>
 <div class="tableScroll" style="margin-top:12px"><table><thead><tr><th>Показатель</th><th>A</th><th>B</th><th>Δ (B − A)</th><th>Единица</th></tr></thead><tbody id="compareMetrics"></tbody></table></div>
 <div class="heading" style="margin:17px 0 9px"><h2 style="font-size:13px">Сравнение позиций</h2><div style="min-width:200px"><label for="compareMetric">Метрика для позиционного сравнения</label>
-<select id="compareMetric"><option value="net_bb_100">Net bb/100</option><option value="vpip">VPIP</option><option value="pfr">PFR</option><option value="rfi">RFI</option><option value="threebet">3-bet</option><option value="flop_cbet">Flop C-bet</option><option value="turn_cbet">Turn C-bet</option><option value="river_cbet">River C-bet</option></select></div></div>
+<select id="compareMetric"><option value="net_bb_100">Net bb/100</option><option value="vpip">VPIP</option><option value="pfr">PFR</option><option value="rfi">RFI</option><option value="threebet">3-bet</option><option value="flop_cbet">Flop C-bet</option><option value="turn_cbet">Turn C-bet</option><option value="river_cbet">River C-bet</option><option value="flop_fold_to_cbet">Flop Fold to C-bet</option><option value="turn_fold_to_cbet">Turn Fold to C-bet</option><option value="river_fold_to_cbet">River Fold to C-bet</option></select></div></div>
 <div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук A</th><th>Рук B</th><th>A</th><th>B</th><th>Δ (B − A)</th></tr></thead><tbody id="comparePositions"></tbody></table></div>
 <p class="note">Для процентов Δ измеряется в процентных пунктах; для AF — в единицах AF, для Net bb/100 — в BB/100. Нет возможности измерения — «—», а не 0%. Статистическая значимость разности не вычисляется без достаточных исходных данных.</p>
 </div></details></section>
@@ -85,11 +92,12 @@ footer{color:#758daa;font-size:11px;margin:13px auto 40px}
 </main><footer>SKACHKOV Poker System · 01 Реализация → 02 План → 03 Постфлоп → 04 Анализ</footer>
 <script>
 'use strict';
+if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embedded');
 const $=id=>document.getElementById(id);
 const seats=['9','8','7','6','5','4','3','SB','BB'];
 const seatNames={'9':'9 · ранняя','8':'8 · ранняя','7':'7 · средняя','6':'6 · LJ','5':'5 · HJ','4':'4 · CO','3':'3 · BTN','SB':'SB','BB':'BB'};
 const preMetrics=['vpip','pfr','rfi','threebet','fourbet'];
-const percentMetrics=new Set([...preMetrics,'flop_cbet','turn_cbet','river_cbet','fold_to_bet','check_raise','wsd']);
+const percentMetrics=new Set([...preMetrics,'flop_cbet','turn_cbet','river_cbet','flop_fold_to_cbet','turn_fold_to_cbet','river_fold_to_cbet','fold_to_bet','check_raise','wsd']);
 const names={a17_preflop:'A17 V5',pc_gto_80bb:'PC GTO 80 BB',gto:'GTO',gto_postflop_v1:'GTO V1',gto_postflop_v2:'GTO V2',gto_postflop_v3:'GTO V3',gto_postflop_v4:'GTO V4',tag_postflop_v1:'TAG',lag_postflop_v1:'LAG',s100_postflop_v1:'S100',trapper_postflop_v1:'Trapper',chaser_postflop_v1:'Chaser'};
 let jobs=[],runA=null,runB=null,sessionTicket=0,primaryTicket=0,secondaryTicket=0;
 const cache=new Map(),expanded=new Set();
@@ -250,8 +258,12 @@ function renderPre(){
   root.append(tr);
  }
 }
+function ratioCount(record,metric){
+ const n=numerator(record,metric),d=denom(record,metric);
+ return n===null||d===null?'—':integer(n)+' / '+integer(d);
+}
 function renderPost(){
- const root=clearRow('postflop',6,!runA?'Нет выбранной сессии':'');
+ const root=clearRow('postflop',8,!runA?'Нет выбранной сессии':'');
  const other=clearRow('postOther',3,'');
  const bars=$('barrels');bars.replaceChildren();
  if(!runA)return;
@@ -260,8 +272,11 @@ function renderPost(){
   const name=street[0].toUpperCase()+street.slice(1),k=street+'_cbet',raw=data.post_raw||{};
   const pct=getMetric(data,k)??(street==='flop'?getMetric(data,'cbet'):null);
   const opp=denom(data,k)??(street==='flop'?denom(data,'cbet'):null);
-  const tr=rowOf([name,percent(pct),integer(opp),num(data[street+'_af'],2),
-                  integer(raw[street+'_aggressive']),integer(raw[street+'_calls'])]);
+  const fold=street+'_fold_to_cbet',foldPct=getMetric(data,fold);
+  const tr=rowOf([name,percent(pct),ratioCount(data,k),percent(foldPct),ratioCount(data,fold),
+                  num(data[street+'_af'],2),integer(raw[street+'_aggressive']),integer(raw[street+'_calls'])]);
+  tr.children[1].title=countTitle(data,k);
+  tr.children[3].title=countTitle(data,fold);
   root.append(tr);
   const row=document.createElement('div');row.className='barRow';
   const nameCell=document.createElement('span');nameCell.textContent=name+' C-bet';
@@ -270,6 +285,15 @@ function renderPost(){
   fill.style.width=pct===null?'0%':Math.max(0,Math.min(100,pct))+'%';track.append(fill);
   const value=document.createElement('strong');value.textContent=percent(pct);
   row.append(nameCell,track,value);bars.append(row);
+  const foldRow=document.createElement('div');foldRow.className='barRow';
+  const foldLabel=document.createElement('span');foldLabel.textContent=name+' Fold to C-bet';
+  const foldTrack=document.createElement('div');foldTrack.className='barTrack';
+  const foldFill=document.createElement('div');foldFill.className='barFill';
+  foldFill.style.width=foldPct===null?'0%':Math.max(0,Math.min(100,foldPct))+'%';
+  foldFill.style.background='linear-gradient(90deg,#b37d58,#efc48b)';
+  foldTrack.append(foldFill);
+  const foldValue=document.createElement('strong');foldValue.textContent=percent(foldPct);
+  foldRow.append(foldLabel,foldTrack,foldValue);bars.append(foldRow);
  }
  for(const [label,k] of [['Fold to bet','fold_to_bet'],['Check-raise','check_raise'],['W$SD','wsd']]){
   other.append(rowOf([label,percent(getMetric(data,k)),integer(denom(data,k))]));
@@ -277,14 +301,15 @@ function renderPost(){
  other.append(rowOf(['Net bb/100',num(data.net_bb_100,2),integer(data.post_raw?.net_hands)]));
 }
 function renderPositions(){
- const root=clearRow('positionTable',11,!runA?'Нет выбранной сессии':'');if(!runA)return;
+ const root=clearRow('positionTable',14,!runA?'Нет выбранной сессии':'');if(!runA)return;
  const data=scopedSeats(runA,$('playerA').value);
  for(const s of seats){const r=data[s];if(!r||!r.hands_observed)continue;
   root.append(rowOf([seatLabel(s),integer(r.hands_observed),percent(r.vpip),percent(r.pfr),
   percent(r.rfi),percent(r.threebet),percent(r.flop_cbet??r.cbet),percent(r.turn_cbet),
-  percent(r.river_cbet),num(r.flop_af,2),num(r.net_bb_100,2)]));
+  percent(r.river_cbet),percent(r.flop_fold_to_cbet),percent(r.turn_fold_to_cbet),
+  percent(r.river_fold_to_cbet),num(r.flop_af,2),num(r.net_bb_100,2)]));
  }
- if(!root.children.length)clearRow('positionTable',11,'Нет позиционного экспорта для выбранного размера стола / сессии');
+ if(!root.children.length)clearRow('positionTable',14,'Нет позиционного экспорта для выбранного размера стола / сессии');
 }
 function render(){
  if(!runA){emptyData();return}
@@ -340,6 +365,7 @@ function compatibility(a,b,pa,pb){
 }
 function metricLabel(metric){return ({vpip:'VPIP',pfr:'PFR',rfi:'RFI',threebet:'3-bet',fourbet:'4-bet',
   flop_af:'Flop AF',turn_af:'Turn AF',river_af:'River AF',flop_cbet:'Flop C-bet',turn_cbet:'Turn C-bet',river_cbet:'River C-bet',
+  flop_fold_to_cbet:'Flop Fold to C-bet',turn_fold_to_cbet:'Turn Fold to C-bet',river_fold_to_cbet:'River Fold to C-bet',
   fold_to_bet:'Fold to bet',check_raise:'Check-raise',wsd:'W$SD',net_bb_100:'Net bb/100'}[metric]||metric)}
 function delta(a,b,metric){if(a===null||b===null)return '—';const n=b-a;
  return (n>0?'+':'')+num(n,2)}
@@ -354,6 +380,7 @@ function renderCompare(){
  'Настройки и версии совпадают, остальные профили сопоставимы. Даже при совпадении условий Δ не является доказательством статистически значимого превосходства.';
  const dA=scopeRecord(runA,a),dB=scopeRecord(runB,b);
  const metrics=['vpip','pfr','rfi','threebet','fourbet','flop_cbet','turn_cbet','river_cbet',
+ 'flop_fold_to_cbet','turn_fold_to_cbet','river_fold_to_cbet',
  'flop_af','turn_af','river_af','fold_to_bet','check_raise','wsd','net_bb_100'];
  const root=$('compareMetrics');root.replaceChildren();
  if(st==='all'){
@@ -406,4 +433,9 @@ $('playerB').onchange=renderCompare;
 $('stage').onchange=()=>{render();renderCompare()};
 $('compareMetric').onchange=renderCompare;
 if(accessKey())loadSessions();
+if(document.documentElement.classList.contains('embedded')&&window.parent!==window){
+ const reportHeight=()=>window.parent.postMessage({type:'skachkov-analysis-height',height:Math.ceil(document.body.scrollHeight)},location.origin);
+ new ResizeObserver(reportHeight).observe(document.body);
+ window.addEventListener('load',reportHeight);
+}
 </script></body></html>

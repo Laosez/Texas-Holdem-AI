@@ -449,10 +449,12 @@ def stats_for_folder(folder: Path) -> dict:
                    "rfi": "rfi_opportunities", "threebet": "threebet_opportunities",
                    "fourbet": "fourbet_opportunities"}
     post_metrics = ("flop_af", "turn_af", "river_af", "flop_cbet", "turn_cbet",
-                    "river_cbet", "cbet", "fold_to_bet", "check_raise", "wsd",
+                    "river_cbet", "flop_fold_to_cbet", "turn_fold_to_cbet",
+                    "river_fold_to_cbet", "cbet", "fold_to_bet", "check_raise", "wsd",
                     "net_bb_100")
     post_raw = tuple(f"{st}_{col}" for st in ("flop", "turn", "river")
-                     for col in ("aggressive", "calls", "cbet_n", "cbet_opp")) + (
+                     for col in ("aggressive", "calls", "cbet_n", "cbet_opp",
+                                 "fold_to_cbet_n", "fold_to_cbet_opp")) + (
         "cbet_n", "cbet_opp", "fold_to_bet_n", "fold_to_bet_opp",
         "check_raise_n", "check_raise_opp", "wsd_n", "wsd_opp",
         "net_bb_units", "net_hands")
@@ -555,8 +557,9 @@ def stats_for_folder(folder: Path) -> dict:
         for street in ("flop", "turn", "river"):
             bets, calls = raw.get(street + "_aggressive", 0), raw.get(street + "_calls", 0)
             total[street + "_af"] = round(bets / calls, 4) if calls else None
-        for metric in ("flop_cbet", "turn_cbet", "river_cbet", "cbet",
-                       "fold_to_bet", "check_raise", "wsd"):
+        for metric in ("flop_cbet", "turn_cbet", "river_cbet",
+                       "flop_fold_to_cbet", "turn_fold_to_cbet", "river_fold_to_cbet",
+                       "cbet", "fold_to_bet", "check_raise", "wsd"):
             n, opp = raw.get(metric + "_n", 0), raw.get(metric + "_opp", 0)
             total[metric] = round(100 * n / opp, 4) if opp else None
         net_hands = raw.get("net_hands", 0)

@@ -30,6 +30,14 @@ class TournamentAnalysisTests(unittest.TestCase):
         self.assertIn("function countTitle(record,metric){", html)
         self.assertIn("run.report.tournaments_completed", html)
         self.assertNotIn("eval(", html)
+        realization = app.ROOT.joinpath("replit_ui/index.html").read_text(encoding="utf-8")
+        self.assertIn('id="analysisDetails"', realization)
+        self.assertIn('id="analysisFrame"', realization)
+        self.assertIn("loadAnalysisSession(selected?.id||'')", realization)
+        self.assertIn("flop_fold_to_cbet", html)
+        self.assertIn("turn_fold_to_cbet", html)
+        self.assertIn("river_fold_to_cbet", html)
+        self.assertNotIn('<a class="tab" href="/analysis">', realization)
 
     def test_preflop_stage_and_position_scopes_from_real_counts(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -86,6 +94,26 @@ class TournamentAnalysisTests(unittest.TestCase):
             self.assertEqual(stats["positions"]["3"]["flop_cbet"],100)
             self.assertEqual(stats["positions"]["SB"]["net_bb_100"],-50)
 
+    def test_fold_to_cbet_stage_aggregation_is_ratio_of_sums(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder)
+            write(p, "summary_n3.csv", "bot,hands_observed\nP1,30\n")
+            write(p, "summary_position_n3.csv",
+                  "bot,position,hands_observed\nP1,3,10\nP1,SB,20\n")
+            cols = ("bot,position,table_size,"
+                    "flop_fold_to_cbet_n,flop_fold_to_cbet_opp,"
+                    "turn_fold_to_cbet_n,turn_fold_to_cbet_opp,"
+                    "river_fold_to_cbet_n,river_fold_to_cbet_opp\n")
+            write(p, "postflop_position_stage_summary.csv", cols +
+                  "P1,3,3,1,2,0,1,1,1\n"
+                  "P1,SB,3,2,8,2,3,0,1\n")
+            total = app.stats_for_folder(p)["P1"]["stages"]["3"]["total"]
+            self.assertAlmostEqual(total["flop_fold_to_cbet"], 30)
+            self.assertAlmostEqual(total["turn_fold_to_cbet"], 50)
+            self.assertAlmostEqual(total["river_fold_to_cbet"], 50)
+            self.assertEqual(total["post_raw"]["flop_fold_to_cbet_n"], 3)
+            self.assertEqual(total["post_raw"]["flop_fold_to_cbet_opp"], 10)
+
     def test_absent_street_opportunities_are_missing_not_zero(self):
         with tempfile.TemporaryDirectory() as folder:
             p=Path(folder)
@@ -98,6 +126,9 @@ class TournamentAnalysisTests(unittest.TestCase):
             self.assertIsNone(d["turn_cbet"])
             self.assertIsNone(d["river_cbet"])
             self.assertNotIn("stages",d)
+            self.assertIsNone(d.get("flop_fold_to_cbet"))
+            self.assertIsNone(d.get("turn_fold_to_cbet"))
+            self.assertIsNone(d.get("river_fold_to_cbet"))
 
     def test_stage_postflop_observer_preserves_full_and_seat_counters(self):
         bot=TrackedBot(object(),"P1")
