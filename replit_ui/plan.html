@@ -1246,8 +1246,15 @@ function showBbRfiHint(doc){
   :'На BB нет собственного RFI. Для защиты от SB выбери «BB против SB Raise».';
 }
 function useBbDefenseWhenRfi(){
- if($('heroPosition').value==='BB'&&$('heroScenario').value==='rfi'){
+ const bb=$('heroPosition').value==='BB';
+ const special=$('heroScenario').querySelector('option[value="vs_sb_open"]');
+ if(special)special.disabled=!bb;
+ if(bb&&$('heroScenario').value==='rfi'){
   $('heroScenario').value='vs_sb_open';
+  return true;
+ }
+ if(!bb&&$('heroScenario').value==='vs_sb_open'){
+  $('heroScenario').value='rfi';
   return true;
  }
  return false;
