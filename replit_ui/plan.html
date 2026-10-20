@@ -1174,7 +1174,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
 'use strict';
 const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split('').flatMap((a,r)=>RANKS.split('').map((b,c)=>r===c?a+b:r<c?a+b+'s':b+a+'o'));
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
-const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против открытия',vs_sb_open:'BB против SB Raise',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
+const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против опен-рейза',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
  {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
@@ -1240,22 +1240,17 @@ async function getSource(profile,position,scenario,players,stack_bb){
 function showBbRfiHint(doc){
  const bb=doc?.position==='BB';
  $('bbRfiInfo').classList.toggle('hidden',!bb);
- if(bb)$('bbRfiInfo').textContent=doc.scenario==='vs_sb_open'
-  ?'BB против SB: расширенная экспериментальная защита из PC BTN RFI proxy. Это НЕ чарт защиты PC GTO и не GTO-солвер. Для других открытий выбери «Против открытия».'
-  :doc.scenario==='vs_open'?'BB против открытия с другой позиции: узкая эвристика Fixed GTO.'
-  :'На BB нет собственного RFI. Для защиты от SB выбери «BB против SB Raise».';
+ if(bb)$('bbRfiInfo').textContent=['vs_open','vs_sb_open'].includes(doc.scenario)
+  ?'BB против любого опен-рейза: единая расширенная экспериментальная защита PC BTN RFI proxy. Пока без зависимости от позиции агрессора, НЕ GTO-чарт ответов.'
+  :'На BB нет собственного RFI. Для защиты выбери «Против опен-рейза».';
 }
 function useBbDefenseWhenRfi(){
  const bb=$('heroPosition').value==='BB';
- const special=$('heroScenario').querySelector('option[value="vs_sb_open"]');
- if(special)special.disabled=!bb;
- if(bb&&$('heroScenario').value==='rfi'){
-  $('heroScenario').value='vs_sb_open';
-  return true;
+ if(bb&&['rfi','vs_sb_open'].includes($('heroScenario').value)){
+  $('heroScenario').value='vs_open';return true;
  }
  if(!bb&&$('heroScenario').value==='vs_sb_open'){
-  $('heroScenario').value='rfi';
-  return true;
+  $('heroScenario').value='rfi';return true;
  }
  return false;
 }
@@ -1280,12 +1275,11 @@ function preserveCurrentSlot(){
  };
 }
 function heroContextMessage(doc){
- if(doc.position==='BB'&&doc.scenario==='vs_sb_open')return 'BB против SB: экспериментальная защита PC BTN RFI proxy (НЕ оригинальный чарт PC GTO).';
- if(doc.position==='BB'&&doc.scenario==='vs_open'&&doc.range_origin==='gto_fixed_bb_vs_open')
-  return 'BB против открытия: используется GTO Fixed, не оцифрованный PC GTO BB Defense.';
+ if(doc.position==='BB'&&['vs_open','vs_sb_open'].includes(doc.scenario))
+  return 'BB против любого опен-рейза: расширенная экспериментальная защита PC BTN RFI proxy (НЕ оцифрованный ответ PC GTO).';
  if((doc.base_profile||doc.id)==='builtin:pc_gto_80bb'&&doc.scenario!=='rfi'&&!(doc.position==='BB'&&['vs_open','vs_sb_open'].includes(doc.scenario))) return 'PC GTO 80bb: для '+SCENARIOS[doc.scenario]+' исходные чарты ответов пока не оцифрованы. Пустые руки — не Fold.';
  if(doc.position==='BB'&&doc.scenario==='rfi')
-  return 'На BB нет RFI: для просмотра защиты выбери «Против открытия».';
+  return 'На BB нет RFI: выбери «Против опен-рейза».';
  return 'Диапазон: '+doc.name+' · '+doc.position+' · '+SCENARIOS[doc.scenario];
 }
 async function loadHero({contextChange=false}={}){
@@ -1351,10 +1345,8 @@ async function loadHero({contextChange=false}={}){
    slot={hands:copy(baseline.hands),stack_bb:stack};
    hero.contexts[key]=slot;origin=baseline.range_origin||null;
    dirty=true;
-  }else if(position==='BB'&&scenario==='vs_sb_open')origin='bb_sb_pc_btn_proxy_v1';
-  else if(position==='BB'&&scenario==='vs_open'
-            &&['builtin:a17_v5','builtin:a17_legacy','builtin:pc_gto_80bb'].includes(hero.base_profile))
-   origin='gto_fixed_bb_vs_open';
+  }else if(position==='BB'&&['vs_open','vs_sb_open'].includes(scenario))
+   origin='bb_generic_pc_btn_proxy_v1';
   hero={...hero,position,scenario,players,stack_bb:slot.stack_bb,
         hands:copy(slot.hands),range_origin:origin};
   undos=[];bulkSelected.clear();selectedBoxes.clear();brushMode='inspect';
@@ -1460,12 +1452,11 @@ function normalizeFixedSeats(){
   const previous=fixedSeatOpponentHistory.get(position);
   const defaultMode='range';
   return {profile:'builtin:pc_gto_80bb',position,
-   scenario:position==='BB'?'vs_sb_open':'rfi',players:9,selector:'active',
+   scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
    postflop:'gto',entry_mode:defaultMode,
    entry_pct:defaultMode==='never'?0:100,
    ...(previous||{}),position,players:9,
-   scenario:position==='BB'&&['vs_open','vs_sb_open'].includes(previous?.scenario)
-     ?previous.scenario:position==='BB'?'vs_sb_open':(previous?.scenario||'rfi')};
+   scenario:position==='BB'?'vs_open':(previous?.scenario||'rfi')};
  });
  return heroPos;
 }
@@ -1593,7 +1584,7 @@ function renderOpponents(){
    opponents[i].profile=p.value; // Changing range must not move a fixed position.
    invalidateEquity();renderOpponents();loadVillain();
   };row.append(p);
-  const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).filter(([value])=>value!=='vs_sb_open'||opp.position==='BB').map(([value,label])=>({value,label})),opp.scenario);
+  const scenario=el('select');refill(scenario,Object.entries(SCENARIOS).map(([value,label])=>({value,label})),opp.scenario);
   scenario.disabled=false;scenario.onchange=()=>{opponents[i].scenario=scenario.value;invalidateEquity();loadVillain()};row.append(scenario);
   const selector=el('select');refill(selector,[{value:'active',label:'Все активные'},...Object.entries(ACTIONS).filter(x=>x[0]!=='fold').map(([value,label])=>({value,label}))],opp.selector);
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
@@ -4959,7 +4950,7 @@ async function connect(){
   $('oppCount').value='8';opponents=Array.from({length:8},(_,i)=>({
    profile:'builtin:pc_gto_80bb',
    position:['9','8','7','6','5','4','SB','BB'][i],
-   scenario:i===7?'vs_sb_open':'rfi',players:9,selector:'active',
+   scenario:i===7?'vs_open':'rfi',players:9,selector:'active',
    postflop:'gto',entry_mode:'range',entry_pct:100}));
   renderOpponents();$('viewOpponent').value='0';
   sessionStorage.setItem('skachkov_key',token());
