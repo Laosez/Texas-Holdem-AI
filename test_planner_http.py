@@ -295,7 +295,7 @@ class PlanHttpTests(unittest.TestCase):
         page=service.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('id="bbRfiInfo"',page)
         self.assertIn("function useBbDefenseWhenRfi()",page)
-        self.assertIn("if($('heroPosition').value==='BB'&&$('heroScenario').value==='rfi')",page)
+        self.assertIn("if(bb&&$('heroScenario').value==='rfi')",page)
         self.assertIn("$('heroScenario').value='vs_sb_open';",page)
         self.assertIn("useBbDefenseWhenRfi();\n const profile=",page)
         self.assertIn("useBbDefenseWhenRfi();\n   const doc=",page)
