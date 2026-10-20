@@ -7,7 +7,7 @@
 header,.nav,main,footer{width:min(1530px,96%);margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:22px 0 16px}
 .brand{font-size:11px;letter-spacing:2px;font-weight:800;color:#95c3ff}.brand strong{display:block;font-size:24px;color:white;letter-spacing:-.4px}
 .right,.buttons,.tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.nav{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:17px}
+.nav{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:17px}
 .tab{padding:11px 13px;border-right:1px solid var(--line);text-decoration:none;color:#9cb4cb;display:flex;gap:10px}
 .tab:last-child{border:0}.tab.current{background:#1d4065;color:#fff;box-shadow:inset 0 -3px #79a9fa}.tab b{font-size:18px}.tab strong{display:block}.tab small{font-size:10px}
 main{display:grid;gap:15px;margin-bottom:30px}.panel{padding:19px;border:1px solid var(--line);background:linear-gradient(135deg,#192d46,#101e31);border-radius:12px;min-width:0}
@@ -44,7 +44,7 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <div class="right"><span id="connection" class="badge">Каталог</span>
 <input style="width:190px" id="key" type="password" aria-label="Ключ управления" placeholder="POKER_RUNNER_KEY" autocomplete="off">
 <button class="btn sm" type="button" id="connect">Подключиться</button></div></header>
-<nav class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Монте-Карло</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп</strong><small>150 бордов · EV</small></span></a><a class="tab" href="/analysis"><b>04</b><span><strong>Анализ</strong><small>Сессии</small></span></a></nav>
+<nav class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Монте-Карло</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп</strong><small>150 бордов · EV</small></span></a></nav>
 <main>
 <section class="panel" id="board150Catalog">
 <div class="heading"><h2>03 / Справочник 150 типов борда</h2><span class="badge" id="catalogTotal">150 классов</span></div>
