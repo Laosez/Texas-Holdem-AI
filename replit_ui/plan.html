@@ -1301,7 +1301,7 @@ async function loadHero({contextChange=false}={}){
    if(stored&&!initialPlanLoad){
     $('players').value='9';
     renderPositions($('heroPosition'),stored.position);
-    $('heroScenario').value=stored.scenario;
+    $('heroScenario').value=stored.scenario==='vs_sb_open'?'vs_open':stored.scenario;
    }
    if(lastParts&&!initialPlanLoad){
     renderPositions($('heroPosition'),lastParts[2]);
@@ -1319,6 +1319,7 @@ async function loadHero({contextChange=false}={}){
     ?(activeStrategyRunKey=strategyRunKey(profile,$('heroPostflop').value,doc.position,doc.scenario),false)
     :chooseStrategyRun(profile,$('heroPostflop').value,doc.position,doc.scenario);
    renderOpponents();paintEditor();renderAll();renderHandDecomposition();
+   persistPlanSettings();
    msg((restored?'Из кэша · ':'')+heroContextMessage(doc));
   }catch(e){
    if(hero){
@@ -1355,6 +1356,7 @@ async function loadHero({contextChange=false}={}){
   setHeroFields(hero);
   const restored=chooseStrategyRun(profile,$('heroPostflop').value,hero.position,hero.scenario);
   renderOpponents();paintEditor();renderAll();renderHandDecomposition();
+  persistPlanSettings();
   msg((restored?'Из кэша · ':'')+heroContextMessage(hero)+(dirty?' · Есть изменения в других позициях.':''));
  }catch(e){if(hero)setHeroFields(hero);msg(e.message,true)}
  finally{loadingSource=false}
@@ -4965,6 +4967,7 @@ async function savePlan(forceNew=false){
   refill($('heroProfile'),profileOptions(),saved.ref);
   localStorage.setItem('skachkov_last_plan_profile',saved.ref);
   setHeroFields(saved);paintEditor();renderOpponents();renderAll();
+  persistPlanSettings();
   msg('Сохранена '+saved.name+' · версия '+saved.version);
  }catch(e){msg('Не удалось сохранить: '+e.message,true)}
 }
