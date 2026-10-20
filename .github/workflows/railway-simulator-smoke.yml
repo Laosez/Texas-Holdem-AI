@@ -25,6 +25,65 @@ on:
   workflow_dispatch:
 
 jobs:
+  analysis-metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Targeted analysis, session and C-bet tests
+        run: |
+          python -m py_compile export_preflop_ranges_v4.py replit_simulator.py
+          python -m unittest test_postflop_telemetry test_analysis test_screen1 test_replit_simulator -v
+      - name: JavaScript syntax of implementation and embedded analysis
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('index.html', 'analysis.html'):
+              html = (Path('replit_ui') / name).read_text(encoding='utf-8')
+              code = html.split('<script>', 1)[1].split('</script>', 1)[0]
+              Path('/tmp/analysis_' + name + '.js').write_text(code, encoding='utf-8')
+          PY
+          node --check /tmp/analysis_index.html.js
+          node --check /tmp/analysis_analysis.html.js
+      - name: Export two tournaments and verify telemetry invariants
+        env:
+          THAI_ENGINE_IMPL: legacy
+        run: |
+          python -u export_preflop_ranges_v4.py \
+            --players a17_tag,gto --tournaments 2 --parallel 1 \
+            --seed 2042 --chips 500 --sb 1 --bb 2 \
+            --blind-increase-every 50 --max-hands 10000 \
+            --seat-mode rotate --out output/analysis_metrics_smoke
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          folder=Path('output/analysis_metrics_smoke')
+          for name in ('postflop_summary.csv',
+                       'postflop_position_summary.csv',
+                       'postflop_position_stage_summary.csv'):
+              with (folder/name).open(newline='') as fh:
+                  reader=csv.DictReader(fh)
+                  for street in ('flop','turn','river'):
+                      metric=street+'_fold_to_cbet'
+                      assert metric in reader.fieldnames, (name,metric)
+                      assert metric+'_n' in reader.fieldnames
+                      assert metric+'_opp' in reader.fieldnames
+                  for row in reader:
+                      for street in ('flop','turn','river'):
+                          for metric in (street+'_cbet', street+'_fold_to_cbet'):
+                              n=float(row[metric+'_n'])
+                              opp=float(row[metric+'_opp'])
+                              assert 0 <= n <= opp, (name,metric,n,opp)
+                              expected=100*n/opp if opp else None
+                              reported=row[metric]
+                              if expected is None: assert reported=='', (name,metric,reported)
+                              else: assert abs(float(reported)-expected)<=0.00006, (name,metric,reported,expected)
+          print('Telemetry numerators, opportunities and CSV percentages verified')
+          PY
+
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 10
