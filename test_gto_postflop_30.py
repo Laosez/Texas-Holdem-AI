@@ -160,7 +160,7 @@ class AdaptiveGTO30Tests(unittest.TestCase):
                 for step in hand["steps"]:
                     self.assertIn(step["street"], ("flop","turn","river"))
                     self.assertIn("board150", step)
-                    self.assertIn("board_anytwo_pair_plus_pct", step)
+                    self.assertIn("board_anytwo_rank_pair_pct", step)
                     self.assertEqual(len(step["hero_hole"]), 2)
                     self.assertIn(step["decision"],
                                   ("fold","call","check","bet","raise"))
