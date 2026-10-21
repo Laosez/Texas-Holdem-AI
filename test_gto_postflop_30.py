@@ -142,6 +142,31 @@ class AdaptiveGTO30Tests(unittest.TestCase):
         self.assertEqual(observer.hands[0][3],"P1")
         self.assertEqual(observer.hands[0][0],0)
 
+    def test_real_exporter_keeps_last_five_traces_from_completed_tournament(self):
+        from export_preflop_ranges_v4 import run_one
+        with patch.dict("os.environ", {"THAI_ENGINE_IMPL":"legacy"}):
+            result = run_one((1, [
+                "split:pc_gto_80bb:gto_postflop_30_5",
+                "split:pc_gto_80bb:gto_postflop_30_10",
+            ], 80, 1, 2, 20, 60, 311, 0))
+        tournament_id, _, _, outcome, _, _, _ = result
+        self.assertEqual(tournament_id, 1)
+        log = outcome["gto30_last5"]
+        self.assertEqual(len(log), 2)
+        self.assertEqual({item["window"] for item in log}, {5,10})
+        for entry in log:
+            self.assertLessEqual(len(entry["hands"]), 5)
+            for hand in entry["hands"]:
+                for step in hand["steps"]:
+                    self.assertIn(step["street"], ("flop","turn","river"))
+                    self.assertIn("board150", step)
+                    self.assertIn("board_anytwo_pair_plus_pct", step)
+                    self.assertEqual(len(step["hero_hole"]), 2)
+                    self.assertIn(step["decision"],
+                                  ("fold","call","check","bet","raise"))
+                    self.assertIn(step["decision_mode"],
+                                  ("gto20_fallback","gto30_adapted"))
+
     def test_postflop_only_not_full_preflop_equilibrium(self):
         bot=AdaptiveGTO30Bot(5)
         with self.assertRaisesRegex(ValueError,"postflop-only"):
