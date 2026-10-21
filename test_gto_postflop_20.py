@@ -75,7 +75,7 @@ class GTO20Tests(unittest.TestCase):
             self.assertNotIn(old,ev.PROFILE_NAMES)
         page=app.PLAN_UI.read_text(encoding="utf-8")
         self.assertIn('<option value="gto20">GTO 2.0',page)
-        self.assertIn('<option value="gto">GTO 1',page)
+        self.assertIn('<option value="gto" selected>GTO 1',page)
         for old in ("<option value=\"gto2\"","<option value=\"gto3\"",
                     "<option value=\"gto4\""):
             self.assertNotIn(old,page)
