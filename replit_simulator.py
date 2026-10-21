@@ -1476,6 +1476,25 @@ class Handler(BaseHTTPRequestHandler):
                 } for j in jobs]
             self.reply(200, {"runs": data})
             return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto30-trace", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            trace_file = OUT / run_id / "gto30_last5.json"
+            if not trace_file.is_file() or trace_file.is_symlink():
+                self.reply(200, {"bots": [], "tournament": None,
+                                 "message": ("Лог GTO 3.0 появится после завершения "
+                                             "турнира с адаптивной стратегией.")})
+                return
+            try:
+                self.reply(200, json.loads(trace_file.read_text(encoding="utf-8")))
+            except (OSError, ValueError):
+                self.reply(503, {"error": "Не удалось прочитать лог GTO 3.0"})
+            return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/download", path)
         if match:
             run_id = match.group(1)
