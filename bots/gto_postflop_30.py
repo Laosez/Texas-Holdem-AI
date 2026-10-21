@@ -128,6 +128,14 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
             return None
         return model
 
+    def _baseline(self, view):
+        # Preserve the original GTO 2.0 action decision while standardizing
+        # an unopened pot bet to half-pot for the observational experiment.
+        chosen = super().act(view)
+        if chosen.type == "bet":
+            return _amount(view, .50) or chosen
+        return chosen
+
     def act(self, view):
         if view.street not in _STREETS:
             raise ValueError("GTO 3.0 is a postflop-only policy")
@@ -147,7 +155,7 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
         }
         # Do not invent learned behavior on the first hands / in 1-hand EV.
         if model is None or classification is None:
-            return super().act(view)
+            return self._baseline(view)
         legal = {v["type"] for v in (view.legal_actions or ())}
         read = self._read_hand(hole, board)
         tier = self.last_model["relative_tier"]
@@ -161,7 +169,7 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
         # Facing a bet, observed reaction-to-our-cbet is NOT a model of
         # villain's bluffing frequency; retain the vetted GTO 2.0 defense.
         if view.to_call > 0 or "bet" not in legal or not _can_bluff(view):
-            return super().act(view)
+            return self._baseline(view)
 
         if tier >= 3:
             # Value bet slightly more versus calling stations, but a scary
