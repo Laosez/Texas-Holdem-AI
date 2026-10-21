@@ -503,6 +503,17 @@ class Table:
                                                    "virtual_seats":virtual_seats,"button_index":dealer_index}),
         ]
 
+        def notify_postflop_observers():
+            # Public action history only. Deliver even when the hand ends on
+            # a fold before the adaptive bot gets another decision.
+            # No hole cards or winner/score are exposed to the observer.
+            frozen_history = tuple(history)
+            visible_board = tuple(board)
+            for observer_pid, observer in bot_for.items():
+                callback = getattr(observer, "observe_hand", None)
+                if callable(callback):
+                    callback(hand_id, frozen_history, visible_board, observer_pid)
+
         # --- main street loop ---
         for street_name, fn, extra_kwargs in streets:
 
@@ -541,6 +552,7 @@ class Table:
                 on_hand_pot = getattr(self, "on_hand_pot", None)
                 if callable(on_hand_pot):
                     on_hand_pot(hand_id, total_pot, big_blind)
+                notify_postflop_observers()
                 on_hand_end = getattr(self, "on_hand_end", None)
                 if callable(on_hand_end):
                     on_hand_end(hand_id, net, big_blind, (), ())
@@ -588,6 +600,7 @@ class Table:
             for pid in start_chips
         }
 
+        notify_postflop_observers()
         on_hand_end = getattr(self, "on_hand_end", None)
         if callable(on_hand_end):
             showdown_players = tuple(pid for pid, cards in hole.items() if len(cards) == 2)
