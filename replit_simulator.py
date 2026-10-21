@@ -243,6 +243,18 @@ def strategy_catalog():
                                  "genuine two-pair exception", "wet board caution",
                                  "same V1 betting engine for controlled EV comparisons"]
                 },
+                "gto_postflop_30_5": {
+                    "label": "GTO 3.0/5 · память пяти C-bet-ответов (эксперимент)",
+                    "model": "heuristic",
+                    "features": ["last 5 public Fold/Call/Raise responses", "half-pot sizing",
+                                 "Board150 P/S/F/SF/A", "R0–R4", "GTO 2.0 fallback", "five-hand trace"]
+                },
+                "gto_postflop_30_10": {
+                    "label": "GTO 3.0/10 · память десяти C-bet-ответов (эксперимент)",
+                    "model": "heuristic",
+                    "features": ["last 10 public Fold/Call/Raise responses", "half-pot sizing",
+                                 "Board150 P/S/F/SF/A", "R0–R4", "GTO 2.0 fallback", "five-hand trace"]
+                },
                 "lag_postflop_v1": {
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",
                     "model": "heuristic",
