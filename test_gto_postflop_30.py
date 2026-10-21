@@ -111,6 +111,48 @@ class AdaptiveGTO30Tests(unittest.TestCase):
             self.assertEqual(bot.act(wetview).type, "check")
         self.assertEqual(bot.last_model["board_id"],_board_class(WET,"flop")["id"])
 
+    def test_short_vs_long_window_leads_to_different_bluff_decisions(self):
+        short=AdaptiveGTO30Bot(5)
+        long=AdaptiveGTO30Bot(10)
+        for hand in range(12):
+            hist=response("P2","fold" if hand>=7 else "call")
+            short.observe_hand(hand,hist,FLOP,"P1")
+            long.observe_hand(hand,hist,FLOP,"P1")
+        view=make_view(hole=(("Q","h"),("J","c")),board=FLOP,
+                       opponents=("P2",))
+        with patch("bots.gto_postflop_30.random.random",return_value=.30):
+            short_action=short.act(view)
+            long_action=long.act(view)
+        self.assertEqual(short_action.type,"bet")
+        self.assertEqual(long_action.type,"check")
+        self.assertEqual(short.last_model["stats"]["n"],5)
+        self.assertEqual(long.last_model["stats"]["n"],10)
+
+    def test_trace_retains_last_five_hands_and_all_three_streets(self):
+        bot=AdaptiveGTO30Bot(5)
+        def view_at(street,board,hand_id):
+            v=make_view(hole=(("Q","h"),("J","c")),board=board,
+                        street=street,opponents=("P2",))
+            v.hand_id=hand_id
+            return v
+        boards=(FLOP,FLOP+[("T","c")],FLOP+[("T","c"),("A","h")])
+        for hand_id in range(6):
+            for street,board in zip(("flop","turn","river"),boards):
+                with patch("bots.postflop_profiles.random.random",return_value=.99):
+                    bot.act(view_at(street,board,hand_id))
+        trace=bot.trace_snapshot()
+        self.assertEqual(len(trace),5)
+        self.assertEqual([x["hand_id"] for x in trace],[1,2,3,4,5])
+        for hand in trace:
+            self.assertEqual([x["street"] for x in hand["steps"]],
+                             ["flop","turn","river"])
+            self.assertTrue(all(x["board150"].startswith(x["street"].upper()+"|")
+                                if x["street"]!="river" else
+                                x["board150"].startswith("P")
+                                for x in hand["steps"]))
+            self.assertTrue(all(0<=x["board_anytwo_rank_pair_pct"]<=100
+                                for x in hand["steps"]))
+
     def test_no_data_and_multiway_use_baseline_without_bogus_learning(self):
         bot=AdaptiveGTO30Bot(10)
         view=make_view(hole=(("Q","h"),("J","c")),board=FLOP,
