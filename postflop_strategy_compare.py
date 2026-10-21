@@ -17,6 +17,8 @@ from postflop_numeric_classifier import _tokens, classify_numeric
 
 POLICIES = {
     "gto_postflop_v1": "GTO V1",
+    "gto_postflop_30_5": "GTO 3.0/5 · adaptive",
+    "gto_postflop_30_10": "GTO 3.0/10 · adaptive",
     "gto_postflop_v2": "GTO V2",
     "gto_postflop_v3": "GTO V3",
     "gto_postflop_v4": "GTO V4",
