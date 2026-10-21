@@ -64,6 +64,7 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
     def reset_memory(self):
         self._observed = defaultdict(lambda: deque(maxlen=self.window))
         self._seen = set()
+        self._seen_hand_id = None
         self.last_model = None
 
     def observe_hand(self, hand_id, history, board, me):
@@ -75,6 +76,9 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
         """
         if hand_id is None:
             return
+        if self._seen_hand_id != hand_id:
+            self._seen.clear()  # bound dedup memory to one tournament hand
+            self._seen_hand_id = hand_id
         current_aggressor = {}
         for row in history or ():
             if not isinstance(row, dict):
@@ -84,21 +88,21 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
                 continue
             pid = row.get("pid")
             action = row.get("type")
+            # First classify the RESPONSE to the previous aggressor.
+            # Processing a villain's raise as a new aggressor *before*
+            # observing it would incorrectly discard every raise.
+            if pid != me and action in _ACTIONS and (
+                    current_aggressor.get(street) == me and
+                    _half_pot_response(row)):
+                key = (hand_id, street, pid)
+                if key not in self._seen:
+                    classification = _board_class(board, street)
+                    if classification is not None:
+                        self._seen.add(key)
+                        self._observed[pid].append(
+                            (action, street, classification["id"]))
             if action in ("bet", "raise"):
-                if row.get("to_call_before", 0) == 0 or action == "raise":
-                    current_aggressor[street] = pid
-            if pid == me or action not in _ACTIONS:
-                continue
-            if current_aggressor.get(street) != me or not _half_pot_response(row):
-                continue
-            key = (hand_id, street, pid)
-            if key in self._seen:
-                continue
-            classification = _board_class(board, street)
-            if classification is None:
-                continue
-            self._seen.add(key)
-            self._observed[pid].append((action, street, classification["id"]))
+                current_aggressor[street] = pid
 
     def opponent_stats(self, pid, *, street=None):
         """Smoothed probabilities plus unshrunk sample counts for audit."""
