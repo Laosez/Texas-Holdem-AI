@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_30_5", "gto_postflop_30_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
