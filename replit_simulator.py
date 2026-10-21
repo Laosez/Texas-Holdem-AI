@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_30_5", "gto_postflop_30_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -242,6 +242,18 @@ def strategy_catalog():
                     "features": ["R0–R4 board-relative hand strength", "shared board-pair discount",
                                  "genuine two-pair exception", "wet board caution",
                                  "same V1 betting engine for controlled EV comparisons"]
+                },
+                "gto_postflop_30_5": {
+                    "label": "GTO 3.0/5 · память пяти C-bet-ответов (эксперимент)",
+                    "model": "heuristic",
+                    "features": ["last 5 public Fold/Call/Raise responses", "half-pot sizing",
+                                 "Board150 P/S/F/SF/A", "R0–R4", "GTO 2.0 fallback", "five-hand trace"]
+                },
+                "gto_postflop_30_10": {
+                    "label": "GTO 3.0/10 · память десяти C-bet-ответов (эксперимент)",
+                    "model": "heuristic",
+                    "features": ["last 10 public Fold/Call/Raise responses", "half-pot sizing",
+                                 "Board150 P/S/F/SF/A", "R0–R4", "GTO 2.0 fallback", "five-hand trace"]
                 },
                 "lag_postflop_v1": {
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",
@@ -1475,6 +1487,25 @@ class Handler(BaseHTTPRequestHandler):
                     "created": j["created"], "updated": j["updated"]
                 } for j in jobs]
             self.reply(200, {"runs": data})
+            return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto30-trace", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            trace_file = OUT / run_id / "gto30_last5.json"
+            if not trace_file.is_file() or trace_file.is_symlink():
+                self.reply(200, {"bots": [], "tournament": None,
+                                 "message": ("Лог GTO 3.0 появится после завершения "
+                                             "турнира с адаптивной стратегией.")})
+                return
+            try:
+                self.reply(200, json.loads(trace_file.read_text(encoding="utf-8")))
+            except (OSError, ValueError):
+                self.reply(503, {"error": "Не удалось прочитать лог GTO 3.0"})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/download", path)
         if match:

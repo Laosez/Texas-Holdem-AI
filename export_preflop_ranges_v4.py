@@ -362,6 +362,11 @@ class TrackedBot:
                 counts['wsd_opp'] += 1
                 counts['wsd_n'] += int(pid in winners)
 
+    def observe_hand(self, hand_id, history, board, me):
+        fn = getattr(self.inner, "observe_hand", None)
+        if callable(fn):
+            fn(hand_id, history, board, me)
+
     def reset_memory(self):
         fn = getattr(self.inner,'reset_memory',None)
         if callable(fn):
@@ -405,6 +410,19 @@ def run_one(task):
     runner.make_table=table_factory
     try:
         result=runner.run_silent_tournament((specs,chips,sb,bb,escalate,max_hands,seed))
+        adaptive_traces = []
+        for bot in instances:
+            policy = getattr(bot.inner, "postflop_bot", bot.inner)
+            trace_fn = getattr(policy, "trace_snapshot", None)
+            if callable(trace_fn):
+                adaptive_traces.append({
+                    "bot": bot.name,
+                    "pid": getattr(bot, "player_id", None),
+                    "policy": getattr(policy, "profile", ""),
+                    "window": getattr(policy, "window", None),
+                    "hands": trace_fn(),
+                })
+        result["gto30_last5"] = adaptive_traces
         timings = [
             {'bot': bot.name, 'street': street, **dict(stats)}
             for bot in instances
@@ -818,11 +836,18 @@ def main():
     all_counts=defaultdict(lambda:defaultdict(int))
     total_hands=0
     results=[]
+    last_adaptive_traces = None
+    last_adaptive_tournament = 0
     decision_records=[]
     postflop_aggregate=defaultdict(lambda:defaultdict(float))
     def ingest(result):
-        nonlocal total_hands
+        nonlocal total_hands, last_adaptive_traces, last_adaptive_tournament
         tournament_id, seed, seat_offset, outcome, rows, bot_timings, postflop=result
+        # In parallel, futures may complete out of order. Display the last
+        # *numbered* tournament, not the last process to finish.
+        if outcome.get("gto30_last5") and tournament_id >= last_adaptive_tournament:
+            last_adaptive_tournament = tournament_id
+            last_adaptive_traces = outcome["gto30_last5"]
         decision_records.extend(bot_timings)
         for item in postflop:
             key=(item['bot'],item.get('position'),item.get('table_size'))
@@ -971,6 +996,16 @@ def main():
                                for pos in position_labels(n))))
     for filename, table_rows in {**report_tables, **bot_tables}.items():
         csv_write(output/filename, table_rows)
+    if last_adaptive_traces:
+        write_json(output / "gto30_last5.json", {
+            "format": "SKACHKOV_GTO30_TRACE_V1",
+            "tournament": last_adaptive_tournament,
+            "explanation": ("Последние пять раздач с постфлоп-решениями каждого адаптивного "
+                            "бота в последнем турнире; вероятность Any Two описывает "
+                            "повтор ранга (включая карманную пару), а не "
+                            "состав сильных рук соперника после колла."),
+            "bots": last_adaptive_traces,
+        })
     write_json(output/'tournament_report.json', report)
     write_json(output/'bot_decision_timing.json', bot_report)
     total_seconds = time.perf_counter()-start_time

@@ -72,6 +72,11 @@ class StreetSplitBot(BotAdapter):
             return self.postflop_bot.act(view)
         raise ValueError(f"Unknown poker street for split strategy: {street!r}")
 
+    def observe_hand(self, hand_id, history, board, me):
+        observer = getattr(self.postflop_bot, "observe_hand", None)
+        if callable(observer):
+            observer(hand_id, history, board, me)
+
     def reset_memory(self) -> None:
         seen = set()
         for bot in (self.preflop_bot, self.postflop_bot):

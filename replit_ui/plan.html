@@ -994,6 +994,8 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <a href="/s100" style="display:inline-block;margin:4px 0 6px;color:#9ac9f4;text-decoration:underline;font-size:12px">Перейти на лист 03 · Постфлоп План ↗</a>
    <select id="heroPostflop">
     <option value="gto20">GTO 2.0 · сила руки относительно борда</option>
+    <option value="gto30_5">GTO 3.0/5 · адаптация по 5 действиям</option>
+    <option value="gto30_10">GTO 3.0/10 · адаптация по 10 действиям</option>
     <option value="s100">S100 · 100 сценариев человека и бота</option>
     <option value="gto" selected>GTO 1 · контрольная версия</option>
     <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
@@ -1177,7 +1179,8 @@ const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против опен-рейза',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
- {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
+ {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'},
+ {value:'gto30_5',label:'GTO 3.0/5 · Adaptive'}, {value:'gto30_10',label:'GTO 3.0/10 · Adaptive'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
  {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
  {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
  {value:'none',label:'Не учитывать'}
@@ -1186,6 +1189,8 @@ const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||'Не уч
 const HERO_LINE_DESCRIPTIONS={
  s100:'S100 V1: единая классификация 100 постфлоп-ситуаций и таблица Fold/Call/Bet/Raise для человека и бота. Экспериментальные частоты, не solver GTO.',
  gto20:'GTO 2.0: относительная сила R0–R4 с учётом пар и угроз на борде. Эвристика, не GTO-солвер; сравни EV с GTO 1 на одинаковых раздачах.',
+ gto30_5:'GTO 3.0/5: адаптивная эвристика на базе GTO 2.0. Память последних 5 ответов соперника на наши постфлоп-ставки около ½ банка + Board150 (P/S/F/SF/A). Важно: независимые прогоны EV на Плане НЕ содержат турнирной истории; здесь используется исходная GTO 2.0.',
+ gto30_10:'GTO 3.0/10: адаптивная эвристика на базе GTO 2.0. Память последних 10 ответов на наши постфлоп-ставки около ½ банка + Board150. Обучение между раздачами доступно в турнирной симуляции, но НЕ в независимых EV-прогонах листа План.',
  gto:'GTO 1: исходная контрольная постфлоп-эвристика, сохранена без изменений.',
  tag:'TAG V1: дисциплинированный розыгрыш с упором на вэлью.',
  lag:'LAG V1: более агрессивные ставки, полублефы и давление.',

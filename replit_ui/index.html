@@ -112,7 +112,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
-<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO 1 / GTO 2.0 / TAG / LAG / Chaser / Trapper</summary>
+<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO 1 / GTO 2.0 / GTO 3.0 (5 / 10) / TAG / LAG</summary>
 <table class="coverageTable"><thead><tr><th>Механика</th><th>GTO Postflop V1</th><th>LAG Postflop V1</th></tr></thead><tbody>
 <tr><td>Готовые сильные руки</td><td>Вэлью-ставки / частичные ловушки</td><td>Чаще ставит и повышает</td></tr>
 <tr><td>Сильные дро</td><td>Сдержанный полублеф</td><td>Частые полублефы / чек-рейзы</td></tr>
@@ -120,7 +120,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <tr><td>Ривер без усиления</td><td>Редкий блеф при блокерах / промахе дро</td><td>Чаще блефует с блокерами / промахом дро</td></tr>
 <tr><td>Мультипот</td><td>Частота блефа снижается</td><td>Частота блефа снижается</td></tr>
 </tbody></table>
-<p class="note"><strong>GTO 1</strong> — контрольная постфлоп-эвристика (не solver). <strong>GTO 2.0</strong> — самостоятельная оценка относительной силы руки по борду (R0–R4); сравнивать с контрольной на одинаковых раздачах. <strong>TAG</strong> — выборочная агрессия, <strong>LAG</strong> — частые ставки и полублефы, <strong>Chaser</strong> — переоценка дро, <strong>Trapper</strong> — слоуплей.</p></details>
+<p class="note"><strong>GTO 1</strong> — контрольная постфлоп-эвристика (не solver). <strong>GTO 2.0</strong> — самостоятельная оценка относительной силы руки по борду (R0–R4); сравнивать с контрольной на одинаковых раздачах. <strong>GTO 3.0/5 и 3.0/10</strong> — экспериментальные стратегии на базе GTO 2.0: запоминают 5 или 10 ответов конкретного оппонента на постфлоп-ставку около ½ банка и корректируют решения с учётом Board150. Не solver-GTO. <strong>TAG</strong> — выборочная агрессия, <strong>LAG</strong> — частые ставки и полублефы, <strong>Chaser</strong> — переоценка дро, <strong>Trapper</strong> — слоуплей.</p></details>
 <details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
@@ -135,7 +135,16 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div id="feedback" role="status" class="statusLine muted"></div>
 </section></div>
 <div class="column topColumn journalColumn">
-<section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre></section>
+<section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre>
+<details class="coverageAudit" id="gto30TracePanel" style="margin-top:10px">
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0 · Лог решений (последняя раздача / 5)</summary>
+<p class="note">Для GTO 3.0/5 и GTO 3.0/10: последовательность оценки на флопе, тёрне и ривере. Источник — последние пять раздач с постфлоп-решениями в последнем завершённом турнире сессии.</p>
+<div class="fields" style="margin-top:10px">
+<div class="field"><label for="gto30TraceBot">Игрок / профиль</label><select id="gto30TraceBot"><option value="">—</option></select></div>
+<div class="field"><label for="gto30TraceDepth">Число раздач</label><select id="gto30TraceDepth"><option value="1">Последняя</option><option value="5">Последние 5</option></select></div>
+</div>
+<div id="gto30TraceRows" style="display:grid;gap:9px;margin-top:11px"><p class="note">Выбери завершённую сессию с адаптивным ботом.</p></div>
+</details></section>
 </div>
 <section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
@@ -165,12 +174,12 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
-const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
+const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_30_5','gto_postflop_30_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
 const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];
 let postflopValues=['',...POSTFLOP_WITH_RANDOM];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],
@@ -299,8 +308,82 @@ function renderLeaderboard(s){
   td.colSpan=9;tr.append(td);root.append(tr);
  }
 }
+let gto30TraceSession='',gto30TraceData=null;
+async function loadGTO30Trace(id){
+ gto30TraceSession=id;
+ gto30TraceData=null;
+ const root=$('gto30TraceRows');
+ root.replaceChildren(el('p','note','Загрузка лога GTO 3.0...'));
+ try{
+  const data=await get('/api/runs/'+id+'/gto30-trace');
+  if(gto30TraceSession!==id)return;
+  gto30TraceData=data;
+  const select=$('gto30TraceBot');
+  select.replaceChildren();
+  (data.bots||[]).forEach((bot,i)=>{
+   const option=el('option','',bot.bot+' · '+bot.policy);
+   option.value=String(i);select.append(option);
+  });
+  renderGTO30Trace();
+ }catch(e){
+  if(gto30TraceSession===id)root.replaceChildren(el('p','bad','Не удалось получить лог: '+e.message));
+ }
+}
+function renderGTO30Trace(){
+ const root=$('gto30TraceRows');root.replaceChildren();
+ const data=gto30TraceData;
+ if(!data?.bots?.length){
+  root.append(el('p','note',data?.message||'В этой сессии нет адаптивного GTO 3.0.'));
+  return;
+ }
+ const selected=Number($('gto30TraceBot').value||0);
+ const bot=data.bots[selected]||data.bots[0];
+ const depth=Number($('gto30TraceDepth').value)||1;
+ const hands=(bot.hands||[]).slice(-depth).reverse();
+ if(!hands.length){
+  root.append(el('p','note','У этого бота пока нет постфлоп-решений.'));
+  return;
+ }
+ root.append(el('p','note','Турнир №'+data.tournament+' · '+bot.policy+
+  ' · окно наблюдений: '+bot.window+' · Any Two: повтор ранга (включая карманные пары), не вероятность конкретной силы после колла.'));
+ hands.forEach(hand=>{
+  const card=el('div','panel','');card.style.padding='11px';
+  card.append(el('strong','','Раздача #'+hand.hand_id));
+  (hand.steps||[]).forEach(step=>{
+   const entry=el('div','','');
+   entry.style.cssText='border-top:1px solid #34506e;margin-top:8px;padding-top:8px';
+   entry.append(el('div','small',step.street.toUpperCase()+' · '+step.board.join(' ')));
+   entry.append(el('div','',step.board150||'Класс борда не определён'));
+   entry.append(el('div','small','Оппонентов: '+step.opponents_count+
+      ' · Any Two P(повтор ранга): '+step.board_anytwo_rank_pair_pct.toFixed(2)+'%'));
+   entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · сила R'+step.hero_tier+
+      ' · '+step.hero_made+' · оценка аутов: '+step.hero_draw_outs_estimate));
+   (step.opponents||[]).forEach(opp=>{
+    entry.append(el('div','small','Соперник '+opp.pid+': n='+opp.n+
+      ' · Fold '+opp.fold+'% / Call '+opp.call+'% / Raise '+opp.raise+'%'+
+      (opp.pooled_streets?' · объединены улицы':'')+
+      (opp.n<3?' · предварительная оценка':'')));
+   });
+   entry.append(el('div','', 'Решение: '+step.decision.toUpperCase()+
+      (step.amount_chips!=null?' '+step.amount_chips+' фишек':'')+
+      ' · '+(step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ':'GTO 2.0')));
+   entry.append(el('div','small',step.reason));
+   card.append(entry);
+  });
+  root.append(card);
+ });
+}
+$('gto30TraceBot').onchange=renderGTO30Trace;
+$('gto30TraceDepth').onchange=renderGTO30Trace;
 function present(s){
  selected=s;if(!s)return;
+ if(gto30TraceSession!==s.id && ['completed','imported'].includes(s.status))
+  loadGTO30Trace(s.id);
+ if(gto30TraceSession!==s.id && !['completed','imported'].includes(s.status)){
+  gto30TraceSession='';
+  gto30TraceData=null;
+  $('gto30TraceRows').replaceChildren(el('p','note','Лог появится после завершения серии.'));
+ }
  $('openAnalysis').href='#analysis';if($('analysisDetails').open)loadAnalysisSession(s.id);
  const active=['running','starting'].includes(s.status);
  $('runStatus').textContent=({running:'Выполняется',starting:'Запускается',completed:'Завершена',imported:'Загружена',failed:'Ошибка',cancelled:'Остановлена',interrupted:'Прервана'})[s.status]||s.status;

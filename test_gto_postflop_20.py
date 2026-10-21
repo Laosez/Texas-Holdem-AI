@@ -56,9 +56,10 @@ class GTO20Tests(unittest.TestCase):
             self.assertEqual(baseline.act(view).type,"raise")
             self.assertEqual(self.bot.act(view).type,"fold")
 
-    def test_only_gto_1_and_20_are_registered(self):
+    def test_gto_1_and_20_retained_alongside_adaptive_30(self):
         catalog=app.strategy_catalog()
-        expected={"gto_postflop_v1","gto_postflop_20"}
+        expected={"gto_postflop_v1","gto_postflop_20",
+                  "gto_postflop_30_5","gto_postflop_30_10"}
         self.assertEqual({name for name in catalog["postflop_strategies"]
                           if name.startswith("gto_postflop_")},expected)
         self.assertEqual(ev.PROFILE_NAMES["gto"],"gto_postflop_v1")
@@ -73,8 +74,8 @@ class GTO20Tests(unittest.TestCase):
         for old in ("gto2","gto3","gto4"):
             self.assertNotIn(old,ev.PROFILE_NAMES)
         page=app.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('<option value="gto20" selected>GTO 2.0',page)
-        self.assertIn('<option value="gto">GTO 1',page)
+        self.assertIn('<option value="gto20">GTO 2.0',page)
+        self.assertIn('<option value="gto" selected>GTO 1',page)
         for old in ("<option value=\"gto2\"","<option value=\"gto3\"",
                     "<option value=\"gto4\""):
             self.assertNotIn(old,page)

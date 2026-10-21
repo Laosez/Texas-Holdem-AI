@@ -28,6 +28,8 @@ import planner_equity as eq
 PROFILE_NAMES = {
     "gto": "gto_postflop_v1",
     "gto20": "gto_postflop_20",
+    "gto30_5": "gto_postflop_30_5",
+    "gto30_10": "gto_postflop_30_10",
     "s100": "s100_postflop_v1",
     "tag": "tag_postflop_v1",
     "lag": "lag_postflop_v1",
