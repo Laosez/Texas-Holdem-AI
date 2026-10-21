@@ -136,9 +136,9 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
 
     @staticmethod
     def _anytwo_board_risk(board):
-        """Exact probability of at least one pair in the BEST hand (not
-        necessarily private); no inference from a villain's continuing range.
-        A board containing a pair gives any hand >=one pair automatically.
+        """Exact probability of a repeated RANK in the 3–7 known cards.
+        This is NOT P(best hand >=one pair), because a straight/flush can
+        exist without a rank match. It is NOT a villain posterior after Call.
         """
         ranks = [card[0] for card in board]
         count = len(board)
@@ -176,7 +176,7 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
             "street": view.street,
             "board": ["".join(c) for c in board],
             "board150": info.get("board_id"),
-            "board_anytwo_pair_plus_pct": self._anytwo_board_risk(board),
+            "board_anytwo_rank_pair_pct": self._anytwo_board_risk(board),
             "opponents_count": _opponents(view),
             "opponents": opponent_rows,
             "hero_hole": ["".join(c) for c in view.hole_cards],
