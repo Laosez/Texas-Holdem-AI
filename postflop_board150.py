@@ -1,6 +1,6 @@
-"""Canonical physical-board taxonomy: P / S / F / SF / A (river v1).
+"""Canonical physical-board taxonomy: P / S / F / SF (river v2, ace remains available from physical cards).
 
-Exactly 150 codes across the 2,598,960 possible five-card river boards,
+Exactly 75 codes across the 2,598,960 possible five-card river boards,
 independent of HERO / opponent cards. The same code is used by Sheet 03,
 the plan EV attribution, and sampled turn/river histories. Missing streets
 are explicitly tagged: PRE|NO_BOARD, FLOP|..., TURN|... and never entered
@@ -95,11 +95,11 @@ def classify_board(board_ids, street=None):
     f=max(Counter(suits).values())
     sf=max((_sequence(m) for m in suit_groups),default=0)
     a=int(12 in ranks)
-    code=f"P{p} · S{s} · F{f} · SF{sf} · A{a}"
+    code=f"P{p} · S{s} · F{f} · SF{sf}"
     if street!="river":code=street.upper()+"|"+code
     return {"id":code,"street":street,"p":f"P{p}","s":f"S{s}",
             "f":f"F{f}","sf":f"SF{sf}","a":f"A{a}",
-            "label":f"{P_NAMES[p]} · {S_NAMES[s]} · {F_NAMES[f]} · {SF_NAMES[sf]} · "+("с тузом" if a else "без туза")}
+            "label":f"{P_NAMES[p]} · {S_NAMES[s]} · {F_NAMES[f]} · {SF_NAMES[sf]}"}
 
 
 def classify_request(payload):

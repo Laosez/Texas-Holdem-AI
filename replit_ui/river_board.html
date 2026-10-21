@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SKACHKOV · Постфлоп · Каталог 150 бордов</title>
+<title>SKACHKOV · Постфлоп · Каталог 75 бордов</title>
 <style>
 :root{--bg:#081221;--surface:#15273d;--panel:#102137;--line:#334e6b;--fg:#eaf3ff;--muted:#a0bad2;--accent:#80b3f3}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -25%,#254a74,transparent 65%),var(--bg);color:var(--fg);font:13px/1.55 Inter,system-ui,sans-serif}
@@ -19,7 +19,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 label{display:grid;gap:5px;font-weight:700;font-size:11px;color:#b3d0e7}
 .btn{background:#1b3a5b;color:#eaf4ff;border:1px solid #476887;border-radius:7px;font-weight:700;padding:9px 12px;cursor:pointer}
 .btn:hover{filter:brightness(1.2)}.btn.primary{background:#347ad8;border-color:#6096dc}.btn.sm{padding:6px 9px;font-size:11px}.btn.ghost{background:transparent}
-.filters{display:grid;grid-template-columns:minmax(215px,2fr) repeat(5,minmax(105px,1fr)) minmax(140px,1fr);gap:9px;align-items:end;margin:12px 0}
+.filters{display:grid;grid-template-columns:minmax(215px,2fr) repeat(4,minmax(105px,1fr)) minmax(140px,1fr);gap:9px;align-items:end;margin:12px 0}
 .statbar{display:flex;gap:8px 15px;flex-wrap:wrap;margin:9px 0;padding:10px 12px;border-radius:8px;border:1px solid #36516b;background:#0c2136}
 .statbar strong{color:#d6ebff}.tablewrap{overflow:auto;max-height:70vh;border:1px solid #39526e;border-radius:8px}
 table{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums;min-width:860px}
@@ -47,28 +47,28 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <nav class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Монте-Карло</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп</strong><small>150 бордов · EV</small></span></a></nav>
 <main>
 <section class="panel" id="board150Catalog">
-<div class="heading"><h2>03 / Справочник 150 типов борда</h2><span class="badge" id="catalogTotal">150 классов</span></div>
-<p class="note">Один физический ривер-борд → один составной идентификатор <strong>P · S · F · SF · A</strong>. При SF0 часть SF скрывается только на экране; полный код сохранён в данных и CSV. Точные частоты относятся к случайному пятикарточному борду, без учёта известных карт HERO. Парность — 6 структур, стрит — 6, флеш — 4, стрит-флеш — 6, туз — 2. Физически достижимы только 150 комбинаций из 1 728 формальных.</p>
-<div class="tools" style="margin:13px 0"><label style="min-width:260px;flex:1">Борд · 5 физических карт<input id="boardInput" value="5s-6s-7s-8s-8d" autocomplete="off" placeholder="As-Kh-9c-5d-2c"></label><button class="btn primary" type="button" id="boardClassify">Классифицировать</button><button class="btn" id="catalogExport" type="button">CSV · 150 кодов</button></div>
-<div id="classifyResult" class="match" role="status">Пример: P1 · S3 · F4 · SF3 · A0</div>
+<div class="heading"><h2>03 / Справочник 75 типов борда</h2><span class="badge" id="catalogTotal">75 классов</span></div>
+<p class="note">Один физический ривер-борд → один составной идентификатор <strong>P · S · F · SF</strong>. При SF0 часть SF скрывается только на экране; полный код сохранён в данных и CSV. Точные частоты относятся к случайному пятикарточному борду, без учёта известных карт HERO. Парность — 6 структур, стрит — 6, флеш — 4, стрит-флеш — 6. Физически достижимы только 75 комбинаций из 864 формальных.</p>
+<div class="tools" style="margin:13px 0"><label style="min-width:260px;flex:1">Борд · 5 физических карт<input id="boardInput" value="5s-6s-7s-8s-8d" autocomplete="off" placeholder="As-Kh-9c-5d-2c"></label><button class="btn primary" type="button" id="boardClassify">Классифицировать</button><button class="btn" id="catalogExport" type="button">CSV · 75 кодов</button></div>
+<div id="classifyResult" class="match" role="status">Пример: P1 · S3 · F4 · SF3</div>
 <div class="filters">
-<label>Поиск<input id="catalogSearch" type="search" placeholder="P1 · S3 · F4 · SF3 · A0"></label>
+<label>Поиск<input id="catalogSearch" type="search" placeholder="P1 · S3 · F4 · SF3"></label>
 <label>Парность<select id="filterP"><option value="">P · Все</option></select></label>
 <label>Стрит<select id="filterS"><option value="">S · Все</option></select></label>
 <label>Флеш<select id="filterF"><option value="">F · Все</option></select></label>
 <label>Стрит-флеш<select id="filterSF"><option value="">SF · Все</option></select></label>
-<label>Туз<select id="filterA"><option value="">A · Все</option></select></label>
-<label>Сортировать<select id="catalogSort"><option value="id">Код · P/S/F/SF/A</option><option value="deals_desc">Частота ↓</option><option value="deals_asc">Частота ↑</option><option value="code_desc">Код ↓</option></select></label>
+
+<label>Сортировать<select id="catalogSort"><option value="id">Код · P/S/F/SF</option><option value="deals_desc">Частота ↓</option><option value="deals_asc">Частота ↑</option><option value="code_desc">Код ↓</option></select></label>
 </div>
 <div class="statbar"><span id="catalogStatus">Загрузка каталога…</span><span id="checkedStatus"></span><span id="catalogShares"></span><button class="btn sm ghost" type="button" id="catalogReset">Сбросить отметки</button></div>
-<div class="tablewrap"><table><thead><tr><th>№</th><th>Идентификатор</th><th>Название борда</th><th>Физический пример</th><th>Парность</th><th>Стрит</th><th>Флеш</th><th>Стрит-флеш</th><th>Туз</th><th class="num">Число бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="12">Подключение к каталогу…</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>№</th><th>Идентификатор</th><th>Название борда</th><th>Физический пример</th><th>Парность</th><th>Стрит</th><th>Флеш</th><th>Стрит-флеш</th><th class="num">Число бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Подключение к каталогу…</td></tr></tbody></table></div>
 <p class="caption">Коды S1/S3 означают 3/4 подряд, S2/S4 — соответственно три/четыре ранга в пятиранговом окне с внутренними пропусками. Стрит-флеш требует одну и ту же масть. Туз одновременно допускает wheel A-2-3-4-5. Класс не учитывает HERO, поэтому частота борда не является шансом победы.</p>
 </section>
-</main><footer class="small" style="margin-bottom:28px">SKACHKOV / POKER SYSTEM · Каталог P/S/F/SF/A · River V1 · 2 598 960 физических бордов.</footer>
+</main><footer class="small" style="margin-bottom:28px">SKACHKOV / POKER SYSTEM · Каталог P/S/F/SF · River V1 · 2 598 960 физических бордов.</footer>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const REVIEW_KEY="skachkov_board150_review_v1";
+const REVIEW_KEY="skachkov_board75_review_v2";
 let rows=[],checked={};
 const shortNames={
  p:["Без пары","Пара","Две пары","Тройка","Фулл-хаус","Каре"],
@@ -82,11 +82,11 @@ function el(tag,cls,text){
  if(text!==undefined)node.textContent=String(text);
  return node;
 }
-function filters(){return Object.fromEntries(["P","S","F","SF","A"].map(k=>[k,$("filter"+k).value]))}
+function filters(){return Object.fromEntries(["P","S","F","SF"].map(k=>[k,$("filter"+k).value]))}
 function matches(row){
  const f=filters();
  return (!f.P||row.p===f.P)&&(!f.S||row.s===f.S)&&(!f.F||row.f===f.F)&&
-  (!f.SF||row.sf===f.SF)&&(!f.A||row.a===f.A);
+  (!f.SF||row.sf===f.SF);
 }
 function sortByNumericCode(a,b){
  const ma=a.match(/\d+/g).map(Number),mb=b.match(/\d+/g).map(Number);
@@ -99,7 +99,7 @@ function initFilters(){
   ["S",Array.from({length:6},(_,i)=>["S"+i,shortNames.s[i]])],
   ["F",[2,3,4,5].map(n=>["F"+n,shortNames.f["F"+n]])],
   ["SF",Array.from({length:6},(_,i)=>["SF"+i,shortNames.sf[i]])],
-  ["A",[["A0","Без туза"],["A1","С тузом"]]]
+  
  ];
  for(const [key,values] of configs){
   const select=$("filter"+key);
@@ -108,7 +108,7 @@ function initFilters(){
  }
 }
 
-// Human titles keep full discriminating P/S/F/SF/A information but avoid raw
+// Human titles keep full discriminating P/S/F/SF information but avoid raw
 // notation as the only thing a poker player can read.
 function compactBoardCode(code){return String(code||'').replace(' · SF0','')}
 function boardTitle(row){
@@ -125,7 +125,7 @@ function boardTitle(row){
  if(f>=3)components.push(f===3?'флеш −2 (3s)':f===4?'флеш −1 (4s)':'готовый флеш (5s)');
  if(sf)components.push(straightFlush[sf]);
  if(!st&&f<=2&&!sf)components.push('сухой по стриту и флешу');
- components.push(row.a==='A1'?'с тузом':'без туза');
+ 
  return components.join(' · ');
 }
 
@@ -144,7 +144,7 @@ function drawCatalog(){
     row.s+" · "+shortNames.s[Number(row.s.slice(1))],
     row.f+" · "+shortNames.f[row.f],
     row.sf+" · "+shortNames.sf[Number(row.sf.slice(2))],
-    row.a==="A1"?"Есть":"Нет",row.deals.toLocaleString("ru-RU"),
+    row.deals.toLocaleString("ru-RU"),
     row.probability_pct.toFixed(5)+"%"]){
     const td=el("td","",value);
     if(value===compactBoardCode(row.id)){td.classList.add("code");td.title="Полный код: "+row.id}
@@ -160,7 +160,7 @@ function drawCatalog(){
   };review.append(cb);tr.append(review);frag.append(tr);
  }
  body.replaceChildren(frag);
- if(!found.length){const tr=el("tr"),td=el("td","","По выбранным фильтрам кодов нет");td.colSpan=12;tr.append(td);body.append(tr)}
+ if(!found.length){const tr=el("tr"),td=el("td","","По выбранным фильтрам кодов нет");td.colSpan=11;tr.append(td);body.append(tr)}
  renderCatalogStatus(found);
 }
 function renderCatalogStatus(found){
@@ -174,8 +174,8 @@ async function loadCatalog(){
  try{
   const response=await fetch("/api/postflop/board150-catalog",{headers:{"X-Runner-Key":key},cache:"no-store"});
   const data=await response.json();if(!response.ok)throw Error(data.error||"HTTP "+response.status);
-  if(data.reachable_codes!==150||data.rows?.length!==150||
-      data.rows.reduce((n,r)=>n+r.deals,0)!==2598960)throw Error("Не прошла сверка 150 кодов / 2 598 960 бордов");
+  if(data.reachable_codes!==75||data.rows?.length!==75||
+      data.rows.reduce((n,r)=>n+r.deals,0)!==2598960)throw Error("Не прошла сверка 75 кодов / 2 598 960 бордов");
   rows=data.rows;
   $("connection").textContent="Каталог загружен";$("connection").className="badge ok";
   $("catalogTotal").textContent=rows.length+" типов · 2 598 960 бордов";
@@ -197,20 +197,20 @@ async function classify(){
     el("span","",found.label),
     el("div","small",row?
       "Частота "+row.probability_pct.toFixed(5)+"% · "+row.deals.toLocaleString("ru-RU")+" физических бордов":
-      "Код относится к флопу или тёрну, а не к 150 типам ривера"));
+      "Код относится к флопу или тёрну, а не к 75 типам ривера"));
   $("catalogSearch").value=found.id;
-  for(const f of ["P","S","F","SF","A"])$("filter"+f).value="";
+  for(const f of ["P","S","F","SF"])$("filter"+f).value="";
   drawCatalog();
  }catch(e){status.replaceChildren(el("span","error",e.message))}
 }
 function exportCSV(){
  if(!rows.length)return;
- const header=["№","Код","Название борда","Пример","P","S","F","SF","A","Число бордов","Вероятность %"];
- const csv=[header,...rows.map(r=>[r.ordinal,r.id,boardTitle(r),r.example,r.p,r.s,r.f,r.sf,r.a,r.deals,r.probability_pct])]
+ const header=["№","Код","Название борда","Пример","P","S","F","SF","Число бордов","Вероятность %"];
+ const csv=[header,...rows.map(r=>[r.ordinal,r.id,boardTitle(r),r.example,r.p,r.s,r.f,r.sf,r.deals,r.probability_pct])]
   .map(cols=>cols.map(x=>'"'+String(x).replaceAll('"','""')+'"').join(";")).join("\r\n");
  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
  const url=URL.createObjectURL(blob),link=el("a");
- link.href=url;link.download="SKACHKOV_BOARD150.csv";link.click();
+ link.href=url;link.download="SKACHKOV_BOARD75.csv";link.click();
  URL.revokeObjectURL(url);
 }
 try{$("key").value=sessionStorage.getItem("skachkov_key")||"";checked=JSON.parse(localStorage.getItem(REVIEW_KEY)||"{}")||{}}catch(_){}

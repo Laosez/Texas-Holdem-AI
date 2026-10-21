@@ -21,17 +21,17 @@ ROWS=DOC["rows"]
 
 
 class RiverBoard150Tests(unittest.TestCase):
-    def test_exact_census_150_unique_codes_and_weights(self):
-        self.assertEqual(DOC["version"],"river_board_150_v1")
+    def test_exact_census_75_unique_codes_and_weights(self):
+        self.assertEqual(DOC["version"],"river_board_75_v2")
         self.assertEqual(DOC["physical_boards"],2598960)
-        self.assertEqual(DOC["theoretical_codes"],1728)
-        self.assertEqual(DOC["reachable_codes"],150)
-        self.assertEqual(len(ROWS),150)
-        self.assertEqual(len({x["id"] for x in ROWS}),150)
+        self.assertEqual(DOC["theoretical_codes"],864)
+        self.assertEqual(DOC["reachable_codes"],75)
+        self.assertEqual(len(ROWS),75)
+        self.assertEqual(len({x["id"] for x in ROWS}),75)
         self.assertEqual(sum(r["deals"] for r in ROWS),2598960)
         self.assertEqual([sum(r["p"]=="P"+str(p) for r in ROWS) for p in range(6)],
-                         [82,40,12,12,2,2])
-        self.assertEqual(len({x["example"] for x in ROWS}),150)
+                         [41,20,6,6,1,1])
+        self.assertEqual(len({x["example"] for x in ROWS}),75)
         for row in ROWS:
             self.assertEqual(classify_board(parse_physical_board(row["example"]))["id"],row["id"])
             self.assertGreater(row["deals"],0)
@@ -39,11 +39,11 @@ class RiverBoard150Tests(unittest.TestCase):
 
     def test_all_physical_example_and_wheel(self):
         cards=parse_physical_board("5s-6s-7s-8s-8d")
-        self.assertEqual(classify_board(cards)["id"],"P1 · S3 · F4 · SF3 · A0")
-        board=next(r for r in ROWS if r["id"]=="P1 · S3 · F4 · SF3 · A0")
-        self.assertEqual(board["deals"],432)
+        self.assertEqual(classify_board(cards)["id"],"P1 · S3 · F4 · SF3")
+        board=next(r for r in ROWS if r["id"]=="P1 · S3 · F4 · SF3")
+        self.assertEqual(board["deals"],528)
         self.assertEqual(classify_request({"board":"As-2d-3c-4h-5s"})["id"],
-                         "P0 · S5 · F2 · SF0 · A1")
+                         "P0 · S5 · F2 · SF0")
         # Exactly same spelling accepted by the new Sheet 03 input.
         self.assertEqual(parse_physical_board("14s-13h-9c-5d-2c"),
                          parse_physical_board("As-Kh-9c-5d-2c"))
@@ -111,7 +111,7 @@ class RiverBoard150Tests(unittest.TestCase):
         self.assertNotIn('1 019',page)
         self.assertIn('<option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход',plan)
         self.assertIn('<option value="catalog" hidden>',plan)
-        self.assertIn('↗ Справочник 150 бордов',plan)
+        self.assertIn('↗ Справочник 75 бордов',plan)
         self.assertNotIn('↗ Отчёт на листе 03 · Постфлоп',plan)
         self.assertIn('function riverBoardDescription(code){',plan)
         self.assertIn('function board150Parts(code){',plan)
@@ -149,7 +149,6 @@ class RiverBoard150Tests(unittest.TestCase):
             "{key:'S',name:'Стрит',values:[0,1,2,3,4,5]}",
             "{key:'F',name:'Флеш',values:[1,2,3,4,5]}",
             "{key:'SF',name:'Стрит-флеш',values:[0,1,2,3,4,5]}",
-            "{key:'A',name:'Туз',values:[0,1]}",
             "const boardFacetWrap=el('div','flatBdrFacetGroup')",
             "flatBoardFacetsMatch(r.dims[1])",
             "function flatAggregateVisible(rows,showdownChoice='all')",
@@ -186,7 +185,6 @@ class RiverBoard150Tests(unittest.TestCase):
             "'Стрит-флеш −1 · четыре подряд'",
             "'Стрит-флеш −1 · одна дырка'",
             "'Готовый стрит-флеш на столе'",
-            "'Без туза на столе'","'С тузом на столе'",
             "function flatBoardFacetLabel(groupKey,value){",
             "const explanation=el('span','flatBdrFacetHuman',flatBoardFacetLabel(group.key,value))",
             "item.append(input,code,explanation)",
@@ -203,20 +201,20 @@ class RiverBoard150Tests(unittest.TestCase):
             "/* End pure Board150 filter and aggregation helpers. */",1)[0]
         js="const FLAT_BOARD_FACETS=["+part+'''
 const assert=(v,msg)=>{if(!v)throw Error(msg)};
-const board='P1 · S2 · F2 · SF0 · A0';
+const board='P1 · S2 · F2 · SF0';
 assert(flatBoardFacetsMatch(board),'all facets');
 assert(flatBoardFacetsMatch('PRE|NO_BOARD'),'preflop preserved by default');
 flatBoardFacets.P.clear();flatBoardFacets.P.add(1);
 flatBoardFacets.S.clear();flatBoardFacets.S.add(0);flatBoardFacets.S.add(2);
 assert(flatBoardFacetsMatch(board),'multiple values within S');
-assert(flatBoardFacetsMatch('P1 · S0 · F2 · SF0 · A0'),'S0');
-assert(!flatBoardFacetsMatch('P1 · S1 · F2 · SF0 · A0'),'excluded S1');
-assert(!flatBoardFacetsMatch('P0 · S2 · F2 · SF0 · A0'),'excluded P0');
+assert(flatBoardFacetsMatch('P1 · S0 · F2 · SF0'),'S0');
+assert(!flatBoardFacetsMatch('P1 · S1 · F2 · SF0'),'excluded S1');
+assert(!flatBoardFacetsMatch('P0 · S2 · F2 · SF0'),'excluded P0');
 assert(!flatBoardFacetsMatch('PRE|NO_BOARD'),'no preflop for partial facets');
 flatBoardFacets.F.clear();flatBoardFacets.F.add(3);
 assert(!flatBoardFacetsMatch(board),'exclude F2');
-assert(flatBoardFacetsMatch('P1 · S2 · F3 · SF0 · A0'),'F3');
-assert(flatBoardParts('FLOP|P0 · S0 · F1 · SF0 · A0').F===1,'rainbow flop F1');
+assert(flatBoardFacetsMatch('P1 · S2 · F3 · SF0'),'F3');
+assert(flatBoardParts('FLOP|P0 · S0 · F1 · SF0').F===1,'rainbow flop F1');
 const d=['river',board,2,2,1,'L3'];
 const make=(n,net,opps)=>({dims:[d[0],d[1],d[2],d[3],opps,d[5]],
  a:{n,net},b:{n,net:net/2}});
@@ -254,11 +252,11 @@ assert(flatAggregateVisible(rows,'2')[0].a.net===-340,'count 2 only');
 
     def test_sf_zero_display_can_be_omitted_without_colliding_codes(self):
         compact=[r["id"].replace(" · SF0","") for r in ROWS]
-        self.assertEqual(len(compact),150)
-        self.assertEqual(len(set(compact)),150)
-        self.assertEqual(sum(r["sf"]=="SF0" for r in ROWS),68)
-        self.assertEqual(len(set(r["id"].split(" · SF")[0]+" · "+r["a"]
-                                 for r in ROWS)),106)
+        self.assertEqual(len(compact),75)
+        self.assertEqual(len(set(compact)),75)
+        self.assertEqual(sum(r["sf"]=="SF0" for r in ROWS),34)
+        self.assertEqual(len(set(r["id"].split(" · SF")[0]
+                                 for r in ROWS)),53)
 
     def test_flat_report_outcome_multiselect_minimum_n_and_hidden_showdown_column(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
@@ -293,14 +291,14 @@ assert(flatAggregateVisible(rows,'2')[0].a.net===-340,'count 2 only');
                 req=urllib.request.Request(url,headers={"X-Runner-Key":"board150_key"})
                 with urllib.request.urlopen(req,timeout=15) as response:
                     fetched=json.load(response)
-                self.assertEqual(fetched["reachable_codes"],150)
+                self.assertEqual(fetched["reachable_codes"],75)
                 self.assertEqual(fetched["rows"][0]["id"],ROWS[0]["id"])
                 url2=f"http://127.0.0.1:{server.server_address[1]}/api/postflop/board150-classify"
                 req2=urllib.request.Request(url2,data=json.dumps({"board":"5s-6s-7s-8s-8d"}).encode(),
                     headers={"X-Runner-Key":"board150_key","Content-Type":"application/json"},method="POST")
                 with urllib.request.urlopen(req2,timeout=15) as response:
                     out=json.load(response)
-                self.assertEqual(out["id"],"P1 · S3 · F4 · SF3 · A0")
+                self.assertEqual(out["id"],"P1 · S3 · F4 · SF3")
             finally:
                 server.shutdown();server.server_close();thread.join(timeout=3)
 
