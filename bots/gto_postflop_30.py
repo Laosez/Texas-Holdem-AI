@@ -15,6 +15,7 @@ create fresh bots and therefore revert to the GTO 2.0 baseline until trained.
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from math import comb
 import random
 
 from bots.gto_postflop_20 import GTOPostflop20Bot, relative_tier
@@ -66,6 +67,7 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
         self._seen = set()
         self._seen_hand_id = None
         self.last_model = None
+        self._trace = deque(maxlen=5)  # last 5 hands with decisions; bounded RAM
 
     def observe_hand(self, hand_id, history, board, me):
         """Consume observable street responses once; one per pid/street/hand.
@@ -128,6 +130,77 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
             return None
         return model
 
+    def trace_snapshot(self):
+        """Structured explanation, last five played postflop hands."""
+        return list(self._trace)
+
+    @staticmethod
+    def _anytwo_board_risk(board):
+        """Exact probability of at least one pair in the BEST hand (not
+        necessarily private); no inference from a villain's continuing range.
+        A board containing a pair gives any hand >=one pair automatically.
+        """
+        ranks = [card[0] for card in board]
+        count = len(board)
+        total = comb(52 - count, 2)
+        if len(set(ranks)) < count:
+            return round(100.0, 4)
+        # No pair is possible only with two different ranks absent on board.
+        absent = 13 - count
+        no_pair = comb(absent, 2) * 16
+        return round(100 * (1 - no_pair / total), 4)
+
+    def _explain(self, view, selected, baseline):
+        if view.street not in _STREETS or not getattr(view, "hole_cards", None):
+            return
+        hand_id = getattr(view, "hand_id", None)
+        if hand_id is None:
+            return
+        info = self.last_model or {}
+        model = info.get("stats")
+        board = list(view.board or ())
+        read = self._read_hand(list(view.hole_cards), board)
+        tier = info.get("relative_tier", 0)
+        opponent_rows = []
+        for pid in getattr(view, "opponents", ()) or ():
+            stats = self.opponent_stats(pid, street=view.street)
+            opponent_rows.append({
+                "pid": str(pid), "n": stats["n"],
+                "fold": round(100 * stats["rates"]["fold"], 1),
+                "call": round(100 * stats["rates"]["call"], 1),
+                "raise": round(100 * stats["rates"]["raise"], 1),
+                "counts": stats["counts"],
+                "pooled_streets": stats["pooled"]
+            })
+        step = {
+            "street": view.street,
+            "board": ["".join(c) for c in board],
+            "board150": info.get("board_id"),
+            "board_anytwo_pair_plus_pct": self._anytwo_board_risk(board),
+            "opponents_count": _opponents(view),
+            "opponents": opponent_rows,
+            "hero_hole": ["".join(c) for c in view.hole_cards],
+            "hero_tier": tier,
+            "hero_made": read.made,
+            "hero_draw_outs_estimate": read.draw_outs,
+            "facing_bet_chips": int(view.to_call or 0),
+            "pot_chips": int(view.pot or 0),
+            "decision": selected.type,
+            "amount_chips": selected.amount,
+            "decision_mode": ("gto20_fallback" if baseline else "gto30_adapted"),
+            "reason": (
+                "Недостаточно наблюдений (<3), мультипот или стандартная защита"
+                if baseline else
+                "Вэлью на основе R3/R4 и частоты Call" if tier >= 3 else
+                "Тонкое вэлью: R2 и частота Call" if tier == 2 else
+                "Полублеф: дро, Fold и Raise оппонента" if read.draw_outs >= 4 else
+                "Блеф: Fold, Raise и структура борда"
+            )
+        }
+        if not self._trace or self._trace[-1]["hand_id"] != hand_id:
+            self._trace.append({"hand_id": hand_id, "steps": []})
+        self._trace[-1]["steps"].append(step)
+
     def _baseline(self, view):
         # Preserve the original GTO 2.0 action decision while standardizing
         # an unopened pot bet to half-pot for the observational experiment.
@@ -137,6 +210,12 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
         return chosen
 
     def act(self, view):
+        decision = self._decide(view)
+        mode = self.last_model or {}
+        self._explain(view, decision, not mode.get("adapted", False))
+        return decision
+
+    def _decide(self, view):
         if view.street not in _STREETS:
             raise ValueError("GTO 3.0 is a postflop-only policy")
         # Read public responses already completed in this hand, without waiting
@@ -152,6 +231,10 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
             "opponent": list(getattr(view, "opponents", ()) or ()),
             "stats": model,
             "relative_tier": relative_tier(hole, board),
+            "adapted": bool(model and classification and
+                            view.to_call == 0 and
+                            "bet" in {x["type"] for x in (view.legal_actions or ())}
+                            and _can_bluff(view)),
         }
         # Do not invent learned behavior on the first hands / in 1-hand EV.
         if model is None or classification is None:
