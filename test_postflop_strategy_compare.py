@@ -114,7 +114,7 @@ class PostflopStrategyCompareTests(unittest.TestCase):
         hero, board = "14s-13h", "7d-5c-2s"
         scenario = classify_composite_flop(hero, board)
         rows = [{"id":scenario["id"],"hero":hero,"board":board}]
-        request = request_for(rows, profiles=["gto_postflop_v4","lag_postflop_v1"])
+        request = request_for(rows, profiles=["gto_postflop_20","lag_postflop_v1"])
         request["mode"]="physical_catalog"
         output = compare_request(request)
         self.assertEqual(output["method"],"empirical_bot_act_physical")
