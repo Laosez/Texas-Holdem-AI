@@ -13,6 +13,8 @@
     "smart",
     "gto_postflop_v1",
     "gto_postflop_20",
+    "gto_postflop_30_5",
+    "gto_postflop_30_10",
     "s100_postflop_v1",
     "lag_postflop_v1",
     "tag_punisher",
