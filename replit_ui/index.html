@@ -345,7 +345,7 @@ function renderGTO30Trace(){
   return;
  }
  root.append(el('p','note','Турнир №'+data.tournament+' · '+bot.policy+
-  ' · окно наблюдений: '+bot.window+' · вероятности Any Two не учитывают действия и диапазон соперника.'));
+  ' · окно наблюдений: '+bot.window+' · Any Two: повтор ранга (включая карманные пары), не вероятность конкретной силы после колла.'));
  hands.forEach(hand=>{
   const card=el('div','panel','');card.style.padding='11px';
   card.append(el('strong','','Раздача #'+hand.hand_id));
@@ -355,7 +355,7 @@ function renderGTO30Trace(){
    entry.append(el('div','small',step.street.toUpperCase()+' · '+step.board.join(' ')));
    entry.append(el('div','',step.board150||'Класс борда не определён'));
    entry.append(el('div','small','Оппонентов: '+step.opponents_count+
-      ' · Any Two P(пара+): '+step.board_anytwo_pair_plus_pct.toFixed(2)+'%'));
+      ' · Any Two P(повтор ранга): '+step.board_anytwo_rank_pair_pct.toFixed(2)+'%'));
    entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · сила R'+step.hero_tier+
       ' · '+step.hero_made+' · оценка аутов: '+step.hero_draw_outs_estimate));
    (step.opponents||[]).forEach(opp=>{
