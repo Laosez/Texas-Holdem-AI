@@ -25,6 +25,19 @@ on:
   workflow_dispatch:
 
 jobs:
+  adaptive-gto30:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Adaptive Board150 behavior and engine memory regression tests
+        run: |
+          python -m py_compile bots/gto_postflop_30.py bots/gto_postflop_20.py core/engine.py bots/street_split_bot.py
+          python -m unittest test_gto_postflop_30 test_gto_postflop_20 test_postflop_profiles test_postflop_strategy_compare test_street_split_bot -v
+
   plan-chart-bb:
     runs-on: ubuntu-latest
     timeout-minutes: 10
