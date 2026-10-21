@@ -110,6 +110,10 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.gto_postflop_20 import GTOPostflop20Bot
         return GTOPostflop20Bot()
 
+    if btype in ("gto_postflop_30_5", "gto_postflop_30_10"):
+        from bots.gto_postflop_30 import AdaptiveGTO30Bot
+        return AdaptiveGTO30Bot(window=5 if btype.endswith("_5") else 10)
+
     if btype in ("gto_postflop_v1","lag_postflop_v1"):
         from bots.postflop_profiles import PostflopProfileBot
         return PostflopProfileBot(btype)
