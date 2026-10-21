@@ -1001,8 +1001,9 @@ def main():
             "format": "SKACHKOV_GTO30_TRACE_V1",
             "tournament": last_adaptive_tournament,
             "explanation": ("Последние пять раздач с постфлоп-решениями каждого адаптивного "
-                            "бота в последнем турнире; любые вероятности Any Two "
-                            "не являются оценкой силы конкретного соперника."),
+                            "бота в последнем турнире; вероятность Any Two описывает "
+                            "повтор ранга (включая карманную пару), а не "
+                            "состав сильных рук соперника после колла."),
             "bots": last_adaptive_traces,
         })
     write_json(output/'tournament_report.json', report)
