@@ -100,9 +100,9 @@ class RiverBoard150Tests(unittest.TestCase):
         page=(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8")
         server=(app.ROOT/"replit_simulator.py").read_text(encoding="utf-8")
         plan=(app.ROOT/"replit_ui/plan.html").read_text(encoding="utf-8")
-        for x in ("id=\"board150Catalog\"","/api/postflop/board150-catalog",
-                  "/api/postflop/board150-classify",
-                  "function boardTitle(row){", "boardName", "Название борда",
+        for x in ("id=\"board150Catalog\"","/api/postflop/board16-catalog",
+                  "/api/postflop/board16-classify",
+                  "const boardTitle=row=>", "boardName", "Название борда",
                   "function drawCatalog(){"):
             self.assertIn(x,page)
         for forbidden in ("id=\"board150Report\"","id=\"viewFinancial\"",
