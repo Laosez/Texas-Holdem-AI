@@ -53,7 +53,7 @@ class RiverBoard150Tests(unittest.TestCase):
     def test_street_prefix_prevents_virtual_river(self):
         dealt=parse_physical_board("As-Ah-7s-8s-9s")
         self.assertEqual(classify_board(dealt[:3])["street"],"flop")
-        self.assertTrue(classify_board(dealt[:3])["id"].startswith("FLOP|S"))
+        self.assertTrue(classify_board(dealt[:3])["id"].startswith("FLOP|"))
         self.assertTrue(classify_board(dealt[:4])["id"].startswith("TURN|"))
         self.assertTrue(classify_board(dealt)["id"].startswith("S"))
         self.assertEqual(classify_board([])["id"],"PRE|NO_BOARD")
@@ -93,7 +93,7 @@ class RiverBoard150Tests(unittest.TestCase):
                                 (r["showdown_opponents"] == 0)
                                 for r in data["rows"]))
             self.assertTrue(all("board_code" in r for r in data["rows"]))
-            self.assertTrue(all(r["board_code"].startswith(("PRE|","FLOP|","TURN|","S"))
+            self.assertTrue(all(r["board_code"].startswith(("PRE|","FLOP|","TURN|","S","F","P"))
                                 for r in data["rows"]))
 
     def test_postflop_page_new_route_and_no_visible_old_catalog(self):
@@ -148,8 +148,8 @@ class RiverBoard150Tests(unittest.TestCase):
         for needle in (
             "const FLAT_BOARD_FACETS=[",
             "values:['P1','P2','P3','P3-2','P4']",
-            "values:['S1','S2','S3','S4','S5']",
-            "values:['F2','F3','F4','F5']",
+            "values:['S2','S3','S4','S5']",
+            "values:['F1','F2','F3','F4','F5']",
             "values:['SF4','SF5']",
             "const FLAT_BOARD_FACET_LABELS={",
             "flatBoardFacetsMatch(r.dims[1])",
@@ -217,7 +217,7 @@ assert(flatAggregateVisible(rows,'1')[0].a.n===6,'opponent selection');
                 self.assertIn(needle,page)
 
     def test_new_composite_ids_are_unique_and_cover_all_physical_boards(self):
-        self.assertEqual(NEW_DOC["version"],"board16_v1")
+        self.assertEqual(NEW_DOC["version"],"board16_v2")
         self.assertEqual(NEW_DOC["reachable_codes"],49)
         self.assertEqual(len(NEW_ROWS),49)
         self.assertEqual(len({r["id"] for r in NEW_ROWS}),49)

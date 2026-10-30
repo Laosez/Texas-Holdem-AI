@@ -16,12 +16,14 @@ class CompactBoard16Tests(unittest.TestCase):
     def test_exactly_16_selected_features(self):
         self.assertEqual(len(LABELS), 16)
         self.assertNotIn("P0", LABELS)
+        self.assertNotIn("S1", LABELS)
+        self.assertIn("F1", LABELS)
         self.assertNotIn("S4-1", LABELS)
         self.assertNotIn("SF4-2", LABELS)
 
-    def test_sheet_sample_covers_s1_s2_s3_s4_and_sf4(self):
+    def test_sheet_sample_covers_f1_s2_s3_s4_and_sf4(self):
         for cards, expected in [
-            ("2c 4c 7d 9d Qh", "S1"),
+            ("2c 4c 7d 9d Qh", "F2"),
             ("2c 6d 7h Js Kc", "S2"),
             ("7c 8d 9h Ks 2c", "S3"),
             ("6c 7d 8h 9s Kc", "S4"),
@@ -31,6 +33,24 @@ class CompactBoard16Tests(unittest.TestCase):
         ]:
             with self.subTest(board=cards):
                 self.assertIn(expected, self.classify(cards)["compact"]["codes"])
+
+    def test_f1_exclusive_fallback(self):
+        # Standard rainbow, unpaired and unconnected flop.
+        dry = self.classify("2c 7d Qh")
+        self.assertEqual(dry["compact"]["codes"], ["F1"])
+        self.assertEqual(dry["id"], "FLOP|F1")
+        # A four-suit dry turn may also have no selected features.
+        self.assertEqual(self.classify("2c 5d 8h Js")["compact"]["codes"], ["F1"])
+        for cards, expected in [
+            ("2c 7c Qh", "F2"),
+            ("2c 3d Qh", "S2"),
+            ("2c 2d Qh", "P1"),
+            ("7c 8d 9h", "S3"),
+        ]:
+            with self.subTest(board=cards):
+                codes = self.classify(cards)["compact"]["codes"]
+                self.assertIn(expected, codes)
+                self.assertNotIn("F1", codes)
 
     def test_outs_distinguish_open_ended_and_gutshot(self):
         open_ended=self.classify("5s 6s 7s 8s Kd")
