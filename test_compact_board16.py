@@ -22,7 +22,7 @@ class CompactBoard16Tests(unittest.TestCase):
     def test_sheet_sample_covers_s1_s2_s3_s4_and_sf4(self):
         for cards, expected in [
             ("2c 4c 7d 9d Qh", "S1"),
-            ("6c 7d Qh 3s Ac", "S2"),
+            ("2c 6d 7h Js Kc", "S2"),
             ("7c 8d 9h Ks 2c", "S3"),
             ("6c 7d 8h 9s Kc", "S4"),
             ("5s 6s 7s 8s Kd", "SF4"),
