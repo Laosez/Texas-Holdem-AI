@@ -41,7 +41,7 @@ class AdaptiveGTO30Tests(unittest.TestCase):
     def test_board150_canonical_codes_without_invented_classification(self):
         dry = _board_class(FLOP, "flop")
         wet = _board_class(WET, "flop")
-        self.assertTrue(dry["id"].startswith("FLOP|P0"))
+        self.assertTrue(dry["id"].startswith("FLOP|S"))
         self.assertEqual(dry["f"], "F1")
         self.assertEqual(wet["f"], "F2")
         self.assertEqual(wet["a"], "A1")
@@ -148,7 +148,7 @@ class AdaptiveGTO30Tests(unittest.TestCase):
                              ["flop","turn","river"])
             self.assertTrue(all(x["board150"].startswith(x["street"].upper()+"|")
                                 if x["street"]!="river" else
-                                x["board150"].startswith("P")
+                                x["board150"].startswith("S")
                                 for x in hand["steps"]))
             self.assertTrue(all(0<=x["board_anytwo_rank_pair_pct"]<=100
                                 for x in hand["steps"]))

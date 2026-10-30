@@ -247,7 +247,7 @@ def strategy_catalog():
                     "label": "GTO 3.0/5 · память пяти C-bet-ответов (эксперимент)",
                     "model": "heuristic",
                     "features": ["last 5 public Fold/Call/Raise responses", "half-pot sizing",
-                                 "Board75 P/S/F/SF", "R0–R4", "GTO 2.0 fallback", "five-hand trace"]
+                                 "Board16 · 49 типов", "R0–R4", "GTO 2.0 fallback", "five-hand trace"]
                 },
                 "gto_postflop_30_10": {
                     "label": "GTO 3.0/10 · память десяти C-bet-ответов (эксперимент)",
@@ -1414,12 +1414,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         if planner_api.get_route(self,path):
             return
-        if path == "/api/postflop/board150-catalog":
-            catalog = ROOT / "data" / "postflop_board150_catalog.json"
+        if path in ("/api/postflop/board16-catalog","/api/postflop/board150-catalog"):
+            catalog = ROOT / "data" / "postflop_compact16_catalog.json"
             try:
                 self.reply(200, json.loads(catalog.read_text(encoding="utf-8")))
             except (OSError,ValueError):
-                self.reply(503, {"error": "Каталог P/S/F/SF/A недоступен"})
+                self.reply(503, {"error": "Каталог Board16 недоступен"})
             return
         if path == "/api/postflop/composite-catalog":
             # Small reviewed static JSON; generated offline from the exact census.
@@ -1603,7 +1603,7 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as e:
                 self.reply(400, {"error": str(e)})
             return
-        if path == "/api/postflop/board150-classify":
+        if path in ("/api/postflop/board16-classify","/api/postflop/board150-classify"):
             from postflop_board150 import classify_request
             try:
                 self.reply(200, classify_request(payload))

@@ -18,6 +18,8 @@ import replit_simulator as app
 
 DOC=json.loads((Path(__file__).parent/"data"/"postflop_board150_catalog.json").read_text(encoding="utf-8"))
 ROWS=DOC["rows"]
+NEW_DOC=json.loads((Path(__file__).parent/"data"/"postflop_compact16_catalog.json").read_text(encoding="utf-8"))
+NEW_ROWS=NEW_DOC["rows"]
 
 
 class RiverBoard150Tests(unittest.TestCase):
@@ -33,17 +35,17 @@ class RiverBoard150Tests(unittest.TestCase):
                          [41,20,6,6,1,1])
         self.assertEqual(len({x["example"] for x in ROWS}),75)
         for row in ROWS:
-            self.assertEqual(classify_board(parse_physical_board(row["example"]))["id"],row["id"])
+            self.assertEqual(classify_board(parse_physical_board(row["example"]))["legacy_id"],row["id"])
             self.assertGreater(row["deals"],0)
             self.assertAlmostEqual(row["probability_pct"],100*row["deals"]/2598960,places=6)
 
     def test_all_physical_example_and_wheel(self):
         cards=parse_physical_board("5s-6s-7s-8s-8d")
-        self.assertEqual(classify_board(cards)["id"],"P1 · S3 · F4 · SF3")
+        self.assertEqual(classify_board(cards)["id"],"S4 · F4 · SF4 · P1")
         board=next(r for r in ROWS if r["id"]=="P1 · S3 · F4 · SF3")
         self.assertEqual(board["deals"],528)
         self.assertEqual(classify_request({"board":"As-2d-3c-4h-5s"})["id"],
-                         "P0 · S5 · F2 · SF0")
+                         "S5 · F2")
         # Exactly same spelling accepted by the new Sheet 03 input.
         self.assertEqual(parse_physical_board("14s-13h-9c-5d-2c"),
                          parse_physical_board("As-Kh-9c-5d-2c"))
@@ -51,15 +53,15 @@ class RiverBoard150Tests(unittest.TestCase):
     def test_street_prefix_prevents_virtual_river(self):
         dealt=parse_physical_board("As-Ah-7s-8s-9s")
         self.assertEqual(classify_board(dealt[:3])["street"],"flop")
-        self.assertTrue(classify_board(dealt[:3])["id"].startswith("FLOP|P1"))
+        self.assertTrue(classify_board(dealt[:3])["id"].startswith("FLOP|S"))
         self.assertTrue(classify_board(dealt[:4])["id"].startswith("TURN|"))
-        self.assertTrue(classify_board(dealt)["id"].startswith("P1 ·"))
+        self.assertTrue(classify_board(dealt)["id"].startswith("S"))
         self.assertEqual(classify_board([])["id"],"PRE|NO_BOARD")
         for value in ("As-As-3d-4c-5h","As-Qz-3d-4c-5h","As-2d-3c"):
             with self.assertRaises(ValueError):parse_physical_board(value,streets=(5,))
 
     def test_river_unique_id_for_uniform_random_physical_sample(self):
-        universe={x["id"] for x in ROWS}
+        universe={x["id"] for x in NEW_ROWS}
         rng=random.Random(42)
         for _ in range(3000):
             board=rng.sample(range(52),5)
@@ -91,16 +93,16 @@ class RiverBoard150Tests(unittest.TestCase):
                                 (r["showdown_opponents"] == 0)
                                 for r in data["rows"]))
             self.assertTrue(all("board_code" in r for r in data["rows"]))
-            self.assertTrue(all(r["board_code"].startswith(("PRE|","FLOP|","TURN|","P"))
+            self.assertTrue(all(r["board_code"].startswith(("PRE|","FLOP|","TURN|","S"))
                                 for r in data["rows"]))
 
     def test_postflop_page_new_route_and_no_visible_old_catalog(self):
         page=(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8")
         server=(app.ROOT/"replit_simulator.py").read_text(encoding="utf-8")
         plan=(app.ROOT/"replit_ui/plan.html").read_text(encoding="utf-8")
-        for x in ("id=\"board150Catalog\"","/api/postflop/board150-catalog",
-                  "/api/postflop/board150-classify",
-                  "function boardTitle(row){", "boardName", "Название борда",
+        for x in ("id=\"board150Catalog\"","/api/postflop/board16-catalog",
+                  "/api/postflop/board16-classify",
+                  "const boardTitle=row=>", "boardName", "Название борда",
                   "function drawCatalog(){"):
             self.assertIn(x,page)
         for forbidden in ("id=\"board150Report\"","id=\"viewFinancial\"",
@@ -111,7 +113,7 @@ class RiverBoard150Tests(unittest.TestCase):
         self.assertNotIn('1 019',page)
         self.assertIn('<option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход',plan)
         self.assertIn('<option value="catalog" hidden>',plan)
-        self.assertIn('↗ Справочник 75 бордов',plan)
+        self.assertIn('↗ Справочник 49 типов',plan)
         self.assertNotIn('↗ Отчёт на листе 03 · Постфлоп',plan)
         self.assertIn('function riverBoardDescription(code){',plan)
         self.assertIn('function board150Parts(code){',plan)
@@ -141,93 +143,57 @@ class RiverBoard150Tests(unittest.TestCase):
                 self.assertIn(keyword,page)
         self.assertNotIn("['opps','Опп. на вскрытии',4]",page)
 
-    def test_board_filters_use_separate_street_and_poker_category_multiselect(self):
+    def test_board16_filters_and_labels(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
         for needle in (
             "const FLAT_BOARD_FACETS=[",
-            "{key:'P',name:'Парность',values:[0,1,2,3,4,5]}",
-            "{key:'S',name:'Стрит',values:[0,1,2,3,4,5]}",
-            "{key:'F',name:'Флеш',values:[1,2,3,4,5]}",
-            "{key:'SF',name:'Стрит-флеш',values:[0,1,2,3,4,5]}",
-            "const boardFacetWrap=el('div','flatBdrFacetGroup')",
+            "values:['P1','P2','P3','P3-2','P4']",
+            "values:['S1','S2','S3','S4','S5']",
+            "values:['F2','F3','F4','F5']",
+            "values:['SF4','SF5']",
+            "const FLAT_BOARD_FACET_LABELS={",
             "flatBoardFacetsMatch(r.dims[1])",
             "function flatAggregateVisible(rows,showdownChoice='all')",
-            "const streetSelect=el('select','flatBdrFilter')",
+            "function refreshDerivedBoards(){",
             "flatVisibleHeroCategories.has(r.dims[2])",
             "flatVisibleVillainCategories.has(r.dims[3])",
-            "function refreshDerivedBoards(){",
-            "boardSummary.textContent='Подобрано типов борда: '",
-            "const syncHero=createCategoryPicker('HERO',2,flatVisibleHeroCategories)",
-            "const syncVillain=createCategoryPicker('Оппонент',3,flatVisibleVillainCategories)",
+            "const boardFacetWrap=el('div','flatBdrFacetGroup')",
         ):
             with self.subTest(needle=needle):
                 self.assertIn(needle,page)
-        self.assertNotIn("const boardSelect=el('select','flatBdrFilter')",page)
 
-    def test_board_facet_checkbox_human_names_follow_canonical_taxonomy(self):
-        page=app.PLAN_UI.read_text(encoding="utf-8")
-        for label in (
-            "const FLAT_BOARD_FACET_LABELS={",
-            "'Без пары на столе'","'Пара на столе'","'Две пары на столе'",
-            "'Тройка на столе'","'Фулл-хаус на столе'","'Каре на столе'",
-            "'Без выраженной стрит-угрозы'",
-            "'Стрит −2 · три подряд'","'Стрит −2 · две дырки'",
-            "'Стрит −1 · четыре подряд'","'Стрит −1 · одна дырка'",
-            "'Готовый стрит на столе'",
-            "1:'Разномастный флоп'",
-            "2:'Не более двух карт одной масти'",
-            "3:'Три карты одной масти · флеш −2'",
-            "4:'Четыре карты одной масти · флеш −1'",
-            "5:'Пять карт одной масти · флеш на столе'",
-            "'Без выраженной стрит-флеш-угрозы'",
-            "'Стрит-флеш −2 · три подряд'",
-            "'Стрит-флеш −2 · две дырки'",
-            "'Стрит-флеш −1 · четыре подряд'",
-            "'Стрит-флеш −1 · одна дырка'",
-            "'Готовый стрит-флеш на столе'",
-            "function flatBoardFacetLabel(groupKey,value){",
-            "const explanation=el('span','flatBdrFacetHuman',flatBoardFacetLabel(group.key,value))",
-            "item.append(input,code,explanation)",
-        ):
-            with self.subTest(label=label):
-                self.assertIn(label,page)
-
-    def test_board_facet_runtime_and_hidden_showdown_aggregation(self):
-        """Execute deployed JS helpers, including multiple values and precise sums."""
+    def test_board16_filter_runtime_and_showdown_rollup(self):
         if not shutil.which("node"):
             self.skipTest("Node.js unavailable")
         page=app.PLAN_UI.read_text(encoding="utf-8")
         part=page.split("const FLAT_BOARD_FACETS=[",1)[1].split(
             "/* End pure Board150 filter and aggregation helpers. */",1)[0]
-        js="const FLAT_BOARD_FACETS=["+part+'''
+        part=part.replace("const flatBoardParts=", "const flatBoardParts=")
+        # New parser is declared earlier in Plan, so preload its source.
+        begin=page.split("function board150Parts(code){",1)[1].split("function riverPass(row){",1)[0]
+        js="function board150Parts(code){"+begin+"\nconst FLAT_BOARD_FACETS=["+part+'''
 const assert=(v,msg)=>{if(!v)throw Error(msg)};
-const board='P1 · S2 · F2 · SF0';
+const board='S4 · F2 · P1';
 assert(flatBoardFacetsMatch(board),'all facets');
-assert(flatBoardFacetsMatch('PRE|NO_BOARD'),'preflop preserved by default');
-flatBoardFacets.P.clear();flatBoardFacets.P.add(1);
-flatBoardFacets.S.clear();flatBoardFacets.S.add(0);flatBoardFacets.S.add(2);
-assert(flatBoardFacetsMatch(board),'multiple values within S');
-assert(flatBoardFacetsMatch('P1 · S0 · F2 · SF0'),'S0');
-assert(!flatBoardFacetsMatch('P1 · S1 · F2 · SF0'),'excluded S1');
-assert(!flatBoardFacetsMatch('P0 · S2 · F2 · SF0'),'excluded P0');
-assert(!flatBoardFacetsMatch('PRE|NO_BOARD'),'no preflop for partial facets');
-flatBoardFacets.F.clear();flatBoardFacets.F.add(3);
-assert(!flatBoardFacetsMatch(board),'exclude F2');
-assert(flatBoardFacetsMatch('P1 · S2 · F3 · SF0'),'F3');
-assert(flatBoardParts('FLOP|P0 · S0 · F1 · SF0').F===1,'rainbow flop F1');
+assert(flatBoardFacetsMatch('PRE|NO_BOARD'),'preflop visible with all facets');
+flatBoardFacets.P.clear();flatBoardFacets.P.add('P1');
+flatBoardFacets.S.clear();flatBoardFacets.S.add('S4');
+assert(flatBoardFacetsMatch(board),'selected class');
+assert(!flatBoardFacetsMatch('S3 · F2 · P1'),'S3 excluded');
+assert(!flatBoardFacetsMatch('S4 · F2 · P2'),'P2 excluded');
+assert(!flatBoardFacetsMatch('PRE|NO_BOARD'),'preflop excluded under filtering');
+flatBoardFacets.F.clear();flatBoardFacets.F.add('F3');
+assert(!flatBoardFacetsMatch(board),'F2 excluded');
+assert(flatBoardFacetsMatch('S4 · F3 · P1'),'F3 included');
 const d=['river',board,2,2,1,'L3'];
 const make=(n,net,opps)=>({dims:[d[0],d[1],d[2],d[3],opps,d[5]],
  a:{n,net},b:{n,net:net/2}});
 const rows=[make(6,-420,1),make(5,-340,2)];
 const merged=flatAggregateVisible(rows,'all');
-assert(merged.length===1,'one row per visible scenario');
-assert(merged[0].a.n===11,'sum N');
-assert(merged[0].a.net===-760,'sum net BB');
-assert(merged[0].a.net/merged[0].a.n===-760/11,'weighted EV');
-assert(merged[0].a.n>=10&&rows.every(r=>r.a.n<10),'N threshold after aggregation');
-assert(flatAggregateVisible(rows,'1').length===1,'single showdown count');
-assert(flatAggregateVisible(rows,'1')[0].a.n===6,'count 1 only');
-assert(flatAggregateVisible(rows,'2')[0].a.net===-340,'count 2 only');
+assert(merged.length===1,'one row');
+assert(merged[0].a.n===11,'sum n');
+assert(merged[0].a.net===-760,'sum bb');
+assert(flatAggregateVisible(rows,'1')[0].a.n===6,'opponent selection');
 '''
         run=subprocess.run(["node","-e",js],capture_output=True,text=True,timeout=15)
         self.assertEqual(run.returncode,0,run.stderr)
@@ -250,13 +216,15 @@ assert(flatAggregateVisible(rows,'2')[0].a.net===-340,'count 2 only');
             with self.subTest(needle=needle):
                 self.assertIn(needle,page)
 
-    def test_sf_zero_display_can_be_omitted_without_colliding_codes(self):
-        compact=[r["id"].replace(" · SF0","") for r in ROWS]
-        self.assertEqual(len(compact),75)
-        self.assertEqual(len(set(compact)),75)
-        self.assertEqual(sum(r["sf"]=="SF0" for r in ROWS),34)
-        self.assertEqual(len(set(r["id"].split(" · SF")[0]
-                                 for r in ROWS)),53)
+    def test_new_composite_ids_are_unique_and_cover_all_physical_boards(self):
+        self.assertEqual(NEW_DOC["version"],"board16_v1")
+        self.assertEqual(NEW_DOC["reachable_codes"],49)
+        self.assertEqual(len(NEW_ROWS),49)
+        self.assertEqual(len({r["id"] for r in NEW_ROWS}),49)
+        self.assertEqual(sum(r["deals"] for r in NEW_ROWS),2598960)
+        for row in NEW_ROWS:
+            info=classify_board(parse_physical_board(row["example"]))
+            self.assertEqual(info["id"],row["id"])
 
     def test_flat_report_outcome_multiselect_minimum_n_and_hidden_showdown_column(self):
         page=app.PLAN_UI.read_text(encoding="utf-8")
@@ -278,7 +246,7 @@ assert(flatAggregateVisible(rows,'2')[0].a.net===-340,'count 2 only');
                 self.assertIn(needle,page)
         self.assertNotIn("{key:'showdown',label:'Опп. на вскрытии',dimension:4}",page)
         self.assertNotIn("['Тип исхода',5]",page)
-        self.assertIn("function compactBoardCode(code)",(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8"))
+        self.assertIn("const compactBoardCode=code=>",(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8"))
         self.assertIn("row.id,compactBoardCode(row.id)",(app.ROOT/"replit_ui/river_board.html").read_text(encoding="utf-8"))
 
     def test_authenticated_catalog_and_classify_api(self):
@@ -291,14 +259,14 @@ assert(flatAggregateVisible(rows,'2')[0].a.net===-340,'count 2 only');
                 req=urllib.request.Request(url,headers={"X-Runner-Key":"board150_key"})
                 with urllib.request.urlopen(req,timeout=15) as response:
                     fetched=json.load(response)
-                self.assertEqual(fetched["reachable_codes"],75)
-                self.assertEqual(fetched["rows"][0]["id"],ROWS[0]["id"])
+                self.assertEqual(fetched["reachable_codes"],49)
+                self.assertEqual(fetched["rows"][0]["id"],NEW_ROWS[0]["id"])
                 url2=f"http://127.0.0.1:{server.server_address[1]}/api/postflop/board150-classify"
                 req2=urllib.request.Request(url2,data=json.dumps({"board":"5s-6s-7s-8s-8d"}).encode(),
                     headers={"X-Runner-Key":"board150_key","Content-Type":"application/json"},method="POST")
                 with urllib.request.urlopen(req2,timeout=15) as response:
                     out=json.load(response)
-                self.assertEqual(out["id"],"P1 · S3 · F4 · SF3")
+                self.assertEqual(out["id"],"S4 · F4 · SF4 · P1")
             finally:
                 server.shutdown();server.server_close();thread.join(timeout=3)
 

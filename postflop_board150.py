@@ -7,6 +7,7 @@ are explicitly tagged: PRE|NO_BOARD, FLOP|..., TURN|... and never entered
 into the 150-river reference universe.
 """
 from collections import Counter
+from postflop_compact16 import classify_compact
 import re
 
 RANKS="23456789TJQKA"
@@ -95,11 +96,18 @@ def classify_board(board_ids, street=None):
     f=max(Counter(suits).values())
     sf=max((_sequence(m) for m in suit_groups),default=0)
     a=int(12 in ranks)
-    code=f"P{p} · S{s} · F{f} · SF{sf}"
-    if street!="river":code=street.upper()+"|"+code
-    return {"id":code,"street":street,"p":f"P{p}","s":f"S{s}",
-            "f":f"F{f}","sf":f"SF{sf}","a":f"A{a}",
-            "label":f"{P_NAMES[p]} · {S_NAMES[s]} · {F_NAMES[f]} · {SF_NAMES[sf]}"}
+    legacy_code=f"P{p} · S{s} · F{f} · SF{sf}"
+    compact=classify_compact(ids,legacy_p=p,legacy_s=s,legacy_f=f,legacy_sf=sf)
+    code=compact["id"]
+    if street!="river":
+        code=street.upper()+"|"+code
+        legacy_code=street.upper()+"|"+legacy_code
+    return {"id":code,"street":street,
+            "codes":compact["codes"],"compact":compact,
+            "legacy_id":legacy_code,
+            "legacy_facets":{"p":f"P{p}","s":f"S{s}","f":f"F{f}","sf":f"SF{sf}"},
+            "p":f"P{p}","s":f"S{s}","f":f"F{f}","sf":f"SF{sf}","a":f"A{a}",
+            "label":" · ".join(compact["labels"][key] for key in compact["codes"])}
 
 
 def classify_request(payload):
