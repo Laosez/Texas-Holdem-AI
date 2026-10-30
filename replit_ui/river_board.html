@@ -62,7 +62,7 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 </div>
 <div class="statbar"><span id="catalogStatus">Загрузка каталога…</span><span id="checkedStatus"></span><span id="catalogShares"></span><button class="btn sm ghost" type="button" id="catalogReset">Сбросить отметки</button></div>
 <div class="tablewrap"><table><thead><tr><th>№</th><th>Идентификатор</th><th>Название борда</th><th>Физический пример</th><th>Парность</th><th>Стрит</th><th>Флеш</th><th>Стрит-флеш</th><th class="num">Число бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Подключение к каталогу…</td></tr></tbody></table></div>
-<p class="caption">S1 — нет выраженной стритовой структуры; S2 — два соседних ранга; S3/S4 — три/четыре ранга в любом пятиранговом стритовом окне (включая дырки). SF4 объединяет один и два завершающих выхода. Туз учитывается как старший и младший (A-2-3-4-5). Классы не отражают диапазон OPP.</p>
+<p class="caption">F1 — только когда отсутствуют все остальные признаки; S2 — два соседних ранга; S3/S4 — три/четыре ранга в любом пятиранговом стритовом окне (включая дырки). SF4 объединяет один и два завершающих выхода. Туз учитывается как старший и младший (A-2-3-4-5). Классы не отражают диапазон OPP.</p>
 </section>
 </main><footer class="small" style="margin-bottom:28px">SKACHKOV / POKER SYSTEM · Каталог Board16 · River V1 · 2 598 960 физических бордов.</footer>
 <script>
@@ -72,8 +72,8 @@ const REVIEW_KEY="skachkov_board16_review_v1";
 let rows=[],checked={};
 const shortNames={
   P:{P1:'Пара',P2:'Две пары',P3:'Тройка','P3-2':'Фулл-хаус',P4:'Каре'},
-  S:{S1:'Нет стритового признака',S2:'Коннекторы',S3:'Три связанных',S4:'Четыре связанных',S5:'Стрит'},
-  F:{F2:'Две одной масти',F3:'Три одной масти',F4:'Четыре одной масти',F5:'Флеш'},
+  S:{S2:'Коннекторы',S3:'Три связанных',S4:'Четыре связанных',S5:'Стрит'},
+  F:{F1:'Нет особых признаков',F2:'Две одной масти',F3:'Три одной масти',F4:'Четыре одной масти',F5:'Флеш'},
   SF:{SF4:'Стрит-флеш-дро',SF5:'Стрит-флеш'}
 };
 const compactBoardCode=code=>String(code||'');
@@ -118,7 +118,7 @@ function drawCatalog(){
   const tr=el("tr");
   for(const value of [row.ordinal,compactBoardCode(row.id),boardTitle(row),row.example,
     row.p?(row.p+" · "+shortNames.P[row.p]):"—",
-     row.s+" · "+shortNames.S[row.s],
+     row.s?(row.s+" · "+shortNames.S[row.s]):"—",
      row.f?(row.f+" · "+shortNames.F[row.f]):"—",
      row.sf?(row.sf+" · "+shortNames.SF[row.sf]):"—",
      row.deals.toLocaleString("ru-RU"),
