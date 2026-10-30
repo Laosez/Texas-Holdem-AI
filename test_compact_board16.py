@@ -106,7 +106,7 @@ class CompactBoard16Tests(unittest.TestCase):
         for row in catalog["rows"]:
             with self.subTest(id=row["id"]):
                 obj=classify_board(parse_physical_board(row["example"]))
-                self.assertIn(" · ",obj["id"])
+                self.assertIn(" · ",obj["legacy_id"])
                 self.assertEqual(obj["legacy_id"],row["id"])
                 self.assertTrue(set(obj["compact"]["codes"])<=set(LABELS))
                 self.assertNotIn("P0",obj["compact"]["codes"])
