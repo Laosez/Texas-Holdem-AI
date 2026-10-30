@@ -88,8 +88,8 @@ class S100ThirdSheetTests(unittest.TestCase):
                     self.assertIn(b'SKACHKOV', document)
                 _, page = request("/s100", auth=False)
                 self.assertIn(b'aria-current="page"', page)
-                self.assertIn(b'POSTFLOP BOARD CATALOG', page)
-                self.assertIn(b'/api/postflop/board150-catalog', page)
+                self.assertIn(b'POSTFLOP BOARD16', page)
+                self.assertIn(b'/api/postflop/board16-catalog', page)
                 with self.assertRaises(urllib.error.HTTPError) as denied:
                     request("/api/s100", auth=False)
                 self.assertEqual(denied.exception.code, 401)
