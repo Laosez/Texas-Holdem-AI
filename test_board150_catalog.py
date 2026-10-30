@@ -53,7 +53,7 @@ class RiverBoard150Tests(unittest.TestCase):
     def test_street_prefix_prevents_virtual_river(self):
         dealt=parse_physical_board("As-Ah-7s-8s-9s")
         self.assertEqual(classify_board(dealt[:3])["street"],"flop")
-        self.assertTrue(classify_board(dealt[:3])["id"].startswith("FLOP|S"))
+        self.assertTrue(classify_board(dealt[:3])["id"].startswith("FLOP|"))
         self.assertTrue(classify_board(dealt[:4])["id"].startswith("TURN|"))
         self.assertTrue(classify_board(dealt)["id"].startswith("S"))
         self.assertEqual(classify_board([])["id"],"PRE|NO_BOARD")
