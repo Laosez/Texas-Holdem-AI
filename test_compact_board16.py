@@ -13,18 +13,20 @@ class CompactBoard16Tests(unittest.TestCase):
     def classify(self, cards):
         return classify_request({"board": cards})
 
-    def test_exactly_16_selected_features(self):
-        self.assertEqual(len(LABELS), 16)
+    def test_exactly_14_selected_features(self):
+        self.assertEqual(len(LABELS), 14)
         self.assertNotIn("P0", LABELS)
         self.assertNotIn("S1", LABELS)
+        self.assertNotIn("S2", LABELS)
+        self.assertNotIn("F2", LABELS)
         self.assertIn("F1", LABELS)
         self.assertNotIn("S4-1", LABELS)
         self.assertNotIn("SF4-2", LABELS)
 
-    def test_sheet_sample_covers_f1_s2_s3_s4_and_sf4(self):
+    def test_sheet_sample_covers_f1_s3_s4_and_sf4(self):
         for cards, expected in [
-            ("2c 4c 7d 9d Qh", "F2"),
-            ("2c 6d 7h Js Kc", "S2"),
+            ("2c 4c 7d 9d Qh", "F1"),
+            ("2c 6d 7h Js Kc", "F1"),
             ("7c 8d 9h Ks 2c", "S3"),
             ("6c 7d 8h 9s Kc", "S4"),
             ("5s 6s 7s 8s Kd", "SF4"),
@@ -42,15 +44,28 @@ class CompactBoard16Tests(unittest.TestCase):
         # A four-suit dry turn may also have no selected features.
         self.assertEqual(self.classify("2c 5d 8h Js")["compact"]["codes"], ["F1"])
         for cards, expected in [
-            ("2c 7c Qh", "F2"),
-            ("2c 3d Qh", "S2"),
+            ("2c 7c Qh", "F1"),
+            ("2c 3d Qh", "F1"),
             ("2c 2d Qh", "P1"),
             ("7c 8d 9h", "S3"),
         ]:
             with self.subTest(board=cards):
                 codes = self.classify(cards)["compact"]["codes"]
                 self.assertIn(expected, codes)
-                self.assertNotIn("F1", codes)
+                if expected != "F1":
+                    self.assertNotIn("F1", codes)
+                self.assertNotIn("S2", codes)
+                self.assertNotIn("F2", codes)
+
+    def test_draw_only_f2_s2_patterns_do_not_create_made_hand_codes(self):
+        for board, expected in [
+            ("2c 7c Qh", "F1"),  # Two suited cards: draw-only note
+            ("2c 3d Qh", "F1"),  # Two connected ranks: draw-only note
+            ("2c 2d 3h", "P1"),  # Pair remains the only made-hand trait
+            ("2c 2d 3c", "P1"),  # Even with suited / adjacent ranks
+        ]:
+            with self.subTest(board=board):
+                self.assertEqual(self.classify(board)["compact"]["codes"], [expected])
 
     def test_outs_distinguish_open_ended_and_gutshot(self):
         open_ended=self.classify("5s 6s 7s 8s Kd")
@@ -84,14 +99,14 @@ class CompactBoard16Tests(unittest.TestCase):
         self.assertEqual(catalog["reachable_codes"],75)
         with (ROOT / "data" / "postflop_compact16_catalog.json").open(encoding="utf8") as fh:
             selected=json.load(fh)
-        self.assertEqual(selected["reachable_codes"],49)
+        self.assertEqual(selected["reachable_codes"],36)
         self.assertEqual(sum(x["deals"] for x in selected["rows"]),2598960)
         for row in selected["rows"]:
             self.assertEqual(self.classify(row["example"])["compact"]["id"],row["id"])
         for row in catalog["rows"]:
             with self.subTest(id=row["id"]):
                 obj=classify_board(parse_physical_board(row["example"]))
-                self.assertIn(" · ",obj["id"])
+                self.assertIn(" · ",obj["legacy_id"])
                 self.assertEqual(obj["legacy_id"],row["id"])
                 self.assertTrue(set(obj["compact"]["codes"])<=set(LABELS))
                 self.assertNotIn("P0",obj["compact"]["codes"])

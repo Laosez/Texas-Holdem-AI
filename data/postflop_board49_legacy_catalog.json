@@ -1,0 +1,767 @@
+{
+  "version": "board16_v2",
+  "street": "river",
+  "taxonomy": "16 selected board traits; 49 reachable composed classes",
+  "physical_boards": 2598960,
+  "theoretical_codes": null,
+  "reachable_codes": 49,
+  "rows": [
+    {
+      "ordinal": 1,
+      "id": "F2",
+      "s": null,
+      "f": "F2",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "F2"
+      ],
+      "deals": 14400,
+      "example": "2c-4c-7d-9d-Qh",
+      "probability_pct": 0.55406778
+    },
+    {
+      "ordinal": 2,
+      "id": "F2 · P1",
+      "s": null,
+      "f": "F2",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "F2",
+        "P1"
+      ],
+      "deals": 131040,
+      "example": "2c-2d-4c-7d-9h",
+      "probability_pct": 5.04201681
+    },
+    {
+      "ordinal": 3,
+      "id": "F2 · P2",
+      "s": null,
+      "f": "F2",
+      "sf": null,
+      "p": "P2",
+      "codes": [
+        "F2",
+        "P2"
+      ],
+      "deals": 47304,
+      "example": "2c-2d-4c-4d-7h",
+      "probability_pct": 1.82011266
+    },
+    {
+      "ordinal": 4,
+      "id": "F2 · P3",
+      "s": null,
+      "f": "F2",
+      "sf": null,
+      "p": "P3",
+      "codes": [
+        "F2",
+        "P3"
+      ],
+      "deals": 22776,
+      "example": "2c-2d-2h-4c-7d",
+      "probability_pct": 0.87635054
+    },
+    {
+      "ordinal": 5,
+      "id": "F2 · P3-2",
+      "s": null,
+      "f": "F2",
+      "sf": null,
+      "p": "P3-2",
+      "codes": [
+        "F2",
+        "P3-2"
+      ],
+      "deals": 3120,
+      "example": "2c-2d-2h-4c-4d",
+      "probability_pct": 0.12004802
+    },
+    {
+      "ordinal": 6,
+      "id": "F2 · P4",
+      "s": null,
+      "f": "F2",
+      "sf": null,
+      "p": "P4",
+      "codes": [
+        "F2",
+        "P4"
+      ],
+      "deals": 520,
+      "example": "2c-2d-2h-2s-4c",
+      "probability_pct": 0.020008
+    },
+    {
+      "ordinal": 7,
+      "id": "F3",
+      "s": null,
+      "f": "F3",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "F3"
+      ],
+      "deals": 8640,
+      "example": "2c-4c-7c-9d-Qd",
+      "probability_pct": 0.33244067
+    },
+    {
+      "ordinal": 8,
+      "id": "F3 · P1",
+      "s": null,
+      "f": "F3",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "F3",
+        "P1"
+      ],
+      "deals": 62400,
+      "example": "2c-2d-4c-7c-9d",
+      "probability_pct": 2.40096038
+    },
+    {
+      "ordinal": 9,
+      "id": "F3 · P2",
+      "s": null,
+      "f": "F3",
+      "sf": null,
+      "p": "P2",
+      "codes": [
+        "F3",
+        "P2"
+      ],
+      "deals": 15768,
+      "example": "2c-2d-4c-4d-7c",
+      "probability_pct": 0.60670422
+    },
+    {
+      "ordinal": 10,
+      "id": "F3 · P3",
+      "s": null,
+      "f": "F3",
+      "sf": null,
+      "p": "P3",
+      "codes": [
+        "F3",
+        "P3"
+      ],
+      "deals": 5256,
+      "example": "2c-2d-2h-4c-7c",
+      "probability_pct": 0.20223474
+    },
+    {
+      "ordinal": 11,
+      "id": "F4",
+      "s": null,
+      "f": "F4",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "F4"
+      ],
+      "deals": 1440,
+      "example": "2c-4c-7c-9c-Qd",
+      "probability_pct": 0.05540678
+    },
+    {
+      "ordinal": 12,
+      "id": "F4 · P1",
+      "s": null,
+      "f": "F4",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "F4",
+        "P1"
+      ],
+      "deals": 6240,
+      "example": "2c-2d-4c-7c-9c",
+      "probability_pct": 0.24009604
+    },
+    {
+      "ordinal": 13,
+      "id": "F5",
+      "s": null,
+      "f": "F5",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "F5"
+      ],
+      "deals": 96,
+      "example": "2c-4c-7c-9c-Qc",
+      "probability_pct": 0.00369379
+    },
+    {
+      "ordinal": 14,
+      "id": "S2 · F2",
+      "s": "S2",
+      "f": "F2",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S2",
+        "F2"
+      ],
+      "deals": 33000,
+      "example": "2c-3c-7d-8d-Qh",
+      "probability_pct": 1.26973866
+    },
+    {
+      "ordinal": 15,
+      "id": "S2 · F2 · P1",
+      "s": "S2",
+      "f": "F2",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S2",
+        "F2",
+        "P1"
+      ],
+      "deals": 154224,
+      "example": "2c-2d-3c-7d-8h",
+      "probability_pct": 5.93406593
+    },
+    {
+      "ordinal": 16,
+      "id": "S2 · F2 · P2",
+      "s": "S2",
+      "f": "F2",
+      "sf": null,
+      "p": "P2",
+      "codes": [
+        "S2",
+        "F2",
+        "P2"
+      ],
+      "deals": 24624,
+      "example": "2c-2d-3c-3d-7h",
+      "probability_pct": 0.94745591
+    },
+    {
+      "ordinal": 17,
+      "id": "S2 · F2 · P3",
+      "s": "S2",
+      "f": "F2",
+      "sf": null,
+      "p": "P3",
+      "codes": [
+        "S2",
+        "F2",
+        "P3"
+      ],
+      "deals": 11856,
+      "example": "2c-2d-2h-3c-7d",
+      "probability_pct": 0.45618247
+    },
+    {
+      "ordinal": 18,
+      "id": "S2 · F2 · P3-2",
+      "s": "S2",
+      "f": "F2",
+      "sf": null,
+      "p": "P3-2",
+      "codes": [
+        "S2",
+        "F2",
+        "P3-2"
+      ],
+      "deals": 624,
+      "example": "2c-2d-2h-3c-3d",
+      "probability_pct": 0.0240096
+    },
+    {
+      "ordinal": 19,
+      "id": "S2 · F2 · P4",
+      "s": "S2",
+      "f": "F2",
+      "sf": null,
+      "p": "P4",
+      "codes": [
+        "S2",
+        "F2",
+        "P4"
+      ],
+      "deals": 104,
+      "example": "2c-2d-2h-2s-3c",
+      "probability_pct": 0.0040016
+    },
+    {
+      "ordinal": 20,
+      "id": "S2 · F3",
+      "s": "S2",
+      "f": "F3",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S2",
+        "F3"
+      ],
+      "deals": 19800,
+      "example": "2c-3c-7c-8d-Qd",
+      "probability_pct": 0.7618432
+    },
+    {
+      "ordinal": 21,
+      "id": "S2 · F3 · P1",
+      "s": "S2",
+      "f": "F3",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S2",
+        "F3",
+        "P1"
+      ],
+      "deals": 73440,
+      "example": "2c-2d-3c-7c-8d",
+      "probability_pct": 2.82574568
+    },
+    {
+      "ordinal": 22,
+      "id": "S2 · F3 · P2",
+      "s": "S2",
+      "f": "F3",
+      "sf": null,
+      "p": "P2",
+      "codes": [
+        "S2",
+        "F3",
+        "P2"
+      ],
+      "deals": 8208,
+      "example": "2c-2d-3c-3d-7c",
+      "probability_pct": 0.31581864
+    },
+    {
+      "ordinal": 23,
+      "id": "S2 · F3 · P3",
+      "s": "S2",
+      "f": "F3",
+      "sf": null,
+      "p": "P3",
+      "codes": [
+        "S2",
+        "F3",
+        "P3"
+      ],
+      "deals": 2736,
+      "example": "2c-2d-2h-3c-7c",
+      "probability_pct": 0.10527288
+    },
+    {
+      "ordinal": 24,
+      "id": "S2 · F4",
+      "s": "S2",
+      "f": "F4",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S2",
+        "F4"
+      ],
+      "deals": 3300,
+      "example": "2c-3c-7c-8c-Qd",
+      "probability_pct": 0.12697387
+    },
+    {
+      "ordinal": 25,
+      "id": "S2 · F4 · P1",
+      "s": "S2",
+      "f": "F4",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S2",
+        "F4",
+        "P1"
+      ],
+      "deals": 7344,
+      "example": "2c-2d-3c-7c-8c",
+      "probability_pct": 0.28257457
+    },
+    {
+      "ordinal": 26,
+      "id": "S2 · F5",
+      "s": "S2",
+      "f": "F5",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S2",
+        "F5"
+      ],
+      "deals": 220,
+      "example": "2c-3c-7c-8c-Qc",
+      "probability_pct": 0.00846492
+    },
+    {
+      "ordinal": 27,
+      "id": "S3 · F2",
+      "s": "S3",
+      "f": "F2",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S3",
+        "F2"
+      ],
+      "deals": 553800,
+      "example": "2c-3c-4d-7d-8h",
+      "probability_pct": 21.30852341
+    },
+    {
+      "ordinal": 28,
+      "id": "S3 · F2 · P1",
+      "s": "S3",
+      "f": "F2",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S3",
+        "F2",
+        "P1"
+      ],
+      "deals": 394128,
+      "example": "2c-2d-3c-4d-7h",
+      "probability_pct": 15.16483516
+    },
+    {
+      "ordinal": 29,
+      "id": "S3 · F2 · P2",
+      "s": "S3",
+      "f": "F2",
+      "sf": null,
+      "p": "P2",
+      "codes": [
+        "S3",
+        "F2",
+        "P2"
+      ],
+      "deals": 20736,
+      "example": "2c-2d-3c-3d-4h",
+      "probability_pct": 0.7978576
+    },
+    {
+      "ordinal": 30,
+      "id": "S3 · F2 · P3",
+      "s": "S3",
+      "f": "F2",
+      "sf": null,
+      "p": "P3",
+      "codes": [
+        "S3",
+        "F2",
+        "P3"
+      ],
+      "deals": 9984,
+      "example": "2c-2d-2h-3c-4d",
+      "probability_pct": 0.38415366
+    },
+    {
+      "ordinal": 31,
+      "id": "S3 · F3",
+      "s": "S3",
+      "f": "F3",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S3",
+        "F3"
+      ],
+      "deals": 332280,
+      "example": "2c-3c-4c-7d-8d",
+      "probability_pct": 12.78511405
+    },
+    {
+      "ordinal": 32,
+      "id": "S3 · F3 · P1",
+      "s": "S3",
+      "f": "F3",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S3",
+        "F3",
+        "P1"
+      ],
+      "deals": 187680,
+      "example": "2c-2d-3c-4c-7d",
+      "probability_pct": 7.22135008
+    },
+    {
+      "ordinal": 33,
+      "id": "S3 · F3 · P2",
+      "s": "S3",
+      "f": "F3",
+      "sf": null,
+      "p": "P2",
+      "codes": [
+        "S3",
+        "F3",
+        "P2"
+      ],
+      "deals": 6912,
+      "example": "2c-2d-3c-3d-4c",
+      "probability_pct": 0.26595253
+    },
+    {
+      "ordinal": 34,
+      "id": "S3 · F3 · P3",
+      "s": "S3",
+      "f": "F3",
+      "sf": null,
+      "p": "P3",
+      "codes": [
+        "S3",
+        "F3",
+        "P3"
+      ],
+      "deals": 2304,
+      "example": "2c-2d-2h-3c-4c",
+      "probability_pct": 0.08865084
+    },
+    {
+      "ordinal": 35,
+      "id": "S3 · F4",
+      "s": "S3",
+      "f": "F4",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S3",
+        "F4"
+      ],
+      "deals": 55380,
+      "example": "2c-3c-4c-7c-8d",
+      "probability_pct": 2.13085234
+    },
+    {
+      "ordinal": 36,
+      "id": "S3 · F4 · P1",
+      "s": "S3",
+      "f": "F4",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S3",
+        "F4",
+        "P1"
+      ],
+      "deals": 18768,
+      "example": "2c-2d-3c-4c-7c",
+      "probability_pct": 0.72213501
+    },
+    {
+      "ordinal": 37,
+      "id": "S3 · F5",
+      "s": "S3",
+      "f": "F5",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S3",
+        "F5"
+      ],
+      "deals": 3692,
+      "example": "2c-3c-4c-7c-8c",
+      "probability_pct": 0.14205682
+    },
+    {
+      "ordinal": 38,
+      "id": "S4 · F2",
+      "s": "S4",
+      "f": "F2",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S4",
+        "F2"
+      ],
+      "deals": 165000,
+      "example": "2c-3c-4d-5d-7h",
+      "probability_pct": 6.34869332
+    },
+    {
+      "ordinal": 39,
+      "id": "S4 · F2 · P1",
+      "s": "S4",
+      "f": "F2",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S4",
+        "F2",
+        "P1"
+      ],
+      "deals": 41328,
+      "example": "2c-2d-3c-4d-5h",
+      "probability_pct": 1.59017453
+    },
+    {
+      "ordinal": 40,
+      "id": "S4 · F3",
+      "s": "S4",
+      "f": "F3",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S4",
+        "F3"
+      ],
+      "deals": 99000,
+      "example": "2c-3c-4c-5d-7d",
+      "probability_pct": 3.80921599
+    },
+    {
+      "ordinal": 41,
+      "id": "S4 · F3 · P1",
+      "s": "S4",
+      "f": "F3",
+      "sf": null,
+      "p": "P1",
+      "codes": [
+        "S4",
+        "F3",
+        "P1"
+      ],
+      "deals": 19680,
+      "example": "2c-2d-3c-4c-5d",
+      "probability_pct": 0.75722597
+    },
+    {
+      "ordinal": 42,
+      "id": "S4 · F4",
+      "s": "S4",
+      "f": "F4",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S4",
+        "F4"
+      ],
+      "deals": 12672,
+      "example": "2c-3c-4c-5d-7c",
+      "probability_pct": 0.48757965
+    },
+    {
+      "ordinal": 43,
+      "id": "S4 · F4 · SF4",
+      "s": "S4",
+      "f": "F4",
+      "sf": "SF4",
+      "p": null,
+      "codes": [
+        "S4",
+        "F4",
+        "SF4"
+      ],
+      "deals": 3828,
+      "example": "2c-3c-4c-5c-7d",
+      "probability_pct": 0.14728969
+    },
+    {
+      "ordinal": 44,
+      "id": "S4 · F4 · SF4 · P1",
+      "s": "S4",
+      "f": "F4",
+      "sf": "SF4",
+      "p": "P1",
+      "codes": [
+        "S4",
+        "F4",
+        "SF4",
+        "P1"
+      ],
+      "deals": 1968,
+      "example": "2c-2d-3c-4c-5c",
+      "probability_pct": 0.0757226
+    },
+    {
+      "ordinal": 45,
+      "id": "S4 · F5 · SF4",
+      "s": "S4",
+      "f": "F5",
+      "sf": "SF4",
+      "p": null,
+      "codes": [
+        "S4",
+        "F5",
+        "SF4"
+      ],
+      "deals": 1100,
+      "example": "2c-3c-4c-5c-7c",
+      "probability_pct": 0.04232462
+    },
+    {
+      "ordinal": 46,
+      "id": "S5 · F2",
+      "s": "S5",
+      "f": "F2",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S5",
+        "F2"
+      ],
+      "deals": 6000,
+      "example": "2c-3c-4d-5d-6h",
+      "probability_pct": 0.23086158
+    },
+    {
+      "ordinal": 47,
+      "id": "S5 · F3",
+      "s": "S5",
+      "f": "F3",
+      "sf": null,
+      "p": null,
+      "codes": [
+        "S5",
+        "F3"
+      ],
+      "deals": 3600,
+      "example": "2c-3c-4c-5d-6d",
+      "probability_pct": 0.13851695
+    },
+    {
+      "ordinal": 48,
+      "id": "S5 · F4 · SF4",
+      "s": "S5",
+      "f": "F4",
+      "sf": "SF4",
+      "p": null,
+      "codes": [
+        "S5",
+        "F4",
+        "SF4"
+      ],
+      "deals": 600,
+      "example": "2c-3c-4c-5c-6d",
+      "probability_pct": 0.02308616
+    },
+    {
+      "ordinal": 49,
+      "id": "S5 · F5 · SF5",
+      "s": "S5",
+      "f": "F5",
+      "sf": "SF5",
+      "p": null,
+      "codes": [
+        "S5",
+        "F5",
+        "SF5"
+      ],
+      "deals": 40,
+      "example": "2c-3c-4c-5c-6c",
+      "probability_pct": 0.00153908
+    }
+  ],
+  "archived": true,
+  "description": "Legacy Board16 selection including S2 and F2. Preserved before transitioning to Board14 / 36 river classes."
+}

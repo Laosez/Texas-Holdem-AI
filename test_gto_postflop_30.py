@@ -41,11 +41,12 @@ class AdaptiveGTO30Tests(unittest.TestCase):
     def test_board150_canonical_codes_without_invented_classification(self):
         dry = _board_class(FLOP, "flop")
         wet = _board_class(WET, "flop")
-        self.assertTrue(dry["id"].startswith("FLOP|S"))
+        self.assertTrue(dry["id"].startswith("FLOP|"))
         self.assertEqual(dry["f"], "F1")
         self.assertEqual(wet["f"], "F2")
         self.assertEqual(wet["a"], "A1")
-        self.assertNotEqual(dry["id"], wet["id"])
+        self.assertEqual(dry["id"], wet["id"])
+        self.assertNotEqual(dry["f"], wet["f"])  # Legacy suit metadata remains for draw rules
 
     def test_per_opponent_window_and_reset(self):
         small = AdaptiveGTO30Bot(5)

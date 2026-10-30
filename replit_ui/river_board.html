@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SKACHKOV · Постфлоп · Каталог 49 классов</title>
+<title>SKACHKOV · Постфлоп · Каталог 36 классов</title>
 <style>
 :root{--bg:#081221;--surface:#15273d;--panel:#102137;--line:#334e6b;--fg:#eaf3ff;--muted:#a0bad2;--accent:#80b3f3}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -25%,#254a74,transparent 65%),var(--bg);color:var(--fg);font:13px/1.55 Inter,system-ui,sans-serif}
@@ -44,12 +44,12 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <div class="right"><span id="connection" class="badge">Каталог</span>
 <input style="width:190px" id="key" type="password" aria-label="Ключ управления" placeholder="POKER_RUNNER_KEY" autocomplete="off">
 <button class="btn sm" type="button" id="connect">Подключиться</button></div></header>
-<nav class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Монте-Карло</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп</strong><small>16 признаков · 49 типов</small></span></a></nav>
+<nav class="nav"><a class="tab" href="/"><b>01</b><span><strong>Реализация</strong><small>Турниры</small></span></a><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Монте-Карло</small></span></a><a class="tab current" href="/s100" aria-current="page"><b>03</b><span><strong>Постфлоп</strong><small>14 признаков · 36 типов</small></span></a></nav>
 <main>
 <section class="panel" id="board150Catalog">
-<div class="heading"><h2>03 / Справочник 16 признаков</h2><span class="badge" id="catalogTotal">49 классов</span></div>
-<p class="note">16 выбранных признаков объединяются в 49 достижимых составных классов. P0 не выводится, S4 и SF4 объединяют двусторонние и гатшотные рисунки. Точные частоты — для случайного пятикарточного борда без карт HERO. Старые коды сохранены только для совместимости истории расчётов.</p>
-<div class="tools" style="margin:13px 0"><label style="min-width:260px;flex:1">Борд · 5 физических карт<input id="boardInput" value="5s-6s-7s-8s-8d" autocomplete="off" placeholder="As-Kh-9c-5d-2c"></label><button class="btn primary" type="button" id="boardClassify">Классифицировать</button><button class="btn" id="catalogExport" type="button">CSV · 49 кодов</button></div>
+<div class="heading"><h2>03 / Справочник 14 признаков</h2><span class="badge" id="catalogTotal">36 классов</span></div>
+<p class="note">14 выбранных признаков объединяются в 36 достижимых составных классов. S2/F2 исключены из кодов готовых рук, но остаются в справке по дро. P0 не выводится, S4 и SF4 объединяют двусторонние и гатшотные рисунки. Точные частоты — для случайного пятикарточного борда без карт HERO. Старые коды сохранены только для совместимости истории расчётов.</p>
+<div class="tools" style="margin:13px 0"><label style="min-width:260px;flex:1">Борд · 5 физических карт<input id="boardInput" value="5s-6s-7s-8s-8d" autocomplete="off" placeholder="As-Kh-9c-5d-2c"></label><button class="btn primary" type="button" id="boardClassify">Классифицировать</button><button class="btn" id="catalogExport" type="button">CSV · 36 кодов</button></div>
 <div id="classifyResult" class="match" role="status">Пример: S4 · F4 · SF4 · P1</div>
 <div class="filters">
 <label>Поиск<input id="catalogSearch" type="search" placeholder="S4 · F4 · SF4 · P1"></label>
@@ -62,18 +62,18 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 </div>
 <div class="statbar"><span id="catalogStatus">Загрузка каталога…</span><span id="checkedStatus"></span><span id="catalogShares"></span><button class="btn sm ghost" type="button" id="catalogReset">Сбросить отметки</button></div>
 <div class="tablewrap"><table><thead><tr><th>№</th><th>Идентификатор</th><th>Название борда</th><th>Физический пример</th><th>Парность</th><th>Стрит</th><th>Флеш</th><th>Стрит-флеш</th><th class="num">Число бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Подключение к каталогу…</td></tr></tbody></table></div>
-<p class="caption">F1 — только когда отсутствуют все остальные признаки; S2 — два соседних ранга; S3/S4 — три/четыре ранга в любом пятиранговом стритовом окне (включая дырки). SF4 объединяет один и два завершающих выхода. Туз учитывается как старший и младший (A-2-3-4-5). Классы не отражают диапазон OPP.</p>
+<p class="caption">F1 — только когда отсутствуют все остальные признаки; S2 и F2 — только справка по дро, не коды: F2 ≈5% настоящего флеш-дро, S2 ≈4% настоящего стрит-дро; ≈30–34% для S2 относится лишь к широкому потенциалу на некоторых тёрнах, а не к универсальному дро. S3/S4 — три/четыре ранга в любом пятиранговом стритовом окне (включая дырки). SF4 объединяет один и два завершающих выхода. Туз учитывается как старший и младший (A-2-3-4-5). Классы не отражают диапазон OPP.</p>
 </section>
-</main><footer class="small" style="margin-bottom:28px">SKACHKOV / POKER SYSTEM · Каталог Board16 · River V1 · 2 598 960 физических бордов.</footer>
+</main><footer class="small" style="margin-bottom:28px">SKACHKOV / POKER SYSTEM · Каталог Board14 · River V2 · 2 598 960 физических бордов.</footer>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const REVIEW_KEY="skachkov_board16_review_v1";
+const REVIEW_KEY="skachkov_board14_review_v1";
 let rows=[],checked={};
 const shortNames={
   P:{P1:'Пара',P2:'Две пары',P3:'Тройка','P3-2':'Фулл-хаус',P4:'Каре'},
-  S:{S2:'Коннекторы',S3:'Три связанных',S4:'Четыре связанных',S5:'Стрит'},
-  F:{F1:'Нет особых признаков',F2:'Две одной масти',F3:'Три одной масти',F4:'Четыре одной масти',F5:'Флеш'},
+  S:{S3:'Три связанных',S4:'Четыре связанных',S5:'Стрит'},
+  F:{F1:'Нет особых признаков',F3:'Три одной масти',F4:'Четыре одной масти',F5:'Флеш'},
   SF:{SF4:'Стрит-флеш-дро',SF5:'Стрит-флеш'}
 };
 const compactBoardCode=code=>String(code||'');
@@ -109,7 +109,7 @@ function initFilters(){
 function drawCatalog(){
  const query=$("catalogSearch").value.trim().toLowerCase(),sort=$("catalogSort").value;
  const found=rows.filter(row=>matches(row)&&(!query||
-  [row.id,compactBoardCode(row.id),row.example,row.summary,boardTitle(row)].some(v=>v.toLowerCase().includes(query))));
+  [row.id,compactBoardCode(row.id),row.example,row.summary||"",boardTitle(row)].some(v=>String(v).toLowerCase().includes(query))));
  found.sort((a,b)=>sort==="deals_desc"?b.deals-a.deals||sortByNumericCode(a.id,b.id):
   sort==="deals_asc"?a.deals-b.deals||sortByNumericCode(a.id,b.id):
   sort==="code_desc"?sortByNumericCode(b.id,a.id):sortByNumericCode(a.id,b.id));
@@ -151,8 +151,8 @@ async function loadCatalog(){
  try{
   const response=await fetch("/api/postflop/board16-catalog",{headers:{"X-Runner-Key":key},cache:"no-store"});
   const data=await response.json();if(!response.ok)throw Error(data.error||"HTTP "+response.status);
-  if(data.reachable_codes!==49||data.rows?.length!==49||
-      data.rows.reduce((n,r)=>n+r.deals,0)!==2598960)throw Error("Не прошла сверка 49 типов / 2 598 960 бордов");
+  if(data.reachable_codes!==36||data.rows?.length!==36||
+      data.rows.reduce((n,r)=>n+r.deals,0)!==2598960)throw Error("Не прошла сверка 36 типов / 2 598 960 бордов");
   rows=data.rows;
   $("connection").textContent="Каталог загружен";$("connection").className="badge ok";
   $("catalogTotal").textContent=rows.length+" типов · 2 598 960 бордов";
@@ -174,7 +174,7 @@ async function classify(){
     el("span","",found.label),
     el("div","small",row?
       "Частота "+row.probability_pct.toFixed(5)+"% · "+row.deals.toLocaleString("ru-RU")+" физических бордов":
-      "Код относится к флопу или тёрну, а не к 49 типам ривера"));
+      "Код относится к флопу или тёрну, а не к 36 типам ривера"));
   $("catalogSearch").value=found.id;
   for(const f of ["P","S","F","SF"])$("filter"+f).value="";
   drawCatalog();
@@ -187,7 +187,7 @@ function exportCSV(){
   .map(cols=>cols.map(x=>'"'+String(x).replaceAll('"','""')+'"').join(";")).join("\r\n");
  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
  const url=URL.createObjectURL(blob),link=el("a");
- link.href=url;link.download="SKACHKOV_BOARD16.csv";link.click();
+ link.href=url;link.download="SKACHKOV_BOARD14_36.csv";link.click();
  URL.revokeObjectURL(url);
 }
 try{$("key").value=sessionStorage.getItem("skachkov_key")||"";checked=JSON.parse(localStorage.getItem(REVIEW_KEY)||"{}")||{}}catch(_){}
@@ -199,5 +199,5 @@ $("boardInput").onkeydown=e=>{if(e.key==="Enter")classify()};
 $("catalogSearch").oninput=drawCatalog;
 $("catalogSort").onchange=drawCatalog;
 $("catalogExport").onclick=exportCSV;
-$("catalogReset").onclick=()=>{if(!confirm("Сбросить отметки изучения 49 типов?"))return;checked={};try{localStorage.removeItem(REVIEW_KEY)}catch(_){}drawCatalog()};
+$("catalogReset").onclick=()=>{if(!confirm("Сбросить отметки изучения 36 типов?"))return;checked={};try{localStorage.removeItem(REVIEW_KEY)}catch(_){}drawCatalog()};
 </script></body></html>

@@ -1,18 +1,17 @@
-"""Selected 16-feature Poker System board taxonomy.
+"""Selected 14-feature Poker System board taxonomy.
 
 Public code is a composed group of selected features. P0 and SF0..SF3
 are deliberately omitted. F1 is the exclusive fallback if NONE of the
-other 15 chosen traits is present. This module never handles OPP probabilities.
+other 13 chosen traits is present. S2/F2 are draw references, not public board
+codes. This module never handles OPP probabilities.
 """
 from collections import Counter
 
 LABELS = {
     "F1": "Нет особых признаков",
-    "S2": "Коннекторы",
     "S3": "Три связанных ранга (в том числе с дырками)",
     "S4": "Четыре связанных ранга (в том числе с дырками)",
     "S5": "Стрит на столе",
-    "F2": "Две одной масти",
     "F3": "Три одной масти",
     "F4": "Четыре одной масти / флеш-дро",
     "F5": "Флеш на столе",
@@ -24,7 +23,7 @@ LABELS = {
     "P3-2": "Фулл-хаус",
     "P4": "Каре",
 }
-assert len(LABELS) == 16
+assert len(LABELS) == 14
 WINDOWS = [tuple(12 if x == 1 else x - 2 for x in range(lo, lo + 5))
            for lo in range(1, 11)]
 
@@ -44,10 +43,9 @@ def classify_compact(board_ids, *, legacy_p=None, legacy_s=None,
                      legacy_f=None, legacy_sf=None):
     """Classify a physical flop, turn or river into selected P/S/F/SF codes.
 
-    S2 is any *adjacent* two-rank connector (including A-2); mere gaps
-    between two ranks are NOT enough, because the workbook dry-board
-    example includes one-gap rank pairs. Gapped patterns are supported
-    starting at S3, where at least 3 ranks fit a 5-rank straight window.
+    S2 and F2 are not emitted: two connected ranks and two suited cards
+    never enable a *made* straight/flush using only two opponent hole cards.
+    Keep these patterns in the separate flop/turn draw reference rules.
     """
     ids = tuple(board_ids)
     ranks = {card // 4 for card in ids}
@@ -65,14 +63,10 @@ def classify_compact(board_ids, *, legacy_p=None, legacy_s=None,
         legacy_s = _old_sequence(ranks)
         legacy_sf = max(_old_sequence(s) for s in suited)
 
-    adjacent = any(
-        left in ranks and right in ranks
-        for window in WINDOWS for left, right in zip(window, window[1:])
-    )
     straight = ("S5" if legacy_s == 5 else "S4" if legacy_s >= 3 else
-                "S3" if legacy_s >= 1 else "S2" if adjacent else None)
+                "S3" if legacy_s >= 1 else None)
     codes = [straight] if straight else []
-    if legacy_f >= 2:
+    if legacy_f >= 3:
         codes.append("F" + str(legacy_f))
     if legacy_sf == 5:
         codes.append("SF5")
