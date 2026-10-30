@@ -3505,21 +3505,24 @@ function renderCatalogLedger(root,a,b,compare){
    independent selectors; we never proliferate permanent cross-product codes. */
 const RIVER_SIGN_LABELS={profit:'01 · ПРИБЫЛЬ',loss:'02 · УБЫТКИ',neutral:'03 · НУЛЕВОЙ РЕЗУЛЬТАТ'};
 const RIVER_FILTERS=[
- {key:'sign',label:'Результат',items:[['all','Все'],['profit','Прибыль'],['loss','Убытки'],['neutral','Ноль']]},
- {key:'p',label:'Парность · P',items:[['all','Все'],['P0','P0 · Без пары'],['P1','P1 · Пара'],['P2','P2 · Две пары'],['P3','P3 · Тройка'],['P4','P4 · Фулл-хаус'],['P5','P5 · Каре']]},
- {key:'s',label:'Стрит · S',items:[['all','Все'],['S0','S0 · Нет угрозы'],['S1','S1 · −2 подряд'],['S2','S2 · Две дырки'],['S3','S3 · −1 подряд'],['S4','S4 · Одна дырка'],['S5','S5 · На борде']]},
- {key:'f',label:'Флеш · F',items:[['all','Все'],['F1','F1 · 1s'],['F2','F2 · 2s'],['F3','F3 · Флеш −2 (3s)'],['F4','F4 · Флеш −1 (4s)'],['F5','F5 · На борде (5s)']]},
- {key:'sf',label:'Стрит-флеш · SF',items:[['all','Все'],['SF0','SF0 · Нет угрозы'],['SF1','SF1 · −2 подряд'],['SF2','SF2 · Две дырки'],['SF3','SF3 · −1 подряд'],['SF4','SF4 · Одна дырка'],['SF5','SF5 · На борде']]},
- {key:'street',label:'Последняя улица',items:[['all','Все'],['preflop','Префлоп'],['flop','Флоп'],['turn','Тёрн'],['river','Ривер']]},
- {key:'holeUse',label:'Карты HERO',items:[['all','Любое'],['0','0 в лучшей пятёрке'],['1','1 в лучшей пятёрке'],['2','2 в лучшей пятёрке']]},
- {key:'origin',label:'Происхождение HERO',items:[['all','Все'],['unavailable','Без вскрытия'],['own_pair','Своя пара'],['pocket_pair','Карманная пара'],['board_pair','Пара борда'],['two_pair_own','Две свои пары'],['two_pair_mixed','Своя + пара борда'],['two_pair_board','Общие две пары'],['set','Сет'],['trips','Трипс'],['board_trips','Тройка борда'],['straight','Стрит'],['flush','Флеш'],['full_house','Фулл-хаус'],['quads','Каре'],['straight_flush','Стрит-флеш'],['high_card','Старшая карта']]}
+  {key:'sign',label:'Результат',items:[['all','Все'],['profit','Прибыль'],['loss','Убытки'],['neutral','Ноль']]},
+  {key:'p',label:'Парность · P',items:[['all','Все'],['P1','Пара'],['P2','Две пары'],['P3','Тройка'],['P3-2','Фулл-хаус'],['P4','Каре']]},
+  {key:'s',label:'Стрит · S',items:[['all','Все'],['S1','Нет стритовой структуры'],['S2','Коннекторы'],['S3','Три связанных'],['S4','Четыре связанных'],['S5','Стрит']]},
+  {key:'f',label:'Масть · F',items:[['all','Все'],['F2','Две одной масти'],['F3','Три одной масти'],['F4','Четыре одной масти'],['F5','Флеш']]},
+  {key:'sf',label:'Стрит-флеш · SF',items:[['all','Все'],['SF4','Стрит-флеш-дро'],['SF5','Стрит-флеш']]},
+  {key:'street',label:'Последняя улица',items:[['all','Все'],['preflop','Префлоп'],['flop','Флоп'],['turn','Тёрн'],['river','Ривер']]},
+  {key:'holeUse',label:'Карты HERO',items:[['all','Любое'],['0','0 в лучшей пятёрке'],['1','1 в лучшей пятёрке'],['2','2 в лучшей пятёрке']]},
+  {key:'origin',label:'Происхождение HERO',items:[['all','Все'],['unavailable','Без вскрытия'],['own_pair','Своя пара'],['pocket_pair','Карманная пара'],['board_pair','Пара борда'],['two_pair_own','Две свои пары'],['two_pair_mixed','Своя + пара борда'],['two_pair_board','Общие две пары'],['set','Сет'],['trips','Трипс'],['board_trips','Тройка борда'],['straight','Стрит'],['flush','Флеш'],['full_house','Фулл-хаус'],['quads','Каре'],['straight_flush','Стрит-флеш'],['high_card','Старшая карта']]}
 ];
 function board150Parts(code){
- if(code==='PRE|NO_BOARD'||!code)return null;
- const m=code.match(/P(\d) · S(\d) · F(\d) · SF(\d)(?: · A[01])?$/);
- if(!m)return null;
- return {p:'P'+m[1],s:'S'+m[2],f:'F'+m[3],
-  sf:'SF'+m[4]};
+ if(!code||code==='PRE|NO_BOARD')return null;
+ const raw=String(code).replace(/^(FLOP|TURN)\|/,'');
+ if(/^P[0-5] · S[0-5] · F[1-5] · SF[0-5](?: · A[01])?$/.test(raw))return null;
+ const tokens=new Set(raw.split(' · '));
+ if(![...tokens].some(t=>/^S[1-5]$/.test(t)))return null;
+ const pick=values=>values.find(x=>tokens.has(x))||null;
+ return {p:pick(['P1','P2','P3','P3-2','P4']),s:pick(['S1','S2','S3','S4','S5']),
+ f:pick(['F2','F3','F4','F5']),sf:pick(['SF4','SF5'])};
 }
 function riverPass(row){
  const code=board150Parts(row.board_code);
@@ -3638,22 +3641,14 @@ function riverControls(root,compare,active){
 }
 function riverBoardDescription(code){
  if(code==='PRE|NO_BOARD')return 'Префлоп · Общие карты не открывались';
- const m=code?.match(/P(\d) · S(\d) · F(\d) · SF(\d)(?: · A[01])?$/);
- if(!m)return 'Неизвестная структура борда';
- const [,p,s,f,sf]=m.map(Number);
- const pairs=['Неспаренный стол','Пара на столе','Две пары на столе',
-  'Тройка на столе','Фулл-хаус на столе','Каре на столе'];
- const straight=['','стрит −2 (три подряд)','стрит −2 (две дырки)',
-  'стрит −1 (четыре подряд)','стрит −1 (одна дырка)','готовый стрит'];
- const suited=['','стрит-флеш −2 (три подряд)','стрит-флеш −2 (две дырки)',
-  'стрит-флеш −1 (четыре подряд)','стрит-флеш −1 (одна дырка)','готовый стрит-флеш'];
- const components=[pairs[p]];
- if(s)components.push(straight[s]);
- if(f>=3)components.push(f===3?'флеш −2 (3s)':f===4?'флеш −1 (4s)':'готовый флеш (5s)');
- if(sf)components.push(suited[sf]);
- if(!s&&f<=2&&!sf)components.push('сухой по стриту и флешу');
+ const parts=board150Parts(code);
+ if(!parts)return 'Исторический код · '+String(code||'');
+ const titles={S1:'Нет стритовой структуры',S2:'Коннекторы',S3:'Три связанных ранга',
+ S4:'Четыре связанных ранга',S5:'Стрит',F2:'Две одной масти',F3:'Три одной масти',
+ F4:'Четыре одной масти',F5:'Флеш',SF4:'Стрит-флеш-дро',SF5:'Стрит-флеш',
+ P1:'Пара',P2:'Две пары',P3:'Тройка','P3-2':'Фулл-хаус',P4:'Каре'};
  const prefix=code.startsWith('FLOP|')?'Флоп':code.startsWith('TURN|')?'Тёрн':'Ривер';
- return prefix+' · '+components.join(' · ');
+ return prefix+' · '+[parts.s,parts.f,parts.sf,parts.p].filter(Boolean).map(x=>titles[x]||x).join(' · ');
 }
 function riverReportHead(table,compare){
  const thead=table.querySelector('thead');thead.replaceChildren();
@@ -3693,47 +3688,36 @@ const flatVisibleHeroCategories=new Set(flatAllCategories);
 const flatVisibleVillainCategories=new Set(flatAllCategories);
 /* Board150 faceted filter: each P/S/F/SF group is a union, all five are an intersection. */
 const FLAT_BOARD_FACETS=[
- {key:'P',name:'Парность',values:[0,1,2,3,4,5]},
- {key:'S',name:'Стрит',values:[0,1,2,3,4,5]},
- // F1 occurs on rainbow flops; river five-card boards always have F2..F5.
- {key:'F',name:'Флеш',values:[1,2,3,4,5]},
- {key:'SF',name:'Стрит-флеш',values:[0,1,2,3,4,5]},
+ {key:'P',name:'Парность',values:['P1','P2','P3','P3-2','P4']},
+ {key:'S',name:'Стрит',values:['S1','S2','S3','S4','S5']},
+ {key:'F',name:'Масть',values:['F2','F3','F4','F5']},
+ {key:'SF',name:'Стрит-флеш',values:['SF4','SF5']}
 ];
-// Human labels follow the exact Board150 classifier (including S1/S2 and SF1/SF2).
 const FLAT_BOARD_FACET_LABELS={
- P:['Без пары на столе','Пара на столе','Две пары на столе',
-    'Тройка на столе','Фулл-хаус на столе','Каре на столе'],
- S:['Без выраженной стрит-угрозы','Стрит −2 · три подряд',
-    'Стрит −2 · две дырки','Стрит −1 · четыре подряд',
-    'Стрит −1 · одна дырка','Готовый стрит на столе'],
- F:{1:'Разномастный флоп',2:'Не более двух карт одной масти',
-    3:'Три карты одной масти · флеш −2',
-    4:'Четыре карты одной масти · флеш −1',
-    5:'Пять карт одной масти · флеш на столе'},
- SF:['Без выраженной стрит-флеш-угрозы','Стрит-флеш −2 · три подряд',
-     'Стрит-флеш −2 · две дырки','Стрит-флеш −1 · четыре подряд',
-     'Стрит-флеш −1 · одна дырка','Готовый стрит-флеш на столе'],
+ P:{P1:'Пара на столе',P2:'Две пары',P3:'Тройка','P3-2':'Фулл-хаус',P4:'Каре'},
+ S:{S1:'Нет стритовой структуры',S2:'Коннекторы',S3:'Три связанных',S4:'Четыре связанных',S5:'Стрит на столе'},
+ F:{F2:'Две одной масти',F3:'Три одной масти',F4:'Четыре одной масти',F5:'Флеш на столе'},
+ SF:{SF4:'Стрит-флеш-дро',SF5:'Стрит-флеш на столе'}
 };
 function flatBoardFacetLabel(groupKey,value){
  return FLAT_BOARD_FACET_LABELS[groupKey]?.[value]||'';
 }
-const flatBoardFacets=Object.fromEntries(FLAT_BOARD_FACETS.map(
- group=>[group.key,new Set(group.values)]));
+const flatBoardFacets=Object.fromEntries(FLAT_BOARD_FACETS.map(group=>[group.key,new Set(group.values)]));
 function flatBoardShape(code){return String(code||'').replace(/^(FLOP|TURN)\|/,'')}
 function flatBoardParts(code){
- const match=flatBoardShape(code).match(/^P([0-5]) · S([0-5]) · F([1-5]) · SF([0-5])(?: · A[01])?$/);
- if(!match)return null;
- return {P:Number(match[1]),S:Number(match[2]),F:Number(match[3]),
-  SF:Number(match[4])};
+ const parts=board150Parts(code);
+ return parts?{P:parts.p,S:parts.s,F:parts.f,SF:parts.sf}:null;
 }
 function flatBoardFilterActive(){
  return FLAT_BOARD_FACETS.some(group=>flatBoardFacets[group.key].size!==group.values.length);
 }
 function flatBoardFacetsMatch(code){
  const parts=flatBoardParts(code);
- // Preflop has no board; include it only with all P/S/F/SF facets selected.
- if(!parts)return !flatBoardFilterActive()&&code==='PRE|NO_BOARD';
- return FLAT_BOARD_FACETS.every(group=>flatBoardFacets[group.key].has(parts[group.key]));
+ if(!parts)return !flatBoardFilterActive();
+ return FLAT_BOARD_FACETS.every(group=>{
+ const feature=parts[group.key],chosen=flatBoardFacets[group.key];
+ return feature===null?chosen.size===group.values.length:chosen.has(feature);
+ });
 }
 // Aggregate by VISIBLE report dimensions. The hidden showdown-count facet must
 // never create duplicate rows, and N threshold is applied only after this roll-up.
@@ -3919,7 +3903,7 @@ function renderFlatBoard150(root,a,b,compare){
  }
  // P/S/F/SF constructor replaces the 75-item single-choice board dropdown.
  const boardFacetWrap=el('div','flatBdrFacetGroup');
- boardFacetWrap.setAttribute('aria-label','Конструктор бордов P S F SF A');
+ boardFacetWrap.setAttribute('aria-label','Конструктор бордов S F SF P');
  const facetSummaries=[];
  const boardFacetsChecks={};
  for(const group of FLAT_BOARD_FACETS){
@@ -3944,12 +3928,12 @@ function renderFlatBoard150(root,a,b,compare){
   for(const value of values){
    const item=el('label','flatBdrOutcomeOption');
    const input=el('input');input.type='checkbox';input.checked=checked.has(value);
-   input.setAttribute('aria-label',group.key+value);
+   input.setAttribute('aria-label',value);
    input.onchange=()=>{if(input.checked)checked.add(value);else checked.delete(value);update()};
    boxes.set(value,input);
-   const code=el('strong','flatBdrFacetCode',group.key+value);
+   const code=el('strong','flatBdrFacetCode',value);
    const explanation=el('span','flatBdrFacetHuman',flatBoardFacetLabel(group.key,value));
-   item.title=group.key+value+' · '+flatBoardFacetLabel(group.key,value);
+   item.title=value+' · '+flatBoardFacetLabel(group.key,value);
    item.append(input,code,explanation);
    panel.append(item);
   }
@@ -4259,7 +4243,7 @@ function renderRiverLedger(root,a,b,compare){
   root.append(el('p','handDecompEmpty','Старый расчёт не содержит кода P/S/F/SF. Запусти новую симуляцию — старым записям нельзя приписывать выдуманный ривер.'));
   return;
  }
- const glossary=el('a','btn sm','↗ Справочник 75 бордов');
+ const glossary=el('a','btn sm','↗ Справочник 49 типов');
  glossary.href='/s100';glossary.title='На листе 03 только справочник, без финансового отчёта';
  root.append(glossary);
  if(!compare&&(riverSort.endsWith(':b')||riverSort==='delta'))riverSort='impact';
