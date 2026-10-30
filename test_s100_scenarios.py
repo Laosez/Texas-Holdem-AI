@@ -97,7 +97,7 @@ class S100Tests(unittest.TestCase):
     def test_real_engine_and_postflop_monte_carlo_smoke(self):
         bots = {
             "P1": create_bot("split:pc_gto_80bb:s100_postflop_v1"),
-            "P2": create_bot("split:pc_gto_80bb:gto_postflop_v2"),
+            "P2": create_bot("split:pc_gto_80bb:gto_postflop_20"),
         }
         table = Table(rng=random.Random(535))
         changes = table.play_hand([Seat(pid, 160) for pid in bots],
