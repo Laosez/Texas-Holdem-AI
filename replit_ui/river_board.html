@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SKACHKOV · Постфлоп · Каталог 75 бордов</title>
+<title>SKACHKOV · Постфлоп · Каталог 49 классов</title>
 <style>
 :root{--bg:#081221;--surface:#15273d;--panel:#102137;--line:#334e6b;--fg:#eaf3ff;--muted:#a0bad2;--accent:#80b3f3}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -25%,#254a74,transparent 65%),var(--bg);color:var(--fg);font:13px/1.55 Inter,system-ui,sans-serif}
@@ -117,11 +117,11 @@ function drawCatalog(){
  for(const row of found){
   const tr=el("tr");
   for(const value of [row.ordinal,compactBoardCode(row.id),boardTitle(row),row.example,
-    row.p+" · "+shortNames.p[Number(row.p.slice(1))],
-    row.s+" · "+shortNames.s[Number(row.s.slice(1))],
-    row.f+" · "+shortNames.f[row.f],
-    row.sf+" · "+shortNames.sf[Number(row.sf.slice(2))],
-    row.deals.toLocaleString("ru-RU"),
+    row.p?(row.p+" · "+shortNames.P[row.p]):"—",
+     row.s+" · "+shortNames.S[row.s],
+     row.f?(row.f+" · "+shortNames.F[row.f]):"—",
+     row.sf?(row.sf+" · "+shortNames.SF[row.sf]):"—",
+     row.deals.toLocaleString("ru-RU"),
     row.probability_pct.toFixed(5)+"%"]){
     const td=el("td","",value);
     if(value===compactBoardCode(row.id)){td.classList.add("code");td.title="Полный код: "+row.id}
@@ -174,7 +174,7 @@ async function classify(){
     el("span","",found.label),
     el("div","small",row?
       "Частота "+row.probability_pct.toFixed(5)+"% · "+row.deals.toLocaleString("ru-RU")+" физических бордов":
-      "Код относится к флопу или тёрну, а не к 75 типам ривера"));
+      "Код относится к флопу или тёрну, а не к 49 типам ривера"));
   $("catalogSearch").value=found.id;
   for(const f of ["P","S","F","SF"])$("filter"+f).value="";
   drawCatalog();
