@@ -3507,8 +3507,8 @@ const RIVER_SIGN_LABELS={profit:'01 · ПРИБЫЛЬ',loss:'02 · УБЫТКИ'
 const RIVER_FILTERS=[
   {key:'sign',label:'Результат',items:[['all','Все'],['profit','Прибыль'],['loss','Убытки'],['neutral','Ноль']]},
   {key:'p',label:'Парность · P',items:[['all','Все'],['P1','Пара'],['P2','Две пары'],['P3','Тройка'],['P3-2','Фулл-хаус'],['P4','Каре']]},
-  {key:'s',label:'Стрит · S',items:[['all','Все'],['S1','Нет стритовой структуры'],['S2','Коннекторы'],['S3','Три связанных'],['S4','Четыре связанных'],['S5','Стрит']]},
-  {key:'f',label:'Масть · F',items:[['all','Все'],['F2','Две одной масти'],['F3','Три одной масти'],['F4','Четыре одной масти'],['F5','Флеш']]},
+  {key:'s',label:'Стрит · S',items:[['all','Все'],['S2','Коннекторы'],['S3','Три связанных'],['S4','Четыре связанных'],['S5','Стрит']]},
+  {key:'f',label:'Масть · F',items:[['all','Все'],['F1','Нет особых признаков'],['F2','Две одной масти'],['F3','Три одной масти'],['F4','Четыре одной масти'],['F5','Флеш']]},
   {key:'sf',label:'Стрит-флеш · SF',items:[['all','Все'],['SF4','Стрит-флеш-дро'],['SF5','Стрит-флеш']]},
   {key:'street',label:'Последняя улица',items:[['all','Все'],['preflop','Префлоп'],['flop','Флоп'],['turn','Тёрн'],['river','Ривер']]},
   {key:'holeUse',label:'Карты HERO',items:[['all','Любое'],['0','0 в лучшей пятёрке'],['1','1 в лучшей пятёрке'],['2','2 в лучшей пятёрке']]},
@@ -3519,10 +3519,14 @@ function board150Parts(code){
  const raw=String(code).replace(/^(FLOP|TURN)\|/,'');
  if(/^P[0-5] · S[0-5] · F[1-5] · SF[0-5](?: · A[01])?$/.test(raw))return null;
  const tokens=new Set(raw.split(' · '));
- if(![...tokens].some(t=>/^S[1-5]$/.test(t)))return null;
+ const valid=new Set(['F1','F2','F3','F4','F5','S2','S3','S4','S5',
+  'SF4','SF5','P1','P2','P3','P3-2','P4']);
+ if(!tokens.size||[...tokens].some(t=>!valid.has(t))||
+    (tokens.has('F1')&&tokens.size!==1))return null;
  const pick=values=>values.find(x=>tokens.has(x))||null;
- return {p:pick(['P1','P2','P3','P3-2','P4']),s:pick(['S1','S2','S3','S4','S5']),
- f:pick(['F2','F3','F4','F5']),sf:pick(['SF4','SF5'])};
+ return {p:pick(['P1','P2','P3','P3-2','P4']),
+ s:pick(['S2','S3','S4','S5']),
+ f:pick(['F1','F2','F3','F4','F5']),sf:pick(['SF4','SF5'])};
 }
 function riverPass(row){
  const code=board150Parts(row.board_code);
@@ -3643,8 +3647,8 @@ function riverBoardDescription(code){
  if(code==='PRE|NO_BOARD')return 'Префлоп · Общие карты не открывались';
  const parts=board150Parts(code);
  if(!parts)return 'Исторический код · '+String(code||'');
- const titles={S1:'Нет стритовой структуры',S2:'Коннекторы',S3:'Три связанных ранга',
- S4:'Четыре связанных ранга',S5:'Стрит',F2:'Две одной масти',F3:'Три одной масти',
+ const titles={S2:'Коннекторы',S3:'Три связанных ранга',
+ S4:'Четыре связанных ранга',S5:'Стрит',F1:'Нет особых признаков',F2:'Две одной масти',F3:'Три одной масти',
  F4:'Четыре одной масти',F5:'Флеш',SF4:'Стрит-флеш-дро',SF5:'Стрит-флеш',
  P1:'Пара',P2:'Две пары',P3:'Тройка','P3-2':'Фулл-хаус',P4:'Каре'};
  const prefix=code.startsWith('FLOP|')?'Флоп':code.startsWith('TURN|')?'Тёрн':'Ривер';
@@ -3689,14 +3693,14 @@ const flatVisibleVillainCategories=new Set(flatAllCategories);
 /* Board150 faceted filter: each P/S/F/SF group is a union, all five are an intersection. */
 const FLAT_BOARD_FACETS=[
  {key:'P',name:'Парность',values:['P1','P2','P3','P3-2','P4']},
- {key:'S',name:'Стрит',values:['S1','S2','S3','S4','S5']},
- {key:'F',name:'Масть',values:['F2','F3','F4','F5']},
+ {key:'S',name:'Стрит',values:['S2','S3','S4','S5']},
+ {key:'F',name:'Масть',values:['F1','F2','F3','F4','F5']},
  {key:'SF',name:'Стрит-флеш',values:['SF4','SF5']}
 ];
 const FLAT_BOARD_FACET_LABELS={
  P:{P1:'Пара на столе',P2:'Две пары',P3:'Тройка','P3-2':'Фулл-хаус',P4:'Каре'},
- S:{S1:'Нет стритовой структуры',S2:'Коннекторы',S3:'Три связанных',S4:'Четыре связанных',S5:'Стрит на столе'},
- F:{F2:'Две одной масти',F3:'Три одной масти',F4:'Четыре одной масти',F5:'Флеш на столе'},
+ S:{S2:'Коннекторы',S3:'Три связанных',S4:'Четыре связанных',S5:'Стрит на столе'},
+ F:{F1:'Нет особых признаков',F2:'Две одной масти',F3:'Три одной масти',F4:'Четыре одной масти',F5:'Флеш на столе'},
  SF:{SF4:'Стрит-флеш-дро',SF5:'Стрит-флеш на столе'}
 };
 function flatBoardFacetLabel(groupKey,value){
