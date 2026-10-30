@@ -21,7 +21,7 @@ class CompactBoard16Tests(unittest.TestCase):
 
     def test_sheet_sample_covers_s1_s2_s3_s4_and_sf4(self):
         for cards, expected in [
-            ("2c 7d Qh As 9c", "S1"),
+            ("2c 4c 7d 9d Qh", "S1"),
             ("6c 7d Qh 3s Ac", "S2"),
             ("7c 8d 9h Ks 2c", "S3"),
             ("6c 7d 8h 9s Kc", "S4"),
@@ -62,10 +62,17 @@ class CompactBoard16Tests(unittest.TestCase):
         with (ROOT / "data" / "postflop_board150_catalog.json").open(encoding="utf8") as fh:
             catalog=json.load(fh)
         self.assertEqual(catalog["reachable_codes"],75)
+        with (ROOT / "data" / "postflop_compact16_catalog.json").open(encoding="utf8") as fh:
+            selected=json.load(fh)
+        self.assertEqual(selected["reachable_codes"],49)
+        self.assertEqual(sum(x["deals"] for x in selected["rows"]),2598960)
+        for row in selected["rows"]:
+            self.assertEqual(self.classify(row["example"])["compact"]["id"],row["id"])
         for row in catalog["rows"]:
             with self.subTest(id=row["id"]):
                 obj=classify_board(parse_physical_board(row["example"]))
-                self.assertEqual(obj["id"],row["id"])
+                self.assertIn(" · ",obj["id"])
+                self.assertEqual(obj["legacy_id"],row["id"])
                 self.assertTrue(set(obj["compact"]["codes"])<=set(LABELS))
                 self.assertNotIn("P0",obj["compact"]["codes"])
 
