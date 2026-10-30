@@ -7,6 +7,7 @@ are explicitly tagged: PRE|NO_BOARD, FLOP|..., TURN|... and never entered
 into the 150-river reference universe.
 """
 from collections import Counter
+from postflop_compact16 import selected_features
 import re
 
 RANKS="23456789TJQKA"
@@ -99,7 +100,8 @@ def classify_board(board_ids, street=None):
     if street!="river":code=street.upper()+"|"+code
     return {"id":code,"street":street,"p":f"P{p}","s":f"S{s}",
             "f":f"F{f}","sf":f"SF{sf}","a":f"A{a}",
-            "label":f"{P_NAMES[p]} · {S_NAMES[s]} · {F_NAMES[f]} · {SF_NAMES[sf]}"}
+            "label":f"{P_NAMES[p]} · {S_NAMES[s]} · {F_NAMES[f]} · {SF_NAMES[sf]}",
+            "compact":selected_features(ids,p,s,f,sf)}
 
 
 def classify_request(payload):
