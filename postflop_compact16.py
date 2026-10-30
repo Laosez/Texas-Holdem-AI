@@ -1,13 +1,13 @@
 """Selected 16-feature Poker System board taxonomy.
 
-Public code is a composed group of selected features. P0, F1, SF0..SF3
-are deliberately omitted: they are not selected features. A straight-texture
-code S1..S5 is always present. This module never handles OPP probabilities.
+Public code is a composed group of selected features. P0 and SF0..SF3
+are deliberately omitted. F1 is the exclusive fallback if NONE of the
+other 15 chosen traits is present. This module never handles OPP probabilities.
 """
 from collections import Counter
 
 LABELS = {
-    "S1": "Нет выраженной стритовой структуры",
+    "F1": "Нет особых признаков",
     "S2": "Коннекторы",
     "S3": "Три связанных ранга (в том числе с дырками)",
     "S4": "Четыре связанных ранга (в том числе с дырками)",
@@ -70,8 +70,8 @@ def classify_compact(board_ids, *, legacy_p=None, legacy_s=None,
         for window in WINDOWS for left, right in zip(window, window[1:])
     )
     straight = ("S5" if legacy_s == 5 else "S4" if legacy_s >= 3 else
-                "S3" if legacy_s >= 1 else "S2" if adjacent else "S1")
-    codes = [straight]
+                "S3" if legacy_s >= 1 else "S2" if adjacent else None)
+    codes = [straight] if straight else []
     if legacy_f >= 2:
         codes.append("F" + str(legacy_f))
     if legacy_sf == 5:
@@ -81,6 +81,8 @@ def classify_compact(board_ids, *, legacy_p=None, legacy_s=None,
     pairs = {1: "P1", 2: "P2", 3: "P3", 4: "P3-2", 5: "P4"}
     if legacy_p:
         codes.append(pairs[legacy_p])
+    if not codes:
+        codes = ["F1"]
 
     straight_outs = _rank_outs(ranks) if straight == "S4" else []
     sf_outs = [
