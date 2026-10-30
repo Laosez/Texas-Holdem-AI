@@ -45,7 +45,7 @@ class RiverBoard150Tests(unittest.TestCase):
         board=next(r for r in ROWS if r["id"]=="P1 · S3 · F4 · SF3")
         self.assertEqual(board["deals"],528)
         self.assertEqual(classify_request({"board":"As-2d-3c-4h-5s"})["id"],
-                         "S5 · F2")
+                         "S5")
         # Exactly same spelling accepted by the new Sheet 03 input.
         self.assertEqual(parse_physical_board("14s-13h-9c-5d-2c"),
                          parse_physical_board("As-Kh-9c-5d-2c"))
@@ -113,7 +113,7 @@ class RiverBoard150Tests(unittest.TestCase):
         self.assertNotIn('1 019',page)
         self.assertIn('<option value="board150" selected>Плоский регистр · Борд / HERO / Оппонент / Исход',plan)
         self.assertIn('<option value="catalog" hidden>',plan)
-        self.assertIn('↗ Справочник 49 типов',plan)
+        self.assertIn('↗ Справочник 36 типов',plan)
         self.assertNotIn('↗ Отчёт на листе 03 · Постфлоп',plan)
         self.assertIn('function riverBoardDescription(code){',plan)
         self.assertIn('function board150Parts(code){',plan)
@@ -148,8 +148,8 @@ class RiverBoard150Tests(unittest.TestCase):
         for needle in (
             "const FLAT_BOARD_FACETS=[",
             "values:['P1','P2','P3','P3-2','P4']",
-            "values:['S2','S3','S4','S5']",
-            "values:['F1','F2','F3','F4','F5']",
+            "values:['S3','S4','S5']",
+            "values:['F1','F3','F4','F5']",
             "values:['SF4','SF5']",
             "const FLAT_BOARD_FACET_LABELS={",
             "flatBoardFacetsMatch(r.dims[1])",
@@ -173,17 +173,17 @@ class RiverBoard150Tests(unittest.TestCase):
         begin=page.split("function board150Parts(code){",1)[1].split("function riverPass(row){",1)[0]
         js="function board150Parts(code){"+begin+"\nconst FLAT_BOARD_FACETS=["+part+'''
 const assert=(v,msg)=>{if(!v)throw Error(msg)};
-const board='S4 · F2 · P1';
+const board='S4 · P1';
 assert(flatBoardFacetsMatch(board),'all facets');
 assert(flatBoardFacetsMatch('PRE|NO_BOARD'),'preflop visible with all facets');
 flatBoardFacets.P.clear();flatBoardFacets.P.add('P1');
 flatBoardFacets.S.clear();flatBoardFacets.S.add('S4');
 assert(flatBoardFacetsMatch(board),'selected class');
-assert(!flatBoardFacetsMatch('S3 · F2 · P1'),'S3 excluded');
-assert(!flatBoardFacetsMatch('S4 · F2 · P2'),'P2 excluded');
+assert(!flatBoardFacetsMatch('S3 · P1'),'S3 excluded');
+assert(!flatBoardFacetsMatch('S4 · P2'),'P2 excluded');
 assert(!flatBoardFacetsMatch('PRE|NO_BOARD'),'preflop excluded under filtering');
 flatBoardFacets.F.clear();flatBoardFacets.F.add('F3');
-assert(!flatBoardFacetsMatch(board),'F2 excluded');
+assert(!flatBoardFacetsMatch(board),'no F3 excluded');
 assert(flatBoardFacetsMatch('S4 · F3 · P1'),'F3 included');
 const d=['river',board,2,2,1,'L3'];
 const make=(n,net,opps)=>({dims:[d[0],d[1],d[2],d[3],opps,d[5]],
@@ -217,10 +217,10 @@ assert(flatAggregateVisible(rows,'1')[0].a.n===6,'opponent selection');
                 self.assertIn(needle,page)
 
     def test_new_composite_ids_are_unique_and_cover_all_physical_boards(self):
-        self.assertEqual(NEW_DOC["version"],"board16_v2")
-        self.assertEqual(NEW_DOC["reachable_codes"],49)
-        self.assertEqual(len(NEW_ROWS),49)
-        self.assertEqual(len({r["id"] for r in NEW_ROWS}),49)
+        self.assertEqual(NEW_DOC["version"],"board14_v1")
+        self.assertEqual(NEW_DOC["reachable_codes"],36)
+        self.assertEqual(len(NEW_ROWS),36)
+        self.assertEqual(len({r["id"] for r in NEW_ROWS}),36)
         self.assertEqual(sum(r["deals"] for r in NEW_ROWS),2598960)
         for row in NEW_ROWS:
             info=classify_board(parse_physical_board(row["example"]))
@@ -259,7 +259,7 @@ assert(flatAggregateVisible(rows,'1')[0].a.n===6,'opponent selection');
                 req=urllib.request.Request(url,headers={"X-Runner-Key":"board150_key"})
                 with urllib.request.urlopen(req,timeout=15) as response:
                     fetched=json.load(response)
-                self.assertEqual(fetched["reachable_codes"],49)
+                self.assertEqual(fetched["reachable_codes"],36)
                 self.assertEqual(fetched["rows"][0]["id"],NEW_ROWS[0]["id"])
                 url2=f"http://127.0.0.1:{server.server_address[1]}/api/postflop/board150-classify"
                 req2=urllib.request.Request(url2,data=json.dumps({"board":"5s-6s-7s-8s-8d"}).encode(),
