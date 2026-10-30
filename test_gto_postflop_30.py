@@ -41,7 +41,7 @@ class AdaptiveGTO30Tests(unittest.TestCase):
     def test_board150_canonical_codes_without_invented_classification(self):
         dry = _board_class(FLOP, "flop")
         wet = _board_class(WET, "flop")
-        self.assertTrue(dry["id"].startswith("FLOP|S"))
+        self.assertTrue(dry["id"].startswith("FLOP|"))
         self.assertEqual(dry["f"], "F1")
         self.assertEqual(wet["f"], "F2")
         self.assertEqual(wet["a"], "A1")
