@@ -282,9 +282,10 @@ function sortedScores(run){
 }
 function summaryRow(x,run,stageSpecific=false){
  const record=scopeRecord(run,x.bot),st=dataFor(run,x.bot);
+ const completed=run.report.tournaments_completed;
  if(!stageSpecific)return [
   playerTitle(x.bot),integer(x.wins),percent(x.win_pct_completed),
-  wilson(Number(x.wins),Number(run.report?.tournaments_completed)),
+  wilson(Number(x.wins),Number(completed)),
   percent(st.top2_pct),percent(st.top3_pct),percent(st.win_given_top3_pct),
   num(x.avg_position_completed,2),num(st.median_position,1),
   num(record.net_bb_100,2),integer(record.hands_observed),''
