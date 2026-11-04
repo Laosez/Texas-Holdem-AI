@@ -72,7 +72,8 @@ jobs:
       - name: Targeted analysis, session and C-bet tests
         run: |
           python -m py_compile export_preflop_ranges_v4.py replit_simulator.py
-          python -m unittest test_postflop_telemetry test_analysis test_screen1 test_replit_simulator -v
+          python -m py_compile bots/gto_postflop_41.py
+          python -m unittest test_postflop_telemetry test_gto_postflop_41 test_analysis test_screen1 test_replit_simulator -v
       - name: JavaScript syntax of implementation and embedded analysis
         run: |
           python - <<'PY'
