@@ -23,7 +23,7 @@ import random
 import zlib
 
 from bots.gto_postflop_33 import StreetMatrixGTO33Bot
-from bots.gto_postflop_30 import _board_class
+from bots.gto_postflop_30 import _board_class, AdaptiveGTO30Bot
 from bots.postflop_profiles import _amount, read_hand, _fallthrough
 from core.bot_api import Action
 from core.engine import eval_hand, _FULL_DECK
@@ -251,7 +251,7 @@ class StreetEVGTO40Bot(StreetMatrixGTO33Bot):
                 "hand_id":hand_id, "street":street,
                 "board":["".join(c) for c in board],
                 "board150":board_code["id"] if board_code else None,
-                "board_anytwo_rank_pair_pct":0.0,
+                "board_anytwo_rank_pair_pct":AdaptiveGTO30Bot._anytwo_board_risk(board),
                 "hero_hole":["".join(c) for c in hole],
                 "hero_tier":"EV", "hero_made":"range-based",
                 "hero_draw_outs_estimate":read_hand(hole,board).draw_outs,
