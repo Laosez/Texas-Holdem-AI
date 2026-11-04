@@ -145,6 +145,34 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .shadow-card{display:inline-flex;justify-content:center;align-items:center;min-width:28px;padding:5px 4px;border:1px solid #6480a1;border-radius:5px;background:#eaf2fb;color:#182a3f;font-weight:850;font-size:13px}
 .shadow-card.red{color:#bc293a}
 .shadow-hand-actions{display:flex;flex-wrap:wrap;gap:9px;color:#d5e4f5;font-size:11px}
+.shadow-hero-line{display:flex;align-items:center;gap:10px;font-weight:800;font-size:11px;color:#a9c9e7}
+.shadow-decision-detail{display:grid;gap:10px;border-top:1px solid #355573;padding-top:11px;min-width:0}
+.shadow-loading{font-size:12px;color:#a6bdd3;padding:12px;background:#142a41;border-radius:8px}
+.shadow-detail-title{font-size:10px;font-weight:900;letter-spacing:.9px;color:#a2c9e9}
+.shadow-ev-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.shadow-ev-model{padding:10px;border:1px solid #3a5a78;background:#102d45;border-radius:8px;min-width:0;display:grid;gap:6px}
+.shadow-ev-label{font-size:11px;font-weight:800;color:#a4d0fc}
+.shadow-ev-model strong{font-size:12px;font-weight:750;line-height:1.65;color:#f1f7ff;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.shadow-detail-note{font-size:11px;color:#b6c8db;line-height:1.5}
+.shadow-step-list{display:grid;gap:7px}
+.shadow-step{border-left:3px solid #416d9b;border-radius:5px;background:#132b41;padding:9px 10px;display:grid;gap:5px}
+.shadow-step-head{display:flex;align-items:center;justify-content:space-between;gap:7px;flex-wrap:wrap}
+.shadow-step-heading{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:11px}
+.shadow-step .shadow-card{font-size:11px;min-width:23px;padding:3px 4px}
+.shadow-step-decision{font-size:11px;font-weight:850;color:#f1d8bd}
+.shadow-step-ev{font-size:11px;font-weight:750;color:#dfeefa;font-variant-numeric:tabular-nums}
+.shadow-step-metrics{font-size:11px;color:#abd3f4}
+.shadow-opp-list{display:grid;gap:4px;margin-top:2px}
+.shadow-opp{font-size:10px;color:#c6d8e9;border-top:1px solid #2d4b64;padding-top:5px;font-variant-numeric:tabular-nums}
+.shadow-paired{display:grid;gap:5px;padding:9px 10px;background:#11283c;border:1px solid #395672;border-radius:8px}
+.shadow-paired-row{font-size:11px;line-height:1.5;color:#c9def0;border-top:1px solid #2d4860;padding:6px 0;overflow-wrap:anywhere}
+.shadow-detail-tools{display:grid;gap:7px;justify-items:start}
+.shadow-audit-result{font-size:11px;line-height:1.55;color:#b7d1ea;display:grid;gap:4px}
+.storage-files{margin:10px 0;display:grid;gap:7px}
+.storage-files-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 9px;border-bottom:1px solid #355573;font-size:12px;overflow-wrap:anywhere}
+.storage-files-row strong{white-space:nowrap;font-variant-numeric:tabular-nums;color:#e1efff}
+@media(max-width:950px){.shadow-ev-pair{grid-template-columns:1fr}}
+
 .shadow-note-strip{padding:11px 13px;border:1px solid #355573;background:#0c2033;border-radius:9px;color:#9fb8d0;font-size:11px;line-height:1.55}
 .shadow-note-strip strong{color:#d6e8f9}
 @media(max-width:1120px){.shadow-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.shadow-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -343,8 +371,8 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </section></div>
 <div class="column topColumn journalColumn">
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre>
-<details class="coverageAudit" id="gto30TracePanel" style="margin-top:10px">
-<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–5.3 · Журнал решений и точный аудит (до 100 раздач)</summary>
+<details class="coverageAudit" id="gto30TracePanel" open style="margin-top:10px">
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–5.3 · Журнал решений (сразу открыт, до 100 раздач)</summary>
 <p class="note">Последние 5/10/20/50/100 раздач с постфлоп-решениями по каждому игроку в последнем завершённом турнире. Точная проверка Any Two вызывается по кнопке после раскрытия раздачи, не влияет на действия бота.</p>
 <div class="fields" style="margin-top:10px">
 <div class="field"><label for="gto30TraceBot">Игрок / профиль</label><select id="gto30TraceBot"><option value="">—</option></select></div>
@@ -372,7 +400,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <section class="panel shadow-workspace" id="gto5ShadowPanel">
   <div class="heading shadow-head">
     <div>
-      <div class="shadow-eyebrow">КАЛИБРОВКА · GTO 5.0 / 5.0.5 / 5.1 / 5.1.5</div>
+      <div class="shadow-eyebrow">КАЛИБРОВКА · GTO 5.0–5.3 · ВСЕ УЛИЦЫ</div>
       <h2>Shadow Mode <span class="shadow-head-sub">Сравнение решений и EV двух стратегий</span></h2>
       <p class="note">Игрок действует самостоятельно, эталон рассчитывает альтернативный EV. Разрезы: улицы, оппоненты и структура P/S/F</p>
     </div>
@@ -954,6 +982,7 @@ function shadowHands(data,root){
 
 async function loadGTO5Shadow(id){
  gto5ShadowSession=id;gto5ShadowData=null;shadowComparison='';
+ if(!shadowDetailCache[gto5ShadowSession+':0'])shadowDetailLoading.clear();
  const host=$('gto5ShadowRows');
  if(host)host.replaceChildren(el('p','note','Загрузка Shadow-отчёта...'));
  try{
@@ -1159,7 +1188,7 @@ function renderGTO30Trace(){
          ' · источник '+(first?.source||'—')));
      });
    }
-   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_')||bot.policy?.startsWith('gto_postflop_52_'))&&step.ev){
+   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_')||bot.policy?.startsWith('gto_postflop_52_')||bot.policy?.startsWith('gto_postflop_53_'))&&step.ev){
      const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' фишек').join(' | ');
      entry.append(el('div','small','EV действий: '+ev));
      const m=step.equity_model||{};
@@ -1178,8 +1207,8 @@ function renderGTO30Trace(){
          ' · Equity proxy: '+(100*(m.proxy_equity??0)).toFixed(2)+'%'));
      }
      if(step.opponent_models?.length){
-       const details=el('details','trace-opponents','');
-       details.append(el('summary','small','Оценка по каждому оппоненту ('+
+       const details=el('div','trace-opponents','');
+       details.append(el('div','small','Оценка по каждому оппоненту ('+
           step.opponent_models.length+'); предположение независимости, не точное multiway EV'));
        step.opponent_models.forEach(opp=>{
          const fmt=x=>x==null?'—':(100*Number(x)).toFixed(1)+'%';
@@ -1204,7 +1233,7 @@ function renderGTO30Trace(){
        entry.append(el('div','small','Any Two: '+d.evaluated_hands+'/'+d.possible_hands+' рук · полный перебор категорий · совместных прогонов: '+m.joint_trials+(m.side_pot_approximation?' · side pots приближённые':'')));
    }
    entry.append(el('div','small',step.reason));
-   if(/^gto_postflop_(?:50|505|51|515|52)_/.test(bot.policy||'')){
+   if(/^gto_postflop_(?:50|505|51|515|52|53)_/.test(bot.policy||'')){
      const audit=el('button','btn sm outline','Показать точный расчёт Any Two (текущая улица)');
      audit.type='button';
      const host=el('div','small','');
