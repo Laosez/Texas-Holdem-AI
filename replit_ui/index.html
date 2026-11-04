@@ -183,6 +183,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <option value="gto505">GTO 5.0.5 · эталон для 5.0 / 5.1 / 5.1.5</option>
 <option value="gto51">GTO 5.1 · старшинство без округления</option>
 <option value="gto515">GTO 5.1.5 · старшинство + округление до 5%</option>
+<option value="gto52">GTO 5.2 · исправленное старшинство (эксперимент)</option>
 </select>
 <p class="note">Для эффекта старшинства: GTO 5.1 играет, GTO 5.0 проверяет. Для эффекта округления: GTO 5.1.5 играет, GTO 5.1 проверяет. Одинаковые модели не сравниваются. Regret — относительно эталона, не фактический проигрыш.</p></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
@@ -342,7 +343,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="column topColumn journalColumn">
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre>
 <details class="coverageAudit" id="gto30TracePanel" style="margin-top:10px">
-<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–5.1 · Журнал решений и точный аудит (до 100 раздач)</summary>
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–5.2 · Журнал решений и точный аудит (до 100 раздач)</summary>
 <p class="note">Последние 5/10/20/50/100 раздач с постфлоп-решениями по каждому игроку в последнем завершённом турнире. Точная проверка Any Two вызывается по кнопке после раскрытия раздачи, не влияет на действия бота.</p>
 <div class="fields" style="margin-top:10px">
 <div class="field"><label for="gto30TraceBot">Игрок / профиль</label><select id="gto30TraceBot"><option value="">—</option></select></div>
@@ -768,13 +769,101 @@ function shadowOverview(data,root){
  detail.onclick=()=>shadowSetTab('opponents');root.append(detail);
 }
 function shadowModelName(kind){
- return ({gto50:'GTO 5.0',gto505:'GTO 5.0.5',gto51:'GTO 5.1',gto515:'GTO 5.1.5',gto41:'GTO 4.1'})[kind]||kind||'GTO 4.1';
+ return ({gto50:'GTO 5.0',gto505:'GTO 5.0.5',gto51:'GTO 5.1',gto515:'GTO 5.1.5',gto52:'GTO 5.2',gto41:'GTO 4.1'})[kind]||kind||'GTO 4.1';
+}
+function shadowCardTokens(tokens,iconMap){
+ const box=el('span','shadow-cards','');
+ (tokens||[]).forEach(token=>{
+  const s=String(token),rank=s.slice(0,-1),suit=s.slice(-1);
+  box.append(el('span','shadow-card'+('dh'.includes(suit)?' red':''),
+      rank+(iconMap[suit]||suit)));
+ });
+ return box;
+}
+async function shadowOpenDecision(row,card,button,panel){
+ button.disabled=true;panel.hidden=false;
+ panel.replaceChildren(el('div','small','Загружаю журнал раздачи #'+row.hand_id+'...'));
+ const url='/api/runs/'+encodeURIComponent(gto5ShadowSession)+
+    '/gto5-shadow-decision?decision='+row.shadow_id;
+ const evs=ev=>Object.entries(ev||{}).map(([k,v])=>
+    String(k).toUpperCase()+' '+Number(v).toFixed(2)).join(' | ')||'—';
+ const pct=v=>v==null?'—':(100*Number(v)).toFixed(2)+'%';
+ try{
+  const d=await get(url);
+  panel.replaceChildren();
+  panel.append(el('div','small','HERO '+(d.hole||[]).join(' ')+
+    ' · турнир '+d.tournament+' / раздача '+d.hand_id+
+    ' · Shadow #'+d.shadow_id));
+  panel.append(el('div','small',shadowModelName(d.actor)+' EV: '+evs(d.ev_actor)));
+  panel.append(el('div','small',shadowModelName(d.reference_model)+' EV: '+evs(d.ev_reference)));
+  panel.append(el('div','note',d.note||''));
+  (d.steps||[]).forEach((step,i)=>{
+   const cell=el('div','small','');
+   cell.style.cssText='border-left:2px solid #5483a8;padding:4px 9px;margin:4px 0';
+   cell.append(el('div','','#'+(i+1)+' '+String(step.street).toUpperCase()+
+     ' '+(step.board||[]).join(' ')+' · '+String(step.decision||'').toUpperCase()+
+     (step.amount_chips!=null?' '+step.amount_chips:'')+
+     ' · OPP '+(step.opponents_count??step.opponents??'—')));
+   if(step.ev && Object.keys(step.ev).length)
+     cell.append(el('div','','EV: '+evs(step.ev)));
+   const m=step.equity_model||{};
+   if(m.seniority)cell.append(el('div','',
+     'Старшинство '+pct(m.seniority.win_fraction)+
+     ' · квантиль '+pct(m.hero_quantile)+
+     ' · equity proxy '+pct(m.proxy_equity)));
+   if(step.opponent_models?.length){
+     const more=el('details','', '');more.append(el('summary','','По оппонентам ('+
+       step.opponent_models.length+')'));
+     step.opponent_models.forEach(opp=>{
+      const r=opp.vs_bet||{};
+      more.append(el('div','', 'OPP '+opp.pid+
+        ' · equity '+pct(opp.equity_proxy)+
+        ' · Fold '+pct(r.fold?.p)+' / Call '+pct(r.call?.p)+
+        ' / Raise '+pct(r.raise?.p)));
+     });
+     cell.append(more);
+   }
+   panel.append(cell);
+  });
+  if(d.paired_steps?.length){
+    const more=el('details','', '');more.append(el('summary','',
+       'Shadow-сопоставления той же раздачи ('+d.paired_steps.length+')'));
+    d.paired_steps.forEach(s=>more.append(el('div','small',
+      String(s.street).toUpperCase()+' · '+(s.board||[]).join(' ')+
+      ' · выбрано '+String(s.chosen).toUpperCase()+
+      ' / эталон '+String(s.best_reference).toUpperCase()+
+      ' · EV '+evs(s.ev_actor)+' / '+evs(s.ev_reference))));
+    panel.append(more);
+  }
+  const audit=el('button','btn sm outline','Точный аудит Any Two · это решение');
+  const auditResult=el('div','small','');audit.type='button';
+  audit.onclick=async()=>{
+    audit.disabled=true;auditResult.textContent='Считаю доступные руки OPP...';
+    try{
+      const v=(await get(url+'&exact=1')).exact_audit;
+      auditResult.replaceChildren(
+        el('div','',v.opponent_hands_examined+' допустимых рук OPP · категория '+v.hero_category),
+        el('div','','P категории: модель '+(v.formula_category_pct==null?'—':v.formula_category_pct.toFixed(2)+'%')+
+          ' / точно '+v.exact_category_pct.toFixed(2)+'%'),
+        el('div','','Старшинство: модель '+pct(v.formula_win_fraction)+
+          ' / точно '+pct(v.exact_win_fraction)+
+          ' · Δ '+(v.seniority_delta_pp==null?'—':v.seniority_delta_pp.toFixed(2)+' п.п.')),
+        el('div','','Слабее '+v.same_category_weaker+' · ничья '+v.same_category_tied+
+          ' · сильнее '+v.same_category_stronger),
+        el('div','','Точная текущая HU-доля: '+pct(v.exact_current_hu_showdown_share)),
+        el('div','note',v.interpretation+' ('+v.formula_source+')'));
+    }catch(e){auditResult.textContent='Ошибка аудита: '+e.message;audit.disabled=false;}
+  };
+  panel.append(audit,auditResult);panel.dataset.loaded='yes';
+  button.textContent='Показать / скрыть разбор раздачи';
+ }catch(e){panel.replaceChildren(el('div','bad','Разбор недоступен: '+e.message));}
+ finally{button.disabled=false;}
 }
 function shadowHands(data,root){
  const records=(data.rankings||{}).worst_decisions||[];
  root.append(shadowTitle('20 самых дорогих отдельных решений'));
  root.append(el('p','shadow-help',
-  'Показаны только решения, которые попали в Shadow-проверку. Карты оппонента после вскрытия не используются.'));
+  'Каждая ошибка привязана к точному Shadow-решению, руке Hero и исходным EV. Карты соперников не используются.'));
  if(!records.length){root.append(el('div','shadow-empty','Нет сохранённых решений'));return}
  const list=el('div','shadow-hand-list');
  const iconMap={c:'♣',d:'♦',h:'♥',s:'♠'};
@@ -798,7 +887,26 @@ function shadowHands(data,root){
   const readableAction=x=>String(x||'—').replace(':',' ');
   actions.append(el('span','',shadowModelName(row.actor)+': '+readableAction(row.chosen5).toUpperCase()),
    el('span','',shadowModelName(row.reference_model)+': '+readableAction(row.chosen41).toUpperCase()));
-  card.append(actions);list.append(card);
+  card.append(actions);
+  if(row.hole?.length===2){
+    const hero=el('div','shadow-hand-meta','HERO: ');
+    hero.append(shadowCardTokens(row.hole,iconMap));card.append(hero);
+  }else card.append(el('div','shadow-hand-meta',
+    'В агрегате нет карт Hero; связь со старой исходной записью не найдена.'));
+  if(row.shadow_id!=null){
+    const btn=el('button','btn sm outline','Разобрать · EV / журнал / точный аудит');
+    btn.type='button';
+    const panel=el('div','', '');
+    panel.style.cssText='display:grid;gap:7px;margin-top:7px';
+    panel.hidden=true;
+    btn.onclick=()=>{
+      if(panel.dataset.loaded==='yes'){panel.hidden=!panel.hidden;return;}
+      shadowOpenDecision(row,card,btn,panel);
+    };
+    card.append(btn,panel);
+  }else if(row.detail_unavailable_reason)
+    card.append(el('div','small',row.detail_unavailable_reason));
+  list.append(card);
  });
  root.append(list);
 }
@@ -971,7 +1079,7 @@ function renderGTO30Trace(){
    });
    entry.append(el('div','', 'Решение: '+step.decision.toUpperCase()+
       (step.amount_chips!=null?' '+step.amount_chips+' фишек':'')+
-      ' · '+(step.decision_mode?.startsWith('gto41_')?'GTO 4.1 · JOINT EV':step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode?.startsWith('gto515')?'GTO 5.1.5 · СТАРШИНСТВО + ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto51')?'GTO 5.1 · СТАРШИНСТВО':step.decision_mode?.startsWith('gto505')?'GTO 5.0.5 · ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto50')?'GTO 5.0 · EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
+      ' · '+(step.decision_mode?.startsWith('gto41_')?'GTO 4.1 · JOINT EV':step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode?.startsWith('gto52')?'GTO 5.2 · ИСПРАВЛЕННОЕ СТАРШИНСТВО':step.decision_mode?.startsWith('gto515')?'GTO 5.1.5 · СТАРШИНСТВО + ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto51')?'GTO 5.1 · СТАРШИНСТВО':step.decision_mode?.startsWith('gto505')?'GTO 5.0.5 · ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto50')?'GTO 5.0 · EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
    if(step.pressure) entry.append(el('div','small','Сигнал угрозы '+step.pressure.score.toFixed(2)+' · '+step.pressure.action+' (НЕ equity/вероятность руки)'));
    (step.opponents||[]).forEach(opp=>{
      if(!opp.metrics)return;
@@ -1009,7 +1117,7 @@ function renderGTO30Trace(){
          ' · источник '+(first?.source||'—')));
      });
    }
-   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_'))&&step.ev){
+   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_')||bot.policy?.startsWith('gto_postflop_52_'))&&step.ev){
      const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' фишек').join(' | ');
      entry.append(el('div','small','EV действий: '+ev));
      const m=step.equity_model||{};
@@ -1054,7 +1162,7 @@ function renderGTO30Trace(){
        entry.append(el('div','small','Any Two: '+d.evaluated_hands+'/'+d.possible_hands+' рук · полный перебор категорий · совместных прогонов: '+m.joint_trials+(m.side_pot_approximation?' · side pots приближённые':'')));
    }
    entry.append(el('div','small',step.reason));
-   if(/^gto_postflop_(?:50|505|51|515)_/.test(bot.policy||'')){
+   if(/^gto_postflop_(?:50|505|51|515|52)_/.test(bot.policy||'')){
      const audit=el('button','btn sm outline','Показать точный расчёт Any Two (текущая улица)');
      audit.type='button';
      const host=el('div','small','');
