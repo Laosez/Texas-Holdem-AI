@@ -63,28 +63,33 @@ BASE_BOTS = {
     "wide_defender", "nit", "loose_passive", "maniac",
     "maniac_mixed", "random", "random_2", "random_3",
 }
-SPLIT_PARTS = frozenset(json.loads(
+STRATEGY_CATALOG = json.loads(
     (ROOT / "strategy_catalog" / "available_bases.json").read_text(encoding="utf-8")
-)["bases"])
+)
+SPLIT_PARTS = frozenset(STRATEGY_CATALOG["bases"])
 
 # Screen 1 choices are street-specific. The full engine catalog remains
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
-POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "gto_postflop_33_5", "gto_postflop_33_10", "gto_postflop_40_5", "gto_postflop_40_10", "gto_postflop_41_5", "gto_postflop_41_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
-    "chaser_postflop_v1", "trapper_postflop_v1", "random",
-)
-# The new Screen 1 editor exposes exactly these five strategies.
+# Single source of truth for both Sheet 1 and Sheet 2.
+POSTFLOP_PRIMARY = tuple(STRATEGY_CATALOG["postflop_selectable"])
 POSTFLOP_CHOICES = frozenset(POSTFLOP_PRIMARY)
 # Old historical sessions still load their original strategy tokens.
 POSTFLOP_ARCHIVE = frozenset({
     "gto", "smart", "tag_punisher", "wide_defender",
     "baseline_sane", "nit", "loose_passive", "maniac",
     "maniac_mixed", "pressure_filler", "random",
-})
+} | {name for name in SPLIT_PARTS
+     if name.startswith("gto_postflop_") and name.endswith("_10")})
+# Archived /10 profiles keep their original memory and remain replayable.
+# Only the catalog's /5 profiles may be chosen in new sessions.
 RANDOM_ALIAS_RE = re.compile(r"random_(?:[2-9]|10)\Z")
 if not PREFLOP_CHOICES | POSTFLOP_CHOICES <= SPLIT_PARTS:
     raise RuntimeError("The UI contains an unregistered bot strategy")
+if len(POSTFLOP_PRIMARY) != len(POSTFLOP_CHOICES) or any(
+        name.startswith("gto_postflop_") and name.endswith("_10")
+        for name in POSTFLOP_PRIMARY):
+    raise RuntimeError("The postflop selection catalog is duplicate or includes /10")
 
 
 def available_postflop(name: str) -> bool:
