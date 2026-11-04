@@ -1125,10 +1125,11 @@ def main():
         csv_write(output/filename, table_rows)
     if last_adaptive_traces:
         write_json(output / "gto30_last5.json", {
-            "format": "SKACHKOV_GTO30_TRACE_V1",
+            "format": "SKACHKOV_GTO_DECISION_TRACE_V2",
+            "max_hands_per_bot": 100,
             "tournament": last_adaptive_tournament,
-            "explanation": ("Последние пять раздач с постфлоп-решениями каждого адаптивного "
-                            "бота в последнем турнире; вероятность Any Two описывает "
+            "explanation": ("Последние до 100 раздач с постфлоп-решениями каждого бота "
+                            "в последнем турнире; вероятность Any Two описывает "
                             "повтор ранга (включая карманную пару), а не "
                             "состав сильных рук соперника после колла."),
             "bots": last_adaptive_traces,
