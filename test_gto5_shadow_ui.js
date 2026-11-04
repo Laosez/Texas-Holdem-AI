@@ -11,7 +11,8 @@ for(const marker of [
  'id="gto30TraceDepth"', 'Последние 100', 'gto30-trace-exact',
  'GTO 5.1 · СТАРШИНСТВО', 'Показать точный расчёт Any Two', 'href="#gto5ShadowPanel"', 'shadow-kpis',
  'shadow-tabs', 'shadow-overview-grid', 'shadow-hand-list',
- 'GTO 5.0.5', 'GTO 5.1.5', 'value="gto50"', 'value="gto505"', 'value="gto51"', 'value="gto515"', 'data.comparisons',
+ 'GTO 5.0.5', 'GTO 5.1.5', 'value="gto50"', 'value="gto505"', 'value="gto51"', 'value="gto515"', 'value="gto52"', 'data.comparisons',
+ 'gto5-shadow-decision?decision=', 'shadowCardTokens(row.hole', 'Точный аудит Any Two',
  'function shadowSortedRows(', 'function shadowTable(',
  'function renderGTO5Shadow()', 'function loadGTO5Shadow(id)'
 ]) assert.ok(page.includes(marker),'missing Shadow marker: '+marker);
