@@ -1,0 +1,22 @@
+name: GTO 5.0 shadow report
+on:
+  pull_request:
+    paths:
+      - gto5_shadow_report.py
+      - test_gto5_shadow_report.py
+      - .github/workflows/gto5-shadow-calibration.yml
+  push:
+    paths:
+      - gto5_shadow_report.py
+      - test_gto5_shadow_report.py
+      - .github/workflows/gto5-shadow-calibration.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run shadow report regression tests
+        run: python -m unittest -v test_gto5_shadow_report
