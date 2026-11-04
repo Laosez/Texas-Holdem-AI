@@ -67,7 +67,7 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
         self._seen = set()
         self._seen_hand_id = None
         self.last_model = None
-        self._trace = deque(maxlen=5)  # last 5 hands with decisions; bounded RAM
+        self._trace = deque(maxlen=100)  # last 100 postflop hands per bot; bounded RAM
 
     def observe_hand(self, hand_id, history, board, me):
         """Consume observable street responses once; one per pid/street/hand.
@@ -131,7 +131,7 @@ class AdaptiveGTO30Bot(GTOPostflop20Bot):
         return model
 
     def trace_snapshot(self):
-        """Structured explanation, last five played postflop hands."""
+        """Structured explanation, last 100 played postflop hands."""
         return list(self._trace)
 
     @staticmethod

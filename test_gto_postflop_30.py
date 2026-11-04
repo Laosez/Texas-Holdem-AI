@@ -133,7 +133,7 @@ class AdaptiveGTO30Tests(unittest.TestCase):
         self.assertEqual(short.last_model["stats"]["n"],5)
         self.assertEqual(long.last_model["stats"]["n"],10)
 
-    def test_trace_retains_last_five_hands_and_all_three_streets(self):
+    def test_trace_retains_extended_hands_and_all_three_streets(self):
         bot=AdaptiveGTO30Bot(5)
         def view_at(street,board,hand_id):
             v=make_view(hole=(("Q","h"),("J","c")),board=board,
@@ -146,8 +146,8 @@ class AdaptiveGTO30Tests(unittest.TestCase):
                 with patch("bots.postflop_profiles.random.random",return_value=.99):
                     bot.act(view_at(street,board,hand_id))
         trace=bot.trace_snapshot()
-        self.assertEqual(len(trace),5)
-        self.assertEqual([x["hand_id"] for x in trace],[1,2,3,4,5])
+        self.assertEqual(len(trace),6)
+        self.assertEqual([x["hand_id"] for x in trace],[0,1,2,3,4,5])
         for hand in trace:
             self.assertEqual([x["street"] for x in hand["steps"]],
                              ["flop","turn","river"])

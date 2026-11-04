@@ -220,14 +220,17 @@ def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False)
     # Multiplication assumes opponent conditional equities are independent.
     # True joint ranges and side pots are NOT computed.
     equity = prod(eq_all) if eq_all else .5
+    equity_by_pid = dict(zip(opponents, eq_all))
     if to_call:
         return {"call": equity * (pot+to_call)-to_call, "fold": 0.0}, {
             "band": bands, "proxy_equity": equity,
-            "hero_category": CATEGORIES[category], **seniority_inputs,
+            "hero_category": CATEGORIES[category],
+            "equity_by_opponent": equity_by_pid, **seniority_inputs,
         }
     ev = {"check": equity * pot}
     if bet_size is None:
-        return ev, {"band": bands, "proxy_equity": equity, **seniority_inputs}
+        return ev, {"band": bands, "proxy_equity": equity,
+                    "equity_by_opponent": equity_by_pid, **seniority_inputs}
     # P(0..n calls, no raises): dynamic program, O(n^2) not 3^n.
     dp = [1.0]
     call_equities = []
@@ -253,7 +256,10 @@ def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False)
         "band": bands, "proxy_equity": equity,
         "mean_call_equity": mean_call_eq,
         "hero_category": CATEGORIES[category],
-        "bet_size": bet_size, **seniority_inputs,
+        "bet_size": bet_size,
+        "equity_by_opponent": equity_by_pid,
+        "bet_call_equity_by_opponent": dict(zip(opponents, call_equities)),
+        **seniority_inputs,
     }
 
 
@@ -382,7 +388,20 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                                    if self.rank_aware else
                                    "gto505_round5" if self.round_step else "gto50_alpha"),
                 "street_matrix": groups[opponents[0]],
+                # Old generic opponent metrics remain unchanged. New GTO 5.x
+                # row lists ALL opponents, not only the first street matrix.
                 "opponents": [],
+                "opponent_models": [{
+                    "pid": pid,
+                    "band": inputs.get("band", {}).get(pid),
+                    "equity_proxy": inputs.get("equity_by_opponent", {}).get(pid),
+                    "bet_call_equity_proxy": inputs.get(
+                        "bet_call_equity_by_opponent", {}).get(pid),
+                    "vs_bet": {
+                        name: {k: stats.get(k) for k in ("p", "k", "n", "source")}
+                        for name, stats in groups[pid][view.street]["vs_bet"].items()
+                    },
+                } for pid in opponents],
                 "ev": self.last_model["ev"], "equity_model": inputs,
                 "distribution": dist,
                 "reason": ("GTO 5.1: rank seniority + category masses"

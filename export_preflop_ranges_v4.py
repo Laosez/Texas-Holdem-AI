@@ -473,6 +473,11 @@ def run_one(task):
     runner.make_table=table_factory
     try:
         result=runner.run_silent_tournament((specs,chips,sb,bb,escalate,max_hands,seed))
+        # Keep extended history only for the last numbered tournament:
+        # other per-tournament checkpoints retain 5, protecting disk quota.
+        deep_last = (str(tournament_id) ==
+                     os.getenv("POKER_TRACE_LAST_TOURNAMENT", ""))
+        trace_depth = 100 if deep_last else 5
         adaptive_traces = []
         for bot in instances:
             policy = getattr(bot.inner, "postflop_bot", bot.inner)
@@ -483,7 +488,7 @@ def run_one(task):
                     "pid": getattr(bot, "player_id", None),
                     "policy": getattr(policy, "profile", ""),
                     "window": getattr(policy, "window", None),
-                    "hands": trace_fn(),
+                    "hands": trace_fn()[-trace_depth:],
                 })
         result["gto30_last5"] = adaptive_traces
         shadow_events = []
@@ -883,6 +888,7 @@ def main():
     a=p.parse_args()
     os.environ['POKER_GTO5_SHADOW_PERCENT'] = str(a.shadow_percent)
     os.environ['POKER_GTO5_SHADOW_REFERENCE'] = a.shadow_reference
+    os.environ['POKER_TRACE_LAST_TOURNAMENT'] = str(a.tournaments)
     os.environ["POKER_BUTTON_POLICY"]=a.button_policy
     if os.environ.get('THAI_ENGINE_IMPL', '').lower() != 'legacy':
         p.error('v4 requires THAI_ENGINE_IMPL=legacy: only legacy supports on_deal observation.')
@@ -1125,10 +1131,11 @@ def main():
         csv_write(output/filename, table_rows)
     if last_adaptive_traces:
         write_json(output / "gto30_last5.json", {
-            "format": "SKACHKOV_GTO30_TRACE_V1",
+            "format": "SKACHKOV_GTO_DECISION_TRACE_V2",
+            "max_hands_per_bot": 100,
             "tournament": last_adaptive_tournament,
-            "explanation": ("Последние пять раздач с постфлоп-решениями каждого адаптивного "
-                            "бота в последнем турнире; вероятность Any Two описывает "
+            "explanation": ("Последние до 100 раздач с постфлоп-решениями каждого бота "
+                            "в последнем турнире; вероятность Any Two описывает "
                             "повтор ранга (включая карманную пару), а не "
                             "состав сильных рук соперника после колла."),
             "bots": last_adaptive_traces,

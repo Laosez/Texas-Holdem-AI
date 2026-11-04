@@ -60,7 +60,7 @@ class OpportunityGTO32Bot(GTOPostflop21Bot):
         self._hand_id = None
         self._seen = set()
         self.last_model = None
-        self._trace = deque(maxlen=5)
+        self._trace = deque(maxlen=100)
 
     def _remember(self, pid, metric, success):
         store = self._memory[str(pid)]

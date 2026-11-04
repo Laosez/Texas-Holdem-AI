@@ -342,11 +342,11 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="column topColumn journalColumn">
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre>
 <details class="coverageAudit" id="gto30TracePanel" style="margin-top:10px">
-<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–4.0 · Лог решений (последняя раздача / 5)</summary>
-<p class="note">Для адаптивных GTO 3.0–4.0: последовательность оценки на флопе, тёрне и ривере. Источник — последние пять раздач с постфлоп-решениями в последнем завершённом турнире сессии.</p>
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–5.1 · Журнал решений и точный аудит (до 100 раздач)</summary>
+<p class="note">Последние 5/10/20/50/100 раздач с постфлоп-решениями по каждому игроку в последнем завершённом турнире. Точная проверка Any Two вызывается по кнопке после раскрытия раздачи, не влияет на действия бота.</p>
 <div class="fields" style="margin-top:10px">
 <div class="field"><label for="gto30TraceBot">Игрок / профиль</label><select id="gto30TraceBot"><option value="">—</option></select></div>
-<div class="field"><label for="gto30TraceDepth">Число раздач</label><select id="gto30TraceDepth"><option value="1">Последняя</option><option value="5">Последние 5</option></select></div>
+<div class="field"><label for="gto30TraceDepth">Число раздач</label><select id="gto30TraceDepth"><option value="1">Последняя</option><option value="5" selected>Последние 5</option><option value="10">Последние 10</option><option value="20">Последние 20</option><option value="50">Последние 50</option><option value="100">Последние 100</option></select></div>
 </div>
 <div id="gto30TraceRows" style="display:grid;gap:9px;margin-top:11px"><p class="note">Выбери завершённую сессию с адаптивным ботом.</p></div>
 </details>
@@ -935,7 +935,7 @@ function renderGTO30Trace(){
  const root=$('gto30TraceRows');root.replaceChildren();
  const data=gto30TraceData;
  if(!data?.bots?.length){
-  root.append(el('p','note',data?.message||'В этой сессии нет адаптивного GTO 3.0.'));
+  root.append(el('p','note',data?.message||'В этой сессии нет сохранённого журнала решений.'));
   return;
  }
  const selected=Number($('gto30TraceBot').value||0);
@@ -943,22 +943,25 @@ function renderGTO30Trace(){
  const depth=Number($('gto30TraceDepth').value)||1;
  const hands=(bot.hands||[]).slice(-depth).reverse();
  if(!hands.length){
-  root.append(el('p','note','У этого бота пока нет постфлоп-решений.'));
+  root.append(el('p','note','У этого бота пока нет записанных постфлоп-решений.'));
   return;
  }
  root.append(el('p','note','Турнир №'+data.tournament+' · '+bot.policy+
-  ' · окно наблюдений: '+bot.window+' · Any Two: повтор ранга (включая карманные пары), не вероятность конкретной силы после колла.'));
+  ' · память наблюдений: '+bot.window+' · сохранено '+(bot.hands||[]).length+' раздач. '+
+  'Any Two P(повтор ранга) — структурная вероятность, включая уже парный борд и PP, '+
+  'не P(выиграть) и не оценка диапазона после действия оппонента. '+
+  ((bot.hands||[]).length<depth?'В более старой сессии могли сохраняться только 5 раздач.':'')));
  hands.forEach(hand=>{
   const card=el('div','panel','');card.style.padding='11px';
   card.append(el('strong','','Раздача #'+hand.hand_id));
-  (hand.steps||[]).forEach(step=>{
+  (hand.steps||[]).forEach((step,stepIndex)=>{
    const entry=el('div','','');
    entry.style.cssText='border-top:1px solid #34506e;margin-top:8px;padding-top:8px';
    entry.append(el('div','small',step.street.toUpperCase()+' · '+step.board.join(' ')));
    entry.append(el('div','',step.board150||'Класс борда не определён'));
    entry.append(el('div','small','Оппонентов: '+step.opponents_count+
       ' · Any Two P(повтор ранга): '+step.board_anytwo_rank_pair_pct.toFixed(2)+'%'));
-   entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · '+(/^gto4[01]_/.test(step.decision_mode||'')?'оценка EV':'сила R'+step.hero_tier)+
+   entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · '+(/^(gto4[01]_|gto5)/.test(step.decision_mode||'')?'оценка EV':'сила R'+step.hero_tier)+
       ' · '+step.hero_made+' · оценка аутов: '+step.hero_draw_outs_estimate));
    (step.opponents||[]).forEach(opp=>{
     entry.append(el('div','small','Соперник '+opp.pid+': n='+opp.n+
@@ -968,7 +971,7 @@ function renderGTO30Trace(){
    });
    entry.append(el('div','', 'Решение: '+step.decision.toUpperCase()+
       (step.amount_chips!=null?' '+step.amount_chips+' фишек':'')+
-      ' · '+(step.decision_mode?.startsWith('gto41_')?'GTO 4.1 · JOINT EV':step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
+      ' · '+(step.decision_mode?.startsWith('gto41_')?'GTO 4.1 · JOINT EV':step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode?.startsWith('gto515')?'GTO 5.1.5 · СТАРШИНСТВО + ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto51')?'GTO 5.1 · СТАРШИНСТВО':step.decision_mode?.startsWith('gto505')?'GTO 5.0.5 · ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto50')?'GTO 5.0 · EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
    if(step.pressure) entry.append(el('div','small','Сигнал угрозы '+step.pressure.score.toFixed(2)+' · '+step.pressure.action+' (НЕ equity/вероятность руки)'));
    (step.opponents||[]).forEach(opp=>{
      if(!opp.metrics)return;
@@ -1006,7 +1009,7 @@ function renderGTO30Trace(){
          ' · источник '+(first?.source||'—')));
      });
    }
-   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_'))&&step.ev){
+   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_'))&&step.ev){
      const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' фишек').join(' | ');
      entry.append(el('div','small','EV действий: '+ev));
      const m=step.equity_model||{};
@@ -1017,10 +1020,85 @@ function renderGTO30Trace(){
      const d=step.distribution||{};
      if(d.sampled_hands)
        entry.append(el('div','small','Any Two: '+d.sampled_hands+'/'+d.possible_hands+' рук · будущих бордов на руку '+d.runouts_per_hand+' · оценка, не точный перебор'));
+     if(m.hero_quantile!==undefined){
+       entry.append(el('div','small',
+         'Квантиль Hero (модель): '+(100*m.hero_quantile).toFixed(2)+'% · '+
+         'Старшинство внутри категории: '+(100*(m.seniority?.win_fraction??.5)).toFixed(2)+'%'+
+         (m.seniority?.method?' · '+m.seniority.method:'')+
+         ' · Equity proxy: '+(100*(m.proxy_equity??0)).toFixed(2)+'%'));
+     }
+     if(step.opponent_models?.length){
+       const details=el('details','trace-opponents','');
+       details.append(el('summary','small','Оценка по каждому оппоненту ('+
+          step.opponent_models.length+'); предположение независимости, не точное multiway EV'));
+       step.opponent_models.forEach(opp=>{
+         const fmt=x=>x==null?'—':(100*Number(x)).toFixed(1)+'%';
+         const band=opp.band?.length===2?
+           fmt(opp.band[0])+'…'+fmt(opp.band[1]):'—';
+         const bets=opp.vs_bet||{};
+         const part=['fold','call','raise'].map(key=>{
+           const x=bets[key];
+           return key.toUpperCase()+' '+fmt(x?.p)+
+             (x?.n!=null?' ('+x.k+'/'+x.n+')':'');
+         }).join(' · ');
+         details.append(el('div','small',
+           'OPP '+opp.pid+' · диапазон силы '+band+
+           ' · Equity HU proxy '+fmt(opp.equity_proxy)+
+           (opp.bet_call_equity_proxy!=null?
+             ' · Equity vs Call '+fmt(opp.bet_call_equity_proxy):'')+
+           ' · '+part));
+       });
+       entry.append(details);
+     }
      if(d.enumeration==='exact_with_hero_blockers')
        entry.append(el('div','small','Any Two: '+d.evaluated_hands+'/'+d.possible_hands+' рук · полный перебор категорий · совместных прогонов: '+m.joint_trials+(m.side_pot_approximation?' · side pots приближённые':'')));
    }
    entry.append(el('div','small',step.reason));
+   if(/^gto_postflop_(?:50|505|51|515)_/.test(bot.policy||'')){
+     const audit=el('button','btn sm outline','Показать точный расчёт Any Two (текущая улица)');
+     audit.type='button';
+     const host=el('div','small','');
+     audit.onclick=async()=>{
+       audit.disabled=true;
+       host.textContent='Расчёт всех допустимых рук OPP без будущих карт...';
+       try{
+         const url='/api/runs/'+encodeURIComponent(gto30TraceSession)+
+           '/gto30-trace-exact?bot='+selected+
+           '&hand='+encodeURIComponent(hand.hand_id)+'&step='+stepIndex;
+         const d=await get(url);
+         const pct=x=>x==null?'—':(100*x).toFixed(2)+'%';
+         const val=x=>x==null?'—':Number(x).toFixed(2)+'%';
+         host.replaceChildren();
+         host.append(el('div','',
+           'Точный перебор: '+d.opponent_hands_examined+' двухкарточных рук Any Two · HERO '+d.hero_category+
+           ' · блокеры Hero/борда учтены.'));
+         host.append(el('div','',
+           'Категория OPP: модель '+val(d.formula_category_pct)+
+           ' / точно '+val(d.exact_category_pct)+
+           ' · Δ '+(d.category_delta_pp==null?'—':Number(d.category_delta_pp).toFixed(2)+' п.п.')));
+         host.append(el('div','',
+           'Старшинство внутри категории: модель '+pct(d.formula_win_fraction)+
+           ' / точно '+pct(d.exact_win_fraction)+
+           ' · Δ '+(d.seniority_delta_pp==null?'—':Number(d.seniority_delta_pp).toFixed(2)+' п.п.')));
+         host.append(el('div','',
+           'В той же категории: слабее '+d.same_category_weaker+
+           ' / ничья '+d.same_category_tied+
+           ' / сильнее '+d.same_category_stronger));
+         host.append(el('div','',
+           'Общий квантиль модели: '+pct(d.formula_hero_quantile)+
+           ' / точная HU-доля текущей руки: '+pct(d.exact_current_hu_showdown_share)));
+         host.append(el('div','note',
+           d.current_only?
+           'Флоп/тёрн: точный перебор ТЕКУЩИХ комбинаций, без будущих карт. Квантиль GTO включает поправку на дро — не прямое сравнение equity.':
+           'Ривер: точная HU-доля против Any Two с блокерами, но НЕ диапазон после ставки, не мультипот EV и не GTO 4.1.'));
+         audit.textContent='Точный расчёт выполнен';
+       }catch(err){
+         host.textContent='Аудит недоступен: '+err.message;
+         audit.disabled=false;
+       }
+     };
+     entry.append(audit,host);
+   }
    card.append(entry);
   });
   root.append(card);

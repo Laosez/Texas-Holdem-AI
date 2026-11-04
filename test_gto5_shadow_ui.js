@@ -7,7 +7,9 @@ const assert = require('node:assert/strict');
 const page = fs.readFileSync('replit_ui/index.html','utf8');
 for(const marker of [
  'id="gto5ShadowPanel"', 'id="gto5ShadowRows"', 'id="gto5ShadowStatus"',
- 'id="shadowPercent"', 'id="shadowReference"', 'href="#gto5ShadowPanel"', 'shadow-kpis',
+ 'id="shadowPercent"', 'id="shadowReference"',
+ 'id="gto30TraceDepth"', 'Последние 100', 'gto30-trace-exact',
+ 'GTO 5.1 · СТАРШИНСТВО', 'Показать точный расчёт Any Two', 'href="#gto5ShadowPanel"', 'shadow-kpis',
  'shadow-tabs', 'shadow-overview-grid', 'shadow-hand-list',
  'GTO 5.0.5', 'GTO 5.1.5', 'value="gto50"', 'value="gto505"', 'value="gto51"', 'value="gto515"', 'data.comparisons',
  'function shadowSortedRows(', 'function shadowTable(',
