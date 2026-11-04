@@ -84,12 +84,12 @@ class TournamentAnalysisTests(unittest.TestCase):
             write(path,"postflop_opponent_street.csv",
                   "bot,opponents,street,decisions,open_opp,open_bet_n,open_check_n,"
                   "facing_opp,facing_fold_n,facing_call_n,facing_raise_n,bet_n,check_n,"
-                  "fold_n,call_n,raise_n\\n"
-                  "P1,1,flop,10,6,3,3,4,2,1,1,3,3,2,1,1\\n"
-                  "P1,3,turn,4,4,3,1,0,0,0,0,3,1,0,0,0\\n")
+                  "fold_n,call_n,raise_n\n"
+                  "P1,1,flop,10,6,3,3,4,2,1,1,3,3,2,1,1\n"
+                  "P1,3,turn,4,4,3,1,0,0,0,0,3,1,0,0,0\n")
             write(path,"postflop_opponent_pnl.csv",
-                  "bot,opponents,net_hands,net_bb_units\\n"
-                  "P1,1,20,10\\nP1,2,10,-3\\nP1,4,0,0\\n")
+                  "bot,opponents,net_hands,net_bb_units\n"
+                  "P1,1,20,10\nP1,2,10,-3\nP1,4,0,0\n")
             d=app.stats_for_folder(path)["P1"]
             hu=d["opponent_streets"]["1"]["flop"]
             self.assertEqual(hu["decisions"],10)
