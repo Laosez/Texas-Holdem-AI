@@ -553,7 +553,11 @@ def validate_config(data: dict) -> dict:
     button_policy=data.get("button_policy","dead_button")
     if button_policy not in ("dead_button","moving"):
         raise ValueError("Режим баттона: dead_button или moving")
+    shadow_percent = bounded_int(data.get("shadow_percent", 0), "Shadow Mode", 0, 100)
+    if shadow_percent not in (0, 10, 25, 100):
+        raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     config = {
+        "shadow_percent": shadow_percent,
         "players": bots, "bots": rows,
         "button_policy":button_policy,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
@@ -1091,6 +1095,7 @@ def worker(job: dict) -> None:
         "--max-hands", str(config["max_hands"]),
         "--seat-mode", config["seat_mode"],
         "--button-policy",config.get("button_policy","moving"),
+        "--shadow-percent", str(config.get("shadow_percent", 0)),
         "--out", str(output),
         "--checkpoint-dir", str(output / "_checkpoints"),
     ]
@@ -1098,7 +1103,8 @@ def worker(job: dict) -> None:
     try:
         env = dict(os.environ, THAI_ENGINE_IMPL="legacy", PYTHONUNBUFFERED="1",
                    POKER_PLAN_SNAPSHOT_DIR=str(output / "plan_snapshots"),
-                   POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy"))
+                   POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy"),
+                   POKER_GTO5_SHADOW_PERCENT=str(config.get("shadow_percent", 0)))
         with log_path.open("a", encoding="utf-8") as log:
             log.write("\n[runner] Start or resume at " + now() +
                       " | preflop_protocol="+config.get("preflop_protocol","legacy")+"\n")
@@ -1740,6 +1746,24 @@ class Handler(BaseHTTPRequestHandler):
                     "created": j["created"], "updated": j["updated"]
                 } for j in jobs]
             self.reply(200, {"runs": data})
+            return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto5-shadow", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            target = OUT / run_id / "gto5_shadow_report.json"
+            if not target.is_file() or target.is_symlink():
+                self.reply(200, {"compared": 0, "groups": {},
+                                 "message": "Shadow-отчёт появится после завершения серии с GTO 5.0."})
+                return
+            try:
+                self.reply(200, json.loads(target.read_text(encoding="utf-8")))
+            except (OSError, ValueError):
+                self.reply(503, {"error": "Не удалось прочитать Shadow-отчёт"})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto30-trace", path)
         if match:
