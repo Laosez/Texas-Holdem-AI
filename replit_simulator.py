@@ -391,6 +391,15 @@ def strategy_catalog():
                                  "draw-aware flop and turn showdown equity", "Bet/Check and Call/Fold chipEV",
                                  "one-street checkdown approximation; HU only", "ten-opportunity memory"]
                 },
+                "gto_postflop_50_5": {
+                    "label": "GTO 5.0/5 alpha · Human Board Formulas · HU/Multiway",
+                    "model": "human_board_ev_alpha",
+                    "features": ["P0–P3 river formulas + simple street y corrections",
+                                 "13-rank combinatoric made straight/flush proxy",
+                                 "24 street opponent action frequencies",
+                                 "chipEV HU/multiway via category-quantile approximation",
+                                 "optional GTO 4.1 shadow calibration at 10/25/100%"]
+                },
                 "gto_postflop_41_5": {
                     "label": "GTO 4.1/5 · Joint Range EV · HU / Multiway",
                     "model": "joint_range_ev",
