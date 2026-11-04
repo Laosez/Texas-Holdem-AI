@@ -285,9 +285,8 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
-const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_21a','gto_postflop_21b','gto_postflop_21c','gto_postflop_21d','gto_postflop_21e','gto_postflop_21f','gto_postflop_30_5','gto_postflop_30_10','gto_postflop_31_5','gto_postflop_31_10','gto_postflop_32_5','gto_postflop_32_10','gto_postflop_33_5','gto_postflop_33_10','gto_postflop_40_5','gto_postflop_40_10','gto_postflop_41_5','gto_postflop_41_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
-const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];
-let postflopValues=['',...POSTFLOP_WITH_RANDOM];
+// Both pages use /api/catalog as the sole source of selectable strategies.
+let postflopValues=[''];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',gto_postflop_40_5:'GTO 4.0/5 · Board Range EV',gto_postflop_40_10:'GTO 4.0/10 · Board Range EV',gto_postflop_41_5:'GTO 4.1/5 · Joint Range EV · HU / Multiway',gto_postflop_41_10:'GTO 4.1/10 · Joint Range EV · HU / Multiway',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
@@ -320,6 +319,7 @@ const token=()=>($('key').value||'').trim();
 function feedback(message,bad){$('feedback').textContent=message;$('feedback').style.color=bad?'#ffabb7':'#a7d4f0'}
 function el(t,cls,txt){const x=document.createElement(t);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x}
 const isRandom=value=>value==='random'||/^random_(?:[2-9]|10)$/.test(value);
+const isArchivedPostflop=value=>/^gto_postflop_.*_10$/.test(value);
 function botOptions(value,fn,street){
  const s=el('select'),options=street==='pre'?preflopValues:postflopValues;
  for(const v of options){
@@ -327,11 +327,11 @@ function botOptions(value,fn,street){
  }
  // A historical strategy is displayed only when restoring that old run.
  const normalized=value;
- if(street==='post'&&(legacyPostflopValues.includes(normalized)||isRandom(normalized))&&!options.includes(normalized)){
+ if(street==='post'&&(legacyPostflopValues.includes(normalized)||isRandom(normalized)||isArchivedPostflop(normalized))&&!options.includes(normalized)){
   const archive=el('option','','Архив · '+(names[normalized]||normalized));
   archive.value=normalized;s.append(archive);
  }
- s.value=options.includes(normalized)||street==='post'&&(legacyPostflopValues.includes(normalized)||isRandom(normalized))?normalized:'';
+ s.value=options.includes(normalized)||street==='post'&&(legacyPostflopValues.includes(normalized)||isRandom(normalized)||isArchivedPostflop(normalized))?normalized:'';
  s.onchange=()=>fn(s.value);
  if(!s.value)s.classList.add('invalid');
  return s;
@@ -340,7 +340,7 @@ function valid(){
  const invalid=bots.flatMap((b,i)=>{
   const pre=preflopValues.includes(b.pre)&&b.pre!=='';
   const post=(postflopValues.includes(b.post)&&b.post!=='')||
-   legacyPostflopValues.includes(b.post)||isRandom(b.post);
+   legacyPostflopValues.includes(b.post)||isRandom(b.post)||isArchivedPostflop(b.post);
   return pre&&post?[]:['P'+(i+1)];
  });
  $('botError').textContent=invalid.length?'Выбери допустимые Preflop и Postflop для '+invalid.join(', '):'';
@@ -598,7 +598,11 @@ async function loadCatalog(){
    }
    $('savedStrategiesInfo').textContent=(catalog.saved_preflop||[]).length+
     ' пользовательских стратегий синхронизировано с редактором. Сохранённая версия используется как Preflop; Postflop выбирается отдельно. Неотредактированные позиции — исходный алгоритм.';
-   postflopValues=['',...(catalog.postflop_strategies||POSTFLOP_WITH_RANDOM)];
+   if(!Array.isArray(catalog.postflop_strategies))throw Error('Каталог Postflop отсутствует');
+   for(const [token,profile] of Object.entries(catalog.postflop_profiles||{})){
+    if(profile?.label)names[token]=profile.label;
+   }
+   postflopValues=['',...catalog.postflop_strategies];
    drawBots();
   }
   const parallel=$('parallel');
