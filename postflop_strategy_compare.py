@@ -33,6 +33,8 @@ POLICIES = {
     "gto_postflop_32_10": "GTO 3.2/10 · last 10 eligible opportunities per metric",
     "gto_postflop_33_5": "GTO 3.3/5 · 24 metrics, separate streets",
     "gto_postflop_33_10": "GTO 3.3/10 · 24 metrics, separate streets",
+    "gto_postflop_40_5": "GTO 4.0/5 · flop turn river range EV",
+    "gto_postflop_40_10": "GTO 4.0/10 · flop turn river range EV",
     "lag_postflop_v1": "LAG V1",
     "tag_postflop_v1": "TAG V1",
     "chaser_postflop_v1": "Chaser V1",

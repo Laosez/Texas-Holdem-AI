@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "gto_postflop_33_5", "gto_postflop_33_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "gto_postflop_33_5", "gto_postflop_33_10", "gto_postflop_40_5", "gto_postflop_40_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -371,6 +371,20 @@ def strategy_catalog():
                                  "street >=5; otherwise shrinkage to pooled postflop",
                                  "only complete legal action sets are counted",
                                  "HU adaptation, multiway observation"]
+                },
+                "gto_postflop_40_5": {
+                    "label": "GTO 4.0/5 · Range EV · flop/turn/river",
+                    "model": "board_range_ev",
+                    "features": ["24 street-specific opponent actions", "board-relative Any Two hand-strength distribution",
+                                 "draw-aware flop and turn showdown equity", "Bet/Check and Call/Fold chipEV",
+                                 "one-street checkdown approximation; HU only", "five-opportunity memory"]
+                },
+                "gto_postflop_40_10": {
+                    "label": "GTO 4.0/10 · Range EV · flop/turn/river",
+                    "model": "board_range_ev",
+                    "features": ["24 street-specific opponent actions", "board-relative Any Two hand-strength distribution",
+                                 "draw-aware flop and turn showdown equity", "Bet/Check and Call/Fold chipEV",
+                                 "one-street checkdown approximation; HU only", "ten-opportunity memory"]
                 },
                 "lag_postflop_v1": {
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",

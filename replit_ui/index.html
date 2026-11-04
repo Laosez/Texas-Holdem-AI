@@ -192,6 +192,18 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <p class="note"><strong>Статистика:</strong> показываем отдельно эмпирические k/n и сглаженную частоту (k + 4×P₀)/(n + 4). Выборочные вероятности действий — не оценка P(сильная рука); для последнего потребуется калибровка по вскрытиям. RFI и 3-bet пока собираются для будущей префлоп-модели и не изменяют принудительный режим Any Two.</p>
 </details>
 
+<details class="coverageAudit" id="gto40Matrix">
+<summary>GTO 4.0/5 и 4.0/10 · Флоп / Тёрн / Ривер: диапазоны, дро и EV</summary>
+<p class="note"><strong>Новая логика:</strong> не принимает решения по фиксированным R0–R4 в HU. Берёт структуру борда и возможные комбинации Any Two, сортирует их по текущей силе с поправкой на ауты (на флопе и тёрне), затем использует 24 показателя GTO 3.3, чтобы выделить диапазоны действий соперника.</p>
+<table class="coverageTable"><thead><tr><th>Ситуация Hero</th><th>Как оценивается оппонент</th><th>Решение</th></tr></thead><tbody>
+<tr><td>Нет ставки → Bet / Check</td><td>Слабейшие Fold, следующие Call, сильнейшие Raise — по отдельным частотам данной улицы</td><td>Сравниваем EV(Bet ½ банка) и EV(Check)</td></tr>
+<tr><td>Опп Bet → Call / Fold</td><td>Предположительно сильнейшая доля Any Two, равная частоте Bet оппонента</td><td>Equity Hero против диапазона Bet vs pot odds</td></tr>
+<tr><td>Опп Raise → Call / Fold</td><td>Предположительно сильнейшая доля диапазона по частоте Raise или Reraise</td><td>Equity Hero против диапазона Raise vs pot odds</td></tr>
+</tbody></table>
+<p class="note">Флоп: выборка 48 возможных рук и 8 случайных, но воспроизводимых, завершений борда на руку; тёрн — 64 руки × 6 риверов; ривер — 96 рук × готовый борд. Всегда исключаются известные карты Hero и борда. Все эти величины — <strong>выборочные оценки</strong>, а не точное equity/solver GTO. На флопе и тёрне учитываются дро и возможные улучшения.</p>
+<p class="note"><strong>Ограничение:</strong> это одношаговая модель chipEV с допущением checkdown после выбранного действия. Для EV(Bet) возможный рейз консервативно считается как Bet/Fold. Блефовая составляющая диапазона соперника, последующие ставки, сила после последовательности флоп→тёрн→ривер и турнирный ICM отдельно не моделируются. Против нескольких соперников действует базовая GTO 3.3. Прошлые стратегии сохранены.</p>
+</details>
+
 <details class="coverageAudit" id="gto33Matrix">
 <summary>GTO 3.3/5 и 3.3/10 · матрица 24 действий по улицам</summary>
 <p class="note"><strong>Эксперимент:</strong> стратегия GTO 3.2/10 с теми же частотными формулами и сайзингом ½ банка; единственное изменение — выбор статистики по конкретной улице. Для каждого соперника — 3 отдельные истории на флопе, тёрне и ривере, всего 9 независимых очередей по 5 или 10 соответствующих возможностей. Из них считаются 24 исхода.</p>
@@ -230,8 +242,8 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="column topColumn journalColumn">
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre>
 <details class="coverageAudit" id="gto30TracePanel" style="margin-top:10px">
-<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–3.3 · Лог решений (последняя раздача / 5)</summary>
-<p class="note">Для адаптивных GTO 3.0–3.3: последовательность оценки на флопе, тёрне и ривере. Источник — последние пять раздач с постфлоп-решениями в последнем завершённом турнире сессии.</p>
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–4.0 · Лог решений (последняя раздача / 5)</summary>
+<p class="note">Для адаптивных GTO 3.0–4.0: последовательность оценки на флопе, тёрне и ривере. Источник — последние пять раздач с постфлоп-решениями в последнем завершённом турнире сессии.</p>
 <div class="fields" style="margin-top:10px">
 <div class="field"><label for="gto30TraceBot">Игрок / профиль</label><select id="gto30TraceBot"><option value="">—</option></select></div>
 <div class="field"><label for="gto30TraceDepth">Число раздач</label><select id="gto30TraceDepth"><option value="1">Последняя</option><option value="5">Последние 5</option></select></div>
@@ -267,12 +279,12 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
-const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_21a','gto_postflop_21b','gto_postflop_21c','gto_postflop_21d','gto_postflop_21e','gto_postflop_21f','gto_postflop_30_5','gto_postflop_30_10','gto_postflop_31_5','gto_postflop_31_10','gto_postflop_32_5','gto_postflop_32_10','gto_postflop_33_5','gto_postflop_33_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
+const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_21a','gto_postflop_21b','gto_postflop_21c','gto_postflop_21d','gto_postflop_21e','gto_postflop_21f','gto_postflop_30_5','gto_postflop_30_10','gto_postflop_31_5','gto_postflop_31_10','gto_postflop_32_5','gto_postflop_32_10','gto_postflop_33_5','gto_postflop_33_10','gto_postflop_40_5','gto_postflop_40_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
 const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];
 let postflopValues=['',...POSTFLOP_WITH_RANDOM];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',gto_postflop_40_5:'GTO 4.0/5 · Board Range EV',gto_postflop_40_10:'GTO 4.0/10 · Board Range EV',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],
@@ -449,7 +461,7 @@ function renderGTO30Trace(){
    entry.append(el('div','',step.board150||'Класс борда не определён'));
    entry.append(el('div','small','Оппонентов: '+step.opponents_count+
       ' · Any Two P(повтор ранга): '+step.board_anytwo_rank_pair_pct.toFixed(2)+'%'));
-   entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · сила R'+step.hero_tier+
+   entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · '+(step.decision_mode?.startsWith('gto40_')?'оценка EV':'сила R'+step.hero_tier)+
       ' · '+step.hero_made+' · оценка аутов: '+step.hero_draw_outs_estimate));
    (step.opponents||[]).forEach(opp=>{
     entry.append(el('div','small','Соперник '+opp.pid+': n='+opp.n+
@@ -459,7 +471,7 @@ function renderGTO30Trace(){
    });
    entry.append(el('div','', 'Решение: '+step.decision.toUpperCase()+
       (step.amount_chips!=null?' '+step.amount_chips+' фишек':'')+
-      ' · '+(step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
+      ' · '+(step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
    if(step.pressure) entry.append(el('div','small','Сигнал угрозы '+step.pressure.score.toFixed(2)+' · '+step.pressure.action+' (НЕ equity/вероятность руки)'));
    (step.opponents||[]).forEach(opp=>{
      if(!opp.metrics)return;
@@ -480,7 +492,7 @@ function renderGTO30Trace(){
        });
      });
    }
-   if(bot.policy?.startsWith('gto_postflop_33_') && step.street_matrix){
+   if((bot.policy?.startsWith('gto_postflop_33_')||bot.policy?.startsWith('gto_postflop_40_')) && step.street_matrix){
      const groups=step.street_matrix[step.street]||{};
      const titles=[['open','Без ставки',['check','bet']],['vs_bet','Против Bet',['fold','call','raise']],['vs_raise','Против Raise',['fold','call','reraise']]];
      titles.forEach(([key,title,names])=>{
@@ -496,6 +508,18 @@ function renderGTO30Trace(){
        entry.append(el('div','small',title+': '+rows.join(' | ')+
          ' · источник '+(first?.source||'—')));
      });
+   }
+   if(bot.policy?.startsWith('gto_postflop_40_')&&step.ev){
+     const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' BB').join(' | ');
+     entry.append(el('div','small','EV действий: '+ev));
+     const m=step.equity_model||{};
+     if(m.equity_vs_action!==undefined)
+       entry.append(el('div','small','Equity vs действие оппа: '+(100*m.equity_vs_action).toFixed(1)+'% · Pot odds '+(100*m.pot_odds).toFixed(1)+'% · частота действия '+(100*m.action_frequency).toFixed(1)+'%');
+     if(m.equity_vs_call!==undefined)
+       entry.append(el('div','small','Fold / Call / Raise: '+(100*m.fold).toFixed(1)+' / '+(100*m.call).toFixed(1)+' / '+(100*m.raise).toFixed(1)+'% · equity vs Call '+(100*m.equity_vs_call).toFixed(1)+'%');
+     const d=step.distribution||{};
+     if(d.sampled_hands)
+       entry.append(el('div','small','Any Two: '+d.sampled_hands+'/'+d.possible_hands+' рук · будущих бордов на руку '+d.runouts_per_hand+' · оценка, не точный перебор'));
    }
    entry.append(el('div','small',step.reason));
    card.append(entry);

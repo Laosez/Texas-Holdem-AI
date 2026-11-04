@@ -135,6 +135,10 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.gto_postflop_33 import StreetMatrixGTO33Bot
         return StreetMatrixGTO33Bot(window=5 if btype.endswith("_5") else 10)
 
+    if btype in ("gto_postflop_40_5", "gto_postflop_40_10"):
+        from bots.gto_postflop_40 import StreetEVGTO40Bot
+        return StreetEVGTO40Bot(window=5 if btype.endswith("_5") else 10)
+
     if btype in ("gto_postflop_v1","lag_postflop_v1"):
         from bots.postflop_profiles import PostflopProfileBot
         return PostflopProfileBot(btype)
