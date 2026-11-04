@@ -87,11 +87,14 @@ def _metrics(rows, minimum):
     if n == 0:
         return {"n": 0, "sufficient": False}
     regrets = [r["regret_bb"] for r in rows]
+    deltas = [r["max_ev_delta_bb"] for r in rows]
     return {
         "n": n,
         "sufficient": n >= minimum,
         "mae_ev_bb": round(mean(r["mean_ev_delta_bb"] for r in rows), 4),
-        "max_delta_bb": round(max(r["max_ev_delta_bb"] for r in rows), 4),
+        "max_delta_bb": round(max(deltas), 4),
+        "delta_over_1bb_pct": round(100*sum(v > 1 for v in deltas)/n, 2),
+        "delta_over_5bb_pct": round(100*sum(v > 5 for v in deltas)/n, 2),
         "mismatch_pct": round(100*mean(r["mismatch"] for r in rows), 2),
         "mean_regret_bb": round(mean(regrets), 4),
         "max_regret_bb": round(max(regrets), 4),
@@ -132,6 +135,8 @@ def aggregate_shadow(records, minimum=30):
     eligible = [r for r in groups["board_structure"] if r["sufficient"]]
     rankings = {
         "frequent": sorted(eligible, key=lambda v: -v["mismatch_pct"])[:20],
+        "frequent_ev_discrepancy": sorted(
+            eligible, key=lambda v: -v["delta_over_5bb_pct"])[:20],
         "expensive": sorted(eligible, key=lambda v: -v["mean_regret_bb"])[:20],
         "total_loss": sorted(eligible, key=lambda v: -v["total_regret_bb"])[:20],
         "worst_decisions": sorted(valid, key=lambda v: -v["regret_bb"])[:20],
