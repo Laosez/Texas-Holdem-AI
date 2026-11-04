@@ -39,7 +39,7 @@ OFFSETS = {
 }
 X_ANY_TWO = 5.88
 SHADOW_CHOICES = (0, 10, 25, 100)
-SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53")
+SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531")
 
 
 def round_probability_to_five(value):
@@ -162,7 +162,7 @@ def _hero_quantile(view, dist):
     return max(.01, min(.99, q)), category
 
 
-def _hero_quantile_51(view, dist, seniority_version=51):
+def _hero_quantile_51(view, dist, seniority_version=51, *, tie_aware=False):
     """Rank-aware Hero percentile, replacing category midpoint 0.5.
 
     A rank-only danger/safe fraction is weighted by the opponent made-hand
@@ -180,18 +180,43 @@ def _hero_quantile_51(view, dist, seniority_version=51):
         category_mass=dist["unrounded_probability_mass"][category],
         pocket_pair_pct=X_ANY_TWO)
     q = sum(masses[:category]) + masses[category] * win_fraction
+    # GTO 5.3.1 ONLY: retain the exact tie interval instead of collapsing
+    # ties to the single midpoint percentile. Other versions stay unchanged.
+    tie_band = None
+    if tie_aware and seniority_version == 53:
+        total = int(rule.get("route_weight") or 0)
+        tied = int(rule.get("tie") or 0)
+        if total and tied:
+            base = sum(masses[:category])
+            lower = base + masses[category] * rule["safe"] / total
+            upper = lower + masses[category] * tied / total
+            tie_band = (lower, upper)
     if len(board) < 5 and category < 4:
         outs = max(0, min(15, read_hand(hole, board).draw_outs))
         odds = min(.35, outs * (5-len(board)) / 47)
         q += odds * (1-q) * .65
+        if tie_band is not None:
+            # Preserve the unchanged 5.x draw proxy as an affine shift of
+            # BOTH tie boundaries (not merely of their midpoint).
+            bump = odds * .65
+            tie_band = tuple(x + (1-x) * bump for x in tie_band)
+    if tie_band is not None:
+        rule = {**rule, "tie_quantile_band": tie_band}
     return max(.01, min(.99, q)), category, rule
 
 
-def _equity_in_band(hero_q, low, high):
+def _equity_in_band(hero_q, low, high, tie_band=None):
     low, high = max(0., min(1., low)), max(0., min(1., high))
     if high <= low:
         return .5
-    # Opponent rank percentile uniformly distributed inside its action band.
+    # Uniform percentile density within the opponent's action band.
+    if tie_band is not None:
+        # [0, tie_low): Hero wins; [tie_low, tie_high): shared pot.
+        # [tie_high, 1]: Hero loses. All overlaps are O(1).
+        tie_low, tie_high = tie_band
+        wins = max(0., min(high, tie_low) - low)
+        ties = max(0., min(high, tie_high) - max(low, tie_low))
+        return max(.01, min(.99, (wins + .5 * ties) / (high - low)))
     return max(.01, min(.99, (hero_q - low) / (high-low)))
 
 
@@ -201,16 +226,18 @@ def _band(pid, street, history, groups):
     return _band_for(pid, street, history, groups[pid][street])
 
 
-def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False, seniority_version=51):
+def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False, seniority_version=51, tie_aware=False):
     """Quick EV approximation using category quantiles and response frequencies."""
     opponents = [str(p) for p in (view.opponents or ())]
     seniority_inputs = {}
     if rank_aware:
-        rank, category, rule = _hero_quantile_51(view, distribution, seniority_version)
+        rank, category, rule = _hero_quantile_51(
+            view, distribution, seniority_version, tie_aware=tie_aware)
         seniority_inputs["seniority"] = rule
         seniority_inputs["hero_quantile"] = round(rank, 6)
     else:
         rank, category = _hero_quantile(view, distribution)
+    tie_band = seniority_inputs.get("seniority", {}).get("tie_quantile_band")
     history = getattr(view, "history", ()) or ()
     pot = max(1, int(view.pot))
     to_call = max(0, int(view.to_call))
@@ -219,7 +246,7 @@ def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False,
     for pid in opponents:
         lo, hi = _band(pid, view.street, history, groups)
         bands[pid] = (lo, hi)
-        eq_all.append(_equity_in_band(rank, lo, hi))
+        eq_all.append(_equity_in_band(rank, lo, hi, tie_band))
     # Multiplication assumes opponent conditional equities are independent.
     # True joint ranges and side pots are NOT computed.
     equity = prod(eq_all) if eq_all else .5
@@ -246,7 +273,7 @@ def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False,
         for j, mass in enumerate(prev):
             dp[j] += mass*fold
             dp[j+1] += mass*call
-        call_equities.append(_equity_in_band(rank, fold, min(1., fold+call)))
+        call_equities.append(_equity_in_band(rank, fold, min(1., fold+call), tie_band))
     ev_bet = -(1-sum(dp))*bet_size + dp[0]*pot
     mean_call_eq = sum(call_equities)/len(call_equities) if call_equities else .5
     for callers in range(1, len(dp)):
@@ -294,6 +321,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
     @property
     def actor_kind(self):
         if self.rank_aware:
+            if getattr(self, "tie_aware", False) and self.seniority_version == 53:
+                return "gto531"
             if self.seniority_version == 53:
                 return "gto53"
             if self.seniority_version == 52:
@@ -315,6 +344,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             return RankAwareGTO52Bot(window=5, shadow_percent=0)
         if self.shadow_reference_kind == "gto53":
             return RankAwareGTO53Bot(window=5, shadow_percent=0)
+        if self.shadow_reference_kind == "gto531":
+            return RankAwareGTO531Bot(window=5, shadow_percent=0)
         return HumanRangeGTO50Bot(window=5, shadow_percent=0)
 
     def reset_memory(self):
@@ -363,7 +394,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
         else:
             ev, inputs = _estimate_actions(view, groups, dist, size,
                                            rank_aware=self.rank_aware,
-                                            seniority_version=self.seniority_version)
+                                            seniority_version=self.seniority_version,
+                                           tie_aware=getattr(self, "tie_aware", False))
             if call and {"fold", "call"} <= set(legal):
                 action = Action("call" if ev.get("call", -1) > 0 else "fold")
             elif not call and {"bet", "check"} <= set(legal) and size is not None:
@@ -377,7 +409,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                     "gto51": "gto5.1-alpha",
                     "gto515": "gto5.1.5-alpha",
                     "gto52": "gto5.2-alpha",
-                    "gto53": "gto5.3-alpha"}
+                    "gto53": "gto5.3-alpha",
+                    "gto531": "gto5.3.1-tie-alpha"}
         self.last_model = {
             "version": versions[self.actor_kind],
             "distribution": dist,
@@ -419,7 +452,9 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 } for pid in opponents],
                 "ev": self.last_model["ev"], "equity_model": inputs,
                 "distribution": dist,
-                "reason": ("GTO 5.3: weighted rank-pair + suit seniority"
+                "reason": ("GTO 5.3.1: tie-aware opponent action-band equity"
+                           if getattr(self, "tie_aware", False) else
+                           "GTO 5.3: weighted rank-pair + suit seniority"
                            if self.seniority_version == 53 and self.rank_aware else
                            "GTO 5.2: corrected high-card and P0 pair seniority"
                            if self.seniority_version == 52 and self.rank_aware else
@@ -539,3 +574,18 @@ class RankAwareGTO53Bot(RankAwareGTO51Bot):
                          shadow_reference=shadow_reference)
         self.profile = "gto_postflop_53_5"
         self.seniority_version = 53
+
+
+
+class RankAwareGTO531Bot(RankAwareGTO53Bot):
+    """GTO 5.3.1: only keep ties inside conditional action-band equity.
+
+    Same weighted rank seniority, P(category), action frequencies, EV formula,
+    bet sizing and multiway assumptions as 5.3. This is a clean A/B ablation.
+    """
+
+    def __init__(self, window=5, *, shadow_percent=None, shadow_reference=None):
+        super().__init__(window=window, shadow_percent=shadow_percent,
+                         shadow_reference=shadow_reference)
+        self.profile = "gto_postflop_531_5"
+        self.tie_aware = True

@@ -871,7 +871,7 @@ def main():
     p.add_argument('--tournaments',type=int,default=200)
     p.add_argument('--parallel',type=int,default=2)
     p.add_argument('--shadow-percent',type=int,choices=(0,10,25,100),default=0)
-    p.add_argument('--shadow-reference', choices=('gto41','gto50','gto505','gto51','gto515','gto52','gto53'),
+    p.add_argument('--shadow-reference', choices=('gto41','gto50','gto505','gto51','gto515','gto52','gto53','gto531'),
                    default='gto41', help='4.1 benchmark or opposite GTO 5 version')
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--chips',type=int,default=500)
