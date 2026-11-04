@@ -139,6 +139,10 @@ def create_bot(btype: str) -> BotAdapter:
         from bots.gto_postflop_40 import StreetEVGTO40Bot
         return StreetEVGTO40Bot(window=5 if btype.endswith("_5") else 10)
 
+    if btype == "gto_postflop_50_5":
+        from bots.gto_postflop_50 import HumanRangeGTO50Bot
+        return HumanRangeGTO50Bot(window=5)
+
     if btype in ("gto_postflop_41_5", "gto_postflop_41_10"):
         from bots.gto_postflop_41 import JointRangeGTO41Bot
         return JointRangeGTO41Bot(window=5 if btype.endswith("_5") else 10)
