@@ -1798,6 +1798,42 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError, ValueError):
                 self.reply(503, {"error": "Не удалось прочитать Shadow-отчёт"})
             return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto30-trace-exact", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            if job.get("status") not in ("completed", "imported"):
+                self.reply(409, {"error": "Точный аудит доступен после завершения серии"})
+                return
+            trace_file = OUT / run_id / "gto30_last5.json"
+            if not trace_file.is_file() or trace_file.is_symlink():
+                self.reply(404, {"error": "В этой серии нет сохранённого лога"})
+                return
+            params = parse_qs(parsed.query)
+            tokens = [params.get(k, [""])[0] for k in ("bot", "hand", "step")]
+            if not all(re.fullmatch(r"\d{1,8}", token) for token in tokens):
+                self.reply(400, {"error": "Требуются bot, hand, step (неотрицательные целые)"})
+                return
+            bot_id, hand_id, step_id = map(int, tokens)
+            try:
+                saved = json.loads(trace_file.read_text(encoding="utf-8"))
+                bot = saved["bots"][bot_id]
+                hand = next(item for item in bot["hands"]
+                            if int(item["hand_id"]) == hand_id)
+                step = hand["steps"][step_id]
+                from gto_trace_exact_audit import exact_current_hand_audit
+                audit = exact_current_hand_audit(step)
+                audit["hand_id"] = hand_id
+                audit["bot"] = bot.get("bot")
+                audit["tournament"] = saved.get("tournament")
+                self.reply(200, audit)
+            except (OSError, ValueError, KeyError, IndexError, TypeError, StopIteration):
+                self.reply(404, {"error": "Указанное решение отсутствует в журнале"})
+            return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto30-trace", path)
         if match:
             run_id = match.group(1)
@@ -1809,8 +1845,8 @@ class Handler(BaseHTTPRequestHandler):
             trace_file = OUT / run_id / "gto30_last5.json"
             if not trace_file.is_file() or trace_file.is_symlink():
                 self.reply(200, {"bots": [], "tournament": None,
-                                 "message": ("Лог GTO 3.0 появится после завершения "
-                                             "турнира с адаптивной стратегией.")})
+                                 "message": ("Журнал решений появится после завершения "
+                                             "турнира с записывающей решения стратегией.")})
                 return
             try:
                 self.reply(200, json.loads(trace_file.read_text(encoding="utf-8")))
