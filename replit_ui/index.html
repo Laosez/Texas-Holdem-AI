@@ -171,11 +171,18 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="field wide"><label for="preflop_protocol">Префлоп · правила эксперимента</label>
 <select id="preflop_protocol"><option value="standard_v1" selected>Единый протокол V1 · сравнение RFI</option><option value="legacy">Исходные стратегии · без стандартизации</option><option value="any_two_limp">Any Two · все доставляют, постфлоп по стратегиям</option></select>
 <p class="note"><strong>Any Two:</strong> все 2–9 игроков обязательно входят в банк с любыми картами: на префлопе только Call/Check (без рейзов и фолдов); начиная с флопа каждый играет по выбранной Postflop-стратегии. Префлоп-чарты в этом режиме не используются. В режиме V1 сохраняются индивидуальные диапазоны открытия, но ответы и сайзинги стандартизированы. Это экспериментальные режимы, не GTO.</p></div>
-<div class="field wide"><label for="shadowPercent">GTO 5.0 · Shadow Mode (проверка против GTO 4.1)</label>
+<div class="field wide"><label for="shadowPercent">Shadow Mode · доля проверяемых решений</label>
 <select id="shadowPercent"><option value="0" selected>Выкл. · максимальная скорость</option>
 <option value="10">10% решений · экономно</option><option value="25">25% решений · калибровка</option>
 <option value="100">100% решений · полный аудит, медленно</option></select>
-<p class="note">Работает только с GTO 5.0/5: 5.0 играет, GTO 4.1 независимо оценивает те же решения и не меняет раздачу. Результат появится после завершения серии; сравнение приближённое, не solver oracle.</p></div>
+<p class="note">Играть продолжает выбранная стратегия. Shadow считает альтернативный EV в том же состоянии стола. 100% может замедлить запуск.</p></div>
+<div class="field wide"><label for="shadowReference">Shadow Mode · с какой моделью сравнить</label>
+<select id="shadowReference">
+<option value="gto41" selected>GTO 4.1 · эталон для 5.0 / 5.0.5</option>
+<option value="gto50">GTO 5.0 · сравнить игру GTO 5.0.5 с 5.0</option>
+<option value="gto505">GTO 5.0.5 · сравнить игру GTO 5.0 с 5.0.5</option>
+</select>
+<p class="note">Для сравнения округления выбери GTO 5.0.5 игроком и GTO 5.0 эталоном — либо наоборот. Одинаковые модели не сравниваются сами с собой. Regret считается по выбранному эталону, это не результат реальной раздачи.</p></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
 <section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
@@ -361,14 +368,14 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <section class="panel shadow-workspace" id="gto5ShadowPanel">
   <div class="heading shadow-head">
     <div>
-      <div class="shadow-eyebrow">КАЛИБРОВКА СТРАТЕГИИ · GTO 5.0 / 5</div>
-      <h2>Shadow Mode <span class="shadow-head-sub">Сравнение EV с GTO 4.1</span></h2>
-      <p class="note">5.0 играет, 4.1 проверяет те же решения · ошибки сгруппированы по улице, числу оппонентов и структуре P/S/F</p>
+      <div class="shadow-eyebrow">КАЛИБРОВКА · GTO 5.0 / GTO 5.0.5</div>
+      <h2>Shadow Mode <span class="shadow-head-sub">Сравнение решений и EV двух стратегий</span></h2>
+      <p class="note">Игрок действует самостоятельно, эталон рассчитывает альтернативный EV. Разрезы: улицы, оппоненты и структура P/S/F</p>
     </div>
     <span class="badge" id="gto5ShadowStatus">Нет данных</span>
   </div>
   <div id="gto5ShadowRows" class="shadow-report-body">
-    <p class="note">Выбери завершённую сессию с GTO 5.0 и включённым Shadow Mode.</p>
+    <p class="note">Выбери завершённую сессию с GTO 5.0 или 5.0.5 и включённым Shadow Mode.</p>
   </div>
 </section>
 <section class="panel" id="analysis" style="grid-column:1/-1;min-width:0">
@@ -388,7 +395,7 @@ let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
 let postflopValues=[''];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',gto_postflop_40_5:'GTO 4.0/5 · Board Range EV',gto_postflop_40_10:'GTO 4.0/10 · Board Range EV',gto_postflop_41_5:'GTO 4.1/5 · Joint Range EV · HU / Multiway',gto_postflop_41_10:'GTO 4.1/10 · Joint Range EV · HU / Multiway',gto_postflop_50_5:'GTO 5.0/5 alpha · Human Formula EV · HU/Multiway',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',gto_postflop_40_5:'GTO 4.0/5 · Board Range EV',gto_postflop_40_10:'GTO 4.0/10 · Board Range EV',gto_postflop_41_5:'GTO 4.1/5 · Joint Range EV · HU / Multiway',gto_postflop_41_10:'GTO 4.1/10 · Joint Range EV · HU / Multiway',gto_postflop_50_5:'GTO 5.0/5 alpha · Human Formula EV · HU/Multiway',gto_postflop_505_5:'GTO 5.0.5/5 alpha · вероятности ×5% · HU/Multiway',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],
@@ -482,13 +489,14 @@ function drawBots(){
 }
 function reset(){
  bots=preset.map(x=>({pre:x[0],post:x[1]}));
- Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);$('shadowPercent').value='0';drawBots();
+ Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);$('shadowPercent').value='0';$('shadowReference').value='gto41';drawBots();
 }
 function config(){
  if(!valid())throw Error('Стратегия одного из игроков не заполнена');
  const c={bots:bots.map(x=>({...x})),seat_mode:$('seat_mode').value,
   button_policy:$('button_policy').value,preflop_protocol:$('preflop_protocol').value,
-  shadow_percent:Number($('shadowPercent').value)};
+  shadow_percent:Number($('shadowPercent').value),
+  shadow_reference:$('shadowReference').value};
  for(const id of numeric){const inp=$(id),v=Number(inp.value);if(!inp.value.trim()||!Number.isSafeInteger(v)||v<Number(inp.min||0)||(inp.max&&v>Number(inp.max)))throw Error('Некорректное поле: '+id);c[id]=v}
  if(c.bb<c.sb)throw Error('Big Blind должен быть не меньше Small Blind');return c;
 }
@@ -550,7 +558,7 @@ const SHADOW_SORTS=[
  ['regret_over_5bb_pct','EV Regret > 5 BB, %'],
  ['n','Размер выборки']
 ];
-let gto5ShadowSession='',gto5ShadowData=null;
+let gto5ShadowSession='',gto5ShadowData=null,shadowComparison='';
 let shadowView='overview',shadowBoard='P',shadowCross='street_opponents';
 let shadowRank='expensive',shadowSort='total_regret_bb',shadowDescending=true;
 let shadowReliable=true,shadowQuery='',shadowLimit=35;
@@ -757,6 +765,9 @@ function shadowOverview(data,root){
  const detail=el('button','shadow-more','Открыть статистику по числу оппонентов');
  detail.onclick=()=>shadowSetTab('opponents');root.append(detail);
 }
+function shadowModelName(kind){
+ return ({gto50:'GTO 5.0',gto505:'GTO 5.0.5',gto41:'GTO 4.1'})[kind]||kind||'GTO 4.1';
+}
 function shadowHands(data,root){
  const records=(data.rankings||{}).worst_decisions||[];
  root.append(shadowTitle('20 самых дорогих отдельных решений'));
@@ -783,14 +794,14 @@ function shadowHands(data,root){
    ' · '+shadowReadable(row.structure)+' · MAE ΔEV '+shadowFormat(row.mean_ev_delta_bb)+' BB'));
   const actions=el('div','shadow-hand-actions');
   const readableAction=x=>String(x||'—').replace(':',' ');
-  actions.append(el('span','','5.0: '+readableAction(row.chosen5).toUpperCase()),
-   el('span','','4.1: '+readableAction(row.chosen41).toUpperCase()));
+  actions.append(el('span','',shadowModelName(row.actor)+': '+readableAction(row.chosen5).toUpperCase()),
+   el('span','',shadowModelName(row.reference_model)+': '+readableAction(row.chosen41).toUpperCase()));
   card.append(actions);list.append(card);
  });
  root.append(list);
 }
 async function loadGTO5Shadow(id){
- gto5ShadowSession=id;gto5ShadowData=null;
+ gto5ShadowSession=id;gto5ShadowData=null;shadowComparison='';
  const host=$('gto5ShadowRows');
  if(host)host.replaceChildren(el('p','note','Загрузка Shadow-отчёта...'));
  try{
@@ -809,17 +820,31 @@ function renderGTO5Shadow(){
  if(!data.compared){
   if(status)status.textContent='Нет данных';
   root.append(el('div','shadow-empty',data.message||
-   'Нет сопоставленных решений. Для новой серии выбери GTO 5.0 и включи Shadow Mode 10/25/100%.'));
+   'Нет сопоставленных решений. Выбери GTO 5.0 или 5.0.5 и включи Shadow Mode 10/25/100% с другой эталонной моделью.'));
   return;
  }
- if(status)status.textContent=shadowFormat(data.compared,0)+' решений';
- const overall=data.overall||{};
+ const pairs=data.comparisons||[];
+ const view=pairs.find(x=>x.key===shadowComparison)||pairs[0]||data;
+ if(view.key)shadowComparison=view.key;
+ if(pairs.length>1){
+  const bar=el('div','shadow-tools');
+  bar.append(shadowSelector('Сравнение стратегий',
+   pairs.map(x=>[x.key,x.label+' · '+shadowFormat(x.compared,0)+' решений']),
+   shadowComparison,value=>{shadowComparison=value;renderGTO5Shadow()}));
+  root.append(bar);
+ }
+ const label=view.label||data.reference||'GTO 5.0 → GTO 4.1';
+ const reference=shadowModelName(view.reference_model);
+ if(status)status.textContent=shadowFormat(view.compared,0)+' решений · '+label;
+ const heading=el('div','shadow-note-strip','Текущая пара: '+label+'. Игровые действия выполняет первая стратегия, EV Regret оценивает вторая.');
+ root.append(heading);
+ const overall=view.overall||{};
  const kpis=el('div','shadow-kpis');
  [
-  ['ПРОВЕРЕНО',shadowFormat(data.compared,0),'Сопоставленных решений',''],
+  ['ПРОВЕРЕНО',shadowFormat(view.compared,0),'Сопоставленных решений',''],
   ['MAE ΔEV',shadowFormat(overall.mae_ev_bb)+' BB','Средняя ошибка оценки EV','focus'],
-  ['РАЗНЫЙ ВЫБОР',shadowFormat(overall.mismatch_pct,1)+'%','GTO 5.0 vs GTO 4.1',''],
-  ['EV REGRET / ХОД',shadowFormat(overall.mean_regret_bb)+' BB','Потеря на решение по модели 4.1','risk'],
+  ['РАЗНЫЙ ВЫБОР',shadowFormat(overall.mismatch_pct,1)+'%',label,''],
+  ['EV REGRET / ХОД',shadowFormat(overall.mean_regret_bb)+' BB','По модели '+reference,'risk'],
   ['СУММА REGRET',shadowFormat(overall.total_regret_bb)+' BB','По всем сравниваемым решениям',''],
   ['REGRET > 5 BB',shadowFormat(overall.regret_over_5bb_pct,2)+'%','Доля крупных расхождений решений','']
  ].forEach(x=>kpis.append(shadowKpi(...x)));
@@ -833,11 +858,11 @@ function renderGTO5Shadow(){
  });
  root.append(nav);
  const section=el('div','shadow-view');
- const groups=data.groups||{};
- if(shadowView==='overview')shadowOverview(data,section);
- else if(shadowView==='hands')shadowHands(data,section);
+ const groups=view.groups||{};
+ if(shadowView==='overview')shadowOverview(view,section);
+ else if(shadowView==='hands')shadowHands(view,section);
  else if(shadowView==='ranking'){
-  section.append(shadowTitle('Где GTO 5.0 ошибается чаще и дороже'));
+  section.append(shadowTitle('Где решения чаще расходятся и стоят дороже'));
   section.append(shadowControls([
    shadowSelector('Критерий рейтинга',SHADOW_RANKS,shadowRank,value=>{
     shadowRank=value;shadowLimit=35;renderGTO5Shadow();
@@ -845,7 +870,7 @@ function renderGTO5Shadow(){
   ],true,false));
   section.append(el('p','shadow-help',
    'Рейтинги предварительно исключают структуры с n < 30; «часто» и «дорого» — разные критерии.'));
-  const ranks=(data.rankings||{})[shadowRank]||[];
+  const ranks=(view.rankings||{})[shadowRank]||[];
   section.append(shadowTable(ranks,{preserveOrder:true,evDiscrepancy:shadowRank==='frequent_ev_discrepancy'}));
  }else{
   let dimension=shadowView==='streets'?'street':
@@ -876,8 +901,8 @@ function renderGTO5Shadow(){
  note.append(document.createTextNode(
   'MAE ΔEV — среднее абсолютное расхождение оценки EV двух моделей. '+
   'Разный выбор — доля решений, где действия не совпали. EV Regret — '+
-  'на сколько EV 4.1 оценил свой лучший ход выше выбранного 5.0. '+
-  'Это сравнение с приближённой GTO 4.1, а не абсолютная ошибка и не фактический Net BB. '+
+  'на сколько выбранный эталон оценил лучший ход выше действия игрока. '+
+  'Эталонная EV-модель не является solver oracle; сумма Regret — не фактический Net BB. '+
   'Малые выборки (n < 30) исключены из рейтингов. '+
   (data.skipped?'Пропущено несопоставимых решений: '+shadowFormat(data.skipped,0)+'.':'')));
  root.append(note);
@@ -1123,6 +1148,8 @@ $('restore').onclick=()=>{
  $('preflop_protocol').value=c.preflop_protocol||'legacy';
  // Old archived sessions were played with a moving button.
  $('button_policy').value=c.button_policy||'moving';
+ $('shadowPercent').value=String(c.shadow_percent||0);
+ $('shadowReference').value=c.shadow_reference||'gto41';
  drawBots();scrollTo({top:0,behavior:'smooth'});
  feedback(valid()?'Параметры скопированы. Новая серия ещё не запущена.':'Настройки восстановлены, но часть исторических стратегий скрыта новым каталогом — замени пустые поля перед запуском.',!valid());
 };
