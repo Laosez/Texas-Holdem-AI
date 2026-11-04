@@ -33,7 +33,11 @@ class GTO33Tests(unittest.TestCase):
         catalog = app.strategy_catalog()
         for window in (5, 10):
             name = "gto_postflop_33_" + str(window)
-            self.assertIn(name, catalog["postflop_strategies"])
+            if window == 5:
+                self.assertIn(name, catalog["postflop_strategies"])
+            else:
+                self.assertNotIn(name, catalog["postflop_strategies"])
+                self.assertTrue(app.available_postflop(name))
             self.assertIn(name, catalog["postflop_profiles"])
             self.assertNotIn(name, catalog["preflop_strategies"])
             bot = create_bot(name)
