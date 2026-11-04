@@ -32,6 +32,23 @@ tbody tr:nth-child(even) td{background:#15283b}tbody tr:nth-child(even) td:first
 .foot{font-size:11px;color:#91adca;line-height:1.72;padding-top:4px}
 .sectionBody{margin-top:12px}.panel details>summary{cursor:pointer;list-style:none}.panel details>summary::-webkit-details-marker{display:none}.panel details>summary:before{content:"▾";color:#a9d1ff;margin-right:9px}.panel details:not([open])>summary:before{content:"▸"}
 .sectionTitle{font-size:17px;font-weight:800;display:inline}.sectionMeta{color:#88a6c1;font-size:11px;margin-left:12px}
+.resultsTools{display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin:-2px 0 11px}.resultsTools label{margin:0}.resultsTools select{padding:6px 9px;width:auto;min-width:230px}
+.resultsTable{min-width:1430px}.resultsTable>thead>tr>th:first-child,.resultsTable>tbody>tr.scoreRow>td:first-child{min-width:240px;max-width:335px}
+.resultsTable>tbody>tr.scoreRow.isFocused>td{box-shadow:inset 0 1px #407b90,inset 0 -1px #407b90}
+.resultsTable .finishStrip{display:flex;width:150px;height:12px;border-radius:7px;background:#284057;overflow:hidden;margin-left:auto}
+.finishPart{height:100%;flex:0 0 auto}.finishPart.f1{background:#59c5a1}.finishPart.f2{background:#7db2f4}.finishPart.f3{background:#a999e7}.finishPart.f46{background:#c69c69}.finishPart.f79{background:#526d85}
+.scoreDetail>td{padding:14px!important;white-space:normal!important;border-bottom:2px solid #395f79!important;position:static!important;background:#0d2032!important;text-align:left!important}
+.scoreDetail:hover td{filter:none}.scoreDetail .detailGrid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(450px,2fr);gap:12px}
+.detailCard{min-width:0;background:#122b43;border:1px solid #31516a;border-radius:8px;padding:12px}.detailCard h3{font-size:12px;margin:0 0 7px;color:#d7eafb}
+.detailCard .small{margin:7px 0 0}.detailCard.wide{grid-column:1/-1}
+.placeGrid{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px}.placeItem{background:#0b2136;border:1px solid #2c4962;border-radius:7px;padding:7px 2px;text-align:center;min-width:0}
+.placeItem b,.placeItem small,.placeItem strong{display:block}.placeItem b{color:#93b7da;font-size:10px}.placeItem strong{font-size:15px}.placeItem small{font-size:10px;color:#9cb3cb}
+.placeItem.p1{border-color:#458e77}.placeItem.p2{border-color:#507aaf}.placeItem.p3{border-color:#746da7}
+.detailScroll{overflow:auto;max-width:100%}.detailMini{width:100%;min-width:480px;font-size:10px}.detailMini th,.detailMini td{position:static!important;text-align:right!important;min-width:0!important;max-width:none!important;background:transparent!important;padding:5px 7px!important}
+.detailMini th:first-child,.detailMini td:first-child{text-align:left!important}.detailMini th{background:#204061!important;color:#bfd8ee}.detailMini tr:hover td{background:#1d3954!important}
+@media(max-width:980px){.scoreDetail .detailGrid{grid-template-columns:1fr}.detailCard.wide{grid-column:auto}}
+@media(max-width:580px){.resultsTools{justify-content:stretch}.resultsTools select{flex:1;min-width:0}.placeGrid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
 footer{color:#758daa;font-size:11px;margin:13px auto 40px}
 @media(max-width:950px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:1fr}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:580px){.filters,.comparisonFilters{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.tab{padding:9px 4px;gap:3px;justify-content:center}.tab b{font-size:14px}.tab strong{font-size:11px}.tab small{display:none}.access{width:100%}.barRow{grid-template-columns:82px minmax(0,1fr) 82px}.panel{padding:13px}}
@@ -62,8 +79,20 @@ html.embedded .foot a{display:none}
 <div class="card"><small>Раздач · игрок / фильтр</small><strong id="kN">—</strong><span id="kNSub">Все размеры</span></div>
 </div>
 <section class="panel"><details open id="sectionResults"><summary><span class="index">01 / </span><span class="sectionTitle">Турниры · результаты</span><span class="sectionMeta">Игроки и раскрываемые позиции</span></summary>
-<div class="sectionBody"><div class="tableScroll"><table><thead><tr><th>Игрок / стратегия</th><th>Победы</th><th>Win %</th><th>Win 95% ДИ</th><th>Топ-3 %</th><th>Ср. место</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="scoreboard"><tr><td colspan="9">Выбери сессию</td></tr></tbody></table></div>
-<p class="tip" id="resultsNote">Победы и места относятся к полным турнирам. При фильтрации размера стола победы и места не распределяются по стадиям или позициям.</p></div></details></section>
+<div class="sectionBody">
+<div class="resultsTools"><label for="resultsSort">Сортировать игроков</label><select id="resultsSort">
+<option value="wins">По победам</option>
+<option value="top3_conversion">По конверсии топ-3 → победа</option>
+<option value="top3">По попаданиям в топ-3</option>
+<option value="net_bb_100">По Net BB/100 выбранной стадии</option>
+<option value="average_place">По среднему месту</option>
+</select></div>
+<div class="tableScroll"><table class="resultsTable"><thead><tr>
+<th>Игрок / стратегия</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона">Win 95% ДИ</th>
+<th title="Доля завершений на местах 1–2">Топ-2 %</th><th>Топ-3 %</th><th title="Победы / попадания в топ-3">Win / топ-3</th>
+<th>Ср. место</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th><th title="Доли финишей: 1-е, 2-е, 3-е, 4–6-е, 7–9-е">Финиши 1→9</th>
+</tr></thead><tbody id="scoreboard"><tr><td colspan="12">Выбери сессию</td></tr></tbody></table></div>
+<p class="tip" id="resultsNote">Нажми на игрока: откроются финишные места 1–9, разрез 9-max → HU и показатели по позициям. При фильтрации числа игроков победы не приписываются конкретной стадии.</p></div></details></section>
 <div class="grid2">
 <section class="panel"><details open><summary><span class="index">02 / </span><span class="sectionTitle">Preflop</span><span class="sectionMeta">Диапазоны и действия</span></summary><div class="sectionBody">
 <div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th></tr></thead><tbody id="preflop"><tr><td colspan="7">Нет данных</td></tr></tbody></table></div>
@@ -213,38 +242,177 @@ async function loadSecondary(force=false){
   runB=run;fillPlayers('playerB',run,$('playerB').value);renderCompare();
  }catch(e){runB=null;status('Сессия B: '+e.message,'error')}
 }
+const SCORE_COLS=12;
+function finishCount(st,place){return Number(st?.place_counts?.[String(place)]||0)}
+function finishStrip(st){
+ const root=document.createElement('div');root.className='finishStrip';
+ root.setAttribute('role','img');
+ const n=Number(st.places_observed)||0;
+ const groups=[
+  ['1-е место',finishCount(st,1),'f1'],
+  ['2-е место',finishCount(st,2),'f2'],
+  ['3-е место',finishCount(st,3),'f3'],
+  ['4–6-е места',[4,5,6].reduce((a,p)=>a+finishCount(st,p),0),'f46'],
+  ['7-е и ниже',Math.max(0,n-[1,2,3,4,5,6].reduce((a,p)=>a+finishCount(st,p),0)),'f79']
+ ];
+ root.setAttribute('aria-label',groups.map(([name,k])=>name+': '+k).join(', '));
+ for(const [label,k,cls] of groups){
+  if(k<=0)continue;
+  const bar=document.createElement('span');bar.className='finishPart '+cls;
+  bar.style.width=(100*k/n)+'%';
+  bar.title=label+': '+k+' ('+percent(100*k/n)+')';
+  root.append(bar);
+ }
+ return root;
+}
+function scoreSortValue(p,run,kind){
+ const st=dataFor(run,p.bot);
+ const scope=scopeRecord(run,p.bot);
+ const v=kind==='top3_conversion'?st.win_given_top3_pct
+       :kind==='top3'?st.top3_pct
+       :kind==='net_bb_100'?scope.net_bb_100
+       :kind==='average_place'?(p.avg_position_completed==null?null:-Number(p.avg_position_completed))
+       :p.wins;
+ const n=Number(v);
+ return v===null||v===undefined||v===''||!Number.isFinite(n)?-Infinity:n;
+}
+function sortedScores(run){
+ const kind=$('resultsSort').value;
+ return [...leaderboard(run)].sort((a,b)=>scoreSortValue(b,run,kind)-scoreSortValue(a,run,kind));
+}
 function summaryRow(x,run,stageSpecific=false){
- const st=scopeRecord(run,x.bot);
- if(!stageSpecific)return [playerTitle(x.bot),integer(x.wins),percent(x.win_pct_completed),
- wilson(Number(x.wins),Number(run.report.tournaments_completed)),percent(dataFor(run,x.bot).top3_pct),
- num(x.avg_position_completed,2),num(dataFor(run,x.bot).median_position,1),num(st.net_bb_100,2),integer(st.hands_observed)];
- return [playerTitle(x.bot),'—','—','—','—','—','—',num(st.net_bb_100,2),integer(st.hands_observed)];
+ const record=scopeRecord(run,x.bot),st=dataFor(run,x.bot);
+ if(!stageSpecific)return [
+  playerTitle(x.bot),integer(x.wins),percent(x.win_pct_completed),
+  wilson(Number(x.wins),Number(run.report?.tournaments_completed)),
+  percent(st.top2_pct),percent(st.top3_pct),percent(st.win_given_top3_pct),
+  num(x.avg_position_completed,2),num(st.median_position,1),
+  num(record.net_bb_100,2),integer(record.hands_observed),''
+ ];
+ return [playerTitle(x.bot),'—','—','—','—','—','—','—','—',
+         num(record.net_bb_100,2),integer(record.hands_observed),'—'];
+}
+function detailCard(title,note,wide=false){
+ const card=document.createElement('section');card.className='detailCard'+(wide?' wide':'');
+ const h=document.createElement('h3');h.textContent=title;card.append(h);
+ if(note){const p=document.createElement('p');p.className='small';p.textContent=note;card.append(p)}
+ return card;
+}
+function detailTable(card,headers,rows,empty){
+ if(!rows.length){
+  const p=document.createElement('p');p.className='small';p.textContent=empty;card.append(p);return;
+ }
+ const scroll=document.createElement('div');scroll.className='detailScroll';
+ const table=document.createElement('table');table.className='detailMini';
+ const head=document.createElement('thead'),hr=document.createElement('tr');
+ for(const label of headers){const th=document.createElement('th');th.textContent=label;hr.append(th)}
+ head.append(hr);table.append(head);
+ const body=document.createElement('tbody');
+ for(const values of rows)body.append(rowOf(values));
+ table.append(body);scroll.append(table);card.append(scroll);
+}
+function playerDetails(p,run){
+ const st=dataFor(run,p.bot);
+ const outer=document.createElement('tr');outer.className='scoreDetail';
+ const cellFull=document.createElement('td');cellFull.colSpan=SCORE_COLS;
+ const detail=document.createElement('div');detail.className='detailGrid';
+ const finishes=detailCard('Финишные места · полные турниры',
+  'Число завершений на каждом месте, независимо от фильтра размера стола.',true);
+ const n=Number(st.places_observed)||0;
+ if(n){
+  const grid=document.createElement('div');grid.className='placeGrid';
+  for(let place=1;place<=9;place++){
+   const count=finishCount(st,place);
+   const block=document.createElement('div');
+   block.className='placeItem'+(place<=3?' p'+place:'');
+   const rank=document.createElement('b');rank.textContent=place+' место';
+   const amount=document.createElement('strong');amount.textContent=integer(count);
+   const share=document.createElement('small');share.textContent=percent(100*count/n);
+   block.append(rank,amount,share);grid.append(block);
+  }
+  finishes.append(grid);
+ }else{
+  const p=document.createElement('p');p.className='small';
+  p.textContent='Точные финишные места отсутствуют в архиве.';finishes.append(p);
+ }
+ detail.append(finishes);
+
+ const stageCard=detailCard('Эффективность 9-max → Heads-Up',
+  'Net BB/100 и частоты действий рассчитаны по раздачам данной стадии; не доли побед.');
+ const stages=st.stages||{};
+ const stageRows=[];
+ for(let size=9;size>=2;size--){
+  const rec=stages[String(size)]?.total;
+  if(!rec||!rec.hands_observed)continue;
+  stageRows.push([size===2?'HU · 2':String(size),
+   integer(rec.hands_observed),num(rec.net_bb_100,2),
+   percent(rec.vpip),percent(rec.pfr),
+   percent(rec.flop_cbet),percent(rec.turn_cbet),
+   percent(rec.river_cbet),percent(rec.fold_to_bet)]);
+ }
+ detailTable(stageCard,['Игроков','Рук','Net BB/100','VPIP','PFR','Flop C-bet',
+  'Turn C-bet','River C-bet','Fold to Bet'],stageRows,
+  'В этом архиве нет данных по стадиям 9-max → HU.');
+ detail.append(stageCard);
+
+ const stage=$('stage').value;
+ const positions=stage==='all'?st.positions:(st.stages?.[stage]?.positions);
+ const posCard=detailCard('Позиции · '+(stage==='all'?'все размеры':stage+' игроков'),
+  'Частоты и доходность непосредственно по позиции, не распределение побед.');
+ const posRows=[];
+ for(const seat of seats){
+  const rec=positions?.[seat];
+  if(!rec||!rec.hands_observed)continue;
+  posRows.push([seatLabel(seat),integer(rec.hands_observed),
+   num(rec.net_bb_100,2),percent(rec.vpip),percent(rec.pfr),percent(rec.rfi),
+   percent(rec.flop_cbet),percent(rec.turn_cbet),percent(rec.river_cbet)]);
+ }
+ detailTable(posCard,['Позиция','Рук','Net BB/100','VPIP','PFR','RFI','Flop C-bet',
+  'Turn C-bet','River C-bet'],posRows,
+  'Для этого фильтра позиции не сохранены.');
+ detail.append(posCard);
+
+ cellFull.append(detail);outer.append(cellFull);
+ return outer;
 }
 function renderScores(){
- const root=clearRow('scoreboard',9,!runA?'Сессия не выбрана':(!leaderboard(runA).length?'Нет завершённого отчёта':''));
- if(!leaderboard(runA).length)return;
- const focused=$('playerA').value;
- for(const p of leaderboard(runA)){
-  const tr=rowOf(summaryRow(p,runA,$('stage').value!=='all'));
+ const root=clearRow('scoreboard',SCORE_COLS,
+  !runA?'Сессия не выбрана':(!leaderboard(runA).length?'Нет завершённого отчёта':''));
+ if(!runA||!leaderboard(runA).length)return;
+ const focused=$('playerA').value,selectedStage=$('stage').value!=='all';
+ for(const p of sortedScores(runA)){
+  const tr=rowOf(summaryRow(p,runA,selectedStage),'scoreRow');
+  if(p.bot===focused)tr.classList.add('isFocused');
   const first=tr.firstChild;first.replaceChildren();
-  const button=document.createElement('button');button.className='rowButton';button.type='button';
-  const record=scopeRecord(runA,p.bot),pos=$('stage').value==='all'?dataFor(runA,p.bot).positions:runA.stats?.[p.bot]?.stages?.[$('stage').value]?.positions;
-  const has=pos&&Object.keys(pos).length;
+  const button=document.createElement('button');
+  button.className='rowButton';button.type='button';
+  const st=dataFor(runA,p.bot);
+  const positions=selectedStage?st.stages?.[$('stage').value]?.positions:st.positions;
+  const has=!!(st.places_observed||
+    Object.keys(st.stages||{}).length||Object.keys(positions||{}).length);
+  const detailId='scoreDetail'+idx(p.bot);
   button.textContent=(has?(expanded.has(p.bot)?'▾ ':'▸ '):'')+playerTitle(p.bot);
-  button.disabled=!has;button.setAttribute('aria-expanded',String(!!has&&expanded.has(p.bot)));
-  button.onclick=()=>{if(expanded.has(p.bot))expanded.delete(p.bot);else expanded.add(p.bot);$('playerA').value=p.bot;render();};
+  button.disabled=!has;
+  button.setAttribute('aria-expanded',String(!!has&&expanded.has(p.bot)));
+  button.setAttribute('aria-controls',detailId);
+  button.onclick=()=>{
+   if(expanded.has(p.bot))expanded.delete(p.bot);
+   else expanded.add(p.bot);
+   $('playerA').value=p.bot;render();
+  };
   first.append(button);
-  if(p.bot===focused)tr.lastChild.classList.add('strong');
+  if(!selectedStage&&st.places_observed){
+   const last=tr.lastChild;last.replaceChildren(finishStrip(st));
+  }
   root.append(tr);
-  if(has&&expanded.has(p.bot))for(const seat of seats){
-   const item=pos[seat];if(!item||!item.hands_observed)continue;
-   const child=rowOf([seatLabel(seat),'—','—','—','—','—','—',num(item.net_bb_100,2),integer(item.hands_observed)],'subrow');
-   root.append(child);
+  if(has&&expanded.has(p.bot)){
+   const detail=playerDetails(p,runA);
+   detail.id=detailId;root.append(detail);
   }
  }
- $('resultsNote').textContent=$('stage').value==='all'
- ?'Полные турниры: Win %, доверительный интервал Уилсона и итоговые места. Стрелка раскрывает позиции; победы не распределяются по позициям.'
- :'Фильтр '+$('stage').value+' игроков: показываются только Net bb/100 и раздачи этого размера. Победы, Win % и место не относятся к отдельной стадии.';
+ $('resultsNote').textContent=selectedStage
+  ?'Срез '+$('stage').value+' игроков: основная строка содержит только раздачи и Net BB/100 на этом размере. В раскрытии показаны финиши полных турниров, статистика всех стадий и позиции выбранного размера. Победы не распределяются по стадиям.'
+  :'Win / топ-3 = победы среди всех попаданий в топ-3 (точные счётчики, без округления). Цветная полоска: 1-е / 2-е / 3-е / 4–6-е / 7–9-е места. Раскрой игрока, чтобы увидеть все места, 9-max → HU и позиции. При малом числе наблюдений конверсия может быть неустойчивой.';
 }
 function renderPre(){
  const root=clearRow('preflop',7,!runA?'Нет выбранной сессии':'');
@@ -431,6 +599,7 @@ $('sessionB').onchange=()=>{runB=null;loadSecondary(true)};
 $('playerA').onchange=()=>{render();renderCompare()};
 $('playerB').onchange=renderCompare;
 $('stage').onchange=()=>{render();renderCompare()};
+$('resultsSort').onchange=renderScores;
 $('compareMetric').onchange=renderCompare;
 if(accessKey())loadSessions();
 if(document.documentElement.classList.contains('embedded')&&window.parent!==window){

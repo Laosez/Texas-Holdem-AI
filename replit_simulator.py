@@ -21,7 +21,7 @@ import threading
 import time
 import tempfile
 import zipfile
-from collections import deque
+from collections import Counter, deque
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -728,6 +728,17 @@ def stats_for_folder(folder: Path) -> dict:
         places = data["places"]
         result["top3_pct"] = round(data["top3"] / len(places) * 100, 2) if places else None
         result["median_position"] = statistics.median(places) if places else None
+        # Exact observed finish distribution. Never estimate from rounded
+        # top-3 percentages; imported archives may lack the source CSV.
+        if places:
+            ranks = Counter(places)
+            result["places_observed"] = len(places)
+            result["place_counts"] = {str(i): ranks.get(i, 0) for i in range(1, 10)}
+            result["top2_pct"] = round(100 * (ranks[1] + ranks[2]) / len(places), 2)
+            result["win_given_top3_pct"] = (
+                round(100 * ranks[1] / data["top3"], 2)
+                if data["top3"] else None
+            )
     return observed
 
 

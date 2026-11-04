@@ -513,6 +513,25 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn('id="sessionB"',page)
         self.assertIn('id="compareMetric"',page)
 
+    def test_tournament_results_show_finish_distribution_stage_drilldown_and_sort(self):
+        page=app.ANALYSIS_UI.read_text(encoding="utf-8")
+        self.assertIn('id="resultsSort"', page)
+        self.assertIn('class="resultsTable"', page)
+        self.assertIn('Win / топ-3', page)
+        self.assertIn('Топ-2 %', page)
+        self.assertIn('Финиши 1→9', page)
+        self.assertIn("function finishStrip(st){", page)
+        self.assertIn("function sortedScores(run){", page)
+        self.assertIn("function playerDetails(p,run){", page)
+        self.assertIn("function detailTable(card,headers,rows,empty){", page)
+        self.assertIn("Эффективность 9-max → Heads-Up", page)
+        self.assertIn("Позиции · ", page)
+        self.assertIn("if(!selectedStage&&st.places_observed)", page)
+        self.assertIn("button.setAttribute('aria-expanded'", page)
+        self.assertIn("cellFull.colSpan=SCORE_COLS", page)
+        self.assertIn("if(!runA||!leaderboard(runA).length)return;", page)
+        self.assertIn(" $('resultsSort').onchange=renderScores;".strip(), page)
+
     def test_two_upper_workspaces_full_width_journal_and_results(self):
         page=app.UI.read_text(encoding="utf-8")
         self.assertIn('class="simulatorLayout"',page)
@@ -628,6 +647,14 @@ class ScreenOneTests(unittest.TestCase):
             self.assertEqual(stats["hands_observed"], 100)
             self.assertEqual(stats["top3_pct"], 66.67)
             self.assertEqual(stats["median_position"], 2)
+            self.assertEqual(stats["top2_pct"], 66.67)
+            self.assertEqual(stats["win_given_top3_pct"], 50.0)
+            self.assertEqual(stats["places_observed"], 3)
+            self.assertEqual(stats["place_counts"]["1"], 1)
+            self.assertEqual(stats["place_counts"]["2"], 1)
+            self.assertEqual(stats["place_counts"]["4"], 1)
+            self.assertEqual(stats["place_counts"]["9"], 0)  # incomplete excluded
+            self.assertEqual(sum(stats["place_counts"].values()), 3)
             self.assertEqual(stats["vpip"], 20)
 
     def test_zip_import_download_delete_roundtrip(self):
