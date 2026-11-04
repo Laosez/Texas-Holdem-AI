@@ -27,6 +27,8 @@ POLICIES = {
     "gto_postflop_21d": "GTO 2.1d · value more",
     "gto_postflop_21e": "GTO 2.1e · HU position fix",
     "gto_postflop_21f": "GTO 2.1f · cautious four-suit flush",
+    "gto_postflop_31_5": "GTO 3.1/5 · all public action memory",
+    "gto_postflop_31_10": "GTO 3.1/10 · all public action memory",
     "lag_postflop_v1": "LAG V1",
     "tag_postflop_v1": "TAG V1",
     "chaser_postflop_v1": "Chaser V1",
