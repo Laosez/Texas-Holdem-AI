@@ -9,7 +9,7 @@ for(const marker of [
  'id="gto5ShadowPanel"', 'id="gto5ShadowRows"', 'id="gto5ShadowStatus"',
  'id="shadowPercent"', 'id="shadowReference"', 'href="#gto5ShadowPanel"', 'shadow-kpis',
  'shadow-tabs', 'shadow-overview-grid', 'shadow-hand-list',
- 'GTO 5.0.5', 'value="gto50"', 'value="gto505"', 'data.comparisons',
+ 'GTO 5.0.5', 'GTO 5.1.5', 'value="gto50"', 'value="gto505"', 'value="gto51"', 'value="gto515"', 'data.comparisons',
  'function shadowSortedRows(', 'function shadowTable(',
  'function renderGTO5Shadow()', 'function loadGTO5Shadow(id)'
 ]) assert.ok(page.includes(marker),'missing Shadow marker: '+marker);

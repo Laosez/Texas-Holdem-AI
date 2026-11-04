@@ -408,6 +408,25 @@ def strategy_catalog():
                                  "human categories P0–P3; neutral K=1 and x=5.88%",
                                  "optional Shadow comparison against GTO 5.0 or GTO 4.1"]
                 },
+                "gto_postflop_51_5": {
+                    "label": "GTO 5.1/5 alpha · Старшинство рангов · без округления",
+                    "model": "human_board_ev_rank_seniority_alpha",
+                    "features": ["Same P0-P3, straight/flush distributions as GTO 5.0",
+                                 "Count dangerous/safe ranks within Hero's made category",
+                                 "Within-category ranking by pair/kickers/straight route/flush ranks",
+                                 "No physical opponent-hand enumeration or Monte Carlo",
+                                 "F/T draw and HU/Multiway EV as GTO 5.0",
+                                 "No 5% category rounding; AnyTwo x=5.88, K=1"]
+                },
+                "gto_postflop_515_5": {
+                    "label": "GTO 5.1.5/5 alpha · Старшинство + округление до 5%",
+                    "model": "human_board_ev_rank_seniority_round5_alpha",
+                    "features": ["Identical rank seniority rules as GTO 5.1",
+                                 "Independent category rounding to nearest 5 pp before EV",
+                                 "Same AnyTwo x=5.88 and neutral K=1",
+                                 "No opponent-hand enumeration or Monte Carlo",
+                                 "May be directly compared with 5.1 in Shadow Mode"]
+                },
                 "gto_postflop_41_5": {
                     "label": "GTO 4.1/5 · Joint Range EV · HU / Multiway",
                     "model": "joint_range_ev",
@@ -565,7 +584,7 @@ def validate_config(data: dict) -> dict:
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     shadow_reference = data.get("shadow_reference", "gto41")
-    if shadow_reference not in ("gto41", "gto50", "gto505"):
+    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515"):
         raise ValueError("Shadow Mode: неверная эталонная стратегия")
     config = {
         "shadow_percent": shadow_percent,
@@ -1772,7 +1791,7 @@ class Handler(BaseHTTPRequestHandler):
             target = OUT / run_id / "gto5_shadow_report.json"
             if not target.is_file() or target.is_symlink():
                 self.reply(200, {"compared": 0, "groups": {},
-                                 "message": "Shadow-отчёт появится после завершения серии с GTO 5.0 или 5.0.5."})
+                                 "message": "Shadow-отчёт появится после завершения серии с GTO 5.0, 5.0.5, 5.1 или 5.1.5."})
                 return
             try:
                 self.reply(200, json.loads(target.read_text(encoding="utf-8")))
