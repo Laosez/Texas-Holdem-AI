@@ -121,6 +121,28 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <tr><td>Мультипот</td><td>Частота блефа снижается</td><td>Частота блефа снижается</td></tr>
 </tbody></table>
 <p class="note"><strong>GTO 1</strong> — контрольная постфлоп-эвристика (не solver). <strong>GTO 2.0</strong> — самостоятельная оценка относительной силы руки по борду (R0–R4); сравнивать с контрольной на одинаковых раздачах. <strong>GTO 3.0/5 и 3.0/10</strong> — экспериментальные стратегии на базе GTO 2.0: запоминают 5 или 10 ответов конкретного оппонента на постфлоп-ставку около ½ банка и корректируют решения с учётом Board150. Не solver-GTO. <strong>TAG</strong> — выборочная агрессия, <strong>LAG</strong> — частые ставки и полублефы, <strong>Chaser</strong> — переоценка дро, <strong>Trapper</strong> — слоуплей.</p></details>
+
+<details class="coverageAudit" id="gto21Variants"><summary>GTO 2.1a–f · таблица экспериментов и рисков оценки рук</summary>
+<p class="note">Все версии наследуют правила GTO 2.1 (R0–R4), ставку ½ банка и одинаковый рейз. Каждая строка меняет одну гипотезу; исходные GTO 2.0 и 2.1 сохранены без изменений.</p>
+<table class="coverageTable"><thead><tr><th>Стратегия</th><th>Изменение относительно 2.1</th><th>Что проверяем / потенциальный риск</th></tr></thead><tbody>
+<tr><td>GTO 2.1 · Контроль</td><td>Топ-пара: Call при pot odds ≤25%; слабая пара ≤14%; вэлью Bet 80%, Raise 57%</td><td>Исходная прибыльность без адаптации к оппоненту</td></tr>
+<tr><td>GTO 2.1a · Loose Calls</td><td>Call топ-пара ≤35%, слабая ≤22%; дро: допустимые odds ×1,20 вместо ×0,95</td><td>Меньше фолдов, но возможны дорогие лишние коллы</td></tr>
+<tr><td>GTO 2.1b · Tight Calls</td><td>Call топ-пара ≤18%, слабая ≤8%; дро ×0,75</td><td>Меньше коллов; против ставки ½ банка топ-пара обычно сбрасывается</td></tr>
+<tr><td>GTO 2.1c · More Bluffs</td><td>Частота блефа с воздухом ×2; Bet с дро 59%→80%; полублеф-рейз 22%→40% в HU</td><td>Станет ли агрессия прибыльнее против пассивных диапазонов?</td></tr>
+<tr><td>GTO 2.1d · More Value</td><td>Сильная рука: Bet 80%→95%, Raise 57%→75%; топ-пара Bet 58%→75%; слабая пара Bet 9%→15%</td><td>Больше вэлью или лишняя агрессия со средней силой?</td></tr>
+<tr><td>GTO 2.1e · HU IP Fix</td><td>В HU позиция SB/баттон корректно считается IP после флопа</td><td>Изолированный эффект ошибки позиционной классификации</td></tr>
+<tr><td>GTO 2.1f · Weak Flush Guard</td><td>Уязвимый низкий флеш на четырёхмастном борде: R3→R2, если остаются ≥3 старшие карты масти</td><td>Снизит ли переоценку флешей? Возможен излишний тайтовый розыгрыш</td></tr>
+</tbody></table>
+<p class="note">Частоты выше — базовые для HU; текущие ограничения SPR, наличие ставок и легальность размеров сохраняются. В турнирах эти частоты меняются из-за конкретных ситуаций.</p>
+<table class="coverageTable"><thead><tr><th>Риск оценивания</th><th>Как влияет на решения</th></tr></thead><tbody>
+<tr><td>R3 и R4 разыгрываются одинаково</td><td>Сет и фулл-хаус имеют похожую агрессию; разная уязвимость не оценивается</td></tr>
+<tr><td>Четыре карты одной масти на борде</td><td>Слабый флеш иногда переоценивается; тест 2.1f адресует только этот случай</td></tr>
+<tr><td>Пара / две общие пары</td><td>Кикер и вероятность более сильной руки оппонента не оцениваются через диапазон</td></tr>
+<tr><td>Стрит-дро и флеш-дро</td><td>Ауты приближённые, часть аутов может давать сопернику лучшую комбинацию</td></tr>
+<tr><td>Фиксированный Call по pot odds</td><td>Порог не равен фактическому equity против диапазона ставки соперника</td></tr>
+<tr><td>Игровое решение не максимизирует EV</td><td>Блефы и вэлью основаны на частотах, а не на модели Fold Equity и сравнениях EV</td></tr>
+</tbody></table>
+<p class="note"><strong>Методика:</strong> сначала HU Any Two при одинаковых правилах и ротации позиций. Победы и BB/100 оцениваем с неопределённостью; все варианты — экспериментальные, не solver GTO.</p></details>
 <details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
@@ -174,12 +196,12 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
-const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_30_5','gto_postflop_30_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
+const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_21a','gto_postflop_21b','gto_postflop_21c','gto_postflop_21d','gto_postflop_21e','gto_postflop_21f','gto_postflop_30_5','gto_postflop_30_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
 const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];
 let postflopValues=['',...POSTFLOP_WITH_RANDOM];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],

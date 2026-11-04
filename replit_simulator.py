@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_30_5", "gto_postflop_30_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -249,6 +249,54 @@ def strategy_catalog():
                     "features": ["same GTO 2.0 action selection and R0-R4",
                                  "bet = 50% of pot", "raise = call plus 50% of pot after call",
                                  "legal min/max clamp", "no opponent adaptation"]
+                },
+
+                "gto_postflop_21a": {
+                    "label": "GTO 2.1a · Loose Calls",
+                    "model": "heuristic_ablation",
+                    "features": ["top pair call pot odds <=35% (base <=25%)",
+                                 "weak pair <=22% (base <=14%)",
+                                 "draw call multiplier 1.20 (base .95)",
+                                 "same bet frequencies and half-pot size"]
+                },
+                "gto_postflop_21b": {
+                    "label": "GTO 2.1b · Tight Calls",
+                    "model": "heuristic_ablation",
+                    "features": ["top pair call pot odds <=18% (base <=25%)",
+                                 "weak pair <=8% (base <=14%)",
+                                 "draw call multiplier .75 (base .95)",
+                                 "same bet frequencies and half-pot size"]
+                },
+                "gto_postflop_21c": {
+                    "label": "GTO 2.1c · Bluff More",
+                    "model": "heuristic_ablation",
+                    "features": ["air bluff chance x2", "draw bet chance 59% to 80% in HU",
+                                 "draw raise chance 22% to 40% in HU",
+                                 "value betting, calls and sizing unchanged"]
+                },
+                "gto_postflop_21d": {
+                    "label": "GTO 2.1d · Value More",
+                    "model": "heuristic_ablation",
+                    "features": ["monster open bet 80% to 95%",
+                                 "monster raise 57% to 75% in HU",
+                                 "top pair open bet 58% to 75%",
+                                 "weak pair flop/turn bet 9% to 15%",
+                                 "calls, bluffs and sizing unchanged"]
+                },
+                "gto_postflop_21e": {
+                    "label": "GTO 2.1e · HU Position Fix",
+                    "model": "heuristic_ablation",
+                    "features": ["SB/button correctly counts as IP on postflop HU",
+                                 "all original action frequencies otherwise unchanged",
+                                 "same half-pot bet and raise sizes"]
+                },
+                "gto_postflop_21f": {
+                    "label": "GTO 2.1f · Four-Suit Flush Caution",
+                    "model": "heuristic_ablation",
+                    "features": ["downgrade vulnerable low flush on four-suit board from R3 to R2",
+                                 "3+ unseen higher suit ranks criterion",
+                                 "all original action frequencies otherwise unchanged",
+                                 "same half-pot bet and raise sizes"]
                 },
                 "gto_postflop_30_5": {
                     "label": "GTO 3.0/5 · память пяти C-bet-ответов (эксперимент)",

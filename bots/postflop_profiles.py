@@ -179,6 +179,9 @@ class PostflopProfileBot(BotAdapter):
         pfr=_was_aggressor(view)
         street=view.street
         roll=random.random
+        # Optional single-axis experimental deviations for GTO 2.1 variants.
+        # With the default empty mapping, GTO 1 / GTO 2.0 / LAG are unchanged.
+        tuning=getattr(self, "_policy_tuning", {})
         # Common sizing on value and bluffs; 0.33/0.66 small/large V1.
         size=(.33 if street=="flop" and not read.wet else .66
               if street=="flop" else .72 if street=="turn" else .78)
@@ -187,12 +190,12 @@ class PostflopProfileBot(BotAdapter):
         # to playing the board; one pair never treated as the nuts.
         if read.made=="monster":
             if call>0:
-                freq=(.78 if self.lag else .57)*(1 if n==1 else .82)
+                freq=tuning.get("monster_raise",(.78 if self.lag else .57))*(1 if n==1 else .82)
                 if roll()<freq:
                     bet=_amount(view,size)
                     if bet:return bet
                 return _fallthrough(view)
-            freq=.93 if self.lag else .80
+            freq=tuning.get("monster_bet",.93 if self.lag else .80)
             if roll()<freq:
                 bet=_amount(view,size)
                 if bet:return bet
@@ -200,16 +203,16 @@ class PostflopProfileBot(BotAdapter):
         if read.made=="top_pair":
             if call>0:
                 # Do not bluff-raise a one-pair bluff-catcher by default.
-                return _fallthrough(view,fold=pot_odds>(.30 if self.lag else .25))
-            freq=(.77 if self.lag else .58)*multi
+                return _fallthrough(view,fold=pot_odds>tuning.get("top_call_odds",.30 if self.lag else .25))
+            freq=tuning.get("top_bet",.77 if self.lag else .58)*multi
             if roll()<freq:
                 bet=_amount(view,size)
                 if bet:return bet
             return _fallthrough(view)
         if read.made=="weak_pair":
             if call>0:
-                return _fallthrough(view,fold=pot_odds>(.18 if self.lag else .14))
-            if roll()<(.24 if self.lag else .09)*multi and street!="river":
+                return _fallthrough(view,fold=pot_odds>tuning.get("weak_call_odds",.18 if self.lag else .14))
+            if roll()<tuning.get("weak_bet",.24 if self.lag else .09)*multi and street!="river":
                 bet=_amount(view,size)
                 if bet:return bet
             return _fallthrough(view)
@@ -218,14 +221,14 @@ class PostflopProfileBot(BotAdapter):
         if street!="river" and read.draw_outs:
             draw_equity=read.draw_outs/(47 if street=="flop" else 46)
             if call>0:
-                semi=(.54 if self.lag else .22)*multi
+                semi=tuning.get("draw_raise",.54 if self.lag else .22)*multi
                 if read.draw_outs>=8 and bluff_allowed and roll()<semi:
                     bet=_amount(view,size)
                     if bet:return bet
-                if pot_odds<=draw_equity*(1.2 if self.lag else .95):
+                if pot_odds<=draw_equity*tuning.get("draw_call_multiplier",1.2 if self.lag else .95):
                     return _fallthrough(view)
                 return _fallthrough(view,fold=True)
-            freq=(.89 if self.lag else .59)*multi
+            freq=tuning.get("draw_bet",.89 if self.lag else .59)*multi
             if bluff_allowed and roll()<freq:
                 bet=_amount(view,size)
                 if bet:return bet
@@ -250,6 +253,7 @@ class PostflopProfileBot(BotAdapter):
         else:
             freq=(.51 if self.lag else .19) if pfr else (.23 if self.lag else .06)
         if read.backdoor and street=="flop":freq*=1.25
+        freq*=tuning.get("air_bluff_multiplier",1.0)
         if roll()<min(.95,freq*multi):
             bet=_amount(view,size)
             if bet:return bet
