@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections import Counter
 from hashlib import sha256
 from itertools import combinations
-from math import comb, prod
+from math import comb, prod, floor
 import os
 import time
 
@@ -37,6 +37,12 @@ OFFSETS = {
 }
 X_ANY_TWO = 5.88
 SHADOW_CHOICES = (0, 10, 25, 100)
+SHADOW_REFERENCES = ("gto41", "gto50", "gto505")
+
+
+def round_probability_to_five(value):
+    """Round percentage to the nearest 5 pp, half up (not bankers' rounding)."""
+    return max(0., min(100., 5. * floor(max(0., min(100., value)) / 5. + .5)))
 
 
 def _completed_made(board):
@@ -75,8 +81,12 @@ def _completed_made(board):
     return min(100.0, 100 * (sp + fp - sp*fp)), 100*sp, 100*fp
 
 
-def board_distribution(board):
-    """Return non-normalized hand-category formula output, plus EV mass."""
+def board_distribution(board, round_to_five=False):
+    """Return formula percentages plus normalized EV mass.
+
+    5.0.5 rounds each clamped category independently BEFORE normalizing EV
+    mass. Rounded categories need not sum to 100 (a deliberate human rule).
+    """
     tags = board_tags(board)
     kind = tags["P"]
     h, straight, flush = _completed_made(board)
@@ -107,6 +117,8 @@ def board_distribution(board):
     # Separate S/F made-hand hypotheses (do not add draw probabilities).
     vals[4] = straight
     vals[5] = flush
+    if round_to_five:
+        vals = [round_probability_to_five(v) for v in vals]
     raw = dict(zip(CATEGORIES, (round(v, 2) for v in vals)))
     # The human table intentionally does not force its marginal estimates to
     # total 100%. EV needs a probability measure: only for EV, renormalize.
@@ -118,7 +130,9 @@ def board_distribution(board):
         mass = [v/total for v in mass]
     return {
         "structure": tags, "h": round(h, 3),
-        "formula_status": "P0-P3 / AnyTwo neutral K",
+        "formula_status": ("P0-P3 / AnyTwo neutral K · round 5%"
+                           if round_to_five else "P0-P3 / AnyTwo neutral K"),
+        "round_step_pct": 5 if round_to_five else 0,
         "categories_pct": raw,
         "raw_total_pct": round(sum(vals), 2),
         "probability_mass": mass,
@@ -208,20 +222,39 @@ def _estimate_actions(view, groups, distribution, bet_size):
 
 
 class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
-    """No Monte Carlo for the player; optional GTO 4.1 shadow audit only."""
+    """Cheap human board formulas; selectable paired Shadow benchmark."""
 
-    def __init__(self, window=5):
+    def __init__(self, window=5, *, shadow_percent=None, shadow_reference=None):
         if window != 5:
             raise ValueError("GTO 5.0 supports five-observation memory only")
         super().__init__(window=window)
         self.profile = "gto_postflop_50_5"
-        rate = int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0"))
+        self.round_step = 0
+        rate = (int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0"))
+                if shadow_percent is None else int(shadow_percent))
         if rate not in SHADOW_CHOICES:
             raise ValueError("Invalid Shadow sampling percentage")
+        ref = (os.getenv("POKER_GTO5_SHADOW_REFERENCE", "gto41")
+               if shadow_reference is None else shadow_reference)
+        if ref not in SHADOW_REFERENCES:
+            raise ValueError("Invalid Shadow reference model")
         self.shadow_percent = rate
+        self.shadow_reference_kind = ref
         self.shadow_records = []
         self.shadow_checked = 0
         self.shadow_reference = None
+
+    @property
+    def actor_kind(self):
+        return "gto505" if self.round_step == 5 else "gto50"
+
+    def _new_reference(self):
+        if self.shadow_reference_kind == "gto41":
+            from bots.gto_postflop_41 import JointRangeGTO41Bot
+            return JointRangeGTO41Bot(window=5)
+        if self.shadow_reference_kind == "gto505":
+            return RoundedHumanRangeGTO505Bot(window=5, shadow_percent=0)
+        return HumanRangeGTO50Bot(window=5, shadow_percent=0)
 
     def reset_memory(self):
         super().reset_memory()
@@ -257,7 +290,7 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
 
         started = time.perf_counter_ns()
         groups = {pid: self.street_matrix(pid) for pid in opponents}
-        dist = board_distribution(view.board)
+        dist = board_distribution(view.board, round_to_five=self.round_step == 5)
         bet = _amount(view, .50) if not call and "bet" in legal else None
         size = int(bet.amount) if bet and bet.type == "bet" else None
         if dist["formula_status"] == "special_board":
@@ -277,7 +310,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 ev = {}
         quick_ns = time.perf_counter_ns()-started
         self.last_model = {
-            "version": "gto5.0-alpha", "distribution": dist,
+            "version": ("gto5.0.5-alpha" if self.round_step else "gto5.0-alpha"),
+            "distribution": dist,
             "board_classifier": _board_class(view.board, view.street),
             "ev": {a: round(v, 4) for a, v in ev.items()},
             "decision_inputs": inputs, "opponents_count": len(opponents),
@@ -294,33 +328,35 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 "hero_draw_outs_estimate": read_hand(view.hole_cards, view.board).draw_outs,
                 "opponents_count": len(opponents),
                 "decision": action.type, "amount_chips": action.amount,
-                "decision_mode": "gto50_alpha",
+                "decision_mode": "gto505_round5" if self.round_step else "gto50_alpha",
                 "street_matrix": groups[opponents[0]],
                 "opponents": [],
                 "ev": self.last_model["ev"], "equity_model": inputs,
-                "distribution": dist, "reason": "GTO 5.0 alpha: board formulas + proxy EV",
+                "distribution": dist,
+                "reason": ("GTO 5.0.5: each category round to 5% + proxy EV"
+                           if self.round_step else "GTO 5.0 alpha: board formulas + proxy EV"),
             }
             if not self._trace or self._trace[-1]["hand_id"] != view.hand_id:
                 self._trace.append({"hand_id": view.hand_id, "steps": []})
             self._trace[-1]["steps"].append(step)
-        # Reference observes all opportunities to preserve the /5 memory,
-        # even if the particular decision is not selected for shadow.
-        if self.shadow_percent:
+        # Reference observes the SAME public information state. Shadow never
+        # changes actual gameplay, and comparable actions use the same wager.
+        # A bot may be its own selected reference when both versions sit at
+        # one table: do not record tautological self-comparisons.
+        if self.shadow_percent and self.shadow_reference_kind != self.actor_kind:
             if self.shadow_reference is None:
-                from bots.gto_postflop_41 import JointRangeGTO41Bot
-                self.shadow_reference = JointRangeGTO41Bot(window=5)
+                self.shadow_reference = self._new_reference()
             self.shadow_reference.observe_hand(
                 getattr(view, "hand_id", None), view.history,
                 view.board, view.me,
             )
             if ev and self._shadow_enabled(view):
                 try:
-                    started41 = time.perf_counter_ns()
+                    started_ref = time.perf_counter_ns()
                     self.shadow_reference.act(view)
-                    reference_ns = time.perf_counter_ns()-started41
+                    reference_ns = time.perf_counter_ns()-started_ref
                     ref = self.shadow_reference.last_model or {}
                     ref_ev = ref.get("ev") or {}
-                    # Only compare identical action sizes; otherwise skip.
                     if set(ref_ev) == set(ev) and set(ev) in (
                             {"call", "fold"}, {"bet", "check"}):
                         new_ev, old_ev = dict(ev), dict(ref_ev)
@@ -340,6 +376,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                             "bb": max(1, int(os.getenv("POKER_CURRENT_BB", "2"))),
                             "ev5": new_ev, "ev41": old_ev,
                             "chosen5": name,
+                            "actor": self.actor_kind,
+                            "reference_model": self.shadow_reference_kind,
                             "wall5_ns": quick_ns, "wall41_ns": reference_ns,
                             "reference_trials": ref.get(
                                 "decision_inputs", {}).get("joint_trials", 0),
@@ -347,6 +385,16 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                         })
                         self.shadow_checked += 1
                 except (ValueError, TypeError, KeyError, ZeroDivisionError):
-                    # Shadow reference must never alter the chosen 5.0 action.
+                    # Reference failure must never alter the actor's action.
                     pass
         return action
+
+
+class RoundedHumanRangeGTO505Bot(HumanRangeGTO50Bot):
+    """A/B variant: identical 5.0 rules, only marginal category rounding."""
+
+    def __init__(self, window=5, *, shadow_percent=None, shadow_reference=None):
+        super().__init__(window=window, shadow_percent=shadow_percent,
+                         shadow_reference=shadow_reference)
+        self.profile = "gto_postflop_505_5"
+        self.round_step = 5
