@@ -85,6 +85,9 @@ class TrackedBot:
         self.postflop_counts = defaultdict(int)
         self.postflop_position_counts = defaultdict(lambda: defaultdict(int))
         self.postflop_stage_counts = defaultdict(lambda: defaultdict(int))
+        self.postflop_opponent_counts = defaultdict(lambda: defaultdict(int))
+        self.postflop_entry_opponents = {}
+        self.postflop_opponent_net = defaultdict(lambda: defaultdict(float))
         self.postflop_seen = set()
         self.postflop_cbet_hands = set()
         self.postflop_fold_cbet_seen = set()
@@ -282,6 +285,24 @@ class TrackedBot:
         me = getattr(view, 'me', None)
         key = (hid, street)
         position = self.hands.get(hid, {}).get('position')
+        # Live opponents at decision time; 4 represents 4 or more.
+        opponents = getattr(view, 'opponents', None)
+        group = min(4, len(opponents)) if opponents is not None and len(opponents)>0 else None
+        if group is not None:
+            if hid is not None and hid not in self.postflop_entry_opponents:
+                self.postflop_entry_opponents[hid] = group
+            sample = self.postflop_opponent_counts[(group, street)]
+            sample['decisions'] += 1
+            sample[kind+'_n'] += 1
+            if {'check','bet'}.issubset(legal):
+                sample['open_opp'] += 1
+                sample['open_bet_n'] += int(kind=='bet')
+                sample['open_check_n'] += int(kind=='check')
+            if int(getattr(view,'to_call',0) or 0)>0 and {'fold','call'}.issubset(legal):
+                sample['facing_opp'] += 1
+                sample['facing_fold_n'] += int(kind=='fold')
+                sample['facing_call_n'] += int(kind=='call')
+                sample['facing_raise_n'] += int(kind=='raise')
         ledgers = [self.postflop_counts]
         if position is not None:
             ledgers.append(self.postflop_position_counts[position])
@@ -355,6 +376,13 @@ class TrackedBot:
         ledgers = [self.postflop_counts,
                    self.postflop_position_counts[row['position']],
                    self.postflop_stage_counts[(row['position'],row['table_size'])]]
+        # One whole-hand result attributed to live opposition at Hero's
+        # FIRST postflop decision, not to each street (avoid triple counting).
+        group = self.postflop_entry_opponents.get(hand_id)
+        if group is not None:
+            net_bucket = self.postflop_opponent_net[group]
+            net_bucket['net_hands'] += 1
+            net_bucket['net_bb_units'] += net.get(pid,0)/bb if bb else 0
         for counts in ledgers:
             counts['net_hands'] += 1
             counts['net_bb_units'] += net.get(pid, 0) / bb if bb else 0
@@ -433,7 +461,11 @@ def run_one(task):
                 ([{'bot': bot.name, **dict(bot.postflop_counts)} for bot in instances]
                  + [{'bot': bot.name, 'position': pos, 'table_size': size, **dict(counts)}
                     for bot in instances
-                    for (pos, size), counts in bot.postflop_stage_counts.items()]))
+                    for (pos, size), counts in bot.postflop_stage_counts.items()]
+                 + [{'bot':bot.name,'opponents':group,'street':street,**dict(counts)}
+                    for bot in instances for (group,street),counts in bot.postflop_opponent_counts.items()]
+                 + [{'bot':bot.name,'opponents':group,'pnl_bucket':True,**dict(counts)}
+                    for bot in instances for group,counts in bot.postflop_opponent_net.items()]))
     finally:
         runner.create_bot=old
         runner.make_table=old_table
@@ -850,10 +882,15 @@ def main():
             last_adaptive_traces = outcome["gto30_last5"]
         decision_records.extend(bot_timings)
         for item in postflop:
-            key=(item['bot'],item.get('position'),item.get('table_size'))
+            if item.get('street') is not None:
+                key=(item['bot'],'opp_actions',item['street'],item['opponents'])
+            elif item.get('pnl_bucket'):
+                key=(item['bot'],'opp_pnl',item['opponents'])
+            else:
+                key=(item['bot'],item.get('position'),item.get('table_size'))
             total=postflop_aggregate[key]
             for field,value in item.items():
-                if field not in ('bot','position','table_size'):
+                if field not in ('bot','position','table_size','opponents','street','pnl_bucket'):
                     total[field]+=value
         results.append((tournament_id, seed, seat_offset, outcome))
         total_hands+=outcome['hand_count']
@@ -944,7 +981,10 @@ def main():
     post_agg = defaultdict(lambda: defaultdict(float))
     post_agg_pos = defaultdict(lambda: defaultdict(float))
     post_agg_stage = defaultdict(lambda: defaultdict(float))
-    for (name, position, size), item in postflop_aggregate.items():
+    for key, item in postflop_aggregate.items():
+        if len(key)!=3 or key[1]=='opp_pnl':
+            continue
+        name,position,size=key
         dest = post_agg[name] if position is None else post_agg_stage[(name, position, size)]
         for key,value in item.items():
             dest[key] += value
@@ -994,6 +1034,21 @@ def main():
                               (post_record(name,post_agg_stage[(name,pos,n)],pos,n)
                                for name in names for n in range(2,len(names)+1)
                                for pos in position_labels(n))))
+    # 4 = four or more opponents. Opportunities are conditional on legal actions.
+    action_fields=('decisions','open_opp','open_bet_n','open_check_n',
+        'facing_opp','facing_fold_n','facing_call_n','facing_raise_n',
+        'bet_n','check_n','fold_n','call_n','raise_n')
+    csv_write(output/'postflop_opponent_street.csv',itertools.chain(
+        [['bot','opponents','street']+list(action_fields)],
+        ([name,group,street]+[postflop_aggregate[(name,'opp_actions',street,group)][f]
+          for f in action_fields]
+          for name in names for group in range(1,5)
+          for street in ('flop','turn','river'))))
+    csv_write(output/'postflop_opponent_pnl.csv',itertools.chain(
+        [['bot','opponents','net_hands','net_bb_units']],
+        ([name,group,postflop_aggregate[(name,'opp_pnl',group)]['net_hands'],
+          postflop_aggregate[(name,'opp_pnl',group)]['net_bb_units']]
+          for name in names for group in range(1,5))))
     for filename, table_rows in {**report_tables, **bot_tables}.items():
         csv_write(output/filename, table_rows)
     if last_adaptive_traces:

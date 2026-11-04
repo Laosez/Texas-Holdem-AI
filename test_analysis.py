@@ -78,6 +78,41 @@ class TournamentAnalysisTests(unittest.TestCase):
             server.server_close()
             worker.join(timeout=5)
 
+    def test_live_opponents_csv_read_and_explicit_missing_values(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)
+            write(path,"postflop_opponent_street.csv",
+                  "bot,opponents,street,decisions,open_opp,open_bet_n,open_check_n,"
+                  "facing_opp,facing_fold_n,facing_call_n,facing_raise_n,bet_n,check_n,"
+                  "fold_n,call_n,raise_n\\n"
+                  "P1,1,flop,10,6,3,3,4,2,1,1,3,3,2,1,1\\n"
+                  "P1,3,turn,4,4,3,1,0,0,0,0,3,1,0,0,0\\n")
+            write(path,"postflop_opponent_pnl.csv",
+                  "bot,opponents,net_hands,net_bb_units\\n"
+                  "P1,1,20,10\\nP1,2,10,-3\\nP1,4,0,0\\n")
+            d=app.stats_for_folder(path)["P1"]
+            hu=d["opponent_streets"]["1"]["flop"]
+            self.assertEqual(hu["decisions"],10)
+            self.assertEqual(hu["open_opp"],6)
+            self.assertEqual(hu["bet_when_open_pct"],50.0)
+            self.assertEqual(hu["fold_facing_pct"],50.0)
+            self.assertEqual(hu["call_facing_pct"],25.0)
+            self.assertEqual(d["opponent_streets"]["3"]["turn"]["open_bet_n"],3)
+            self.assertIsNone(d["opponent_streets"]["3"]["turn"]["fold_facing_pct"])
+            self.assertEqual(d["opponent_pnl"]["1"]["net_bb_100"],50)
+            self.assertEqual(d["opponent_pnl"]["2"]["net_bb_100"],-30)
+            self.assertNotIn("4",d["opponent_pnl"])
+            self.assertNotIn("2",d["opponent_streets"])
+
+    def test_opponent_breakdown_panel_preserves_blank_legacy_support(self):
+        page=app.ANALYSIS_UI.read_text(encoding="utf-8")
+        self.assertIn('id="opponentResultsPanel"',page)
+        self.assertIn('id="opponentStreet"',page)
+        self.assertIn('id="opponentPnl"',page)
+        self.assertIn('function renderOpponentBreakdown(){',page)
+        self.assertIn('renderScores();renderOpponentBreakdown();',page)
+        self.assertIn("Нет телеметрии по живым соперникам",page)
+
     def test_preflop_stage_and_position_scopes_from_real_counts(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)

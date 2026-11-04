@@ -709,6 +709,62 @@ def stats_for_folder(folder: Path) -> dict:
         net_hands = raw.get("net_hands", 0)
         total["net_bb_100"] = round(100 * raw.get("net_bb_units", 0) / net_hands, 4) if net_hands else None
 
+    # Decision-time opponents, not seat count at the start of a tournament.
+    # Legacy sessions have no extra CSV and remain without these fields.
+    for row in _read_rows(folder / "postflop_opponent_street.csv"):
+        bot,street=row.get("bot"),row.get("street")
+        try:
+            group=int(row.get("opponents") or 0)
+        except (TypeError,ValueError):
+            continue
+        if not bot or group not in (1,2,3,4) or street not in ("flop","turn","river"):
+            continue
+        raw={}
+        for field in ("decisions","open_opp","open_bet_n","open_check_n",
+                      "facing_opp","facing_fold_n","facing_call_n","facing_raise_n",
+                      "bet_n","check_n","fold_n","call_n","raise_n"):
+            value=finite(row.get(field))
+            if value is not None:
+                raw[field]=int(value)
+        if raw.get("decisions",0)<=0:
+            continue
+        opened=raw.get("open_opp",0)
+        faced=raw.get("facing_opp",0)
+        def rate(n,d):
+            return round(100*n/d,2) if d else None
+        measured={
+            **raw,
+            "bet_when_open_pct":rate(raw.get("open_bet_n",0),opened),
+            "check_when_open_pct":rate(raw.get("open_check_n",0),opened),
+            "fold_facing_pct":rate(raw.get("facing_fold_n",0),faced),
+            "call_facing_pct":rate(raw.get("facing_call_n",0),faced),
+            "raise_facing_pct":rate(raw.get("facing_raise_n",0),faced),
+            "bet_decision_pct":rate(raw.get("bet_n",0),raw["decisions"]),
+            "raise_decision_pct":rate(raw.get("raise_n",0),raw["decisions"]),
+            "aggression_decision_pct":rate(
+                raw.get("bet_n",0)+raw.get("raise_n",0),raw["decisions"]),
+        }
+        observed.setdefault(bot,{}).setdefault("opponent_streets",{}).setdefault(
+            str(group),{})[street]=measured
+
+    for row in _read_rows(folder / "postflop_opponent_pnl.csv"):
+        bot=row.get("bot")
+        try:
+            group=int(row.get("opponents") or 0)
+        except (TypeError,ValueError):
+            continue
+        if not bot or group not in (1,2,3,4):
+            continue
+        n=finite(row.get("net_hands"))
+        units=finite(row.get("net_bb_units"))
+        if not n or n<=0 or units is None:
+            continue
+        observed.setdefault(bot,{}).setdefault("opponent_pnl",{})[str(group)]={
+            "hands":int(n),
+            "net_bb_units":round(units,5),
+            "net_bb_100":round(100*units/n,3),
+        }
+
     placement = {}
     for row in _read_rows(folder / "tournament_players.csv"):
         if row.get("completed") != "1":

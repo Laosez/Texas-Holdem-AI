@@ -31,6 +31,31 @@ class PostflopEVTests(unittest.TestCase):
         self.assertIsNone(result["ev_bb"]["AQs"])
         self.assertIsInstance(result["equity"]["AQs"],float)
 
+    def test_new_versions_work_in_planner_and_ab_comparison(self):
+        profiles=("gto21","gto31_5","gto31_10","gto32_5","gto32_10",
+                  "gto33_5","gto33_10","gto40_5","gto40_10")
+        ui=app.PLAN_UI.read_text(encoding="utf-8")
+        for name in profiles:
+            self.assertIn(name,post.PROFILE_NAMES)
+            self.assertIn("value:'"+name+"'",ui)
+            data=post.validate_request(setup(hero=name,profile="tag"))
+            self.assertEqual(data["hero_postflop"],name)
+            data=post.validate_request({**setup(hero="gto40_5",profile="tag"),
+                                        "hero_postflop_b":name})
+            self.assertEqual(data["hero_postflop_b"],name)
+        import random
+        from bots import create_bot
+        for profile in ("gto33_10","gto40_5","gto40_10"):
+            self.assertIsNotNone(create_bot(post.PROFILE_NAMES[profile]))
+        raw=setup(hero="gto40_5",profile="tag",hand="AQs")
+        ranges,_=eq.build_ranges(raw["opponents"],"selected")
+        rng=random.Random(772)
+        picked,board=post._draw_case("AQs",ranges,raw["opponents"],rng)
+        self.assertEqual(len(picked),2)
+        result,showdown=post._play_case(picked,board,"gto40_5","3",20,99)
+        self.assertIsInstance(result,float)
+        self.assertIsInstance(showdown,bool)
+
     def test_actual_poker_engine_deal_with_all_five_profiles(self):
         rng=__import__("random").Random(19)
         hero=eq.HAND_COMBOS["AQs"][0]

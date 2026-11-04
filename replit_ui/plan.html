@@ -996,6 +996,15 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
     <option value="gto20">GTO 2.0 · сила руки относительно борда</option>
     <option value="gto30_5">GTO 3.0/5 · адаптация по 5 действиям</option>
     <option value="gto30_10">GTO 3.0/10 · адаптация по 10 действиям</option>
+    <option value="gto21">GTO 2.1 · ½ банка</option>
+    <option value="gto31_5">GTO 3.1/5 · All Actions</option>
+    <option value="gto31_10">GTO 3.1/10 · All Actions</option>
+    <option value="gto32_5">GTO 3.2/5 · Opportunities</option>
+    <option value="gto32_10">GTO 3.2/10 · Opportunities</option>
+    <option value="gto33_5">GTO 3.3/5 · Street Matrix</option>
+    <option value="gto33_10">GTO 3.3/10 · Street Matrix</option>
+    <option value="gto40_5">GTO 4.0/5 · Board Range EV</option>
+    <option value="gto40_10">GTO 4.0/10 · Board Range EV</option>
     <option value="s100">S100 · 100 сценариев человека и бота</option>
     <option value="gto" selected>GTO 1 · контрольная версия</option>
     <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
@@ -1168,7 +1177,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
  </div>
  <p id="handDecompStratumInfo" class="note" role="status">A/B: общий стек, состав и диапазоны соперников. Число соперников фильтруется без повторного расчёта.</p>
  <div id="handDecompRows" class="handDecompRows"><p class="note">Бухгалтерский отчёт A/B появится после Monte Carlo.</p></div>
- <p class="note handDecompCaveat">Рука A и стратегия A задаются матрицей и HERO. Для руки B «—» отключает сравнение, «=» повторяет руку A. Графики показывают условный EV в группах 1, 2, 3 и 4+ вошедших соперников; 4+ — взвешенное среднее по числу исходов. «Самая дорогая ошибка» означает наблюдаемую категорию потерь, а не доказанную ошибку стратегии. Δ% = (B − A) / |A| × 100, при A = 0 не определяется. Цвет показывает изменение EV, не статистическую значимость. Не ICM и не GTO-солвер.</p>
+ <p class="note handDecompCaveat"><strong>GTO 3.x / 4.0 в Плане:</strong> это независимые раздачи, поэтому межраздачная память не обучается; версии 4.0 в HU используют априорные частоты и выборочный Range EV, а в мультипотах — fallback 3.3. Это не то же самое, что долгий турнир. При больших N расчёт GTO 4.0 значительно тяжелее. Рука A и стратегия A задаются матрицей и HERO. Для руки B «—» отключает сравнение, «=» повторяет руку A. Графики показывают условный EV в группах 1, 2, 3 и 4+ вошедших соперников; 4+ — взвешенное среднее по числу исходов. «Самая дорогая ошибка» означает наблюдаемую категорию потерь, а не доказанную ошибку стратегии. Δ% = (B − A) / |A| × 100, при A = 0 не определяется. Цвет показывает изменение EV, не статистическую значимость. Не ICM и не GTO-солвер.</p>
 </section>
 
 </main><footer>SKACHKOV Poker System · Экран 2 · 169 классов, 1326 комбинаций · A17 V5 · Версионные стратегии</footer>
@@ -1180,7 +1189,13 @@ const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против опе
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
 const POSTFLOP_OPTIONS=[
  {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'},
- {value:'gto30_5',label:'GTO 3.0/5 · Adaptive'}, {value:'gto30_10',label:'GTO 3.0/10 · Adaptive'}, {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
+ {value:'gto30_5',label:'GTO 3.0/5 · Adaptive'}, {value:'gto30_10',label:'GTO 3.0/10 · Adaptive'},
+ {value:'gto21',label:'GTO 2.1 · Half Pot'},
+ {value:'gto31_5',label:'GTO 3.1/5 · All Actions'}, {value:'gto31_10',label:'GTO 3.1/10 · All Actions'},
+ {value:'gto32_5',label:'GTO 3.2/5 · Opportunities'}, {value:'gto32_10',label:'GTO 3.2/10 · Opportunities'},
+ {value:'gto33_5',label:'GTO 3.3/5 · Street Matrix'}, {value:'gto33_10',label:'GTO 3.3/10 · Street Matrix'},
+ {value:'gto40_5',label:'GTO 4.0/5 · Board Range EV'}, {value:'gto40_10',label:'GTO 4.0/10 · Board Range EV'},
+ {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
  {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
  {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
  {value:'none',label:'Не учитывать'}
@@ -1191,6 +1206,15 @@ const HERO_LINE_DESCRIPTIONS={
  gto20:'GTO 2.0: относительная сила R0–R4 с учётом пар и угроз на борде. Эвристика, не GTO-солвер; сравни EV с GTO 1 на одинаковых раздачах.',
  gto30_5:'GTO 3.0/5: адаптивная эвристика на базе GTO 2.0. Память последних 5 ответов соперника на наши постфлоп-ставки около ½ банка + Board75 (P/S/F/SF). Важно: независимые прогоны EV на Плане НЕ содержат турнирной истории; здесь используется исходная GTO 2.0.',
  gto30_10:'GTO 3.0/10: адаптивная эвристика на базе GTO 2.0. Память последних 10 ответов на наши постфлоп-ставки около ½ банка + Board150. Обучение между раздачами доступно в турнирной симуляции, но НЕ в независимых EV-прогонах листа План.',
+ gto21:'GTO 2.1: относительная сила на борде, ставки ½ банка. Эвристика без адаптивной памяти.',
+ gto31_5:'GTO 3.1/5: память действий соперников. В независимых EV-прогонах память обнуляется между раздачами.',
+ gto31_10:'GTO 3.1/10: память действий соперников. В независимых EV-прогонах память обнуляется между раздачами.',
+ gto32_5:'GTO 3.2/5: статистика условных возможностей. Без межраздачной истории в Плане адаптация не обучается.',
+ gto32_10:'GTO 3.2/10: статистика условных возможностей. Без межраздачной истории в Плане адаптация не обучается.',
+ gto33_5:'GTO 3.3/5: 24 показателя по улицам; в Плане используются только априорные частоты (нет турнирной памяти).',
+ gto33_10:'GTO 3.3/10: 24 показателя по улицам; в Плане используются только априорные частоты (нет турнирной памяти).',
+ gto40_5:'GTO 4.0/5: выборочное equity по борду и диапазонам для HU, при нескольких оппонентах fallback на 3.3. План запускает независимые раздачи без накопления памяти. Вычислительно тяжелее других стратегий.',
+ gto40_10:'GTO 4.0/10: та же модель Range EV, но окно 10. Без межраздачной памяти сравнение /5 и /10 не отражает их адаптацию в турнирах. Вычислительно тяжелее других стратегий.',
  gto:'GTO 1: исходная контрольная постфлоп-эвристика, сохранена без изменений.',
  tag:'TAG V1: дисциплинированный розыгрыш с упором на вэлью.',
  lag:'LAG V1: более агрессивные ставки, полублефы и давление.',

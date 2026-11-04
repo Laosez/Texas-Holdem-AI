@@ -21,6 +21,37 @@ class PostflopTelemetryTests(unittest.TestCase):
         bot.observe_deal(1, [("A", "s"), ("K", "s")], "3", 9)
         return bot
 
+    def test_live_opponent_counts_and_street_action_opportunities(self):
+        from types import SimpleNamespace
+        bot=self.make_bot()
+        def sample(street, count, action, legal, to_call=0):
+            v=view(street,to_call=to_call,legal=legal)
+            v.opponents=tuple("P"+str(i) for i in range(2,2+count))
+            bot.observe_postflop(v,SimpleNamespace(type=action))
+        sample("flop",3,"bet",("check","bet"))
+        sample("flop",3,"check",("check","bet"))
+        sample("turn",2,"call",("fold","call","raise"),3)
+        sample("river",1,"fold",("fold","call","raise"),4)
+        sample("turn",4,"raise",("fold","call","raise"),5)
+        sample("flop",5,"bet",("check","bet"))
+        self.assertEqual(bot.postflop_opponent_counts[(3,"flop")]["open_opp"],2)
+        self.assertEqual(bot.postflop_opponent_counts[(3,"flop")]["open_bet_n"],1)
+        self.assertEqual(bot.postflop_opponent_counts[(2,"turn")]["facing_call_n"],1)
+        self.assertEqual(bot.postflop_opponent_counts[(1,"river")]["facing_fold_n"],1)
+        self.assertEqual(bot.postflop_opponent_counts[(4,"turn")]["facing_raise_n"],1)
+        self.assertEqual(bot.postflop_opponent_counts[(4,"flop")]["open_bet_n"],1)
+        self.assertEqual(bot.postflop_entry_opponents[1],3)
+        bot.observe_hand_end(1,{"P1":8},2,(),())
+        self.assertEqual(bot.postflop_opponent_net[3]["net_hands"],1)
+        self.assertEqual(bot.postflop_opponent_net[3]["net_bb_units"],4)
+        self.assertEqual(bot.postflop_opponent_net[1]["net_hands"],0)
+
+    def test_no_invented_opponent_counts_in_legacy_views(self):
+        bot=self.make_bot()
+        bot.observe_postflop(view("flop"),SimpleNamespace(type="check"))
+        self.assertFalse(bot.postflop_opponent_counts)
+        self.assertFalse(bot.postflop_entry_opponents)
+
     def test_cbet_and_aggression_count_once(self):
         bot = self.make_bot()
         hist = [{"street": "preflop", "pid": "P1", "type": "raise"}]

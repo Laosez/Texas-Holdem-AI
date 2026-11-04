@@ -32,6 +32,12 @@ tbody tr:nth-child(even) td{background:#15283b}tbody tr:nth-child(even) td:first
 .foot{font-size:11px;color:#91adca;line-height:1.72;padding-top:4px}
 .sectionBody{margin-top:12px}.panel details>summary{cursor:pointer;list-style:none}.panel details>summary::-webkit-details-marker{display:none}.panel details>summary:before{content:"▾";color:#a9d1ff;margin-right:9px}.panel details:not([open])>summary:before{content:"▸"}
 .sectionTitle{font-size:17px;font-weight:800;display:inline}.sectionMeta{color:#88a6c1;font-size:11px;margin-left:12px}
+.opponentPnlCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:8px 0 12px}
+.opponentPnlCard{background:#10253a;border:1px solid #375570;border-radius:9px;padding:11px}
+.opponentPnlCard strong{font-size:18px;display:block;font-variant-numeric:tabular-nums}
+.opponentPnlCard small{color:#a4bdd5;display:block;font-size:10px}
+.opponentPnlCard .positive{color:#84d7aa}.opponentPnlCard .negative{color:#ffb0bd}
+@media(max-width:780px){.opponentPnlCards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .resultsTools{display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin:-2px 0 11px}.resultsTools label{margin:0}.resultsTools select{padding:6px 9px;width:auto;min-width:230px}
 .resultsTable{min-width:1430px}.resultsTable>thead>tr>th:first-child,.resultsTable>tbody>tr.scoreRow>td:first-child{min-width:240px;max-width:335px}
 .resultsTable>tbody>tr.scoreRow.isFocused>td{box-shadow:inset 0 1px #407b90,inset 0 -1px #407b90}
@@ -93,6 +99,22 @@ html.embedded .foot a{display:none}
 <th>Ср. место</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th><th title="Доли финишей: 1-е, 2-е, 3-е, 4–6-е, 7–9-е">Финиши 1→9</th>
 </tr></thead><tbody id="scoreboard"><tr><td colspan="12">Выбери сессию</td></tr></tbody></table></div>
 <p class="tip" id="resultsNote">Нажми на игрока: откроются финишные места 1–9, разрез 9-max → HU и показатели по позициям. При фильтрации числа игроков победы не приписываются конкретной стадии.</p></div></details></section>
+<section class="panel" id="opponentResultsPanel"><details open id="opponentResultsDetails">
+<summary><span class="index">02 / </span><span class="sectionTitle">Постфлоп · 1 / 2 / 3 / 4+ соперников</span><span class="sectionMeta">Результат раздач и решения по каждой улице</span></summary>
+<div class="sectionBody">
+<p class="note">Результативность — <strong>фактический Net BB/100</strong> за раздачи с постфлоп-решением, сгруппированные по числу живых соперников в момент <strong>первого постфлоп-решения Hero</strong>. Это оценка реализованной доходности, а не рассчитанный EV конкретного действия. Включает все деньги раздачи, в том числе префлоп; один результат учитывается один раз.</p>
+<div class="opponentPnlCards" id="opponentPnl"><div class="opponentPnlCard">Нет данных</div></div>
+<div class="tableScroll"><table style="min-width:1250px"><thead><tr>
+<th>Соперников</th><th>Улица</th><th>Решений</th>
+<th title="Bet / все ситуации, где возможны и Check, и Bet">Bet при возможности %</th><th title="Количество возможностей Check/Bet">N · открыть</th>
+<th title="Check / все ситуации Check/Bet">Check %</th>
+<th title="Fold при facing bet, когда доступны Fold и Call">Fold против ставки %</th>
+<th title="Call при facing bet">Call %</th><th title="Raise при facing bet">Raise %</th>
+<th title="Количество возможностей Fold/Call">N · ответить</th>
+<th title="Bet + Raise / все действия на этой улице">Агрессия / решения %</th>
+</tr></thead><tbody id="opponentStreet"><tr><td colspan="11">Нет данных</td></tr></tbody></table></div>
+<p class="note">1 = Heads-Up (Hero + 1 оппонент); 2, 3 = два и три оппонента; 4+ = четыре и более. Частоты — по реальным <strong>возможностям</strong> действия, а не по всем раздачам, с разными знаменателями. Bet — первая ставка улицы, Raise — повышение. Нет наблюдений — «—», не 0%. Старые турниры без такой телеметрии не восстановить достоверно.</p>
+</div></details></section>
 <div class="grid2">
 <section class="panel"><details open><summary><span class="index">02 / </span><span class="sectionTitle">Preflop</span><span class="sectionMeta">Диапазоны и действия</span></summary><div class="sectionBody">
 <div class="tableScroll"><table><thead><tr><th>Позиция</th><th>Рук</th><th>VPIP</th><th>PFR</th><th>RFI</th><th>3-bet</th><th>4-bet</th></tr></thead><tbody id="preflop"><tr><td colspan="7">Нет данных</td></tr></tbody></table></div>
@@ -192,7 +214,7 @@ function appendPct(parent,record,metric){
  td.title=countTitle(record,metric);parent.append(td);
 }
 function emptyData(){['kT','kH','kW','kB','kN','kWSub'].forEach(id=>$(id).textContent='—');
- ['scoreboard','preflop','postflop','postOther','positionTable','compareMetrics','comparePositions'].forEach(id=>$(id).replaceChildren());
+ ['scoreboard','preflop','postflop','postOther','positionTable','compareMetrics','comparePositions','opponentStreet','opponentPnl'].forEach(id=>$(id).replaceChildren());
  $('barrels').replaceChildren();
 }
 function fillPlayers(id,run,current){
@@ -415,6 +437,45 @@ function renderScores(){
   ?'Срез '+$('stage').value+' игроков: основная строка содержит только раздачи и Net BB/100 на этом размере. В раскрытии показаны финиши полных турниров, статистика всех стадий и позиции выбранного размера. Победы не распределяются по стадиям.'
   :'Win / топ-3 = победы среди всех попаданий в топ-3 (точные счётчики, без округления). Цветная полоска: 1-е / 2-е / 3-е / 4–6-е / 7–9-е места. Раскрой игрока, чтобы увидеть все места, 9-max → HU и позиции. При малом числе наблюдений конверсия может быть неустойчивой.';
 }
+function renderOpponentBreakdown(){
+ const cards=$('opponentPnl'),table=$('opponentStreet');
+ cards.replaceChildren();table.replaceChildren();
+ const record=dataFor(runA,$('playerA').value);
+ const pnl=record.opponent_pnl||{},byStreet=record.opponent_streets||{};
+ const groups=[1,2,3,4],streets=[['flop','Флоп'],['turn','Тёрн'],['river','Ривер']];
+ const any=groups.some(g=>pnl[String(g)]||streets.some(([s])=>byStreet[String(g)]?.[s]));
+ if(!any){
+  cards.append(el('div','opponentPnlCard','Нет телеметрии по живым соперникам в этой сессии.'));
+  const td=cell('В старых сессиях информация не собиралась — повтори эксперимент.');
+  td.colSpan=11;const tr=document.createElement('tr');tr.append(td);table.append(tr);
+  return;
+ }
+ for(const group of groups){
+  const name=group===4?'4+ соперника':group===1?'1 соперник · HU':group+' соперника';
+  const d=pnl[String(group)];
+  const card=el('div','opponentPnlCard');
+  const label=el('small','',name);
+  const value=el('strong',d?(d.net_bb_100>0?'positive':d.net_bb_100<0?'negative':''):
+       num(d?.net_bb_100,2));
+  const sample=el('small','',d?'Net BB/100 · '+integer(d.hands)+' раздач':'Net BB/100 · — · нет раздач');
+  card.append(label,value,sample);cards.append(card);
+  for(const [street,labelStreet] of streets){
+   const a=byStreet[String(group)]?.[street];
+   if(!a||!a.decisions)continue;
+   const values=[name,labelStreet,integer(a.decisions),
+    percent(a.bet_when_open_pct),integer(a.open_opp),
+    percent(a.check_when_open_pct),
+    percent(a.fold_facing_pct),percent(a.call_facing_pct),
+    percent(a.raise_facing_pct),integer(a.facing_opp),
+    percent(a.aggression_decision_pct)];
+   table.append(rowOf(values));
+  }
+ }
+ if(!table.children.length){
+  const tr=document.createElement('tr');const td=cell('Нет решений в этой выборке');
+  td.colSpan=11;tr.append(td);table.append(tr);
+ }
+}
 function renderPre(){
  const root=clearRow('preflop',7,!runA?'Нет выбранной сессии':'');
  if(!runA)return;
@@ -493,7 +554,7 @@ function render(){
  $('kN').textContent=integer(stats.hands_observed);
  $('kNSub').textContent=$('stage').value==='all'?'Все размеры':$('stage').value+' игроков за столом';
  if(runA.status!=='completed'&&runA.status!=='imported')status('Сессия ещё не завершена; финальная аналитика может отсутствовать');
- renderScores();renderPre();renderPost();renderPositions();
+ renderScores();renderOpponentBreakdown();renderPre();renderPost();renderPositions();
 }
 function configProfile(run,index){
  if(index<0)return null;
