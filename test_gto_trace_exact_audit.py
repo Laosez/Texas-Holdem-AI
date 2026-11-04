@@ -18,7 +18,12 @@ class ExactTraceAuditTests(unittest.TestCase):
         state = view(street, cards(board), opponents=("P2",))
         state.hole_cards = cards(hole)
         bot.act(state)
-        return bot.trace_snapshot()[0]["steps"][0]
+        step = bot.trace_snapshot()[0]["steps"][0]
+        self.assertEqual(len(step["opponent_models"]), 1)
+        opp = step["opponent_models"][0]
+        self.assertIn("equity_proxy", opp)
+        self.assertEqual(set(opp["vs_bet"]), {"fold", "call", "raise"})
+        return step
 
     def test_exact_enumeration_totals_and_category_rank(self):
         for street, board, hole, count in [
