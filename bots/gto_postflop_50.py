@@ -118,6 +118,11 @@ def board_distribution(board, round_to_five=False):
     # Separate S/F made-hand hypotheses (do not add draw probabilities).
     vals[4] = straight
     vals[5] = flush
+    # Conditional rank seniority must use the SAME unrounded x/P_pair
+    # weight in GTO 5.1 and GTO 5.1.5. Rounding only changes EV masses.
+    unrounded_total = sum(vals)
+    unrounded_mass = ([v/unrounded_total for v in vals]
+                      if unrounded_total > 0 else [1.] + [0.]*8)
     if round_to_five:
         vals = [round_probability_to_five(v) for v in vals]
     raw = dict(zip(CATEGORIES, (round(v, 2) for v in vals)))
@@ -137,6 +142,7 @@ def board_distribution(board, round_to_five=False):
         "categories_pct": raw,
         "raw_total_pct": round(sum(vals), 2),
         "probability_mass": mass,
+        "unrounded_probability_mass": unrounded_mass,
     }
 
 
@@ -167,7 +173,8 @@ def _hero_quantile_51(view, dist):
     if not masses:
         return .50, category, {"method": "no mass", "win_fraction": .5}
     win_fraction, rule = hero_seniority(
-        hole, board, category_mass=masses[category],
+        hole, board,
+        category_mass=dist["unrounded_probability_mass"][category],
         pocket_pair_pct=X_ANY_TWO)
     q = sum(masses[:category]) + masses[category] * win_fraction
     if len(board) < 5 and category < 4:
