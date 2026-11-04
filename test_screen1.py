@@ -382,7 +382,7 @@ class ScreenOneTests(unittest.TestCase):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
                          {"a17_preflop", "pc_gto_80bb", "random"})
-        expected=("gto_postflop_v1","gto_postflop_20","gto_postflop_21","gto_postflop_21a","gto_postflop_21b","gto_postflop_21c","gto_postflop_21d","gto_postflop_21e","gto_postflop_21f","gto_postflop_30_5","gto_postflop_30_10","gto_postflop_31_5","gto_postflop_31_10","gto_postflop_32_5","gto_postflop_32_10","gto_postflop_33_5","gto_postflop_33_10","gto_postflop_40_5","gto_postflop_40_10","s100_postflop_v1","tag_postflop_v1","lag_postflop_v1",
+        expected=("gto_postflop_v1","gto_postflop_20","gto_postflop_21","gto_postflop_21a","gto_postflop_21b","gto_postflop_21c","gto_postflop_21d","gto_postflop_21e","gto_postflop_21f","gto_postflop_30_5","gto_postflop_30_10","gto_postflop_31_5","gto_postflop_31_10","gto_postflop_32_5","gto_postflop_32_10","gto_postflop_33_5","gto_postflop_33_10","gto_postflop_40_5","gto_postflop_40_10","gto_postflop_41_5","gto_postflop_41_10","s100_postflop_v1","tag_postflop_v1","lag_postflop_v1",
                   "chaser_postflop_v1","trapper_postflop_v1","random")
         self.assertEqual(tuple(catalog["postflop_strategies"]),expected)
         self.assertEqual(app.POSTFLOP_CHOICES,set(expected))

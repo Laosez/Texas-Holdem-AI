@@ -303,6 +303,38 @@ class TrackedBot:
                 sample['facing_fold_n'] += int(kind=='fold')
                 sample['facing_call_n'] += int(kind=='call')
                 sample['facing_raise_n'] += int(kind=='raise')
+        # Full action-opportunity matrix: independent of whether the bet was
+        # a continuation bet. Never count an unavailable raise as a rejection.
+        if group is not None:
+            full_response = {'fold', 'call', 'raise'}.issubset(legal)
+            last_aggression = next((e for e in reversed(street_hist)
+                                    if e.get('type') in ('bet', 'raise')), None)
+            if (int(getattr(view, 'to_call', 0) or 0) > 0 and full_response
+                    and last_aggression is not None
+                    and last_aggression.get('pid') != me):
+                context = ('vs_raise' if last_aggression['type'] == 'raise'
+                           else 'vs_bet')
+                sample[context + '_opp'] += 1
+                outcome = ('reraise' if kind == 'raise' and context == 'vs_raise'
+                           else kind)
+                if outcome in ('fold', 'call', 'raise', 'reraise'):
+                    sample[context + '_' + outcome + '_n'] += 1
+            elif (int(getattr(view, 'to_call', 0) or 0) > 0
+                  and not full_response):
+                sample['restricted_response_opp'] += 1
+
+            # Monetary sizing: action.amount is chips committed for a Bet;
+            # on Raise, it is street-total, so record the ratio as a
+            # descriptive proxy (not a GTO decision-frequency denominator).
+            amount = getattr(action, 'amount', None)
+            if kind in ('bet', 'raise') and amount is not None:
+                try:
+                    ratio = 100 * max(0, float(amount)) / max(1, float(view.pot))
+                except (TypeError, ValueError):
+                    ratio = None
+                if ratio is not None and ratio < 10000:
+                    sample[kind + '_size_pot_sum'] += ratio
+                    sample[kind + '_size_pot_n'] += 1
         ledgers = [self.postflop_counts]
         if position is not None:
             ledgers.append(self.postflop_position_counts[position])
@@ -1037,6 +1069,11 @@ def main():
     # 4 = four or more opponents. Opportunities are conditional on legal actions.
     action_fields=('decisions','open_opp','open_bet_n','open_check_n',
         'facing_opp','facing_fold_n','facing_call_n','facing_raise_n',
+        'vs_bet_opp','vs_bet_fold_n','vs_bet_call_n','vs_bet_raise_n',
+        'vs_raise_opp','vs_raise_fold_n','vs_raise_call_n','vs_raise_reraise_n',
+        'restricted_response_opp',
+        'bet_size_pot_sum','bet_size_pot_n',
+        'raise_size_pot_sum','raise_size_pot_n',
         'bet_n','check_n','fold_n','call_n','raise_n')
     csv_write(output/'postflop_opponent_street.csv',itertools.chain(
         [['bot','opponents','street']+list(action_fields)],

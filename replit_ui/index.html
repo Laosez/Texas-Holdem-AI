@@ -204,6 +204,12 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <p class="note"><strong>Ограничение:</strong> это одношаговая модель chipEV с допущением checkdown после выбранного действия. Для EV(Bet) возможный рейз консервативно считается как Bet/Fold. Блефовая составляющая диапазона соперника, последующие ставки, сила после последовательности флоп→тёрн→ривер и турнирный ICM отдельно не моделируются. Против нескольких соперников действует базовая GTO 3.3. Прошлые стратегии сохранены.</p>
 </details>
 
+<details class="coverageAudit" id="gto41Matrix">
+<summary>GTO 4.1/5 и 4.1/10 · Совместный Range EV против 1/2/3/4+ оппонентов</summary>
+<p class="note">Сохраняет допущение GTO 4.0: ставка соответствует сильнейшей доле рук, определяемой частотой действий. Классификатор P/S/F/SF определяет структуру борда, а для фактического распределения категорий рук перечисляются ВСЕ 1081/1035/990 допустимых комбинаций с учётом блокеров Hero.</p>
+<p class="note">Оппоненты выбираются из своих условных диапазонов по GTO 3.3; карточные пересечения запрещены. Для сравнения Bet/Check и Call/Fold моделируется общий случайный runout (128/160/192 выборки на Flop/Turn/River), включая делёж банка. В мультипоте нет возврата к 3.3. Ограничения: one-street checkdown, Bet/Fold против рейза, побочные банки и ICM пока приближённые.</p>
+</details>
+
 <details class="coverageAudit" id="gto33Matrix">
 <summary>GTO 3.3/5 и 3.3/10 · матрица 24 действий по улицам</summary>
 <p class="note"><strong>Эксперимент:</strong> стратегия GTO 3.2/10 с теми же частотными формулами и сайзингом ½ банка; единственное изменение — выбор статистики по конкретной улице. Для каждого соперника — 3 отдельные истории на флопе, тёрне и ривере, всего 9 независимых очередей по 5 или 10 соответствующих возможностей. Из них считаются 24 исхода.</p>
@@ -461,7 +467,7 @@ function renderGTO30Trace(){
    entry.append(el('div','',step.board150||'Класс борда не определён'));
    entry.append(el('div','small','Оппонентов: '+step.opponents_count+
       ' · Any Two P(повтор ранга): '+step.board_anytwo_rank_pair_pct.toFixed(2)+'%'));
-   entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · '+(step.decision_mode?.startsWith('gto40_')?'оценка EV':'сила R'+step.hero_tier)+
+   entry.append(el('div','small','HERO '+step.hero_hole.join(' ')+' · '+(/^gto4[01]_/.test(step.decision_mode||'')?'оценка EV':'сила R'+step.hero_tier)+
       ' · '+step.hero_made+' · оценка аутов: '+step.hero_draw_outs_estimate));
    (step.opponents||[]).forEach(opp=>{
     entry.append(el('div','small','Соперник '+opp.pid+': n='+opp.n+
@@ -471,7 +477,7 @@ function renderGTO30Trace(){
    });
    entry.append(el('div','', 'Решение: '+step.decision.toUpperCase()+
       (step.amount_chips!=null?' '+step.amount_chips+' фишек':'')+
-      ' · '+(step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
+      ' · '+(step.decision_mode?.startsWith('gto41_')?'GTO 4.1 · JOINT EV':step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
    if(step.pressure) entry.append(el('div','small','Сигнал угрозы '+step.pressure.score.toFixed(2)+' · '+step.pressure.action+' (НЕ equity/вероятность руки)'));
    (step.opponents||[]).forEach(opp=>{
      if(!opp.metrics)return;
@@ -492,7 +498,7 @@ function renderGTO30Trace(){
        });
      });
    }
-   if((bot.policy?.startsWith('gto_postflop_33_')||bot.policy?.startsWith('gto_postflop_40_')) && step.street_matrix){
+   if((bot.policy?.startsWith('gto_postflop_33_')||bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')) && step.street_matrix){
      const groups=step.street_matrix[step.street]||{};
      const titles=[['open','Без ставки',['check','bet']],['vs_bet','Против Bet',['fold','call','raise']],['vs_raise','Против Raise',['fold','call','reraise']]];
      titles.forEach(([key,title,names])=>{
@@ -509,8 +515,8 @@ function renderGTO30Trace(){
          ' · источник '+(first?.source||'—')));
      });
    }
-   if(bot.policy?.startsWith('gto_postflop_40_')&&step.ev){
-     const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' BB').join(' | ');
+   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_'))&&step.ev){
+     const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' фишек').join(' | ');
      entry.append(el('div','small','EV действий: '+ev));
      const m=step.equity_model||{};
      if(m.equity_vs_action!==undefined)
@@ -520,6 +526,8 @@ function renderGTO30Trace(){
      const d=step.distribution||{};
      if(d.sampled_hands)
        entry.append(el('div','small','Any Two: '+d.sampled_hands+'/'+d.possible_hands+' рук · будущих бордов на руку '+d.runouts_per_hand+' · оценка, не точный перебор'));
+     if(d.enumeration==='exact_with_hero_blockers')
+       entry.append(el('div','small','Any Two: '+d.evaluated_hands+'/'+d.possible_hands+' рук · полный перебор категорий · совместных прогонов: '+m.joint_trials+(m.side_pot_approximation?' · side pots приближённые':'')));
    }
    entry.append(el('div','small',step.reason));
    card.append(entry);
