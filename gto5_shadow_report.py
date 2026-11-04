@@ -110,6 +110,8 @@ MODEL_LABELS = {
     "gto41": "GTO 4.1",
     "gto50": "GTO 5.0",
     "gto505": "GTO 5.0.5",
+    "gto51": "GTO 5.1",
+    "gto515": "GTO 5.1.5",
 }
 
 
