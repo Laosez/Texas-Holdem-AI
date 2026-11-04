@@ -28,7 +28,11 @@ class GTO32Tests(unittest.TestCase):
         catalog = app.strategy_catalog()
         for size in (5, 10):
             name = f"gto_postflop_32_{size}"
-            self.assertIn(name, catalog["postflop_strategies"])
+            if size == 5:
+                self.assertIn(name, catalog["postflop_strategies"])
+            else:
+                self.assertNotIn(name, catalog["postflop_strategies"])
+                self.assertTrue(app.available_postflop(name))
             self.assertIn(name, catalog["postflop_profiles"])
             self.assertNotIn(name, catalog["preflop_strategies"])
             bot = create_bot(name)
