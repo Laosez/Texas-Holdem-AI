@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "gto_postflop_33_5", "gto_postflop_33_10", "gto_postflop_40_5", "gto_postflop_40_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "gto_postflop_33_5", "gto_postflop_33_10", "gto_postflop_40_5", "gto_postflop_40_10", "gto_postflop_41_5", "gto_postflop_41_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -385,6 +385,26 @@ def strategy_catalog():
                     "features": ["24 street-specific opponent actions", "board-relative Any Two hand-strength distribution",
                                  "draw-aware flop and turn showdown equity", "Bet/Check and Call/Fold chipEV",
                                  "one-street checkdown approximation; HU only", "ten-opportunity memory"]
+                },
+                "gto_postflop_41_5": {
+                    "label": "GTO 4.1/5 · Joint Range EV · HU / Multiway",
+                    "model": "joint_range_ev",
+                    "features": ["full 1081/1035/990 Any Two enumeration with Hero blockers",
+                                 "board classifier + 24 street-specific frequencies",
+                                 "common-runout joint multiway showdown equity",
+                                 "Bet/Check and Call/Fold chipEV; 128/160/192 trials",
+                                 "one-street Bet/Fold checkdown approximation",
+                                 "five-opportunity memory; side pots and ICM not exact"]
+                },
+                "gto_postflop_41_10": {
+                    "label": "GTO 4.1/10 · Joint Range EV · HU / Multiway",
+                    "model": "joint_range_ev",
+                    "features": ["full 1081/1035/990 Any Two enumeration with Hero blockers",
+                                 "board classifier + 24 street-specific frequencies",
+                                 "common-runout joint multiway showdown equity",
+                                 "Bet/Check and Call/Fold chipEV; 128/160/192 trials",
+                                 "one-street Bet/Fold checkdown approximation",
+                                 "ten-opportunity memory; side pots and ICM not exact"]
                 },
                 "lag_postflop_v1": {
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",
