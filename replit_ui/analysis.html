@@ -104,16 +104,19 @@ html.embedded .foot a{display:none}
 <div class="sectionBody">
 <p class="note">Результативность — <strong>фактический Net BB/100</strong> за раздачи с постфлоп-решением, сгруппированные по числу живых соперников в момент <strong>первого постфлоп-решения Hero</strong>. Это оценка реализованной доходности, а не рассчитанный EV конкретного действия. Включает все деньги раздачи, в том числе префлоп; один результат учитывается один раз.</p>
 <div class="opponentPnlCards" id="opponentPnl"><div class="opponentPnlCard">Нет данных</div></div>
-<div class="tableScroll"><table style="min-width:1250px"><thead><tr>
+<div class="tableScroll"><table style="min-width:1850px"><thead><tr>
 <th>Соперников</th><th>Улица</th><th>Решений</th>
 <th title="Bet / все ситуации, где возможны и Check, и Bet">Bet при возможности %</th><th title="Количество возможностей Check/Bet">N · открыть</th>
 <th title="Check / все ситуации Check/Bet">Check %</th>
 <th title="Fold при facing bet, когда доступны Fold и Call">Fold против ставки %</th>
 <th title="Call при facing bet">Call %</th><th title="Raise при facing bet">Raise %</th>
 <th title="Количество возможностей Fold/Call">N · ответить</th>
+<th title="Fold / Call / Raise против обычной ставки, полный набор действий">Против Bet · F/C/R %</th><th>N · vs Bet</th>
+<th title="Fold / Call / Re-raise против рейза, полный набор действий">Против Raise · F/C/R %</th><th>N · vs Raise</th>
+<th>Ср. Bet / Pot %</th><th title="Raise street-total / текущий банк, прокси">Ср. Raise / Pot %</th>
 <th title="Bet + Raise / все действия на этой улице">Агрессия / решения %</th>
 </tr></thead><tbody id="opponentStreet"><tr><td colspan="11">Нет данных</td></tr></tbody></table></div>
-<p class="note">1 = Heads-Up (Hero + 1 оппонент); 2, 3 = два и три оппонента; 4+ = четыре и более. Частоты — по реальным <strong>возможностям</strong> действия, а не по всем раздачам, с разными знаменателями. Bet — первая ставка улицы, Raise — повышение. Нет наблюдений — «—», не 0%. Старые турниры без такой телеметрии не восстановить достоверно.</p>
+<p class="note">1 = Heads-Up (Hero + 1 оппонент); 2, 3 = два и три оппонента; 4+ = четыре и более. Частоты — по реальным <strong>возможностям</strong> действия, а не по всем раздачам, с разными знаменателями. Матрица против Bet и Raise использует только ситуации, где доступны все три действия. Bet — первая ставка улицы, Raise — повышение. Нет наблюдений — «—», не 0%. Старые турниры без такой телеметрии не восстановить достоверно.</p>
 </div></details></section>
 <div class="grid2">
 <section class="panel"><details open><summary><span class="index">02 / </span><span class="sectionTitle">Preflop</span><span class="sectionMeta">Диапазоны и действия</span></summary><div class="sectionBody">
@@ -447,7 +450,7 @@ function renderOpponentBreakdown(){
  if(!any){
   cards.append(el('div','opponentPnlCard','Нет телеметрии по живым соперникам в этой сессии.'));
   const td=cell('В старых сессиях информация не собиралась — повтори эксперимент.');
-  td.colSpan=11;const tr=document.createElement('tr');tr.append(td);table.append(tr);
+  td.colSpan=17;const tr=document.createElement('tr');tr.append(td);table.append(tr);
   return;
  }
  for(const group of groups){
@@ -467,13 +470,18 @@ function renderOpponentBreakdown(){
     percent(a.check_when_open_pct),
     percent(a.fold_facing_pct),percent(a.call_facing_pct),
     percent(a.raise_facing_pct),integer(a.facing_opp),
+    a.vs_bet_opp ? [a.vs_bet_fold_pct,a.vs_bet_call_pct,a.vs_bet_raise_pct].map(percent).join(' / ') : '—',
+    a.vs_bet_opp ? integer(a.vs_bet_opp) : '—',
+    a.vs_raise_opp ? [a.vs_raise_fold_pct,a.vs_raise_call_pct,a.vs_raise_reraise_pct].map(percent).join(' / ') : '—',
+    a.vs_raise_opp ? integer(a.vs_raise_opp) : '—',
+    percent(a.bet_size_avg_pct),percent(a.raise_size_avg_pct),
     percent(a.aggression_decision_pct)];
    table.append(rowOf(values));
   }
  }
  if(!table.children.length){
   const tr=document.createElement('tr');const td=cell('Нет решений в этой выборке');
-  td.colSpan=11;tr.append(td);table.append(tr);
+  td.colSpan=17;tr.append(td);table.append(tr);
  }
 }
 function renderPre(){
