@@ -492,6 +492,14 @@ class ScreenOneTests(unittest.TestCase):
         for advanced in ('<th>VPIP</th>','<th>Turn C-bet %</th>','<th>Flop AF</th>'):
             self.assertNotIn(advanced,page)
 
+    def test_gto40_trace_javascript_keeps_connection_handler_parseable(self):
+        # Regression: an unclosed entry.append(el(...)) prevented the entire
+        # Screen 1 script from parsing, including the Connect button handler.
+        page=app.UI.read_text(encoding="utf-8")
+        self.assertIn("(100*m.action_frequency).toFixed(1)+'%'));",page)
+        self.assertIn("(100*m.equity_vs_call).toFixed(1)+'%'));",page)
+        self.assertIn("$('connect').onclick=connect;",page)
+
     def test_analysis_page_has_expandable_position_and_barrel_reporting(self):
         page=app.ANALYSIS_UI.read_text(encoding="utf-8")
         self.assertIn("function renderScores(){",page)

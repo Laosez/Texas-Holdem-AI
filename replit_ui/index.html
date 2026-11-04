@@ -514,9 +514,9 @@ function renderGTO30Trace(){
      entry.append(el('div','small','EV действий: '+ev));
      const m=step.equity_model||{};
      if(m.equity_vs_action!==undefined)
-       entry.append(el('div','small','Equity vs действие оппа: '+(100*m.equity_vs_action).toFixed(1)+'% · Pot odds '+(100*m.pot_odds).toFixed(1)+'% · частота действия '+(100*m.action_frequency).toFixed(1)+'%');
+       entry.append(el('div','small','Equity vs действие оппа: '+(100*m.equity_vs_action).toFixed(1)+'% · Pot odds '+(100*m.pot_odds).toFixed(1)+'% · частота действия '+(100*m.action_frequency).toFixed(1)+'%'));
      if(m.equity_vs_call!==undefined)
-       entry.append(el('div','small','Fold / Call / Raise: '+(100*m.fold).toFixed(1)+' / '+(100*m.call).toFixed(1)+' / '+(100*m.raise).toFixed(1)+'% · equity vs Call '+(100*m.equity_vs_call).toFixed(1)+'%');
+       entry.append(el('div','small','Fold / Call / Raise: '+(100*m.fold).toFixed(1)+' / '+(100*m.call).toFixed(1)+' / '+(100*m.raise).toFixed(1)+'% · equity vs Call '+(100*m.equity_vs_call).toFixed(1)+'%'));
      const d=step.distribution||{};
      if(d.sampled_hands)
        entry.append(el('div','small','Any Two: '+d.sampled_hands+'/'+d.possible_hands+' рук · будущих бордов на руку '+d.runouts_per_hand+' · оценка, не точный перебор'));
