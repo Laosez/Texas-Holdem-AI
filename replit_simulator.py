@@ -1832,6 +1832,51 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError, ValueError):
                 self.reply(503, {"error": "Не удалось прочитать Shadow-отчёт"})
             return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto5-shadow-decisions", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            if job.get("status") not in ("completed", "imported"):
+                self.reply(409, {"error": "Подробный Shadow доступен после завершения серии"})
+                return
+            values = parse_qs(parsed.query).get("decision") or []
+            if not 1 <= len(values) <= 20 or any(
+                    re.fullmatch(r"\d{1,8}", value) is None for value in values):
+                self.reply(400, {"error": "Требуется 1–20 индексов decision"})
+                return
+            indices = [int(value) for value in values]
+            if len(set(indices)) != len(indices):
+                self.reply(400, {"error": "Повторные Shadow-индексы"})
+                return
+            folder = OUT / run_id
+            raw = folder / "gto5_shadow_decisions.jsonl"
+            report_file = folder / "gto5_shadow_report.json"
+            if not raw.is_file() or raw.is_symlink() or not report_file.is_file():
+                self.reply(404, {"error": "Нет исходного Shadow-журнала"})
+                return
+            try:
+                from gto5_shadow_detail import get_shadow_hands_batch, enrich_legacy_report
+                report = json.loads(report_file.read_text(encoding="utf-8"))
+                if report.get("format") != "SKACHKOV_GTO5_SHADOW_REPORT_V3":
+                    report = enrich_legacy_report(report, raw)
+                ranked = {}
+                for group in [report] + list(report.get("comparisons") or []):
+                    for row in (group.get("rankings") or {}).get("worst_decisions", ()):
+                        idx = row.get("shadow_id")
+                        if isinstance(idx, int):
+                            ranked[idx] = row
+                if any(idx not in ranked for idx in indices):
+                    self.reply(404, {"error": "Решение отсутствует в Top-20 Shadow"})
+                    return
+                result = get_shadow_hands_batch(raw, [ranked[idx] for idx in indices])
+                self.reply(200, result)
+            except (ValueError, TypeError, IndexError, KeyError, OSError) as exc:
+                self.reply(503, {"error": "Не удалось открыть журнал: " + str(exc)[:180]})
+            return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto5-shadow-decision", path)
         if match:
             run_id = match.group(1)
