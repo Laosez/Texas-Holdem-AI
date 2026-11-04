@@ -7,6 +7,8 @@ on:
       - test_gto_postflop_50.py
       - test_gto505_rounding.py
       - test_gto51_seniority.py
+      - test_gto52_seniority_shadow.py
+      - gto5_shadow_detail.py
       - test_gto_trace_exact_audit.py
       - test_gto_postflop_30.py
       - gto_trace_exact_audit.py
@@ -29,6 +31,8 @@ on:
       - test_gto_postflop_50.py
       - test_gto505_rounding.py
       - test_gto51_seniority.py
+      - test_gto52_seniority_shadow.py
+      - gto5_shadow_detail.py
       - test_gto_trace_exact_audit.py
       - test_gto_postflop_30.py
       - gto_trace_exact_audit.py
@@ -53,7 +57,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run shadow report regression tests
-        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50 test_gto_postflop_30 test_gto505_rounding test_gto51_seniority test_gto_trace_exact_audit
+        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50 test_gto_postflop_30 test_gto505_rounding test_gto51_seniority test_gto52_seniority_shadow test_gto_trace_exact_audit
       - name: Verify Shadow dashboard interaction and sorting
         run: node test_gto5_shadow_ui.js
       - name: Tournament Shadow 100% integration smoke

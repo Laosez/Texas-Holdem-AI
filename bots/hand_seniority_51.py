@@ -281,3 +281,72 @@ def hero_seniority(hole, board, category_mass=None, pocket_pair_pct=5.88):
         return result(win, "ten suited straight routes; <=2 missing cards",
                       counts)
     raise AssertionError("Unknown made-hand category")
+
+
+def hero_seniority_52(hole, board, category_mass=None, pocket_pair_pct=5.88):
+    """GTO 5.2 A/B seniority: exactly two local changes; 5.1 is immutable.
+
+    (1) High card: two-rank opponent chance proxy r_51 ** 2.
+    (2) P0 board + Hero one pair: available-card-weighted *rank routes*.
+        At most (5*13+13) route comparisons, not 990 concrete hole pairs.
+        Ties contribute one half. Board suit interactions still approximate.
+    Other categories and special P4/PH fallbacks stay at 5.1 behavior.
+    """
+    hole, board = list(hole), list(board)
+    old, old_info = hero_seniority(
+        hole, board, category_mass=category_mass, pocket_pair_pct=pocket_pair_pct
+    )
+    category = min(8, eval_hand(hole, board) >> 24)
+    if category == 0:
+        new = old * old
+        return new, {**old_info, "method": "two-card high-card risk: r51 squared",
+                     "win_fraction": round(new, 6), "baseline_51": round(old, 6)}
+    board_counts, available = _rank_counts(board, hole)
+    if category != 1 or len(board_counts) != len(board):
+        return old, old_info
+
+    hero_key = _key(eval_hand(hole, board), 1)
+    board_ranks = set(board_counts)
+    safe = danger = tie = 0
+
+    def add_route(key, weight):
+        nonlocal safe, danger, tie
+        if key < hero_key:
+            safe += weight
+        elif key > hero_key:
+            danger += weight
+        else:
+            tie += weight
+
+    # One board-matching card plus a non-matching kicker. Weighted by
+    # remaining physical cards of BOTH ranks, while iterating only ranks.
+    for paired_rank in board_ranks:
+        for kicker_rank in RANK_IDS:
+            if kicker_rank in board_ranks or not available[kicker_rank]:
+                continue
+            weight = available[paired_rank] * available[kicker_rank]
+            kickers = sorted((board_ranks - {paired_rank}) |
+                             {kicker_rank}, reverse=True)[:3]
+            add_route((paired_rank, *kickers), weight)
+
+    # Non-board pocket pairs form the same category; 4/3/2 remaining
+    # physical cards imply 6/3/1 possible PP combinations.
+    board_kickers = tuple(sorted(board_ranks, reverse=True)[:3])
+    for paired_rank in RANK_IDS:
+        if paired_rank in board_ranks or available[paired_rank] < 2:
+            continue
+        add_route((paired_rank, *board_kickers),
+                  available[paired_rank] * (available[paired_rank]-1) // 2)
+
+    total = safe + danger + tie
+    if not total:
+        return old, old_info
+    new = (safe + .5*tie) / total
+    return new, {
+        **old_info,
+        "method": "P0 one-pair weighted rank routes + exact rank ties",
+        "danger": danger, "safe": safe, "tie": tie,
+        "route_weight": total,
+        "win_fraction": round(new, 6),
+        "baseline_51": round(old, 6),
+    }

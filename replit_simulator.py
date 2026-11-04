@@ -427,6 +427,16 @@ def strategy_catalog():
                                  "No opponent-hand enumeration or Monte Carlo",
                                  "May be directly compared with 5.1 in Shadow Mode"]
                 },
+                "gto_postflop_52_5": {
+                    "label": "GTO 5.2/5 alpha · Исправленное старшинство · эксперимент",
+                    "model": "human_board_ev_rank_seniority_52_alpha",
+                    "features": ["GTO 5.1 сохранён неизменным",
+                                 "Старшая карта: две приватные карты, r51²",
+                                 "Пара на P0: веса оставшихся карт и PP, сравнение кикеров",
+                                 "Все остальные категории: правила GTO 5.1",
+                                 "До 5×13+13 ранговых маршрутов, не 990 рук",
+                                 "Без округления; доступен в Shadow против 4.1/5.1"]
+                },
                 "gto_postflop_41_5": {
                     "label": "GTO 4.1/5 · Joint Range EV · HU / Multiway",
                     "model": "joint_range_ev",
@@ -584,7 +594,7 @@ def validate_config(data: dict) -> dict:
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     shadow_reference = data.get("shadow_reference", "gto41")
-    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515"):
+    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52"):
         raise ValueError("Shadow Mode: неверная эталонная стратегия")
     config = {
         "shadow_percent": shadow_percent,
@@ -1794,9 +1804,42 @@ class Handler(BaseHTTPRequestHandler):
                                  "message": "Shadow-отчёт появится после завершения серии с GTO 5.0, 5.0.5, 5.1 или 5.1.5."})
                 return
             try:
-                self.reply(200, json.loads(target.read_text(encoding="utf-8")))
+                report = json.loads(target.read_text(encoding="utf-8"))
+                if report.get("format") != "SKACHKOV_GTO5_SHADOW_REPORT_V3":
+                    from gto5_shadow_detail import enrich_legacy_report
+                    report = enrich_legacy_report(
+                        report, OUT / run_id / "gto5_shadow_decisions.jsonl")
+                self.reply(200, report)
             except (OSError, ValueError):
                 self.reply(503, {"error": "Не удалось прочитать Shadow-отчёт"})
+            return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto5-shadow-decision", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            if job.get("status") not in ("completed", "imported"):
+                self.reply(409, {"error": "Разбор Shadow доступен после завершения серии"})
+                return
+            query = parse_qs(parsed.query)
+            token = query.get("decision", [""])[0]
+            if not re.fullmatch(r"\d{1,8}", token):
+                self.reply(400, {"error": "Требуется индекс решения decision"})
+                return
+            raw = OUT / run_id / "gto5_shadow_decisions.jsonl"
+            if not raw.is_file() or raw.is_symlink():
+                self.reply(404, {"error": "Нет исходных Shadow-записей в этой серии"})
+                return
+            try:
+                from gto5_shadow_detail import get_shadow_hand
+                result = get_shadow_hand(raw, int(token),
+                                         exact=query.get("exact", ["0"])[0] == "1")
+                self.reply(200, result)
+            except (ValueError, TypeError, IndexError, KeyError, OSError) as exc:
+                self.reply(404, {"error": "Нет точной Shadow-записи: " + str(exc)[:180]})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto30-trace-exact", path)
         if match:
