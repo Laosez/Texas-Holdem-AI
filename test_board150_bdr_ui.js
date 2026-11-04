@@ -6,7 +6,7 @@ const plan=fs.readFileSync('replit_ui/plan.html','utf8');
 const glossary=fs.readFileSync('replit_ui/river_board.html','utf8');
 for(const marker of ['function renderRiverLedger(root,a,b,compare){',
  'function riverBoardDescription(code){','function board150Parts(code){',
- 'const FLAT_BOARD_FACETS=[','↗ Справочник 49 типов'])
+ 'const FLAT_BOARD_FACETS=[','↗ Справочник 36 типов'])
  assert.ok(plan.includes(marker),'missing Plan UI: '+marker);
 for(const marker of ['id="board150Catalog"','function drawCatalog(){',
  '/api/postflop/board16-catalog','/api/postflop/board16-classify',
