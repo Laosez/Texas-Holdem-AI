@@ -161,3 +161,103 @@ def get_shadow_hand(path, index, *, exact=False, complete_trace=None):
             inputs.get("seniority") else "stored Shadow decision model"
         )
     return out
+
+
+def get_shadow_hands_batch(path, ranking_rows):
+    """Read up to 20 ranked Shadow hands and their timeline in ONE JSONL pass.
+
+    The server supplies ranking_rows from its own persisted report. Never
+    trust client-supplied tournament/hole data or reveal opponent hole cards.
+    Each row includes only its chosen Shadow source ID and verified identity.
+    Avoid N full-file reads for the twenty largest errors; RAM is bounded to
+    event summaries for just the corresponding hands.
+    """
+    rows = list(ranking_rows)
+    if not rows or len(rows) > 20:
+        raise ValueError("Batch must contain between 1 and 20 ranked decisions")
+    ids = []
+    targets = set()
+    for row in rows:
+        index = row.get("shadow_id")
+        if isinstance(index, bool) or not isinstance(index, int) or not 0 <= index <= 10_000_000:
+            raise ValueError("Invalid Shadow decision source index")
+        if index in ids:
+            raise ValueError("Duplicate Shadow decision source index")
+        ids.append(index)
+        targets.add((str(row.get("tournament")), str(row.get("hand_id"))))
+    wanted = set(ids)
+    selected = {}
+    hand_summaries = defaultdict(list)
+    # One sequential pass, including legacy/V2 records. Do not retain all raw
+    # hand_steps: their repeated copies are the major Shadow disk consumer.
+    with Path(path).open("r", encoding="utf-8") as stream:
+        for index, line in enumerate(stream):
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if index in wanted:
+                selected[index] = record
+            key = (str(record.get("tournament")), str(record.get("hand_id")))
+            if key not in targets:
+                continue
+            self_ev = record.get("ev5") or {}
+            ref_ev = record.get("ev41") or {}
+            hand_summaries[key].append({
+                "shadow_id": index,
+                "street": record.get("street"),
+                "board": record.get("board"),
+                "bot": record.get("bot"),
+                "hole": record.get("hole") or [],
+                "opponents": record.get("opponents"),
+                "chosen": record.get("chosen5"),
+                "best_reference": max(ref_ev, key=ref_ev.get) if ref_ev else None,
+                "ev_actor": self_ev, "ev_reference": ref_ev,
+                "decision_step_index": record.get("decision_step_index"),
+                "decision_inputs": record.get("decision_inputs") or {},
+            })
+    responses, missing = [], []
+    for row in rows:
+        idx = row["shadow_id"]
+        event = selected.get(idx)
+        if (event is None or
+                str(event.get("tournament")) != str(row.get("tournament")) or
+                str(event.get("hand_id")) != str(row.get("hand_id")) or
+                str(event.get("actor")) != str(row.get("actor"))):
+            missing.append(idx)
+            continue
+        key = (str(event.get("tournament")), str(event.get("hand_id")))
+        same_hand = [entry for entry in hand_summaries[key]
+                     if entry["bot"] == event.get("bot") and
+                     entry["hole"] == (event.get("hole") or [])]
+        saved_steps = event.get("hand_steps")
+        full = isinstance(saved_steps, list) and bool(saved_steps)
+        steps = saved_steps if full else [{
+            "street": entry["street"], "board": entry["board"],
+            "hero_hole": event.get("hole"), "opponents_count": entry["opponents"],
+            "decision": entry["chosen"], "ev": entry["ev_actor"],
+            "equity_model": entry["decision_inputs"],
+            "shadow_id": entry["shadow_id"],
+        } for entry in same_hand]
+        responses.append({
+            "shadow_id": idx,
+            "tournament": event.get("tournament"),
+            "hand_id": event.get("hand_id"),
+            "bot": event.get("bot"),
+            "actor": event.get("actor"),
+            "reference_model": event.get("reference_model"),
+            "hole": event.get("hole") or [],
+            "board": event.get("board") or [],
+            "street": event.get("street"),
+            "opponents": event.get("opponents"),
+            "chosen_actor": event.get("chosen5"),
+            "ev_actor": event.get("ev5") or {},
+            "ev_reference": event.get("ev41") or {},
+            "trace_source": "full_hand_trace" if full else "shadow_samples_only",
+            "steps": steps,
+            "paired_steps": same_hand,
+            "selected_step_index": event.get("decision_step_index"),
+            "note": ("Полная история решений Hero, включая не попавшие в Shadow."
+                     if full else
+                     "Исторические данные: только сохранённые Shadow-решения."),
+        })
+    return {"decisions": responses, "missing": missing, "scanned_once": True}
