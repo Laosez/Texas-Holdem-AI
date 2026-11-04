@@ -979,6 +979,8 @@ def storage_directory_breakdown() -> dict:
     """Read-only inventory of /data. Never removes or opens result contents."""
     categories = {}
     session_details = []
+    largest_files = []
+    sizes_by_filename = {}
     for entry in OUT.iterdir():
         if entry.is_symlink():
             continue
@@ -999,12 +1001,16 @@ def storage_directory_breakdown() -> dict:
                         continue
                     size += length
                     files += 1
+                    sizes_by_filename[name] = sizes_by_filename.get(name, 0) + length
+                    largest_files.append({"path": str(path.relative_to(OUT)), "bytes": length})
                     if is_session and "_checkpoints" in path.relative_to(entry).parts:
                         checkpoints += length
         elif entry.is_file():
             try:
                 size = entry.stat().st_size
                 files = 1
+                sizes_by_filename[entry.name] = sizes_by_filename.get(entry.name, 0) + size
+                largest_files.append({"path": entry.name, "bytes": size})
             except OSError:
                 continue
         if is_session:
@@ -1031,6 +1037,9 @@ def storage_directory_breakdown() -> dict:
                                   key=lambda kv: kv[1]["bytes"], reverse=True)),
         "session_statuses": by_status,
         "largest_sessions": session_details[:10],
+        "largest_files": sorted(largest_files, key=lambda row: -row["bytes"])[:20],
+        "largest_filenames": [{"name": name, "bytes": size} for name, size in
+                              sorted(sizes_by_filename.items(), key=lambda item: -item[1])[:20]],
         "file_bytes_total": sum(x["bytes"] for x in categories.values()),
         "note": "Logical file sizes; filesystem metadata and deleted-open files are not included",
     }
