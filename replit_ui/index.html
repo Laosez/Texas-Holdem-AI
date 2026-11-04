@@ -168,7 +168,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .shadow-paired-row{font-size:11px;line-height:1.5;color:#c9def0;border-top:1px solid #2d4860;padding:6px 0;overflow-wrap:anywhere}
 .shadow-detail-tools{display:grid;gap:7px;justify-items:start}
 .shadow-audit-result{font-size:11px;line-height:1.55;color:#b7d1ea;display:grid;gap:4px}
-.storage-files{margin:10px 0;display:grid;gap:7px}
+.storage-files{margin:10px 0;display:grid;gap:7px}.storage-files[hidden]{display:none}
 .storage-files-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 9px;border-bottom:1px solid #355573;font-size:12px;overflow-wrap:anywhere}
 .storage-files-row strong{white-space:nowrap;font-variant-numeric:tabular-nums;color:#e1efff}
 @media(max-width:950px){.shadow-ev-pair{grid-template-columns:1fr}}
@@ -392,6 +392,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <button class="btn danger sm" id="purgeTrash" type="button" disabled>Безвозвратно очистить корзину</button></div>
 <p class="note">Восстановление — отдельной кнопкой напротив нужной сессии. Очистка не затрагивает активные или завершённые сессии вне корзины.</p>
 </div>
+<div class="storage-files" id="storageBreakdownRows" hidden></div>
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table class="statsTable"><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="9">Нет результатов</td></tr></tbody></table></div>
@@ -981,8 +982,8 @@ function shadowHands(data,root){
 }
 
 async function loadGTO5Shadow(id){
+ if(gto5ShadowSession!==id){shadowDetailCache=Object.create(null);shadowDetailLoading.clear()}
  gto5ShadowSession=id;gto5ShadowData=null;shadowComparison='';
- if(!shadowDetailCache[gto5ShadowSession+':0'])shadowDetailLoading.clear();
  const host=$('gto5ShadowRows');
  if(host)host.replaceChildren(el('p','note','Загрузка Shadow-отчёта...'));
  try{
@@ -1525,13 +1526,27 @@ $('compactCheckpoints').onclick=async()=>{
 };
 $('checkData').onclick=async()=>{
  try{
-  const data=await get('/api/integrity');
-  const issues=data.issues||[];
-  const gb=n=>(n/1048576).toFixed(1)+' МБ';
-  let message='На диске: '+data.session_count+' сессий, без ошибок '+data.healthy_sessions+
-      ', свободно '+gb(data.volume.free_bytes);
-  if(issues.length)message+='\\nПроблемы: '+issues.slice(0,15).map(x=>x.id+': '+x.missing.join(', ')+x.observations.join(', ')).join('\\n');
-  alert(message);feedback('Аудит сохранённых данных выполнен.');
+  const [data,storage]=await Promise.all([get('/api/integrity'),get('/api/storage')]);
+  const issues=data.issues||[],breakdown=storage.breakdown||{};
+  const mb=n=>(Number(n||0)/1048576).toFixed(1)+' МБ';
+  const panel=$('storageBreakdownRows');
+  panel.replaceChildren();
+  panel.append(el('strong','',
+   'Railway /data · занято '+mb(storage.volume?.used_bytes)+
+   ' / '+mb(storage.volume?.total_bytes)+
+   ' · свободно '+mb(storage.volume?.free_bytes)));
+  panel.append(el('div','shadow-detail-note','Всё ниже — только диагностика. Данные не удаляются. '+
+    data.healthy_sessions+' из '+data.session_count+' сессий прошли проверку.'));
+  (breakdown.largest_files||[]).slice(0,12).forEach(file=>{
+   const row=el('div','storage-files-row');
+   row.append(el('span','',file.path||'—'),el('strong','',mb(file.bytes)));
+   panel.append(row);
+  });
+  if(!(breakdown.largest_files||[]).length)
+   panel.append(el('div','small','Детализация отдельных файлов появится после обновления сервиса.'));
+  panel.hidden=false;
+  if(issues.length)feedback('Аудит выявил проблемы: '+issues.map(x=>x.id).join(', '),true);
+  else feedback('Аудит завершён · крупнейшие файлы показаны под кнопками сессии.');
  }catch(e){feedback(e.message,true)}
 };
 $('copyLog').onclick=()=>navigator.clipboard.writeText($('log').textContent).then(()=>feedback('Журнал скопирован')).catch(()=>feedback('Копирование недоступно',true));
