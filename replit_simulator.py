@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "gto_postflop_33_5", "gto_postflop_33_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -348,6 +348,28 @@ def strategy_catalog():
                                  "Bet Flop, Raise Flop, Reraise, Fold to Bet",
                                  "legal-action snapshots; no imaginary raise opportunities",
                                  "Bayesian smoothing; min 3 matching opportunities",
+                                 "HU adaptation, multiway observation"]
+                },
+                "gto_postflop_33_5": {
+                    "label": "GTO 3.3/5 · по улицам, 24 показателя · окно 5",
+                    "model": "street_specific_opportunity_matrix",
+                    "features": ["GTO 3.2 decision rules and half-pot sizing unchanged",
+                                 "24 conditional probabilities: 8 actions by 3 streets",
+                                 "9 categorical windows per opponent, each 5 opportunities",
+                                 "flop / turn / river separate statistics",
+                                 "street >=5; otherwise shrinkage to pooled postflop",
+                                 "only complete legal action sets are counted",
+                                 "HU adaptation, multiway observation"]
+                },
+                "gto_postflop_33_10": {
+                    "label": "GTO 3.3/10 · по улицам, 24 показателя · окно 10",
+                    "model": "street_specific_opportunity_matrix",
+                    "features": ["GTO 3.2 decision rules and half-pot sizing unchanged",
+                                 "24 conditional probabilities: 8 actions by 3 streets",
+                                 "9 categorical windows per opponent, each 10 opportunities",
+                                 "flop / turn / river separate statistics",
+                                 "street >=5; otherwise shrinkage to pooled postflop",
+                                 "only complete legal action sets are counted",
                                  "HU adaptation, multiway observation"]
                 },
                 "lag_postflop_v1": {

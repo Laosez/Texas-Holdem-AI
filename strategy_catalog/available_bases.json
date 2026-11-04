@@ -26,6 +26,8 @@
     "gto_postflop_31_10",
     "gto_postflop_32_5",
     "gto_postflop_32_10",
+    "gto_postflop_33_5",
+    "gto_postflop_33_10",
     "s100_postflop_v1",
     "lag_postflop_v1",
     "tag_punisher",
