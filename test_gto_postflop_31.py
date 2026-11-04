@@ -24,7 +24,11 @@ class GTO31Tests(unittest.TestCase):
         catalog=app.strategy_catalog()
         for n in (5,10):
             name=f"gto_postflop_31_{n}"
-            self.assertIn(name,catalog["postflop_strategies"])
+            if n == 5:
+                self.assertIn(name, catalog["postflop_strategies"])
+            else:
+                self.assertNotIn(name, catalog["postflop_strategies"])
+                self.assertTrue(app.available_postflop(name))
             self.assertIn(name,catalog["postflop_profiles"])
             self.assertNotIn(name,catalog["preflop_strategies"])
             self.assertEqual(create_bot(name).window,n)
