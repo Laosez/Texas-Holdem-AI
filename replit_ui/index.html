@@ -145,6 +145,34 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .shadow-card{display:inline-flex;justify-content:center;align-items:center;min-width:28px;padding:5px 4px;border:1px solid #6480a1;border-radius:5px;background:#eaf2fb;color:#182a3f;font-weight:850;font-size:13px}
 .shadow-card.red{color:#bc293a}
 .shadow-hand-actions{display:flex;flex-wrap:wrap;gap:9px;color:#d5e4f5;font-size:11px}
+.shadow-hero-line{display:flex;align-items:center;gap:10px;font-weight:800;font-size:11px;color:#a9c9e7}
+.shadow-decision-detail{display:grid;gap:10px;border-top:1px solid #355573;padding-top:11px;min-width:0}
+.shadow-loading{font-size:12px;color:#a6bdd3;padding:12px;background:#142a41;border-radius:8px}
+.shadow-detail-title{font-size:10px;font-weight:900;letter-spacing:.9px;color:#a2c9e9}
+.shadow-ev-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.shadow-ev-model{padding:10px;border:1px solid #3a5a78;background:#102d45;border-radius:8px;min-width:0;display:grid;gap:6px}
+.shadow-ev-label{font-size:11px;font-weight:800;color:#a4d0fc}
+.shadow-ev-model strong{font-size:12px;font-weight:750;line-height:1.65;color:#f1f7ff;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.shadow-detail-note{font-size:11px;color:#b6c8db;line-height:1.5}
+.shadow-step-list{display:grid;gap:7px}
+.shadow-step{border-left:3px solid #416d9b;border-radius:5px;background:#132b41;padding:9px 10px;display:grid;gap:5px}
+.shadow-step-head{display:flex;align-items:center;justify-content:space-between;gap:7px;flex-wrap:wrap}
+.shadow-step-heading{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:11px}
+.shadow-step .shadow-card{font-size:11px;min-width:23px;padding:3px 4px}
+.shadow-step-decision{font-size:11px;font-weight:850;color:#f1d8bd}
+.shadow-step-ev{font-size:11px;font-weight:750;color:#dfeefa;font-variant-numeric:tabular-nums}
+.shadow-step-metrics{font-size:11px;color:#abd3f4}
+.shadow-opp-list{display:grid;gap:4px;margin-top:2px}
+.shadow-opp{font-size:10px;color:#c6d8e9;border-top:1px solid #2d4b64;padding-top:5px;font-variant-numeric:tabular-nums}
+.shadow-paired{display:grid;gap:5px;padding:9px 10px;background:#11283c;border:1px solid #395672;border-radius:8px}
+.shadow-paired-row{font-size:11px;line-height:1.5;color:#c9def0;border-top:1px solid #2d4860;padding:6px 0;overflow-wrap:anywhere}
+.shadow-detail-tools{display:grid;gap:7px;justify-items:start}
+.shadow-audit-result{font-size:11px;line-height:1.55;color:#b7d1ea;display:grid;gap:4px}
+.storage-files{margin:10px 0;display:grid;gap:7px}.storage-files[hidden]{display:none}
+.storage-files-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 9px;border-bottom:1px solid #355573;font-size:12px;overflow-wrap:anywhere}
+.storage-files-row strong{white-space:nowrap;font-variant-numeric:tabular-nums;color:#e1efff}
+@media(max-width:950px){.shadow-ev-pair{grid-template-columns:1fr}}
+
 .shadow-note-strip{padding:11px 13px;border:1px solid #355573;background:#0c2033;border-radius:9px;color:#9fb8d0;font-size:11px;line-height:1.55}
 .shadow-note-strip strong{color:#d6e8f9}
 @media(max-width:1120px){.shadow-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.shadow-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -343,8 +371,8 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </section></div>
 <div class="column topColumn journalColumn">
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre>
-<details class="coverageAudit" id="gto30TracePanel" style="margin-top:10px">
-<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–5.3 · Журнал решений и точный аудит (до 100 раздач)</summary>
+<details class="coverageAudit" id="gto30TracePanel" open style="margin-top:10px">
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–5.3 · Журнал решений (сразу открыт, до 100 раздач)</summary>
 <p class="note">Последние 5/10/20/50/100 раздач с постфлоп-решениями по каждому игроку в последнем завершённом турнире. Точная проверка Any Two вызывается по кнопке после раскрытия раздачи, не влияет на действия бота.</p>
 <div class="fields" style="margin-top:10px">
 <div class="field"><label for="gto30TraceBot">Игрок / профиль</label><select id="gto30TraceBot"><option value="">—</option></select></div>
@@ -364,6 +392,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <button class="btn danger sm" id="purgeTrash" type="button" disabled>Безвозвратно очистить корзину</button></div>
 <p class="note">Восстановление — отдельной кнопкой напротив нужной сессии. Очистка не затрагивает активные или завершённые сессии вне корзины.</p>
 </div>
+<div class="storage-files" id="storageBreakdownRows" hidden></div>
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table class="statsTable"><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="9">Нет результатов</td></tr></tbody></table></div>
@@ -372,7 +401,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <section class="panel shadow-workspace" id="gto5ShadowPanel">
   <div class="heading shadow-head">
     <div>
-      <div class="shadow-eyebrow">КАЛИБРОВКА · GTO 5.0 / 5.0.5 / 5.1 / 5.1.5</div>
+      <div class="shadow-eyebrow">КАЛИБРОВКА · GTO 5.0–5.3 · ВСЕ УЛИЦЫ</div>
       <h2>Shadow Mode <span class="shadow-head-sub">Сравнение решений и EV двух стратегий</span></h2>
       <p class="note">Игрок действует самостоятельно, эталон рассчитывает альтернативный EV. Разрезы: улицы, оппоненты и структура P/S/F</p>
     </div>
@@ -781,137 +810,179 @@ function shadowCardTokens(tokens,iconMap){
  });
  return box;
 }
-async function shadowOpenDecision(row,card,button,panel){
- button.disabled=true;panel.hidden=false;
- panel.replaceChildren(el('div','small','Загружаю журнал раздачи #'+row.hand_id+'...'));
- const url='/api/runs/'+encodeURIComponent(gto5ShadowSession)+
-    '/gto5-shadow-decision?decision='+row.shadow_id;
- const evs=ev=>Object.entries(ev||{}).map(([k,v])=>
-    String(k).toUpperCase()+' '+Number(v).toFixed(2)).join(' | ')||'—';
+
+function shadowEVSummary(label,ev){
+ const line=Object.entries(ev||{}).map(([action,value])=>
+   String(action).replace(':',' ').toUpperCase()+' '+shadowFormat(value)).join('  ·  ')||'—';
+ const item=el('div','shadow-ev-model');
+ item.append(el('span','shadow-ev-label',label),el('strong','',line));
+ return item;
+}
+function shadowPaintDecision(panel,d){
  const pct=v=>v==null?'—':(100*Number(v)).toFixed(2)+'%';
- try{
-  const d=await get(url);
-  panel.replaceChildren();
-  panel.append(el('div','small','HERO '+(d.hole||[]).join(' ')+
-    ' · турнир '+d.tournament+' / раздача '+d.hand_id+
-    ' · Shadow #'+d.shadow_id));
-  panel.append(el('div','small',shadowModelName(d.actor)+' EV: '+evs(d.ev_actor)));
-  panel.append(el('div','small',shadowModelName(d.reference_model)+' EV: '+evs(d.ev_reference)));
-  panel.append(el('div','note',d.note||''));
-  (d.steps||[]).forEach((step,i)=>{
-   const cell=el('div','small','');
-   cell.style.cssText='border-left:2px solid #5483a8;padding:4px 9px;margin:4px 0';
-   cell.append(el('div','','#'+(i+1)+' '+String(step.street).toUpperCase()+
-     ' '+(step.board||[]).join(' ')+' · '+String(step.decision||'').toUpperCase()+
-     (step.amount_chips!=null?' '+step.amount_chips:'')+
-     ' · OPP '+(step.opponents_count??step.opponents??'—')));
-   if(step.ev && Object.keys(step.ev).length)
-     cell.append(el('div','','EV: '+evs(step.ev)));
-   const m=step.equity_model||{};
-   if(m.seniority)cell.append(el('div','',
-     'Старшинство '+pct(m.seniority.win_fraction)+
-     ' · квантиль '+pct(m.hero_quantile)+
-     ' · equity proxy '+pct(m.proxy_equity)));
-   if(step.opponent_models?.length){
-     const more=el('details','', '');more.append(el('summary','','По оппонентам ('+
-       step.opponent_models.length+')'));
-     step.opponent_models.forEach(opp=>{
-      const r=opp.vs_bet||{};
-      more.append(el('div','', 'OPP '+opp.pid+
-        ' · equity '+pct(opp.equity_proxy)+
-        ' · Fold '+pct(r.fold?.p)+' / Call '+pct(r.call?.p)+
-        ' / Raise '+pct(r.raise?.p)));
-     });
-     cell.append(more);
-   }
-   panel.append(cell);
-  });
-  if(d.paired_steps?.length){
-    const more=el('details','', '');more.append(el('summary','',
-       'Shadow-сопоставления той же раздачи ('+d.paired_steps.length+')'));
-    d.paired_steps.forEach(s=>more.append(el('div','small',
-      String(s.street).toUpperCase()+' · '+(s.board||[]).join(' ')+
-      ' · выбрано '+String(s.chosen).toUpperCase()+
-      ' / эталон '+String(s.best_reference).toUpperCase()+
-      ' · EV '+evs(s.ev_actor)+' / '+evs(s.ev_reference))));
-    panel.append(more);
+ const cards={c:'♣',d:'♦',h:'♥',s:'♠'};
+ panel.replaceChildren();
+ const title=el('div','shadow-detail-title','ЖУРНАЛ HERO · Shadow #'+d.shadow_id+
+   ' · '+(d.trace_source==='full_hand_trace'?'полная история':'сохранённые Shadow-шаги'));
+ panel.append(title);
+ const compare=el('div','shadow-ev-pair');
+ compare.append(shadowEVSummary(shadowModelName(d.actor),d.ev_actor),
+   shadowEVSummary(shadowModelName(d.reference_model),d.ev_reference));
+ panel.append(compare);
+ if(d.note)panel.append(el('div','shadow-detail-note',d.note));
+ const steps=el('div','shadow-step-list');
+ (d.steps||[]).forEach((step,i)=>{
+  const item=el('div','shadow-step');
+  const head=el('div','shadow-step-head');
+  const left=el('div','shadow-step-heading');
+  left.append(el('b','',String(i+1).padStart(2,'0')+' · '+shadowReadable(step.street)));
+  left.append(shadowCardTokens(step.board||[],cards));
+  head.append(left);
+  head.append(el('span','shadow-step-decision',
+   String(step.decision||'—').toUpperCase()+
+   (step.amount_chips!=null?' '+step.amount_chips:'')+
+   ' · '+(step.opponents_count??step.opponents??'—')+' OPP'));
+  item.append(head);
+  if(step.ev && Object.keys(step.ev).length)
+   item.append(el('div','shadow-step-ev','EV '+Object.entries(step.ev).map(([a,v])=>
+       a.toUpperCase()+' '+shadowFormat(v)).join('  ·  ')));
+  const eq=step.equity_model||{};
+  if(eq.seniority||eq.hero_quantile!=null||eq.proxy_equity!=null)
+   item.append(el('div','shadow-step-metrics',
+     'Старшинство '+pct(eq.seniority?.win_fraction)+
+     '  ·  квантиль '+pct(eq.hero_quantile)+
+     '  ·  equity proxy '+pct(eq.proxy_equity)));
+  if(step.opponent_models?.length){
+   const others=el('div','shadow-opp-list');
+   step.opponent_models.forEach(opp=>{
+    const response=opp.vs_bet||{};
+    const band=Array.isArray(opp.band)&&opp.band.length===2?
+      pct(opp.band[0])+'–'+pct(opp.band[1]):'—';
+    others.append(el('div','shadow-opp',
+      'OPP '+opp.pid+' · диапазон '+band+' · equity '+pct(opp.equity_proxy)+
+      ' · Fold '+pct(response.fold?.p)+' / Call '+pct(response.call?.p)+
+      ' / Raise '+pct(response.raise?.p)));
+   });
+   item.append(others);
   }
-  const audit=el('button','btn sm outline','Точный аудит Any Two · это решение');
-  const auditResult=el('div','small','');audit.type='button';
-  audit.onclick=async()=>{
-    audit.disabled=true;auditResult.textContent='Считаю доступные руки OPP...';
-    try{
-      const v=(await get(url+'&exact=1')).exact_audit;
-      auditResult.replaceChildren(
-        el('div','',v.opponent_hands_examined+' допустимых рук OPP · категория '+v.hero_category),
-        el('div','','P категории: модель '+(v.formula_category_pct==null?'—':v.formula_category_pct.toFixed(2)+'%')+
-          ' / точно '+v.exact_category_pct.toFixed(2)+'%'),
-        el('div','','Старшинство: модель '+pct(v.formula_win_fraction)+
-          ' / точно '+pct(v.exact_win_fraction)+
-          ' · Δ '+(v.seniority_delta_pp==null?'—':v.seniority_delta_pp.toFixed(2)+' п.п.')),
-        el('div','','Слабее '+v.same_category_weaker+' · ничья '+v.same_category_tied+
-          ' · сильнее '+v.same_category_stronger),
-        el('div','','Точная текущая HU-доля: '+pct(v.exact_current_hu_showdown_share)),
-        el('div','note',v.interpretation+' ('+v.formula_source+')'));
-    }catch(e){auditResult.textContent='Ошибка аудита: '+e.message;audit.disabled=false;}
-  };
-  panel.append(audit,auditResult);panel.dataset.loaded='yes';
-  button.textContent='Показать / скрыть разбор раздачи';
- }catch(e){panel.replaceChildren(el('div','bad','Разбор недоступен: '+e.message));}
- finally{button.disabled=false;}
+  steps.append(item);
+ });
+ if(!steps.children.length)
+  steps.append(el('div','shadow-detail-note','Шаги Hero отсутствуют в исходном журнале.'));
+ panel.append(steps);
+ if(d.paired_steps?.length){
+  const match=el('div','shadow-paired');
+  match.append(el('div','shadow-detail-title',
+    'SHADOW-СОПОСТАВЛЕНИЯ · '+d.paired_steps.length));
+  d.paired_steps.forEach(v=>{
+   match.append(el('div','shadow-paired-row',
+    shadowReadable(v.street)+' · '+(v.board||[]).join(' ') +
+    ' · Hero '+String(v.chosen).toUpperCase()+
+    ' / эталон '+String(v.best_reference).toUpperCase()+
+    ' · EV Hero: '+Object.entries(v.ev_actor||{}).map(([a,n])=>a.toUpperCase()+' '+shadowFormat(n)).join(' / ')+
+    ' · EV эталона: '+Object.entries(v.ev_reference||{}).map(([a,n])=>a.toUpperCase()+' '+shadowFormat(n)).join(' / ')));
+  });
+  panel.append(match);
+ }
+ const tools=el('div','shadow-detail-tools');
+ const audit=el('button','btn sm outline','Точный аудит Any Two · выбранное решение');
+ audit.type='button';
+ const auditResult=el('div','shadow-audit-result');
+ audit.onclick=async()=>{
+  audit.disabled=true;
+  auditResult.textContent='Выполняю точный расчёт...';
+  try{
+   const url='/api/runs/'+encodeURIComponent(gto5ShadowSession)+
+     '/gto5-shadow-decision?decision='+encodeURIComponent(d.shadow_id)+'&exact=1';
+   const v=(await get(url)).exact_audit;
+   auditResult.replaceChildren(
+    el('div','',v.opponent_hands_examined+' возможных рук OPP · '+v.hero_category),
+    el('div','','P категории: модель '+(v.formula_category_pct==null?'—':shadowFormat(v.formula_category_pct)+'%')+
+      ' / точная '+shadowFormat(v.exact_category_pct)+'%'),
+    el('div','','Старшинство: модель '+pct(v.formula_win_fraction)+
+      ' / точное '+pct(v.exact_win_fraction)+
+      ' · Δ '+(v.seniority_delta_pp==null?'—':shadowFormat(v.seniority_delta_pp)+' п.п.')),
+    el('div','','Слабее '+v.same_category_weaker+' · ничья '+v.same_category_tied+
+      ' · сильнее '+v.same_category_stronger),
+    el('div','','Точная HU-доля на текущей улице: '+pct(v.exact_current_hu_showdown_share)),
+    el('div','shadow-detail-note',v.interpretation||''));
+   audit.textContent='Аудит рассчитан';
+  }catch(error){
+   auditResult.textContent='Аудит недоступен: '+error.message;
+   audit.disabled=false;
+  }
+ };
+ tools.append(audit,auditResult);
+ panel.append(tools);
+}
+let shadowDetailCache=Object.create(null),shadowDetailLoading=new Set();
+function shadowPrefetchHands(rows){
+ const session=gto5ShadowSession;
+ const wanted=rows.map(row=>Number(row.shadow_id)).filter(Number.isInteger)
+  .filter(id=>!shadowDetailCache[session+':'+id] && !shadowDetailLoading.has(session+':'+id));
+ if(!wanted.length)return;
+ wanted.forEach(id=>shadowDetailLoading.add(session+':'+id));
+ const url='/api/runs/'+encodeURIComponent(session)+'/gto5-shadow-decisions?'+
+   wanted.map(id=>'decision='+id).join('&');
+ get(url).then(data=>{
+  (data.decisions||[]).forEach(value=>shadowDetailCache[session+':'+value.shadow_id]=value);
+  (data.missing||[]).forEach(id=>
+    shadowDetailCache[session+':'+id]={error:'Исходная запись Shadow недоступна'});
+ }).catch(error=>{
+  wanted.forEach(id=>shadowDetailCache[session+':'+id]={error:error.message});
+ }).finally(()=>{
+  wanted.forEach(id=>shadowDetailLoading.delete(session+':'+id));
+  if(gto5ShadowSession===session && shadowView==='hands')renderGTO5Shadow();
+ });
 }
 function shadowHands(data,root){
  const records=(data.rankings||{}).worst_decisions||[];
- root.append(shadowTitle('20 самых дорогих отдельных решений'));
+ root.append(shadowTitle('20 самых дорогих отдельных решений · все подробности сразу'));
  root.append(el('p','shadow-help',
-  'Каждая ошибка привязана к точному Shadow-решению, руке Hero и исходным EV. Карты соперников не используются.'));
+  'Разница EV рассчитана относительно выбранной эталонной стратегии, а не фактический проигрыш в турнире. '+
+  'Журнал Hero, все действия по улицам и сравнение EV загружаются автоматически одним запросом. '+
+  'Карты соперников не используются; точный аудит запускается отдельно.'));
  if(!records.length){root.append(el('div','shadow-empty','Нет сохранённых решений'));return}
  const list=el('div','shadow-hand-list');
  const iconMap={c:'♣',d:'♦',h:'♥',s:'♠'};
  records.forEach((row,i)=>{
-  const card=el('div','shadow-hand');
+  const card=el('article','shadow-hand');
   const title=el('div','shadow-hand-top');
   title.append(el('strong','',String(i+1).padStart(2,'0')+' · Турнир '+(row.tournament??'—')+
    ' / раздача '+(row.hand_id??'—')));
   title.append(el('span','shadow-hand-loss',shadowFormat(row.regret_bb)+' BB'));
   card.append(title);
-  const cards=el('div','shadow-cards');
-  (row.board||[]).forEach(token=>{
-   const r=String(token),rank=r.slice(0,-1),suit=r.slice(-1);
-   cards.append(el('span','shadow-card'+((suit==='d'||suit==='h')?' red':''),rank+(iconMap[suit]||suit)));
-  });
-  card.append(cards);
+  card.append(shadowCardTokens(row.board||[],iconMap));
   card.append(el('div','shadow-hand-meta',
-   shadowReadable(row.street)+' · '+shadowReadable(row.opponents)+
-   ' · '+shadowReadable(row.structure)+' · MAE ΔEV '+shadowFormat(row.mean_ev_delta_bb)+' BB'));
+    shadowReadable(row.street)+' · '+shadowReadable(row.opponents)+
+    ' · '+shadowReadable(row.structure)+' · MAE ΔEV '+shadowFormat(row.mean_ev_delta_bb)+' BB'));
   const actions=el('div','shadow-hand-actions');
-  const readableAction=x=>String(x||'—').replace(':',' ');
-  actions.append(el('span','',shadowModelName(row.actor)+': '+readableAction(row.chosen5).toUpperCase()),
-   el('span','',shadowModelName(row.reference_model)+': '+readableAction(row.chosen41).toUpperCase()));
+  const action=x=>String(x||'—').replace(':',' ').toUpperCase();
+  actions.append(el('span','',shadowModelName(row.actor)+': '+action(row.chosen5)),
+    el('span','',shadowModelName(row.reference_model)+': '+action(row.chosen41)));
   card.append(actions);
   if(row.hole?.length===2){
-    const hero=el('div','shadow-hand-meta','HERO: ');
-    hero.append(shadowCardTokens(row.hole,iconMap));card.append(hero);
+   const hero=el('div','shadow-hero-line', 'HERO');
+   hero.append(shadowCardTokens(row.hole,iconMap));card.append(hero);
   }else card.append(el('div','shadow-hand-meta',
-    'В агрегате нет карт Hero; связь со старой исходной записью не найдена.'));
+   'Карты Hero не сохранились в отчёте: исторический журнал может быть неполным.'));
+  const detail=el('div','shadow-decision-detail');
   if(row.shadow_id!=null){
-    const btn=el('button','btn sm outline','Разобрать · EV / журнал / точный аудит');
-    btn.type='button';
-    const panel=el('div','', '');
-    panel.style.cssText='display:grid;gap:7px;margin-top:7px';
-    panel.hidden=true;
-    btn.onclick=()=>{
-      if(panel.dataset.loaded==='yes'){panel.hidden=!panel.hidden;return;}
-      shadowOpenDecision(row,card,btn,panel);
-    };
-    card.append(btn,panel);
-  }else if(row.detail_unavailable_reason)
-    card.append(el('div','small',row.detail_unavailable_reason));
+   const cached=shadowDetailCache[gto5ShadowSession+':'+row.shadow_id];
+   if(cached?.error)detail.append(el('div','shadow-detail-note','Разбор недоступен: '+cached.error));
+   else if(cached)shadowPaintDecision(detail,cached);
+   else detail.append(el('div','shadow-loading','Загружаю EV, все улицы и соперников...'));
+  }else detail.append(el('div','shadow-detail-note',
+    row.detail_unavailable_reason||'Для этой исторической записи нет однозначного Shadow-индекса.'));
+  card.append(detail);
   list.append(card);
  });
  root.append(list);
+ shadowPrefetchHands(records.filter(row=>row.shadow_id!=null));
 }
+
 async function loadGTO5Shadow(id){
+ if(gto5ShadowSession!==id){shadowDetailCache=Object.create(null);shadowDetailLoading.clear()}
  gto5ShadowSession=id;gto5ShadowData=null;shadowComparison='';
  const host=$('gto5ShadowRows');
  if(host)host.replaceChildren(el('p','note','Загрузка Shadow-отчёта...'));
@@ -1118,7 +1189,7 @@ function renderGTO30Trace(){
          ' · источник '+(first?.source||'—')));
      });
    }
-   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_')||bot.policy?.startsWith('gto_postflop_52_'))&&step.ev){
+   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_')||bot.policy?.startsWith('gto_postflop_52_')||bot.policy?.startsWith('gto_postflop_53_'))&&step.ev){
      const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' фишек').join(' | ');
      entry.append(el('div','small','EV действий: '+ev));
      const m=step.equity_model||{};
@@ -1137,8 +1208,8 @@ function renderGTO30Trace(){
          ' · Equity proxy: '+(100*(m.proxy_equity??0)).toFixed(2)+'%'));
      }
      if(step.opponent_models?.length){
-       const details=el('details','trace-opponents','');
-       details.append(el('summary','small','Оценка по каждому оппоненту ('+
+       const details=el('div','trace-opponents','');
+       details.append(el('div','small','Оценка по каждому оппоненту ('+
           step.opponent_models.length+'); предположение независимости, не точное multiway EV'));
        step.opponent_models.forEach(opp=>{
          const fmt=x=>x==null?'—':(100*Number(x)).toFixed(1)+'%';
@@ -1163,7 +1234,7 @@ function renderGTO30Trace(){
        entry.append(el('div','small','Any Two: '+d.evaluated_hands+'/'+d.possible_hands+' рук · полный перебор категорий · совместных прогонов: '+m.joint_trials+(m.side_pot_approximation?' · side pots приближённые':'')));
    }
    entry.append(el('div','small',step.reason));
-   if(/^gto_postflop_(?:50|505|51|515|52)_/.test(bot.policy||'')){
+   if(/^gto_postflop_(?:50|505|51|515|52|53)_/.test(bot.policy||'')){
      const audit=el('button','btn sm outline','Показать точный расчёт Any Two (текущая улица)');
      audit.type='button';
      const host=el('div','small','');
@@ -1455,13 +1526,27 @@ $('compactCheckpoints').onclick=async()=>{
 };
 $('checkData').onclick=async()=>{
  try{
-  const data=await get('/api/integrity');
-  const issues=data.issues||[];
-  const gb=n=>(n/1048576).toFixed(1)+' МБ';
-  let message='На диске: '+data.session_count+' сессий, без ошибок '+data.healthy_sessions+
-      ', свободно '+gb(data.volume.free_bytes);
-  if(issues.length)message+='\\nПроблемы: '+issues.slice(0,15).map(x=>x.id+': '+x.missing.join(', ')+x.observations.join(', ')).join('\\n');
-  alert(message);feedback('Аудит сохранённых данных выполнен.');
+  const [data,storage]=await Promise.all([get('/api/integrity'),get('/api/storage')]);
+  const issues=data.issues||[],breakdown=storage.breakdown||{};
+  const mb=n=>(Number(n||0)/1048576).toFixed(1)+' МБ';
+  const panel=$('storageBreakdownRows');
+  panel.replaceChildren();
+  panel.append(el('strong','',
+   'Railway /data · занято '+mb(storage.volume?.used_bytes)+
+   ' / '+mb(storage.volume?.total_bytes)+
+   ' · свободно '+mb(storage.volume?.free_bytes)));
+  panel.append(el('div','shadow-detail-note','Всё ниже — только диагностика. Данные не удаляются. '+
+    data.healthy_sessions+' из '+data.session_count+' сессий прошли проверку.'));
+  (breakdown.largest_files||[]).slice(0,12).forEach(file=>{
+   const row=el('div','storage-files-row');
+   row.append(el('span','',file.path||'—'),el('strong','',mb(file.bytes)));
+   panel.append(row);
+  });
+  if(!(breakdown.largest_files||[]).length)
+   panel.append(el('div','small','Детализация отдельных файлов появится после обновления сервиса.'));
+  panel.hidden=false;
+  if(issues.length)feedback('Аудит выявил проблемы: '+issues.map(x=>x.id).join(', '),true);
+  else feedback('Аудит завершён · крупнейшие файлы показаны под кнопками сессии.');
  }catch(e){feedback(e.message,true)}
 };
 $('copyLog').onclick=()=>navigator.clipboard.writeText($('log').textContent).then(()=>feedback('Журнал скопирован')).catch(()=>feedback('Копирование недоступно',true));

@@ -979,6 +979,8 @@ def storage_directory_breakdown() -> dict:
     """Read-only inventory of /data. Never removes or opens result contents."""
     categories = {}
     session_details = []
+    largest_files = []
+    sizes_by_filename = {}
     for entry in OUT.iterdir():
         if entry.is_symlink():
             continue
@@ -999,12 +1001,16 @@ def storage_directory_breakdown() -> dict:
                         continue
                     size += length
                     files += 1
+                    sizes_by_filename[name] = sizes_by_filename.get(name, 0) + length
+                    largest_files.append({"path": str(path.relative_to(OUT)), "bytes": length})
                     if is_session and "_checkpoints" in path.relative_to(entry).parts:
                         checkpoints += length
         elif entry.is_file():
             try:
                 size = entry.stat().st_size
                 files = 1
+                sizes_by_filename[entry.name] = sizes_by_filename.get(entry.name, 0) + size
+                largest_files.append({"path": entry.name, "bytes": size})
             except OSError:
                 continue
         if is_session:
@@ -1031,6 +1037,9 @@ def storage_directory_breakdown() -> dict:
                                   key=lambda kv: kv[1]["bytes"], reverse=True)),
         "session_statuses": by_status,
         "largest_sessions": session_details[:10],
+        "largest_files": sorted(largest_files, key=lambda row: -row["bytes"])[:20],
+        "largest_filenames": [{"name": name, "bytes": size} for name, size in
+                              sorted(sizes_by_filename.items(), key=lambda item: -item[1])[:20]],
         "file_bytes_total": sum(x["bytes"] for x in categories.values()),
         "note": "Logical file sizes; filesystem metadata and deleted-open files are not included",
     }
@@ -1822,6 +1831,51 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, report)
             except (OSError, ValueError):
                 self.reply(503, {"error": "Не удалось прочитать Shadow-отчёт"})
+            return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto5-shadow-decisions", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            if job.get("status") not in ("completed", "imported"):
+                self.reply(409, {"error": "Подробный Shadow доступен после завершения серии"})
+                return
+            values = parse_qs(parsed.query).get("decision") or []
+            if not 1 <= len(values) <= 20 or any(
+                    re.fullmatch(r"\d{1,8}", value) is None for value in values):
+                self.reply(400, {"error": "Требуется 1–20 индексов decision"})
+                return
+            indices = [int(value) for value in values]
+            if len(set(indices)) != len(indices):
+                self.reply(400, {"error": "Повторные Shadow-индексы"})
+                return
+            folder = OUT / run_id
+            raw = folder / "gto5_shadow_decisions.jsonl"
+            report_file = folder / "gto5_shadow_report.json"
+            if not raw.is_file() or raw.is_symlink() or not report_file.is_file():
+                self.reply(404, {"error": "Нет исходного Shadow-журнала"})
+                return
+            try:
+                from gto5_shadow_detail import get_shadow_hands_batch, enrich_legacy_report
+                report = json.loads(report_file.read_text(encoding="utf-8"))
+                if report.get("format") != "SKACHKOV_GTO5_SHADOW_REPORT_V3":
+                    report = enrich_legacy_report(report, raw)
+                ranked = {}
+                for group in [report] + list(report.get("comparisons") or []):
+                    for row in (group.get("rankings") or {}).get("worst_decisions", ()):
+                        idx = row.get("shadow_id")
+                        if isinstance(idx, int):
+                            ranked[idx] = row
+                if any(idx not in ranked for idx in indices):
+                    self.reply(404, {"error": "Решение отсутствует в Top-20 Shadow"})
+                    return
+                result = get_shadow_hands_batch(raw, [ranked[idx] for idx in indices])
+                self.reply(200, result)
+            except (ValueError, TypeError, IndexError, KeyError, OSError) as exc:
+                self.reply(503, {"error": "Не удалось открыть журнал: " + str(exc)[:180]})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto5-shadow-decision", path)
         if match:

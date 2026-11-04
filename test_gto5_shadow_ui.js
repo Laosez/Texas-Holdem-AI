@@ -12,7 +12,8 @@ for(const marker of [
  'GTO 5.1 · СТАРШИНСТВО', 'Показать точный расчёт Any Two', 'href="#gto5ShadowPanel"', 'shadow-kpis',
  'shadow-tabs', 'shadow-overview-grid', 'shadow-hand-list',
  'GTO 5.0.5', 'GTO 5.1.5', 'value="gto50"', 'value="gto505"', 'value="gto51"', 'value="gto515"', 'value="gto52"', 'data.comparisons',
- 'gto5-shadow-decision?decision=', 'shadowCardTokens(row.hole', 'Точный аудит Any Two',
+ 'gto5-shadow-decision?decision=', 'gto5-shadow-decisions?',
+ 'shadowCardTokens(row.hole', 'Точный аудит Any Two',
  'function shadowSortedRows(', 'function shadowTable(',
  'function renderGTO5Shadow()', 'function loadGTO5Shadow(id)'
 ]) assert.ok(page.includes(marker),'missing Shadow marker: '+marker);
@@ -61,3 +62,17 @@ assert.equal(m.sort(sample,'total_regret_bb','river',true,true)[0].label,'river'
 assert.equal(m.sort(sample,'total_regret_bb','',false,true).length,4);
 assert.equal(m.format(.35),'0,35');
 console.log('Shadow dashboard: real inline JS parses, 7 tabs, responsive sections, sample filters and sorting verified');
+
+// The expensive-decisions view is fully visible, without per-card spoilers.
+const inline=page.slice(page.indexOf('function shadowPaintDecision('),
+                        page.indexOf('async function loadGTO5Shadow(id)'));
+assert.ok(inline.includes('shadowPrefetchHands(records.filter'),
+  'Top 20 should load automatically without user click');
+assert.ok(inline.includes('SHADOW-СОПОСТАВЛЕНИЯ'),
+  'paired EV must be visible inline');
+assert.ok(!inline.includes("el('details'"),
+  'no nested expanders allowed in inline costly errors');
+assert.ok(page.includes('id="gto30TracePanel" open'),
+  'recent street logs should open by default');
+assert.ok(page.includes('id="storageBreakdownRows"'),
+  'storage audit must show largest files in the UI');
