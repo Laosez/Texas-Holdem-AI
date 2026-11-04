@@ -498,7 +498,7 @@ function renderGTO30Trace(){
        });
      });
    }
-   if((bot.policy?.startsWith('gto_postflop_33_')||(bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_'))) && step.street_matrix){
+   if((bot.policy?.startsWith('gto_postflop_33_')||bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')) && step.street_matrix){
      const groups=step.street_matrix[step.street]||{};
      const titles=[['open','Без ставки',['check','bet']],['vs_bet','Против Bet',['fold','call','raise']],['vs_raise','Против Raise',['fold','call','reraise']]];
      titles.forEach(([key,title,names])=>{
