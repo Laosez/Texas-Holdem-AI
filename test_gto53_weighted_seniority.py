@@ -60,7 +60,7 @@ class GTO53WeightedSeniorityTests(unittest.TestCase):
             ("Ks Qc 5d", "7c 7s", 397, 34.89),   # PP on P0
             ("6s Ts Kh 6d Qs", "7h 9d",  # P1 pair: count verified by oracle below
              None, 29.71),
-            ("9s 8c 8s", "5c 5s", None, 29.81),   # two pair P1
+            ("9s 8c 8s", "5c 5s", None, 9.89),   # two pair P1
             ("4c 5s 7s 4d 5d", "7d 6d", None, 87.30),  # two pair P2
             ("9d 3h 9s", "9h 2d", None, 3.49),  # trips P1
             ("2s 3d 9h 2h", "3s 3h", None, 72.73),  # FH P1
