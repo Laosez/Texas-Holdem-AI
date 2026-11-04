@@ -91,6 +91,11 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="field wide"><label for="preflop_protocol">Префлоп · правила эксперимента</label>
 <select id="preflop_protocol"><option value="standard_v1" selected>Единый протокол V1 · сравнение RFI</option><option value="legacy">Исходные стратегии · без стандартизации</option><option value="any_two_limp">Any Two · все доставляют, постфлоп по стратегиям</option></select>
 <p class="note"><strong>Any Two:</strong> все 2–9 игроков обязательно входят в банк с любыми картами: на префлопе только Call/Check (без рейзов и фолдов); начиная с флопа каждый играет по выбранной Postflop-стратегии. Префлоп-чарты в этом режиме не используются. В режиме V1 сохраняются индивидуальные диапазоны открытия, но ответы и сайзинги стандартизированы. Это экспериментальные режимы, не GTO.</p></div>
+<div class="field wide"><label for="shadowPercent">GTO 5.0 · Shadow Mode (проверка против GTO 4.1)</label>
+<select id="shadowPercent"><option value="0" selected>Выкл. · максимальная скорость</option>
+<option value="10">10% решений · экономно</option><option value="25">25% решений · калибровка</option>
+<option value="100">100% решений · полный аудит, медленно</option></select>
+<p class="note">Работает только с GTO 5.0/5: 5.0 играет, GTO 4.1 независимо оценивает те же решения и не меняет раздачу. Результат появится после завершения серии; сравнение приближённое, не solver oracle.</p></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
 <section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
@@ -255,6 +260,11 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="field"><label for="gto30TraceDepth">Число раздач</label><select id="gto30TraceDepth"><option value="1">Последняя</option><option value="5">Последние 5</option></select></div>
 </div>
 <div id="gto30TraceRows" style="display:grid;gap:9px;margin-top:11px"><p class="note">Выбери завершённую сессию с адаптивным ботом.</p></div>
+</details>
+<details class="coverageAudit" id="gto5ShadowPanel" style="margin-top:12px">
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 5.0 · Shadow Mode · ошибки EV по улицам / оппонентам / бордам</summary>
+<p class="note">GTO 5.0 играет, GTO 4.1 проверяет выбранные решения. EV расхождение — с приближённой 4.1, не с точным solver. Все суммы в актуальных BB; группы с n&lt;30 не ранжируются.</p>
+<div id="gto5ShadowRows" style="display:grid;gap:12px;margin-top:12px"><p class="note">Выбери завершённую сессию с GTO 5.0 и включённым Shadow Mode.</p></div>
 </details></section>
 </div>
 <section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
@@ -289,7 +299,7 @@ let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
 let postflopValues=[''];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',gto_postflop_40_5:'GTO 4.0/5 · Board Range EV',gto_postflop_40_10:'GTO 4.0/10 · Board Range EV',gto_postflop_41_5:'GTO 4.1/5 · Joint Range EV · HU / Multiway',gto_postflop_41_10:'GTO 4.1/10 · Joint Range EV · HU / Multiway',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',gto_postflop_40_5:'GTO 4.0/5 · Board Range EV',gto_postflop_40_10:'GTO 4.0/10 · Board Range EV',gto_postflop_41_5:'GTO 4.1/5 · Joint Range EV · HU / Multiway',gto_postflop_41_10:'GTO 4.1/10 · Joint Range EV · HU / Multiway',gto_postflop_50_5:'GTO 5.0/5 alpha · Human Formula EV · HU/Multiway',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],
@@ -383,12 +393,13 @@ function drawBots(){
 }
 function reset(){
  bots=preset.map(x=>({pre:x[0],post:x[1]}));
- Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);drawBots();
+ Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);$('shadowPercent').value='0';drawBots();
 }
 function config(){
  if(!valid())throw Error('Стратегия одного из игроков не заполнена');
  const c={bots:bots.map(x=>({...x})),seat_mode:$('seat_mode').value,
-  button_policy:$('button_policy').value,preflop_protocol:$('preflop_protocol').value};
+  button_policy:$('button_policy').value,preflop_protocol:$('preflop_protocol').value,
+  shadow_percent:Number($('shadowPercent').value)};
  for(const id of numeric){const inp=$(id),v=Number(inp.value);if(!inp.value.trim()||!Number.isSafeInteger(v)||v<Number(inp.min||0)||(inp.max&&v>Number(inp.max)))throw Error('Некорректное поле: '+id);c[id]=v}
  if(c.bb<c.sb)throw Error('Big Blind должен быть не меньше Small Blind');return c;
 }
@@ -417,6 +428,72 @@ function renderLeaderboard(s){
  if(!report.leaderboard?.length){
   const tr=el('tr'),td=el('td','','Нет завершённого отчёта');
   td.colSpan=9;tr.append(td);root.append(tr);
+ }
+}
+let gto5ShadowSession='',gto5ShadowData=null;
+async function loadGTO5Shadow(id){
+ gto5ShadowSession=id;gto5ShadowData=null;
+ const host=$('gto5ShadowRows');host.replaceChildren(el('p','note','Загрузка Shadow-отчёта...'));
+ try{
+  const data=await get('/api/runs/'+id+'/gto5-shadow');
+  if(gto5ShadowSession!==id)return;
+  gto5ShadowData=data;renderGTO5Shadow();
+ }catch(err){
+  if(gto5ShadowSession===id)host.replaceChildren(el('p','bad','Shadow-отчёт недоступен: '+err.message));
+ }
+}
+function renderGTO5Shadow(){
+ const root=$('gto5ShadowRows'),data=gto5ShadowData||{};
+ root.replaceChildren();
+ if(!data.compared){
+  root.append(el('p','note',data.message||'Нет сопоставленных решений. Выбери GTO 5.0 и включи Shadow Mode при запуске.'));
+  return;
+ }
+ const overall=data.overall||{};
+ const txt=(n)=>n==null?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:2});
+ root.append(el('div','','Проверено: '+data.compared+' · пропущено: '+(data.skipped||0)+
+  ' · MAE EV '+txt(overall.mae_ev_bb)+' BB · mismatch '+txt(overall.mismatch_pct)+
+  '% · средний EV Regret '+txt(overall.mean_regret_bb)+' BB · всего '+txt(overall.total_regret_bb)+' BB'));
+ const makeTable=(heading,rows)=>{
+  const section=el('details','coverageAudit');section.open=false;
+  const summary=el('summary','',heading);section.append(summary);
+  if(!rows?.length){section.append(el('p','note','Нет наблюдений'));root.append(section);return}
+  const table=el('table','coverageTable');const thead=el('thead'),tr=el('tr');
+  ['Группа','n','MAE EV, BB','Неверный выбор %','EV regret, BB','Потери всего, BB','>5 BB, %'].forEach(t=>tr.append(el('th','',t)));
+  thead.append(tr);table.append(thead);
+  const body=el('tbody');
+  rows.forEach(x=>{
+   const tr=el('tr'),values=[x.label,x.n,txt(x.mae_ev_bb),txt(x.mismatch_pct),txt(x.mean_regret_bb),txt(x.total_regret_bb),txt(x.regret_over_5bb_pct)];
+   values.forEach(v=>tr.append(el('td','',String(v??'—'))));
+   if(!x.sufficient)tr.title='Недостаточно наблюдений для ранжирования';body.append(tr);
+  });
+  table.append(body);section.append(table);root.append(section);
+ };
+ const groups=data.groups||{};
+ for(const [dimension,label] of [
+  ['street','Улицы F/T/R'],['opponents','Число оппонентов 1/2/3/4+'],
+  ['P','Парность P'],['S','Связность S'],['F','Масти F'],
+  ['board_structure','Структуры бордов P · S · F'],
+  ['street_opponents','Улица × оппоненты'],
+  ['street_board','Улица × структура'],
+  ['opponents_board','Оппоненты × структура'],
+  ['street_opponents_board','Улица × оппоненты × структура']])
+  makeTable(label,groups[dimension]);
+ const ranks=data.rankings||{};
+ for(const [key,label] of [
+  ['frequent','Чаще неправильный выбор'],['frequent_ev_discrepancy','Чаще ошибка EV >5 BB'],
+  ['expensive','Дороже средняя ошибка'],['total_loss','Максимальная суммарная потеря']])
+  makeTable('ТОП: '+label,(ranks[key]||[]).map(v=>({...v,label:v.label||v.structure||'—'})));
+ const worst=ranks.worst_decisions||[];
+ if(worst.length){
+  const d=el('details','coverageAudit'),s=el('summary','','20 самых дорогих отдельных решений');d.append(s);
+  worst.forEach(row=>{
+   const item=el('p','small','Турнир '+row.tournament+' · рука '+row.hand_id+
+    ' · '+row.street+' '+(row.board||[]).join(' ')+
+    ' · '+row.opponents+' опп. · '+row.chosen5+' вместо '+row.chosen41+
+    ' · regret '+txt(row.regret_bb)+' BB');
+   d.append(item);
+  });root.append(d);
  }
 }
 let gto30TraceSession='',gto30TraceData=null;
@@ -539,6 +616,11 @@ $('gto30TraceBot').onchange=renderGTO30Trace;
 $('gto30TraceDepth').onchange=renderGTO30Trace;
 function present(s){
  selected=s;if(!s)return;
+ if(['completed','imported'].includes(s.status)){
+  if(gto5ShadowSession!==s.id)loadGTO5Shadow(s.id);
+ }else if(gto5ShadowSession!==s.id){
+  gto5ShadowSession='';$('gto5ShadowRows').replaceChildren(el('p','note','Отчёт появится после завершения серии.'));
+ }
  if(gto30TraceSession!==s.id && ['completed','imported'].includes(s.status))
   loadGTO30Trace(s.id);
  if(gto30TraceSession!==s.id && !['completed','imported'].includes(s.status)){
