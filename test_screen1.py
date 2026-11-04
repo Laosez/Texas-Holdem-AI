@@ -485,7 +485,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertNotIn('id="compareRandom"', page)
         self.assertIn("select.setAttribute('aria-label',title)",page)
         self.assertIn("const key=street==='pre'?'pre':'post';",page)
-        self.assertIn("const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];",page)
+        self.assertIn("postflopValues=['',...catalog.postflop_strategies];",page)
 
     def test_session_result_is_compact_with_analysis_deeplink(self):
         page=app.UI.read_text(encoding="utf-8")
