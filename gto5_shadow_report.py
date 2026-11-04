@@ -81,7 +81,10 @@ def compare(record):
             "chosen5": action, "chosen41": ideal,
             "board": ["".join(c) for c in record["board"]],
             "hand_id": record.get("hand_id"),
-            "tournament": record.get("tournament")}, None
+            "tournament": record.get("tournament"),
+            "bot": record.get("bot"),
+            "hole": record.get("hole") or [],
+            "shadow_id": record.get("_shadow_id")}, None
 
 
 def _metrics(rows, minimum):
@@ -112,6 +115,7 @@ MODEL_LABELS = {
     "gto505": "GTO 5.0.5",
     "gto51": "GTO 5.1",
     "gto515": "GTO 5.1.5",
+    "gto52": "GTO 5.2",
 }
 
 
@@ -152,14 +156,19 @@ def _aggregate_valid(valid, minimum):
 def aggregate_shadow(records, minimum=30):
     """Paired EV comparisons grouped by F/T/R, board, and exact model pair."""
     valid, skipped = [], Counter()
-    for rec in records:
+    for source_id, rec in enumerate(records):
+        # Stable reference to the matching record in shadow_decisions.jsonl.
+        # This allows a lazy full-hand lookup without keeping huge per-hand
+        # snapshots in the aggregate report.
+        if "_shadow_id" not in rec:
+            rec = {**rec, "_shadow_id": source_id}
         value, reason = compare(rec)
         if reason:
             skipped[reason] += 1
         else:
             valid.append(value)
     result = {
-        "format": "SKACHKOV_GTO5_SHADOW_REPORT_V2",
+        "format": "SKACHKOV_GTO5_SHADOW_REPORT_V3",
         "reference": "Reference model EV, not solver truth",
         "skipped": sum(skipped.values()),
         "skip_reasons": dict(skipped),
