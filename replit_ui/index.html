@@ -781,136 +781,177 @@ function shadowCardTokens(tokens,iconMap){
  });
  return box;
 }
-async function shadowOpenDecision(row,card,button,panel){
- button.disabled=true;panel.hidden=false;
- panel.replaceChildren(el('div','small','Загружаю журнал раздачи #'+row.hand_id+'...'));
- const url='/api/runs/'+encodeURIComponent(gto5ShadowSession)+
-    '/gto5-shadow-decision?decision='+row.shadow_id;
- const evs=ev=>Object.entries(ev||{}).map(([k,v])=>
-    String(k).toUpperCase()+' '+Number(v).toFixed(2)).join(' | ')||'—';
+
+function shadowEVSummary(label,ev){
+ const line=Object.entries(ev||{}).map(([action,value])=>
+   String(action).replace(':',' ').toUpperCase()+' '+shadowFormat(value)).join('  ·  ')||'—';
+ const item=el('div','shadow-ev-model');
+ item.append(el('span','shadow-ev-label',label),el('strong','',line));
+ return item;
+}
+function shadowPaintDecision(panel,d){
  const pct=v=>v==null?'—':(100*Number(v)).toFixed(2)+'%';
- try{
-  const d=await get(url);
-  panel.replaceChildren();
-  panel.append(el('div','small','HERO '+(d.hole||[]).join(' ')+
-    ' · турнир '+d.tournament+' / раздача '+d.hand_id+
-    ' · Shadow #'+d.shadow_id));
-  panel.append(el('div','small',shadowModelName(d.actor)+' EV: '+evs(d.ev_actor)));
-  panel.append(el('div','small',shadowModelName(d.reference_model)+' EV: '+evs(d.ev_reference)));
-  panel.append(el('div','note',d.note||''));
-  (d.steps||[]).forEach((step,i)=>{
-   const cell=el('div','small','');
-   cell.style.cssText='border-left:2px solid #5483a8;padding:4px 9px;margin:4px 0';
-   cell.append(el('div','','#'+(i+1)+' '+String(step.street).toUpperCase()+
-     ' '+(step.board||[]).join(' ')+' · '+String(step.decision||'').toUpperCase()+
-     (step.amount_chips!=null?' '+step.amount_chips:'')+
-     ' · OPP '+(step.opponents_count??step.opponents??'—')));
-   if(step.ev && Object.keys(step.ev).length)
-     cell.append(el('div','','EV: '+evs(step.ev)));
-   const m=step.equity_model||{};
-   if(m.seniority)cell.append(el('div','',
-     'Старшинство '+pct(m.seniority.win_fraction)+
-     ' · квантиль '+pct(m.hero_quantile)+
-     ' · equity proxy '+pct(m.proxy_equity)));
-   if(step.opponent_models?.length){
-     const more=el('details','', '');more.append(el('summary','','По оппонентам ('+
-       step.opponent_models.length+')'));
-     step.opponent_models.forEach(opp=>{
-      const r=opp.vs_bet||{};
-      more.append(el('div','', 'OPP '+opp.pid+
-        ' · equity '+pct(opp.equity_proxy)+
-        ' · Fold '+pct(r.fold?.p)+' / Call '+pct(r.call?.p)+
-        ' / Raise '+pct(r.raise?.p)));
-     });
-     cell.append(more);
-   }
-   panel.append(cell);
-  });
-  if(d.paired_steps?.length){
-    const more=el('details','', '');more.append(el('summary','',
-       'Shadow-сопоставления той же раздачи ('+d.paired_steps.length+')'));
-    d.paired_steps.forEach(s=>more.append(el('div','small',
-      String(s.street).toUpperCase()+' · '+(s.board||[]).join(' ')+
-      ' · выбрано '+String(s.chosen).toUpperCase()+
-      ' / эталон '+String(s.best_reference).toUpperCase()+
-      ' · EV '+evs(s.ev_actor)+' / '+evs(s.ev_reference))));
-    panel.append(more);
+ const cards={c:'♣',d:'♦',h:'♥',s:'♠'};
+ panel.replaceChildren();
+ const title=el('div','shadow-detail-title','ЖУРНАЛ HERO · Shadow #'+d.shadow_id+
+   ' · '+(d.trace_source==='full_hand_trace'?'полная история':'сохранённые Shadow-шаги'));
+ panel.append(title);
+ const compare=el('div','shadow-ev-pair');
+ compare.append(shadowEVSummary(shadowModelName(d.actor),d.ev_actor),
+   shadowEVSummary(shadowModelName(d.reference_model),d.ev_reference));
+ panel.append(compare);
+ if(d.note)panel.append(el('div','shadow-detail-note',d.note));
+ const steps=el('div','shadow-step-list');
+ (d.steps||[]).forEach((step,i)=>{
+  const item=el('div','shadow-step');
+  const head=el('div','shadow-step-head');
+  const left=el('div','shadow-step-heading');
+  left.append(el('b','',String(i+1).padStart(2,'0')+' · '+shadowReadable(step.street)));
+  left.append(shadowCardTokens(step.board||[],cards));
+  head.append(left);
+  head.append(el('span','shadow-step-decision',
+   String(step.decision||'—').toUpperCase()+
+   (step.amount_chips!=null?' '+step.amount_chips:'')+
+   ' · '+(step.opponents_count??step.opponents??'—')+' OPP'));
+  item.append(head);
+  if(step.ev && Object.keys(step.ev).length)
+   item.append(el('div','shadow-step-ev','EV '+Object.entries(step.ev).map(([a,v])=>
+       a.toUpperCase()+' '+shadowFormat(v)).join('  ·  ')));
+  const eq=step.equity_model||{};
+  if(eq.seniority||eq.hero_quantile!=null||eq.proxy_equity!=null)
+   item.append(el('div','shadow-step-metrics',
+     'Старшинство '+pct(eq.seniority?.win_fraction)+
+     '  ·  квантиль '+pct(eq.hero_quantile)+
+     '  ·  equity proxy '+pct(eq.proxy_equity)));
+  if(step.opponent_models?.length){
+   const others=el('div','shadow-opp-list');
+   step.opponent_models.forEach(opp=>{
+    const response=opp.vs_bet||{};
+    const band=Array.isArray(opp.band)&&opp.band.length===2?
+      pct(opp.band[0])+'–'+pct(opp.band[1]):'—';
+    others.append(el('div','shadow-opp',
+      'OPP '+opp.pid+' · диапазон '+band+' · equity '+pct(opp.equity_proxy)+
+      ' · Fold '+pct(response.fold?.p)+' / Call '+pct(response.call?.p)+
+      ' / Raise '+pct(response.raise?.p)));
+   });
+   item.append(others);
   }
-  const audit=el('button','btn sm outline','Точный аудит Any Two · это решение');
-  const auditResult=el('div','small','');audit.type='button';
-  audit.onclick=async()=>{
-    audit.disabled=true;auditResult.textContent='Считаю доступные руки OPP...';
-    try{
-      const v=(await get(url+'&exact=1')).exact_audit;
-      auditResult.replaceChildren(
-        el('div','',v.opponent_hands_examined+' допустимых рук OPP · категория '+v.hero_category),
-        el('div','','P категории: модель '+(v.formula_category_pct==null?'—':v.formula_category_pct.toFixed(2)+'%')+
-          ' / точно '+v.exact_category_pct.toFixed(2)+'%'),
-        el('div','','Старшинство: модель '+pct(v.formula_win_fraction)+
-          ' / точно '+pct(v.exact_win_fraction)+
-          ' · Δ '+(v.seniority_delta_pp==null?'—':v.seniority_delta_pp.toFixed(2)+' п.п.')),
-        el('div','','Слабее '+v.same_category_weaker+' · ничья '+v.same_category_tied+
-          ' · сильнее '+v.same_category_stronger),
-        el('div','','Точная текущая HU-доля: '+pct(v.exact_current_hu_showdown_share)),
-        el('div','note',v.interpretation+' ('+v.formula_source+')'));
-    }catch(e){auditResult.textContent='Ошибка аудита: '+e.message;audit.disabled=false;}
-  };
-  panel.append(audit,auditResult);panel.dataset.loaded='yes';
-  button.textContent='Показать / скрыть разбор раздачи';
- }catch(e){panel.replaceChildren(el('div','bad','Разбор недоступен: '+e.message));}
- finally{button.disabled=false;}
+  steps.append(item);
+ });
+ if(!steps.children.length)
+  steps.append(el('div','shadow-detail-note','Шаги Hero отсутствуют в исходном журнале.'));
+ panel.append(steps);
+ if(d.paired_steps?.length){
+  const match=el('div','shadow-paired');
+  match.append(el('div','shadow-detail-title',
+    'SHADOW-СОПОСТАВЛЕНИЯ · '+d.paired_steps.length));
+  d.paired_steps.forEach(v=>{
+   match.append(el('div','shadow-paired-row',
+    shadowReadable(v.street)+' · '+(v.board||[]).join(' ') +
+    ' · Hero '+String(v.chosen).toUpperCase()+
+    ' / эталон '+String(v.best_reference).toUpperCase()+
+    ' · EV Hero: '+Object.entries(v.ev_actor||{}).map(([a,n])=>a.toUpperCase()+' '+shadowFormat(n)).join(' / ')+
+    ' · EV эталона: '+Object.entries(v.ev_reference||{}).map(([a,n])=>a.toUpperCase()+' '+shadowFormat(n)).join(' / ')));
+  });
+  panel.append(match);
+ }
+ const tools=el('div','shadow-detail-tools');
+ const audit=el('button','btn sm outline','Рассчитать точный Any Two для выбранного решения');
+ audit.type='button';
+ const auditResult=el('div','shadow-audit-result');
+ audit.onclick=async()=>{
+  audit.disabled=true;
+  auditResult.textContent='Выполняю точный расчёт...';
+  try{
+   const url='/api/runs/'+encodeURIComponent(gto5ShadowSession)+
+     '/gto5-shadow-decision?decision='+encodeURIComponent(d.shadow_id)+'&exact=1';
+   const v=(await get(url)).exact_audit;
+   auditResult.replaceChildren(
+    el('div','',v.opponent_hands_examined+' возможных рук OPP · '+v.hero_category),
+    el('div','','P категории: модель '+(v.formula_category_pct==null?'—':shadowFormat(v.formula_category_pct)+'%')+
+      ' / точная '+shadowFormat(v.exact_category_pct)+'%'),
+    el('div','','Старшинство: модель '+pct(v.formula_win_fraction)+
+      ' / точное '+pct(v.exact_win_fraction)+
+      ' · Δ '+(v.seniority_delta_pp==null?'—':shadowFormat(v.seniority_delta_pp)+' п.п.')),
+    el('div','','Слабее '+v.same_category_weaker+' · ничья '+v.same_category_tied+
+      ' · сильнее '+v.same_category_stronger),
+    el('div','','Точная HU-доля на текущей улице: '+pct(v.exact_current_hu_showdown_share)),
+    el('div','shadow-detail-note',v.interpretation||''));
+   audit.textContent='Аудит рассчитан';
+  }catch(error){
+   auditResult.textContent='Аудит недоступен: '+error.message;
+   audit.disabled=false;
+  }
+ };
+ tools.append(audit,auditResult);
+ panel.append(tools);
+}
+let shadowDetailCache=Object.create(null),shadowDetailLoading=new Set();
+function shadowPrefetchHands(rows){
+ const session=gto5ShadowSession;
+ const wanted=rows.map(row=>Number(row.shadow_id)).filter(Number.isInteger)
+  .filter(id=>!shadowDetailCache[session+':'+id] && !shadowDetailLoading.has(session+':'+id));
+ if(!wanted.length)return;
+ wanted.forEach(id=>shadowDetailLoading.add(session+':'+id));
+ const url='/api/runs/'+encodeURIComponent(session)+'/gto5-shadow-decisions?'+
+   wanted.map(id=>'decision='+id).join('&');
+ get(url).then(data=>{
+  (data.decisions||[]).forEach(value=>shadowDetailCache[session+':'+value.shadow_id]=value);
+  (data.missing||[]).forEach(id=>
+    shadowDetailCache[session+':'+id]={error:'Исходная запись Shadow недоступна'});
+ }).catch(error=>{
+  wanted.forEach(id=>shadowDetailCache[session+':'+id]={error:error.message});
+ }).finally(()=>{
+  wanted.forEach(id=>shadowDetailLoading.delete(session+':'+id));
+  if(gto5ShadowSession===session && shadowView==='hands')renderGTO5Shadow();
+ });
 }
 function shadowHands(data,root){
  const records=(data.rankings||{}).worst_decisions||[];
- root.append(shadowTitle('20 самых дорогих отдельных решений'));
+ root.append(shadowTitle('20 самых дорогих отдельных решений · все подробности сразу'));
  root.append(el('p','shadow-help',
-  'Каждая ошибка привязана к точному Shadow-решению, руке Hero и исходным EV. Карты соперников не используются.'));
+  'Разница EV рассчитана относительно выбранной эталонной стратегии, а не фактический проигрыш в турнире. '+
+  'Журнал Hero, все действия по улицам и сравнение EV загружаются автоматически одним запросом. '+
+  'Карты соперников не используются; точный аудит запускается отдельно.'));
  if(!records.length){root.append(el('div','shadow-empty','Нет сохранённых решений'));return}
  const list=el('div','shadow-hand-list');
  const iconMap={c:'♣',d:'♦',h:'♥',s:'♠'};
  records.forEach((row,i)=>{
-  const card=el('div','shadow-hand');
+  const card=el('article','shadow-hand');
   const title=el('div','shadow-hand-top');
   title.append(el('strong','',String(i+1).padStart(2,'0')+' · Турнир '+(row.tournament??'—')+
    ' / раздача '+(row.hand_id??'—')));
   title.append(el('span','shadow-hand-loss',shadowFormat(row.regret_bb)+' BB'));
   card.append(title);
-  const cards=el('div','shadow-cards');
-  (row.board||[]).forEach(token=>{
-   const r=String(token),rank=r.slice(0,-1),suit=r.slice(-1);
-   cards.append(el('span','shadow-card'+((suit==='d'||suit==='h')?' red':''),rank+(iconMap[suit]||suit)));
-  });
-  card.append(cards);
+  card.append(shadowCardTokens(row.board||[],iconMap));
   card.append(el('div','shadow-hand-meta',
-   shadowReadable(row.street)+' · '+shadowReadable(row.opponents)+
-   ' · '+shadowReadable(row.structure)+' · MAE ΔEV '+shadowFormat(row.mean_ev_delta_bb)+' BB'));
+    shadowReadable(row.street)+' · '+shadowReadable(row.opponents)+
+    ' · '+shadowReadable(row.structure)+' · MAE ΔEV '+shadowFormat(row.mean_ev_delta_bb)+' BB'));
   const actions=el('div','shadow-hand-actions');
-  const readableAction=x=>String(x||'—').replace(':',' ');
-  actions.append(el('span','',shadowModelName(row.actor)+': '+readableAction(row.chosen5).toUpperCase()),
-   el('span','',shadowModelName(row.reference_model)+': '+readableAction(row.chosen41).toUpperCase()));
+  const action=x=>String(x||'—').replace(':',' ').toUpperCase();
+  actions.append(el('span','',shadowModelName(row.actor)+': '+action(row.chosen5)),
+    el('span','',shadowModelName(row.reference_model)+': '+action(row.chosen41)));
   card.append(actions);
   if(row.hole?.length===2){
-    const hero=el('div','shadow-hand-meta','HERO: ');
-    hero.append(shadowCardTokens(row.hole,iconMap));card.append(hero);
+   const hero=el('div','shadow-hero-line', 'HERO');
+   hero.append(shadowCardTokens(row.hole,iconMap));card.append(hero);
   }else card.append(el('div','shadow-hand-meta',
-    'В агрегате нет карт Hero; связь со старой исходной записью не найдена.'));
+   'Карты Hero не сохранились в отчёте: исторический журнал может быть неполным.'));
+  const detail=el('div','shadow-decision-detail');
   if(row.shadow_id!=null){
-    const btn=el('button','btn sm outline','Разобрать · EV / журнал / точный аудит');
-    btn.type='button';
-    const panel=el('div','', '');
-    panel.style.cssText='display:grid;gap:7px;margin-top:7px';
-    panel.hidden=true;
-    btn.onclick=()=>{
-      if(panel.dataset.loaded==='yes'){panel.hidden=!panel.hidden;return;}
-      shadowOpenDecision(row,card,btn,panel);
-    };
-    card.append(btn,panel);
-  }else if(row.detail_unavailable_reason)
-    card.append(el('div','small',row.detail_unavailable_reason));
+   const cached=shadowDetailCache[gto5ShadowSession+':'+row.shadow_id];
+   if(cached?.error)detail.append(el('div','shadow-detail-note','Разбор недоступен: '+cached.error));
+   else if(cached)shadowPaintDecision(detail,cached);
+   else detail.append(el('div','shadow-loading','Загружаю EV, все улицы и соперников...'));
+  }else detail.append(el('div','shadow-detail-note',
+    row.detail_unavailable_reason||'Для этой исторической записи нет однозначного Shadow-индекса.'));
+  card.append(detail);
   list.append(card);
  });
  root.append(list);
+ shadowPrefetchHands(records.filter(row=>row.shadow_id!=null));
 }
+
 async function loadGTO5Shadow(id){
  gto5ShadowSession=id;gto5ShadowData=null;shadowComparison='';
  const host=$('gto5ShadowRows');
