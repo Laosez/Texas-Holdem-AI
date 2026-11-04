@@ -89,7 +89,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .shadow-kpi.shadow-focus{border-color:#406da2;background:#142a43}
 .shadow-kpi.shadow-focus strong{color:#a8ceff}
 .shadow-tabs{display:flex;gap:5px;overflow-x:auto;scrollbar-color:#355573 #0c1c2f;padding:7px 0 10px;border-bottom:1px solid #35506c}
-.shadow-tab{flex:0 0 auto;font:750 12px/1.3 inherit;background:transparent;color:#a6bbd2;border:1px solid transparent;cursor:pointer;padding:10px 13px;border-radius:8px}
+.shadow-tab{flex:0 0 auto;font:inherit;font-size:12px;font-weight:750;background:transparent;color:#a6bbd2;border:1px solid transparent;cursor:pointer;padding:10px 13px;border-radius:8px}
 .shadow-tab:hover{background:#19334d;color:#fff}
 .shadow-tab[aria-selected="true"]{color:#e6f2ff;background:#23466d;border-color:#567faf}
 .shadow-view{display:grid;gap:13px;padding-top:2px;min-width:0}
@@ -568,7 +568,7 @@ function shadowReadable(value){
   P4:'P4 · каре',PH:'PH · фулл-хаус',
   S0:'S0 · разрыв',S2:'S2 · два подряд',S3:'S3 · три ранга',
   S4:'S4 · четыре ранга',S5:'S5 · стрит',
-  F0:'F0 · радуга',F2:'F2 · две масти',F3:'F3 · три одной масти',
+  F0:'F0 · радуга',F2:'F2 · две одной масти',F3:'F3 · три одной масти',
   F4:'F4 · четыре одной масти',F5:'F5 · флеш'
  };
  return String(value??'—').split(' | ').map(x=>names[x]||x).join(' / ');
@@ -577,7 +577,7 @@ function shadowSortedRows(rows,sort=shadowSort,query=shadowQuery,reliable=shadow
  const needle=String(query||'').trim().toLocaleLowerCase('ru-RU');
  return (Array.isArray(rows)?rows:[]).filter(x=>
   (!reliable||Number(x.n)>=30)&&
-  (!needle||shadowReadable(x.label||'').toLocaleLowerCase('ru-RU').includes(needle))
+  (!needle||(String(x.label||'')+' '+shadowReadable(x.label)).toLocaleLowerCase('ru-RU').includes(needle))
  ).sort((a,b)=>{
   const av=Number(a[sort]),bv=Number(b[sort]);
   const delta=(Number.isFinite(bv)?bv:-Infinity)-(Number.isFinite(av)?av:-Infinity);
@@ -636,7 +636,7 @@ function shadowSetSort(key){
 function shadowTable(rawRows,options={}){
  const rows=options.preserveOrder
   ?(rawRows||[]).filter(x=>(!shadowReliable||Number(x.n)>=30)&&
-     (!shadowQuery||shadowReadable(x.label||'').toLocaleLowerCase('ru-RU').includes(shadowQuery.toLocaleLowerCase('ru-RU'))))
+     (!shadowQuery||(String(x.label||'')+' '+shadowReadable(x.label)).toLocaleLowerCase('ru-RU').includes(shadowQuery.toLocaleLowerCase('ru-RU'))))
   :shadowSortedRows(rawRows);
  const fragment=document.createDocumentFragment();
  if(!rows.length){
