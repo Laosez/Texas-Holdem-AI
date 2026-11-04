@@ -740,12 +740,22 @@ def stats_for_folder(folder: Path) -> dict:
         if not bot or group not in (1,2,3,4) or street not in ("flop","turn","river"):
             continue
         raw={}
-        for field in ("decisions","open_opp","open_bet_n","open_check_n",
-                      "facing_opp","facing_fold_n","facing_call_n","facing_raise_n",
-                      "bet_n","check_n","fold_n","call_n","raise_n"):
+        action_fields = (
+            "decisions","open_opp","open_bet_n","open_check_n",
+            "facing_opp","facing_fold_n","facing_call_n","facing_raise_n",
+            "vs_bet_opp","vs_bet_fold_n","vs_bet_call_n","vs_bet_raise_n",
+            "vs_raise_opp","vs_raise_fold_n","vs_raise_call_n","vs_raise_reraise_n",
+            "restricted_response_opp",
+            "bet_size_pot_n","raise_size_pot_n",
+            "bet_n","check_n","fold_n","call_n","raise_n")
+        for field in action_fields:
             value=finite(row.get(field))
             if value is not None:
                 raw[field]=int(value)
+        for field in ("bet_size_pot_sum","raise_size_pot_sum"):
+            value=finite(row.get(field))
+            if value is not None:
+                raw[field]=value
         if raw.get("decisions",0)<=0:
             continue
         opened=raw.get("open_opp",0)
@@ -759,6 +769,16 @@ def stats_for_folder(folder: Path) -> dict:
             "fold_facing_pct":rate(raw.get("facing_fold_n",0),faced),
             "call_facing_pct":rate(raw.get("facing_call_n",0),faced),
             "raise_facing_pct":rate(raw.get("facing_raise_n",0),faced),
+            "vs_bet_fold_pct":rate(raw.get("vs_bet_fold_n",0),raw.get("vs_bet_opp",0)),
+            "vs_bet_call_pct":rate(raw.get("vs_bet_call_n",0),raw.get("vs_bet_opp",0)),
+            "vs_bet_raise_pct":rate(raw.get("vs_bet_raise_n",0),raw.get("vs_bet_opp",0)),
+            "vs_raise_fold_pct":rate(raw.get("vs_raise_fold_n",0),raw.get("vs_raise_opp",0)),
+            "vs_raise_call_pct":rate(raw.get("vs_raise_call_n",0),raw.get("vs_raise_opp",0)),
+            "vs_raise_reraise_pct":rate(raw.get("vs_raise_reraise_n",0),raw.get("vs_raise_opp",0)),
+            "bet_size_avg_pct":round(raw.get("bet_size_pot_sum",0)/raw["bet_size_pot_n"],2)
+                if raw.get("bet_size_pot_n",0) else None,
+            "raise_size_avg_pct":round(raw.get("raise_size_pot_sum",0)/raw["raise_size_pot_n"],2)
+                if raw.get("raise_size_pot_n",0) else None,
             "bet_decision_pct":rate(raw.get("bet_n",0),raw["decisions"]),
             "raise_decision_pct":rate(raw.get("raise_n",0),raw["decisions"]),
             "aggression_decision_pct":rate(
