@@ -21,7 +21,7 @@ vm.runInContext('var riverFilters={sign:"all",p:"all",s:"all",f:"all",sf:"all",s
  'var riverSort="impact",riverDescending=true,riverSampleTotals={a:20,b:20};'+
  plan.slice(start,end)+'\nthis.methods={parts:board150Parts,title:riverBoardDescription,tree:riverTree};',ctx);
 const m=ctx.methods;
-const c='S4 · F4 · SF4 · P1',d='S5 · F2';
+const c='S4 · F4 · SF4 · P1',d='S5';
 assert.deepEqual(JSON.parse(JSON.stringify(m.parts(c))),{p:'P1',s:'S4',f:'F4',sf:'SF4'});
 assert.equal(m.parts('PRE|NO_BOARD'),null);
 assert.equal(m.parts('P1 · S3 · F4 · SF3'),null,'old IDs must not be silently reclassified');
