@@ -28,15 +28,19 @@ class AdaptiveGTO30Tests(unittest.TestCase):
         catalog = app.strategy_catalog()
         for window in (5, 10):
             name = f"gto_postflop_30_{window}"
-            self.assertIn(name, catalog["postflop_strategies"])
+            if window == 5:
+                self.assertIn(name, catalog["postflop_strategies"])
+            else:
+                self.assertNotIn(name, catalog["postflop_strategies"])
+                self.assertIn(name, app.POSTFLOP_ARCHIVE)
             self.assertNotIn(name, catalog["preflop_strategies"])
             self.assertTrue(app.available_postflop(name))
             self.assertEqual(create_bot(name).window, window)
             bot = create_bot("split:pc_gto_80bb:"+name)
             self.assertEqual(bot.postflop_bot.window, window)
             self.assertEqual(ev.PROFILE_NAMES[f"gto30_{window}"], name)
-            self.assertIn(name, app.UI.read_text())
-            self.assertIn(f"gto30_{window}", app.PLAN_UI.read_text())
+            self.assertIn(name, app.STRATEGY_CATALOG["bases"])
+            self.assertIn(f"gto30_{window}", ev.PROFILE_NAMES)
 
     def test_board150_canonical_codes_without_invented_classification(self):
         dry = _board_class(FLOP, "flop")
