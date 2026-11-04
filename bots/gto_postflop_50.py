@@ -19,7 +19,7 @@ import os
 import time
 
 from bots.gto_postflop_33 import StreetMatrixGTO33Bot
-from bots.gto_postflop_30 import _board_class
+from bots.gto_postflop_30 import _board_class, AdaptiveGTO30Bot
 from bots.postflop_profiles import _amount, _fallthrough, read_hand
 from core.engine import eval_hand
 from core.bot_api import Action
@@ -287,9 +287,17 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             step = {
                 "street": view.street,
                 "board": ["".join(c) for c in view.board],
+                "board150": (self.last_model["board_classifier"] or {}).get("id"),
+                "board_anytwo_rank_pair_pct": AdaptiveGTO30Bot._anytwo_board_risk(view.board),
                 "hero_hole": ["".join(c) for c in view.hole_cards],
+                "hero_tier": "EV", "hero_made": "human P0-P3 formula",
+                "hero_draw_outs_estimate": read_hand(view.hole_cards, view.board).draw_outs,
                 "opponents_count": len(opponents),
-                "decision": action.type, "ev": self.last_model["ev"],
+                "decision": action.type, "amount_chips": action.amount,
+                "decision_mode": "gto50_alpha",
+                "street_matrix": groups[opponents[0]],
+                "opponents": [],
+                "ev": self.last_model["ev"], "equity_model": inputs,
                 "distribution": dist, "reason": "GTO 5.0 alpha: board formulas + proxy EV",
             }
             if not self._trace or self._trace[-1]["hand_id"] != view.hand_id:
