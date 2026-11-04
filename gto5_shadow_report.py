@@ -71,6 +71,8 @@ def compare(record):
     ideal = max(b, key=b.get)
     errors = [abs(a[k]-b[k])/bb for k in a]
     return {**tags, "street": street,
+            "actor": record.get("actor", "gto50"),
+            "reference_model": record.get("reference_model", "gto41"),
             "opponents": str(opponents) if opponents < 4 else "4+",
             "mean_ev_delta_bb": mean(errors),
             "max_ev_delta_bb": max(errors),
@@ -104,15 +106,15 @@ def _metrics(rows, minimum):
     }
 
 
-def aggregate_shadow(records, minimum=30):
-    """Summary by F/T/R, number of opponents, P, S, F, and intersections."""
-    valid, skipped = [], Counter()
-    for rec in records:
-        value, reason = compare(rec)
-        if reason:
-            skipped[reason] += 1
-        else:
-            valid.append(value)
+MODEL_LABELS = {
+    "gto41": "GTO 4.1",
+    "gto50": "GTO 5.0",
+    "gto505": "GTO 5.0.5",
+}
+
+
+def _aggregate_valid(valid, minimum):
+    """Same aggregation for the whole report and each actor/reference pair."""
     keys = {
         "street": ("street",),
         "opponents": ("opponents",),
@@ -141,11 +143,36 @@ def aggregate_shadow(records, minimum=30):
         "total_loss": sorted(eligible, key=lambda v: -v["total_regret_bb"])[:20],
         "worst_decisions": sorted(valid, key=lambda v: -v["regret_bb"])[:20],
     }
-    return {
-        "format": "SKACHKOV_GTO5_SHADOW_REPORT_V1",
-        "reference": "GTO 4.1 approximate EV (not ground truth)",
-        "compared": len(valid), "skipped": sum(skipped.values()),
+    return {"compared": len(valid), "overall": _metrics(valid, minimum),
+            "groups": groups, "rankings": rankings}
+
+
+def aggregate_shadow(records, minimum=30):
+    """Paired EV comparisons grouped by F/T/R, board, and exact model pair."""
+    valid, skipped = [], Counter()
+    for rec in records:
+        value, reason = compare(rec)
+        if reason:
+            skipped[reason] += 1
+        else:
+            valid.append(value)
+    result = {
+        "format": "SKACHKOV_GTO5_SHADOW_REPORT_V2",
+        "reference": "Reference model EV, not solver truth",
+        "skipped": sum(skipped.values()),
         "skip_reasons": dict(skipped),
-        "overall": _metrics(valid, minimum),
-        "groups": groups, "rankings": rankings,
+        **_aggregate_valid(valid, minimum),
     }
+    by_pair = defaultdict(list)
+    for row in valid:
+        by_pair[(row["actor"], row["reference_model"])].append(row)
+    result["comparisons"] = [{
+        "key": actor + ":" + ref,
+        "actor": actor, "reference_model": ref,
+        "label": (MODEL_LABELS.get(actor, actor) + " → " +
+                  MODEL_LABELS.get(ref, ref)),
+        **_aggregate_valid(rows, minimum),
+    } for (actor, ref), rows in sorted(by_pair.items())]
+    if len(result["comparisons"]) == 1:
+        result["reference"] = result["comparisons"][0]["label"]
+    return result

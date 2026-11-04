@@ -814,6 +814,9 @@ def checkpoint_config_key(args, names, source_sha256=None):
     # Only opt-in Shadow changes the experiment key.
     if getattr(args, "shadow_percent", 0):
         payload["shadow_percent"] = args.shadow_percent
+        # Previous 4.1 benchmark key remains compatible when unspecified.
+        if getattr(args, "shadow_reference", "gto41") != "gto41":
+            payload["shadow_reference"] = args.shadow_reference
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
@@ -863,6 +866,8 @@ def main():
     p.add_argument('--tournaments',type=int,default=200)
     p.add_argument('--parallel',type=int,default=2)
     p.add_argument('--shadow-percent',type=int,choices=(0,10,25,100),default=0)
+    p.add_argument('--shadow-reference', choices=('gto41','gto50','gto505'),
+                   default='gto41', help='4.1 benchmark or opposite GTO 5 version')
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--chips',type=int,default=500)
     p.add_argument('--sb',type=int,default=1)
@@ -877,6 +882,7 @@ def main():
                    help='Rotate starting seats each tournament (default), or retain historical fixed seating')
     a=p.parse_args()
     os.environ['POKER_GTO5_SHADOW_PERCENT'] = str(a.shadow_percent)
+    os.environ['POKER_GTO5_SHADOW_REFERENCE'] = a.shadow_reference
     os.environ["POKER_BUTTON_POLICY"]=a.button_policy
     if os.environ.get('THAI_ENGINE_IMPL', '').lower() != 'legacy':
         p.error('v4 requires THAI_ENGINE_IMPL=legacy: only legacy supports on_deal observation.')
@@ -974,6 +980,7 @@ def main():
     from gto5_shadow_report import aggregate_shadow
     with shadow_path.open('r', encoding='utf-8') as shadow_input:
         shadow_report = aggregate_shadow((json.loads(line) for line in shadow_input if line.strip()))
+    shadow_report["requested_reference"] = a.shadow_reference
     write_json(Path(a.out)/'gto5_shadow_report.json', shadow_report)
     simulation_seconds = time.perf_counter()-start_time
     report, report_tables = tournament_report(

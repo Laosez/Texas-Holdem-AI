@@ -398,7 +398,15 @@ def strategy_catalog():
                                  "13-rank combinatoric made straight/flush proxy",
                                  "24 street opponent action frequencies",
                                  "chipEV HU/multiway via category-quantile approximation",
-                                 "optional GTO 4.1 shadow calibration at 10/25/100%"]
+                                 "optional Shadow comparison: GTO 4.1 or GTO 5.0.5"]
+                },
+                "gto_postflop_505_5": {
+                    "label": "GTO 5.0.5/5 alpha · округление вероятностей до 5% · HU/Multiway",
+                    "model": "human_board_ev_round5_alpha",
+                    "features": ["Same GTO 5.0 formulas/response model/EV sizing",
+                                 "independent 5 pp probability rounding BEFORE EV normalization",
+                                 "human categories P0–P3; neutral K=1 and x=5.88%",
+                                 "optional Shadow comparison against GTO 5.0 or GTO 4.1"]
                 },
                 "gto_postflop_41_5": {
                     "label": "GTO 4.1/5 · Joint Range EV · HU / Multiway",
@@ -556,8 +564,12 @@ def validate_config(data: dict) -> dict:
     shadow_percent = bounded_int(data.get("shadow_percent", 0), "Shadow Mode", 0, 100)
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
+    shadow_reference = data.get("shadow_reference", "gto41")
+    if shadow_reference not in ("gto41", "gto50", "gto505"):
+        raise ValueError("Shadow Mode: неверная эталонная стратегия")
     config = {
         "shadow_percent": shadow_percent,
+        "shadow_reference": shadow_reference,
         "players": bots, "bots": rows,
         "button_policy":button_policy,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
@@ -1096,6 +1108,7 @@ def worker(job: dict) -> None:
         "--seat-mode", config["seat_mode"],
         "--button-policy",config.get("button_policy","moving"),
         "--shadow-percent", str(config.get("shadow_percent", 0)),
+        "--shadow-reference", config.get("shadow_reference", "gto41"),
         "--out", str(output),
         "--checkpoint-dir", str(output / "_checkpoints"),
     ]
@@ -1104,7 +1117,8 @@ def worker(job: dict) -> None:
         env = dict(os.environ, THAI_ENGINE_IMPL="legacy", PYTHONUNBUFFERED="1",
                    POKER_PLAN_SNAPSHOT_DIR=str(output / "plan_snapshots"),
                    POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy"),
-                   POKER_GTO5_SHADOW_PERCENT=str(config.get("shadow_percent", 0)))
+                   POKER_GTO5_SHADOW_PERCENT=str(config.get("shadow_percent", 0)),
+                   POKER_GTO5_SHADOW_REFERENCE=config.get("shadow_reference", "gto41"))
         with log_path.open("a", encoding="utf-8") as log:
             log.write("\n[runner] Start or resume at " + now() +
                       " | preflop_protocol="+config.get("preflop_protocol","legacy")+"\n")
@@ -1758,7 +1772,7 @@ class Handler(BaseHTTPRequestHandler):
             target = OUT / run_id / "gto5_shadow_report.json"
             if not target.is_file() or target.is_symlink():
                 self.reply(200, {"compared": 0, "groups": {},
-                                 "message": "Shadow-отчёт появится после завершения серии с GTO 5.0."})
+                                 "message": "Shadow-отчёт появится после завершения серии с GTO 5.0 или 5.0.5."})
                 return
             try:
                 self.reply(200, json.loads(target.read_text(encoding="utf-8")))

@@ -5,6 +5,8 @@ on:
       - gto5_shadow_report.py
       - test_gto5_shadow_report.py
       - test_gto_postflop_50.py
+      - test_gto505_rounding.py
+      - bots/__init__.py
       - bots/gto_postflop_50.py
       - replit_simulator.py
       - export_preflop_ranges_v4.py
@@ -17,6 +19,8 @@ on:
       - gto5_shadow_report.py
       - test_gto5_shadow_report.py
       - test_gto_postflop_50.py
+      - test_gto505_rounding.py
+      - bots/__init__.py
       - bots/gto_postflop_50.py
       - replit_simulator.py
       - export_preflop_ranges_v4.py
@@ -33,7 +37,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run shadow report regression tests
-        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50
+        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50 test_gto505_rounding
       - name: Verify Shadow dashboard interaction and sorting
         run: node test_gto5_shadow_ui.js
       - name: Tournament Shadow 100% integration smoke
@@ -57,4 +61,29 @@ jobs:
           assert report['groups']['board_structure'], report
           assert (root/'tournament_report.json').is_file()
           print('Shadow paired decision audit:',report['compared'])
+          PY
+
+      - name: GTO 5.0.5 round5 Shadow 100% integration smoke
+        env:
+          THAI_ENGINE_IMPL: legacy
+          POKER_PREFLOP_PROTOCOL: any_two_limp
+        run: |
+          python export_preflop_ranges_v4.py \
+            --players "P1=split:random:gto_postflop_505_5,P2=split:random:random_2" \
+            --tournaments 1 --parallel 1 --seed 488 --chips 200 \
+            --sb 1 --bb 2 --blind-increase-every 20 --max-hands 100 \
+            --shadow-percent 100 --shadow-reference gto50 --out /tmp/gto505_e2e
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/gto505_e2e')
+          report=json.loads((root/'gto5_shadow_report.json').read_text())
+          assert report['compared'] > 0, report
+          assert report['requested_reference']=='gto50', report
+          assert report['comparisons'][0]['label']=='GTO 5.0.5 → GTO 5.0', report
+          assert report['groups']['street'], report
+          events=[json.loads(line) for line in (root/'gto5_shadow_decisions.jsonl').read_text().splitlines() if line.strip()]
+          assert events and all(row['actor']=='gto505' and row['reference_model']=='gto50' for row in events)
+          assert (root/'tournament_report.json').is_file()
+          print('Rounded v baseline Shadow paired decisions:',report['compared'])
           PY

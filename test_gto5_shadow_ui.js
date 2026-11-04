@@ -7,8 +7,9 @@ const assert = require('node:assert/strict');
 const page = fs.readFileSync('replit_ui/index.html','utf8');
 for(const marker of [
  'id="gto5ShadowPanel"', 'id="gto5ShadowRows"', 'id="gto5ShadowStatus"',
- 'id="shadowPercent"', 'href="#gto5ShadowPanel"', 'shadow-kpis',
+ 'id="shadowPercent"', 'id="shadowReference"', 'href="#gto5ShadowPanel"', 'shadow-kpis',
  'shadow-tabs', 'shadow-overview-grid', 'shadow-hand-list',
+ 'GTO 5.0.5', 'value="gto50"', 'value="gto505"', 'data.comparisons',
  'function shadowSortedRows(', 'function shadowTable(',
  'function renderGTO5Shadow()', 'function loadGTO5Shadow(id)'
 ]) assert.ok(page.includes(marker),'missing Shadow marker: '+marker);
@@ -37,6 +38,8 @@ vm.runInContext(script.slice(begin,end)+
   '\nthis.shadowTest={sort:shadowSortedRows,readable:shadowReadable,format:shadowFormat,nav:SHADOW_NAV};',ctx);
 const m=ctx.shadowTest;
 assert.equal(m.nav.length,7);
+assert.ok(page.includes('shadow_reference:$(\'shadowReference\').value'),'benchmark config missing');
+assert.ok(page.includes("pairs.find(x=>x.key===shadowComparison)"),'report pair selector missing');
 assert.match(m.readable('flop | 2'),/Флоп.*2 оппонента/);
 assert.match(m.readable('P0'),/без пары/);
 
