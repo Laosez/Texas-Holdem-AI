@@ -10,7 +10,7 @@ from bots.gto_postflop_50 import (
 )
 from bots.hand_seniority_51 import hero_seniority, hero_seniority_52
 from gto5_shadow_report import aggregate_shadow
-from gto5_shadow_detail import enrich_legacy_report, get_shadow_hand
+from gto5_shadow_detail import enrich_legacy_report, get_shadow_hand, get_shadow_hands_batch
 from gto_trace_exact_audit import exact_current_hand_audit
 from test_gto_postflop_50 import view
 
@@ -117,6 +117,59 @@ class GTO52Tests(unittest.TestCase):
             self.assertAlmostEqual(detail["exact_audit"]["exact_win_fraction"], .861789, places=5)
             with self.assertRaises(IndexError):
                 get_shadow_hand(path, 1)
+
+
+    def test_shadow_batch_one_pass_returns_complete_inline_timeline(self):
+        # Three events for the same tournament/hand, but different Hero seats
+        # must NEVER be mixed into the requested hand's timeline.
+        first = {
+            "tournament": 12, "hand_id": 10, "bot": "Hero",
+            "actor": "gto53", "reference_model": "gto41",
+            "street": "flop", "opponents": 2, "board": ["Ad", "8s", "8h"],
+            "hole": ["As", "Kh"], "bb": 2,
+            "chosen5": "bet:10",
+            "ev5": {"bet:10": 8.0, "check": 6.0},
+            "ev41": {"bet:10": 7.0, "check": 9.0},
+            "hand_steps": [
+                {"street": "flop", "board": ["Ad", "8s", "8h"],
+                 "decision": "bet", "amount_chips": 10, "opponents_count": 2,
+                 "ev": {"bet": 8.0, "check": 6.0}},
+                {"street": "river", "board": ["Ad", "8s", "8h", "Qs", "Jd"],
+                 "decision": "fold", "opponents_count": 2,
+                 "ev": {"call": -4.0, "fold": 0.0}},
+            ],
+        }
+        other = {**first, "bot": "Villain", "hole": ["Ks", "Qd"],
+                 "chosen5": "check", "hand_steps": []}
+        last = {**first, "street": "river",
+                "board": ["Ad", "8s", "8h", "Qs", "Jd"],
+                "chosen5": "fold", "hand_steps": first["hand_steps"],
+                "ev5": {"call": -4.0, "fold": 0.0},
+                "ev41": {"call": 25.0, "fold": 0.0}}
+        with tempfile.TemporaryDirectory() as folder:
+            file = Path(folder) / "gto5_shadow_decisions.jsonl"
+            rows = [first, other, last]
+            file.write_text("\n".join(json.dumps(r) for r in rows)+"\n",
+                            encoding="utf-8")
+            report = aggregate_shadow(rows)
+            wanted = [r for r in report["rankings"]["worst_decisions"]
+                      if r["shadow_id"] in (0, 2)]
+            result = get_shadow_hands_batch(file, wanted)
+            self.assertEqual(len(result["decisions"]), 2)
+            self.assertFalse(result["missing"])
+            self.assertTrue(result["scanned_once"])
+            for detail in result["decisions"]:
+                self.assertEqual(detail["bot"], "Hero")
+                self.assertEqual(detail["hole"], ["As", "Kh"])
+                self.assertEqual(len(detail["steps"]), 2)
+                self.assertEqual(detail["trace_source"], "full_hand_trace")
+                self.assertEqual(len(detail["paired_steps"]), 2)
+                self.assertNotIn("Villain", json.dumps(detail))
+                self.assertNotIn("Ks", json.dumps(detail))
+            with self.assertRaises(ValueError):
+                get_shadow_hands_batch(file, wanted+wanted)
+            with self.assertRaises(ValueError):
+                get_shadow_hands_batch(file, [])
 
 
 if __name__ == "__main__":
