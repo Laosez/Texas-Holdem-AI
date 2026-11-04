@@ -63,28 +63,33 @@ BASE_BOTS = {
     "wide_defender", "nit", "loose_passive", "maniac",
     "maniac_mixed", "random", "random_2", "random_3",
 }
-SPLIT_PARTS = frozenset(json.loads(
+STRATEGY_CATALOG = json.loads(
     (ROOT / "strategy_catalog" / "available_bases.json").read_text(encoding="utf-8")
-)["bases"])
+)
+SPLIT_PARTS = frozenset(STRATEGY_CATALOG["bases"])
 
 # Screen 1 choices are street-specific. The full engine catalog remains
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
-POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "gto_postflop_33_5", "gto_postflop_33_10", "gto_postflop_40_5", "gto_postflop_40_10", "gto_postflop_41_5", "gto_postflop_41_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
-    "chaser_postflop_v1", "trapper_postflop_v1", "random",
-)
-# The new Screen 1 editor exposes exactly these five strategies.
+# Single source of truth for both Sheet 1 and Sheet 2.
+POSTFLOP_PRIMARY = tuple(STRATEGY_CATALOG["postflop_selectable"])
 POSTFLOP_CHOICES = frozenset(POSTFLOP_PRIMARY)
 # Old historical sessions still load their original strategy tokens.
 POSTFLOP_ARCHIVE = frozenset({
     "gto", "smart", "tag_punisher", "wide_defender",
     "baseline_sane", "nit", "loose_passive", "maniac",
     "maniac_mixed", "pressure_filler", "random",
-})
+} | {name for name in SPLIT_PARTS
+     if name.startswith("gto_postflop_") and name.endswith("_10")})
+# Archived /10 profiles keep their original memory and remain replayable.
+# Only the catalog's /5 profiles may be chosen in new sessions.
 RANDOM_ALIAS_RE = re.compile(r"random_(?:[2-9]|10)\Z")
 if not PREFLOP_CHOICES | POSTFLOP_CHOICES <= SPLIT_PARTS:
     raise RuntimeError("The UI contains an unregistered bot strategy")
+if len(POSTFLOP_PRIMARY) != len(POSTFLOP_CHOICES) or any(
+        name.startswith("gto_postflop_") and name.endswith("_10")
+        for name in POSTFLOP_PRIMARY):
+    raise RuntimeError("The postflop selection catalog is duplicate or includes /10")
 
 
 def available_postflop(name: str) -> bool:
@@ -386,6 +391,15 @@ def strategy_catalog():
                                  "draw-aware flop and turn showdown equity", "Bet/Check and Call/Fold chipEV",
                                  "one-street checkdown approximation; HU only", "ten-opportunity memory"]
                 },
+                "gto_postflop_50_5": {
+                    "label": "GTO 5.0/5 alpha · Human Board Formulas · HU/Multiway",
+                    "model": "human_board_ev_alpha",
+                    "features": ["P0–P3 river formulas + simple street y corrections",
+                                 "13-rank combinatoric made straight/flush proxy",
+                                 "24 street opponent action frequencies",
+                                 "chipEV HU/multiway via category-quantile approximation",
+                                 "optional GTO 4.1 shadow calibration at 10/25/100%"]
+                },
                 "gto_postflop_41_5": {
                     "label": "GTO 4.1/5 · Joint Range EV · HU / Multiway",
                     "model": "joint_range_ev",
@@ -539,7 +553,11 @@ def validate_config(data: dict) -> dict:
     button_policy=data.get("button_policy","dead_button")
     if button_policy not in ("dead_button","moving"):
         raise ValueError("Режим баттона: dead_button или moving")
+    shadow_percent = bounded_int(data.get("shadow_percent", 0), "Shadow Mode", 0, 100)
+    if shadow_percent not in (0, 10, 25, 100):
+        raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     config = {
+        "shadow_percent": shadow_percent,
         "players": bots, "bots": rows,
         "button_policy":button_policy,
         "tournaments": bounded_int(data.get("tournaments", 90), "Турниры", 1, 3000),
@@ -1077,6 +1095,7 @@ def worker(job: dict) -> None:
         "--max-hands", str(config["max_hands"]),
         "--seat-mode", config["seat_mode"],
         "--button-policy",config.get("button_policy","moving"),
+        "--shadow-percent", str(config.get("shadow_percent", 0)),
         "--out", str(output),
         "--checkpoint-dir", str(output / "_checkpoints"),
     ]
@@ -1084,7 +1103,8 @@ def worker(job: dict) -> None:
     try:
         env = dict(os.environ, THAI_ENGINE_IMPL="legacy", PYTHONUNBUFFERED="1",
                    POKER_PLAN_SNAPSHOT_DIR=str(output / "plan_snapshots"),
-                   POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy"))
+                   POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy"),
+                   POKER_GTO5_SHADOW_PERCENT=str(config.get("shadow_percent", 0)))
         with log_path.open("a", encoding="utf-8") as log:
             log.write("\n[runner] Start or resume at " + now() +
                       " | preflop_protocol="+config.get("preflop_protocol","legacy")+"\n")
@@ -1726,6 +1746,24 @@ class Handler(BaseHTTPRequestHandler):
                     "created": j["created"], "updated": j["updated"]
                 } for j in jobs]
             self.reply(200, {"runs": data})
+            return
+        match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto5-shadow", path)
+        if match:
+            run_id = match.group(1)
+            with MUTEX:
+                job = RUNS.get(run_id)
+            if job is None:
+                self.reply(404, {"error": "Серия не найдена"})
+                return
+            target = OUT / run_id / "gto5_shadow_report.json"
+            if not target.is_file() or target.is_symlink():
+                self.reply(200, {"compared": 0, "groups": {},
+                                 "message": "Shadow-отчёт появится после завершения серии с GTO 5.0."})
+                return
+            try:
+                self.reply(200, json.loads(target.read_text(encoding="utf-8")))
+            except (OSError, ValueError):
+                self.reply(503, {"error": "Не удалось прочитать Shadow-отчёт"})
             return
         match = re.fullmatch(r"/api/runs/([A-Za-z0-9_]+)/gto30-trace", path)
         if match:

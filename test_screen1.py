@@ -382,8 +382,15 @@ class ScreenOneTests(unittest.TestCase):
         catalog = app.strategy_catalog()
         self.assertEqual(set(catalog["preflop_strategies"]),
                          {"a17_preflop", "pc_gto_80bb", "random"})
-        expected=("gto_postflop_v1","gto_postflop_20","gto_postflop_21","gto_postflop_21a","gto_postflop_21b","gto_postflop_21c","gto_postflop_21d","gto_postflop_21e","gto_postflop_21f","gto_postflop_30_5","gto_postflop_30_10","gto_postflop_31_5","gto_postflop_31_10","gto_postflop_32_5","gto_postflop_32_10","gto_postflop_33_5","gto_postflop_33_10","gto_postflop_40_5","gto_postflop_40_10","gto_postflop_41_5","gto_postflop_41_10","s100_postflop_v1","tag_postflop_v1","lag_postflop_v1",
-                  "chaser_postflop_v1","trapper_postflop_v1","random")
+        source=json.loads((app.ROOT/"strategy_catalog"/"available_bases.json")
+                          .read_text(encoding="utf-8"))
+        expected=tuple(source["postflop_selectable"])
+        self.assertFalse(any(v.endswith("_10") and v.startswith("gto_postflop_")
+                             for v in expected))
+        self.assertIn("gto_postflop_41_5",expected)
+        self.assertNotIn("gto_postflop_41_10",expected)
+        self.assertEqual(set(source["bases"]) & {"gto_postflop_41_10"},
+                         {"gto_postflop_41_10"})
         self.assertEqual(tuple(catalog["postflop_strategies"]),expected)
         self.assertEqual(app.POSTFLOP_CHOICES,set(expected))
         self.assertNotIn("gto",catalog["preflop_strategies"])
@@ -401,10 +408,11 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(split.preflop_name,"pc_gto_80bb")
         self.assertEqual(split.postflop_name,"gto")
         page=app.UI.read_text(encoding="utf-8")
-        self.assertIn("const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_21a','gto_postflop_21b','gto_postflop_21c','gto_postflop_21d','gto_postflop_21e','gto_postflop_21f','gto_postflop_30_5','gto_postflop_30_10','gto_postflop_31_5','gto_postflop_31_10','gto_postflop_32_5','gto_postflop_32_10','gto_postflop_33_5','gto_postflop_33_10','gto_postflop_40_5','gto_postflop_40_10','gto_postflop_41_5','gto_postflop_41_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1']",page)
-        self.assertIn("postflopValues=['',...(catalog.postflop_strategies||POSTFLOP_WITH_RANDOM)];",page)
-        self.assertIn("gto_postflop_41_5:'GTO 4.1/5 · Joint Range EV · HU / Multiway'",page)
-        self.assertIn("gto_postflop_41_10:'GTO 4.1/10 · Joint Range EV · HU / Multiway'",page)
+        self.assertNotIn("const POSTFLOP_FIVE=",page)
+        self.assertNotIn("POSTFLOP_WITH_RANDOM",page)
+        self.assertIn("postflopValues=['',...catalog.postflop_strategies];",page)
+        self.assertIn("Object.entries(catalog.postflop_profiles||{})",page)
+        self.assertIn("isArchivedPostflop(normalized)",page)
         self.assertNotIn('id="compareFivePost"',page)
         self.assertNotIn('id="compareOldGto"',page)
         self.assertIn("root.append(botBulkRow());",page)
@@ -477,7 +485,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertNotIn('id="compareRandom"', page)
         self.assertIn("select.setAttribute('aria-label',title)",page)
         self.assertIn("const key=street==='pre'?'pre':'post';",page)
-        self.assertIn("const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];",page)
+        self.assertIn("postflopValues=['',...catalog.postflop_strategies];",page)
 
     def test_session_result_is_compact_with_analysis_deeplink(self):
         page=app.UI.read_text(encoding="utf-8")

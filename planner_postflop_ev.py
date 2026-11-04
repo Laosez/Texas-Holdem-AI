@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 import math
 import multiprocessing
 import random
@@ -25,7 +26,7 @@ from dataclasses import dataclass
 import planner_core as core
 import planner_equity as eq
 
-PROFILE_NAMES = {
+_LEGACY_PROFILE_NAMES = {
     "gto": "gto_postflop_v1",
     "gto20": "gto_postflop_20",
     "gto30_5": "gto_postflop_30_5",
@@ -47,6 +48,15 @@ PROFILE_NAMES = {
     "random": "random",
     "none": None,
 }
+# Shared server catalog is authoritative for new Sheet 1 AND Sheet 2 choices.
+# Old planner shorthand and /10 identifiers are accepted for replay only.
+_STRATEGY_CATALOG = json.loads((Path(__file__).resolve().parent /
+    "strategy_catalog" / "available_bases.json").read_text(encoding="utf-8"))
+SELECTABLE_POSTFLOP = tuple(_STRATEGY_CATALOG["postflop_selectable"])
+PROFILE_NAMES = {name: name for name in SELECTABLE_POSTFLOP}
+PROFILE_NAMES.update(_LEGACY_PROFILE_NAMES)
+PROFILE_NAMES.update({name: name for name in _STRATEGY_CATALOG["bases"]
+                      if name.startswith("gto_postflop_") and name.endswith("_10")})
 RANKS = "23456789TJQKA"
 SUITS = "cdhs"
 PREFLOP_BB = 2

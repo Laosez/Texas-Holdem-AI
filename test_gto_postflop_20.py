@@ -61,12 +61,13 @@ class GTO20Tests(unittest.TestCase):
         expected={"gto_postflop_v1","gto_postflop_20","gto_postflop_21",
                   "gto_postflop_21a","gto_postflop_21b","gto_postflop_21c",
                   "gto_postflop_21d","gto_postflop_21e","gto_postflop_21f",
-                  "gto_postflop_30_5","gto_postflop_30_10",
-                  "gto_postflop_31_5","gto_postflop_31_10",
-                  "gto_postflop_32_5","gto_postflop_32_10",
-                  "gto_postflop_33_5","gto_postflop_33_10",
-                  "gto_postflop_40_5","gto_postflop_40_10",
-                  "gto_postflop_41_5","gto_postflop_41_10"}
+                  "gto_postflop_30_5",
+                  "gto_postflop_31_5",
+                  "gto_postflop_32_5",
+                  "gto_postflop_33_5",
+                  "gto_postflop_40_5",
+                  "gto_postflop_41_5",
+                  "gto_postflop_50_5"}
         self.assertEqual({name for name in catalog["postflop_strategies"]
                           if name.startswith("gto_postflop_")},expected)
         self.assertEqual(ev.PROFILE_NAMES["gto"],"gto_postflop_v1")
@@ -81,8 +82,8 @@ class GTO20Tests(unittest.TestCase):
         for old in ("gto2","gto3","gto4"):
             self.assertNotIn(old,ev.PROFILE_NAMES)
         page=app.PLAN_UI.read_text(encoding="utf-8")
-        self.assertIn('<option value="gto20">GTO 2.0',page)
-        self.assertIn('<option value="gto" selected>GTO 1',page)
+        self.assertIn('useSharedPostflopCatalog(sharedCatalog);',page)
+        self.assertIn('<select id="heroPostflop"></select>',page)
         for old in ("<option value=\"gto2\"","<option value=\"gto3\"",
                     "<option value=\"gto4\""):
             self.assertNotIn(old,page)

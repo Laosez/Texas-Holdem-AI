@@ -437,6 +437,8 @@ def run_one(task):
     import bots
     import run_tournament_stats as runner
     tournament_id,names,chips,sb,bb,escalate,max_hands,seed,seat_offset = task
+    os.environ['POKER_SHADOW_TOURNAMENT'] = str(seed) + ':' + str(tournament_id)
+    observed_bb = {}
     instances=[]
     old=runner.create_bot
     old_table=runner.make_table
@@ -462,6 +464,7 @@ def run_one(task):
                     observer.observe_deal(hand_id, cards, pos_by_pid[pid], table_size)
         table.on_deal=on_deal
         def on_hand_end(hid, net, current_bb, showdown, winners):
+            observed_bb[hid] = current_bb
             for observer in instances:
                 observer.observe_hand_end(hid, net, current_bb, showdown, winners)
         table.on_hand_end=on_hand_end
@@ -483,6 +486,13 @@ def run_one(task):
                     "hands": trace_fn(),
                 })
         result["gto30_last5"] = adaptive_traces
+        shadow_events = []
+        for bot in instances:
+            policy = getattr(bot.inner, 'postflop_bot', bot.inner)
+            for event in getattr(policy, 'shadow_records', ()):
+                shadow_events.append({**event, 'bb': observed_bb.get(event.get('hand_id'), bb),
+                                      'bot': bot.name, 'tournament': tournament_id})
+        result['gto5_shadow'] = shadow_events
         timings = [
             {'bot': bot.name, 'street': street, **dict(stats)}
             for bot in instances
@@ -800,6 +810,10 @@ def checkpoint_config_key(args, names, source_sha256=None):
         "seat_mode": args.seat_mode,
         "source_sha256": source_sha256 or hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
+    # Preserve the exact historic checkpoint digest with Shadow disabled.
+    # Only opt-in Shadow changes the experiment key.
+    if getattr(args, "shadow_percent", 0):
+        payload["shadow_percent"] = args.shadow_percent
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
@@ -848,6 +862,7 @@ def main():
     p.add_argument('--players',default=DEFAULT_BOTS)
     p.add_argument('--tournaments',type=int,default=200)
     p.add_argument('--parallel',type=int,default=2)
+    p.add_argument('--shadow-percent',type=int,choices=(0,10,25,100),default=0)
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--chips',type=int,default=500)
     p.add_argument('--sb',type=int,default=1)
@@ -861,6 +876,7 @@ def main():
     p.add_argument('--seat-mode',choices=['rotate','fixed'],default='rotate',
                    help='Rotate starting seats each tournament (default), or retain historical fixed seating')
     a=p.parse_args()
+    os.environ['POKER_GTO5_SHADOW_PERCENT'] = str(a.shadow_percent)
     os.environ["POKER_BUTTON_POLICY"]=a.button_policy
     if os.environ.get('THAI_ENGINE_IMPL', '').lower() != 'legacy':
         p.error('v4 requires THAI_ENGINE_IMPL=legacy: only legacy supports on_deal observation.')
@@ -903,6 +919,9 @@ def main():
     last_adaptive_traces = None
     last_adaptive_tournament = 0
     decision_records=[]
+    shadow_path = Path(a.out) / 'gto5_shadow_decisions.jsonl'
+    shadow_path.parent.mkdir(parents=True, exist_ok=True)
+    shadow_stream = shadow_path.open('w', encoding='utf-8')
     postflop_aggregate=defaultdict(lambda:defaultdict(float))
     def ingest(result):
         nonlocal total_hands, last_adaptive_traces, last_adaptive_tournament
@@ -913,6 +932,10 @@ def main():
             last_adaptive_tournament = tournament_id
             last_adaptive_traces = outcome["gto30_last5"]
         decision_records.extend(bot_timings)
+        # Evict large paired observations from in-memory tournament outcomes.
+        # Rebuilds on resumed runs from per-tournament checkpoints.
+        for record in outcome.pop('gto5_shadow', ()):
+            shadow_stream.write(json.dumps(record, ensure_ascii=False, separators=(',', ':'))+'\n')
         for item in postflop:
             if item.get('street') is not None:
                 key=(item['bot'],'opp_actions',item['street'],item['opponents'])
@@ -947,6 +970,11 @@ def main():
                     elapsed=max(time.perf_counter()-start_time, 1e-9)
                     print(f'{i}/{a.tournaments} tournaments · {60*i/elapsed:.1f} tournaments/min · {total_hands/elapsed:.1f} hands/s',flush=True)
 
+    shadow_stream.close()
+    from gto5_shadow_report import aggregate_shadow
+    with shadow_path.open('r', encoding='utf-8') as shadow_input:
+        shadow_report = aggregate_shadow((json.loads(line) for line in shadow_input if line.strip()))
+    write_json(Path(a.out)/'gto5_shadow_report.json', shadow_report)
     simulation_seconds = time.perf_counter()-start_time
     report, report_tables = tournament_report(
         results, names, a.tournaments, a.chips, a.sb, a.bb,

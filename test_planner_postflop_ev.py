@@ -32,17 +32,30 @@ class PostflopEVTests(unittest.TestCase):
         self.assertIsInstance(result["equity"]["AQs"],float)
 
     def test_new_versions_work_in_planner_and_ab_comparison(self):
-        profiles=("gto21","gto31_5","gto31_10","gto32_5","gto32_10",
-                  "gto33_5","gto33_10","gto40_5","gto40_10")
         ui=app.PLAN_UI.read_text(encoding="utf-8")
+        catalog=app.strategy_catalog()
+        profiles=tuple(catalog["postflop_strategies"])
+        self.assertEqual(profiles,post.SELECTABLE_POSTFLOP)
+        self.assertEqual(profiles,app.POSTFLOP_PRIMARY)
+        self.assertIn("gto_postflop_41_5",profiles)
+        self.assertNotIn("gto_postflop_41_10",profiles)
+        self.assertNotIn("<option value=\"gto30_10\"",ui)
+        self.assertIn("useSharedPostflopCatalog(sharedCatalog);",ui)
+        self.assertIn("api('/api/catalog')",ui)
+        self.assertIn("POSTFLOP_OPTIONS=active.map(value=>",ui)
         for name in profiles:
-            self.assertIn(name,post.PROFILE_NAMES)
-            self.assertIn("value:'"+name+"'",ui)
+            self.assertEqual(post.PROFILE_NAMES[name],name)
             data=post.validate_request(setup(hero=name,profile="tag"))
             self.assertEqual(data["hero_postflop"],name)
-            data=post.validate_request({**setup(hero="gto40_5",profile="tag"),
+            data=post.validate_request({**setup(hero="gto_postflop_40_5",profile="tag"),
                                         "hero_postflop_b":name})
             self.assertEqual(data["hero_postflop_b"],name)
+        # Historical planner shorthand and /10 are still executable for replay.
+        for name in ("gto21","gto31_5","gto31_10","gto32_5","gto32_10",
+                     "gto33_5","gto33_10","gto40_5","gto40_10"):
+            self.assertIn(name,post.PROFILE_NAMES)
+            self.assertEqual(post.validate_request(setup(hero=name))["hero_postflop"],name)
+        self.assertEqual(post.PROFILE_NAMES["gto_postflop_41_10"],"gto_postflop_41_10")
         import random
         from bots import create_bot
         for profile in ("gto33_10","gto40_5","gto40_10"):

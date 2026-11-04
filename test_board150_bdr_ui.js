@@ -6,7 +6,7 @@ const plan=fs.readFileSync('replit_ui/plan.html','utf8');
 const glossary=fs.readFileSync('replit_ui/river_board.html','utf8');
 for(const marker of ['function renderRiverLedger(root,a,b,compare){',
  'function riverBoardDescription(code){','function board150Parts(code){',
- 'const FLAT_BOARD_FACETS=[','↗ Справочник 49 типов'])
+ 'const FLAT_BOARD_FACETS=['])
  assert.ok(plan.includes(marker),'missing Plan UI: '+marker);
 for(const marker of ['id="board150Catalog"','function drawCatalog(){',
  '/api/postflop/board16-catalog','/api/postflop/board16-classify',
@@ -21,7 +21,7 @@ vm.runInContext('var riverFilters={sign:"all",p:"all",s:"all",f:"all",sf:"all",s
  'var riverSort="impact",riverDescending=true,riverSampleTotals={a:20,b:20};'+
  plan.slice(start,end)+'\nthis.methods={parts:board150Parts,title:riverBoardDescription,tree:riverTree};',ctx);
 const m=ctx.methods;
-const c='S4 · F4 · SF4 · P1',d='S5 · F2';
+const c='S4 · F4 · SF4 · P1',d='S5';
 assert.deepEqual(JSON.parse(JSON.stringify(m.parts(c))),{p:'P1',s:'S4',f:'F4',sf:'SF4'});
 assert.equal(m.parts('PRE|NO_BOARD'),null);
 assert.equal(m.parts('P1 · S3 · F4 · SF3'),null,'old IDs must not be silently reclassified');
@@ -46,13 +46,13 @@ ctx.riverFilters.sf='all';
 ctx.riverFilters.s='S5';
 assert.equal(count(m.tree(A,B)),10);
 const catalog=JSON.parse(fs.readFileSync('data/postflop_compact16_catalog.json','utf8'));
-assert.equal(catalog.rows.length,49);
+assert.equal(catalog.rows.length,36);
 assert.equal(catalog.rows.reduce((s,r)=>s+r.deals,0),2598960);
 const gStart=glossary.indexOf('const shortNames={'),gEnd=glossary.indexOf('function el(',gStart);
 assert.ok(gStart>0&&gEnd>gStart);
 const gc={};vm.createContext(gc);
 vm.runInContext(glossary.slice(gStart,gEnd)+'\nthis.nameOf=boardTitle',gc);
 const names=catalog.rows.map(row=>gc.nameOf(row));
-assert.equal(new Set(names).size,49,'All 49 board names must be distinct');
+assert.equal(new Set(names).size,36,'All 36 board names must be distinct');
 assert.match(gc.nameOf(catalog.rows.find(row=>row.id===c)),/Четыре связанных.*Стрит-флеш-дро.*Пара/);
 console.log('Board16: 49 classes, 16 facets and EV filters verified');

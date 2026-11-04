@@ -992,25 +992,7 @@ main.plannerMain{grid-template-columns:minmax(0,1fr);align-items:start}
    <label for="heroProfile">Префлоп · диапазон / пресет</label><select id="heroProfile"></select>
    <label for="heroPostflop">Постфлоп · моя стратегия</label>
    <a href="/s100" style="display:inline-block;margin:4px 0 6px;color:#9ac9f4;text-decoration:underline;font-size:12px">Перейти на лист 03 · Постфлоп План ↗</a>
-   <select id="heroPostflop">
-    <option value="gto20">GTO 2.0 · сила руки относительно борда</option>
-    <option value="gto30_5">GTO 3.0/5 · адаптация по 5 действиям</option>
-    <option value="gto30_10">GTO 3.0/10 · адаптация по 10 действиям</option>
-    <option value="gto21">GTO 2.1 · ½ банка</option>
-    <option value="gto31_5">GTO 3.1/5 · All Actions</option>
-    <option value="gto31_10">GTO 3.1/10 · All Actions</option>
-    <option value="gto32_5">GTO 3.2/5 · Opportunities</option>
-    <option value="gto32_10">GTO 3.2/10 · Opportunities</option>
-    <option value="gto33_5">GTO 3.3/5 · Street Matrix</option>
-    <option value="gto33_10">GTO 3.3/10 · Street Matrix</option>
-    <option value="gto40_5">GTO 4.0/5 · Board Range EV</option>
-    <option value="gto40_10">GTO 4.0/10 · Board Range EV</option>
-    <option value="s100">S100 · 100 сценариев человека и бота</option>
-    <option value="gto" selected>GTO 1 · контрольная версия</option>
-    <option value="tag">TAG V1</option><option value="lag">LAG V1</option>
-    <option value="chaser">Chaser V1</option><option value="trapper">Trapper V1</option>
-    <option value="random">Random</option><option value="none">Не учитывать · только Equity</option>
-   </select>
+   <select id="heroPostflop"></select>
    <label for="heroPosition">Моя позиция</label><select id="heroPosition"></select>
    <label for="heroScenario">Ситуация</label><select id="heroScenario"></select>
    <p id="heroPostflopHint" role="status">Постфлоп-профиль Hero</p>
@@ -1187,20 +1169,38 @@ const $=id=>document.getElementById(id),RANKS='AKQJT98765432',HANDS=RANKS.split(
 const COMBOS=h=>h.length===2?6:h.endsWith('s')?4:12;
 const SCENARIOS={rfi:'RFI · первый вход',vs_open:'Против опен-рейза',vs_threebet:'Против 3-bet',vs_shove:'Против all-in',push_fold:'Push / Fold'};
 const ACTIONS={fold:'Fold',open:'Raise',limp:'Limp',call:'Call',threebet:'3-bet',fourbet:'4-bet',push:'All-in'};
-const POSTFLOP_OPTIONS=[
- {value:'gto',label:'GTO 1 · контроль'}, {value:'gto20',label:'GTO 2.0 · Board Relative'},
- {value:'gto30_5',label:'GTO 3.0/5 · Adaptive'}, {value:'gto30_10',label:'GTO 3.0/10 · Adaptive'},
- {value:'gto21',label:'GTO 2.1 · Half Pot'},
- {value:'gto31_5',label:'GTO 3.1/5 · All Actions'}, {value:'gto31_10',label:'GTO 3.1/10 · All Actions'},
- {value:'gto32_5',label:'GTO 3.2/5 · Opportunities'}, {value:'gto32_10',label:'GTO 3.2/10 · Opportunities'},
- {value:'gto33_5',label:'GTO 3.3/5 · Street Matrix'}, {value:'gto33_10',label:'GTO 3.3/10 · Street Matrix'},
- {value:'gto40_5',label:'GTO 4.0/5 · Board Range EV'}, {value:'gto40_10',label:'GTO 4.0/10 · Board Range EV'},
- {value:'s100',label:'S100 · 100 сценариев'}, {value:'tag',label:'TAG V1'},
- {value:'lag',label:'LAG V1'}, {value:'chaser',label:'Chaser V1'},
- {value:'trapper',label:'Trapper V1'}, {value:'random',label:'Random'},
- {value:'none',label:'Не учитывать'}
-];
-const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||'Не учитывать';
+// Shared /api/catalog governs selectable postflop strategies on both pages.
+let POSTFLOP_OPTIONS=[{value:'none',label:'Не учитывать'}];
+let POSTFLOP_ARCHIVE_LABELS={};
+let POSTFLOP_DESCRIPTIONS={};
+function useSharedPostflopCatalog(catalog){
+ const active=catalog?.postflop_strategies;
+ const profiles=catalog?.postflop_profiles||{};
+ if(!Array.isArray(active)||!active.length)throw Error('Нет общего каталога Postflop');
+ if(new Set(active).size!==active.length)throw Error('Дубли Postflop-стратегий');
+ if(active.some(token=>/^gto_postflop_.*_10$/.test(token)))
+  throw Error('Архивные /10 не должны появляться в новых выборах');
+ POSTFLOP_OPTIONS=active.map(value=>({value,label:profiles[value]?.label||value}));
+ POSTFLOP_OPTIONS.push({value:'none',label:'Не учитывать'});
+ POSTFLOP_ARCHIVE_LABELS=Object.fromEntries(
+  Object.entries(profiles).map(([value,profile])=>[value,profile?.label||value]));
+ POSTFLOP_DESCRIPTIONS=Object.fromEntries(
+  Object.entries(profiles).map(([value,profile])=>[
+   value,(profile?.features||[]).join(' · ')||profile?.label||value]));
+}
+function postflopChoicesFor(value){
+ const id=String(value??'');
+ if(!id||POSTFLOP_OPTIONS.some(item=>item.value===id))return POSTFLOP_OPTIONS;
+ // A previous saved choice is preserved, not offered to new experiments.
+ const legacy=Object.hasOwn(HERO_LINE_DESCRIPTIONS,id);
+ const archived=Object.hasOwn(POSTFLOP_ARCHIVE_LABELS,id)||
+  /^gto_postflop_.*_10$/.test(id);
+ if(!legacy&&!archived)return POSTFLOP_OPTIONS;
+ return [...POSTFLOP_OPTIONS,{value:id,
+  label:'Архив · '+(POSTFLOP_ARCHIVE_LABELS[id]||id)}];
+}
+const postflopName=id=>POSTFLOP_OPTIONS.find(x=>x.value===id)?.label||
+ POSTFLOP_ARCHIVE_LABELS[id]||id||'Не учитывать';
 const HERO_LINE_DESCRIPTIONS={
  s100:'S100 V1: единая классификация 100 постфлоп-ситуаций и таблица Fold/Call/Bet/Raise для человека и бота. Экспериментальные частоты, не solver GTO.',
  gto20:'GTO 2.0: относительная сила R0–R4 с учётом пар и угроз на борде. Эвристика, не GTO-солвер; сравни EV с GTO 1 на одинаковых раздачах.',
@@ -1225,7 +1225,7 @@ const HERO_LINE_DESCRIPTIONS={
 };
 function refreshHeroPostflopChoice(){
  const line=$('heroPostflop').value;
- $('heroPostflopHint').textContent=HERO_LINE_DESCRIPTIONS[line]||'Выбери постфлоп-линию.';
+ $('heroPostflopHint').textContent=HERO_LINE_DESCRIPTIONS[line]||POSTFLOP_DESCRIPTIONS[line]||'Выбери постфлоп-линию.';
  $('heroPostflop').title=$('heroPostflopHint').textContent;
  const range=$('heroProfile').selectedOptions[0]?.textContent||'Не выбран';
  $('heroStrategyComposition').textContent='Сборка для EV: '+range+' (префлоп) + '+postflopName(line)+' (постфлоп)';
@@ -1484,11 +1484,11 @@ let planSettingsReady=false;
 function defaultPlanSeat(position){
  return {profile:'builtin:pc_gto_80bb',position,
   scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
-  postflop:'gto',entry_mode:'range',entry_pct:100};
+  postflop:'gto_postflop_v1',entry_mode:'range',entry_pct:100};
 }
 function defaultPlanSettings(){
  return {version:1,profile:'builtin:pc_gto_80bb',position:'3',
-  scenario:'rfi',postflop:'gto',simStack:'20',trials:'1000',
+  scenario:'rfi',postflop:'gto_postflop_v1',simStack:'20',trials:'1000',
   seats:FIXED_TABLE_POSITIONS.map(defaultPlanSeat)};
 }
 function readPlanSettings(){
@@ -1527,7 +1527,7 @@ function normalizeFixedSeats(){
   const defaultMode='range';
   return {profile:'builtin:pc_gto_80bb',position,
    scenario:position==='BB'?'vs_open':'rfi',players:9,selector:'active',
-   postflop:'gto',entry_mode:defaultMode,
+   postflop:'gto_postflop_v1',entry_mode:defaultMode,
    entry_pct:defaultMode==='never'?0:100,
    ...(previous||{}),position,players:9,
    scenario:position==='BB'?'vs_open':(previous?.scenario||'rfi')};
@@ -1664,7 +1664,7 @@ function renderOpponents(){
   selector.onchange=()=>{opponents[i].selector=selector.value;invalidateEquity();loadVillain()};row.append(selector);
   const postflop=el('select');
   postflop.title='Постфлоп-стратегия соперника; «Не учитывать» — только Equity без EV';
-  refill(postflop,POSTFLOP_OPTIONS,opp.postflop||'gto');
+  refill(postflop,postflopChoicesFor(opp.postflop),opp.postflop||'gto_postflop_v1');
   postflop.onchange=()=>{opponents[i].postflop=postflop.value;invalidateEquity()};
   row.append(postflop);
   const entry=el('div','entryControl'),mode=el('select');
@@ -1693,7 +1693,7 @@ function addOpponent(){
  if(opponents.length>=8)return;
  const fallback=['9','8','7','6','5','4','3','SB'][opponents.length];
  opponents.push({profile:'builtin:pc_gto_80bb',position:fallback,scenario:'rfi',
-  players:9,selector:'active',postflop:'gto',entry_mode:'range',entry_pct:100});
+  players:9,selector:'active',postflop:'gto_postflop_v1',entry_mode:'range',entry_pct:100});
  renderOpponents();invalidateEquity();loadVillain();
 }
 function removeOpponent(index){
@@ -2850,8 +2850,8 @@ function populateDecompSelectors(){
   {value:'=',label:'= · та же рука A'},
   ...HANDS.map(hand=>({value:hand,label:hand}))],'-');
  const profiles=POSTFLOP_OPTIONS.filter(profile=>profile.value!=='none');
- const current=profiles.some(p=>p.value===$('heroPostflop').value)?$('heroPostflop').value:'gto20';
- refill($('handDecompProfileB'),profiles,current==='gto20'?'gto':'gto20');
+ const current=profiles.some(p=>p.value===$('heroPostflop').value)?$('heroPostflop').value:'gto_postflop_20';
+ refill($('handDecompProfileB'),profiles,current==='gto_postflop_20'?'gto_postflop_v1':'gto_postflop_20');
  $('handDecompProfileB').disabled=true;
 }
 const DECOMP_LABELS={
@@ -4992,7 +4992,10 @@ function renderAll(){drawBoxes();drawMatrices();refreshComparison();drawEquitySt
 async function connect({resetToDefaults=false}={}){
  planSettingsReady=false;
  try{
-  const data=await api('/api/plan/catalog');meta=data;
+  const [data,sharedCatalog]=await Promise.all([
+   api('/api/plan/catalog'),api('/api/catalog')]);
+  meta=data;
+  useSharedPostflopCatalog(sharedCatalog);
   loadStrategyRunCache();
   const stored=resetToDefaults?null:readPlanSettings();
   const cfg={...defaultPlanSettings(),...(stored||{})};
@@ -5009,7 +5012,9 @@ async function connect({resetToDefaults=false}={}){
   renderPositions($('heroPosition'),FIXED_TABLE_POSITIONS.includes(cfg.position)?cfg.position:'3');
   validSelect('heroScenario',cfg.scenario==='vs_sb_open'?'vs_open':cfg.scenario,'rfi');
   useBbDefenseWhenRfi();
-  validSelect('heroPostflop',cfg.postflop,'gto');
+  const heroPostflop=postflopChoicesFor(cfg.postflop);
+  refill($('heroPostflop'),heroPostflop,
+   heroPostflop.some(x=>x.value===cfg.postflop)?cfg.postflop:'gto_postflop_v1');
   validSelect('simStack',cfg.simStack,'20');
   validSelect('trials',cfg.trials,'1000');
   refreshHeroPostflopChoice();
@@ -5022,7 +5027,8 @@ async function connect({resetToDefaults=false}={}){
   for(const position of FIXED_TABLE_POSITIONS){
    const base=defaultPlanSeat(position),saved=seatSpecs.get(position)||{};
    const profile=knownProfile(saved.profile)?saved.profile:base.profile;
-   const postflop=POSTFLOP_OPTIONS.some(x=>x.value===saved.postflop)?saved.postflop:'gto';
+   const postflop=postflopChoicesFor(saved.postflop).some(
+    x=>x.value===saved.postflop)?saved.postflop:'gto_postflop_v1';
    const scenario=position==='BB'?'vs_open':
     (Object.hasOwn(SCENARIOS,saved.scenario)?saved.scenario:'rfi');
    const mode=['range','always','never'].includes(saved.entry_mode)?saved.entry_mode:'range';

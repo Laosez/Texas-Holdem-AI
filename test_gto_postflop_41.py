@@ -17,7 +17,11 @@ class GTO41MultiwayTests(unittest.TestCase):
     def test_registered_and_selectable_without_overwriting_40(self):
         for n in (5, 10):
             name = "gto_postflop_41_" + str(n)
-            self.assertIn(name, replit_simulator.strategy_catalog()["postflop_strategies"])
+            if n == 5:
+                self.assertIn(name, replit_simulator.strategy_catalog()["postflop_strategies"])
+            else:
+                self.assertNotIn(name, replit_simulator.strategy_catalog()["postflop_strategies"])
+                self.assertTrue(replit_simulator.available_postflop(name))
             self.assertEqual(create_bot(name).profile, name)
             self.assertIsInstance(create_bot(name), JointRangeGTO41Bot)
             split = create_bot("split:a17_preflop:" + name)

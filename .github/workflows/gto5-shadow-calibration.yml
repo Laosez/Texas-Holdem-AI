@@ -1,0 +1,56 @@
+name: GTO 5.0 shadow report
+on:
+  pull_request:
+    paths:
+      - gto5_shadow_report.py
+      - test_gto5_shadow_report.py
+      - test_gto_postflop_50.py
+      - bots/gto_postflop_50.py
+      - replit_simulator.py
+      - export_preflop_ranges_v4.py
+      - replit_ui/index.html
+      - strategy_catalog/available_bases.json
+      - .github/workflows/gto5-shadow-calibration.yml
+  push:
+    paths:
+      - gto5_shadow_report.py
+      - test_gto5_shadow_report.py
+      - test_gto_postflop_50.py
+      - bots/gto_postflop_50.py
+      - replit_simulator.py
+      - export_preflop_ranges_v4.py
+      - replit_ui/index.html
+      - strategy_catalog/available_bases.json
+      - .github/workflows/gto5-shadow-calibration.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run shadow report regression tests
+        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50
+      - name: Tournament Shadow 100% integration smoke
+        env:
+          THAI_ENGINE_IMPL: legacy
+          POKER_PREFLOP_PROTOCOL: any_two_limp
+        run: |
+          python export_preflop_ranges_v4.py \
+            --players "P1=split:random:gto_postflop_50_5,P2=split:random:random_2" \
+            --tournaments 1 --parallel 1 --seed 487 --chips 200 \
+            --sb 1 --bb 2 --blind-increase-every 20 --max-hands 100 \
+            --shadow-percent 100 --out /tmp/gto5_e2e
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/gto5_e2e')
+          report=json.loads((root/'gto5_shadow_report.json').read_text())
+          assert report['compared']>0, report
+          assert report['groups']['street'], report
+          assert report['groups']['opponents'], report
+          assert report['groups']['board_structure'], report
+          assert (root/'tournament_report.json').is_file()
+          print('Shadow paired decision audit:',report['compared'])
+          PY
