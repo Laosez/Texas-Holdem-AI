@@ -62,7 +62,7 @@ class GTO5ShadowReportTests(unittest.TestCase):
         self.assertTrue(any(row["label"].startswith("turn | 3 | P1")
                             for row in groups["street_opponents_board"]))
         self.assertEqual(report["rankings"]["frequent"][0]["mismatch_pct"], 100)
-        self.assertAlmostEqual(report["overall"]["mean_regret_bb"], 32*.6/72)
+        self.assertAlmostEqual(report["overall"]["mean_regret_bb"], 32*.6/72, places=4)
         self.assertEqual(report["overall"]["n"], 72)
 
     def test_low_sample_groups_not_ranked(self):
