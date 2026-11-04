@@ -4,11 +4,23 @@ on:
     paths:
       - gto5_shadow_report.py
       - test_gto5_shadow_report.py
+      - test_gto_postflop_50.py
+      - bots/gto_postflop_50.py
+      - replit_simulator.py
+      - export_preflop_ranges_v4.py
+      - replit_ui/index.html
+      - strategy_catalog/available_bases.json
       - .github/workflows/gto5-shadow-calibration.yml
   push:
     paths:
       - gto5_shadow_report.py
       - test_gto5_shadow_report.py
+      - test_gto_postflop_50.py
+      - bots/gto_postflop_50.py
+      - replit_simulator.py
+      - export_preflop_ranges_v4.py
+      - replit_ui/index.html
+      - strategy_catalog/available_bases.json
       - .github/workflows/gto5-shadow-calibration.yml
 jobs:
   test:
@@ -19,4 +31,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run shadow report regression tests
-        run: python -m unittest -v test_gto5_shadow_report
+        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50
