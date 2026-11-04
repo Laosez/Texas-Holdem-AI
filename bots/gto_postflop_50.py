@@ -25,6 +25,7 @@ from core.engine import eval_hand
 from core.bot_api import Action
 from gto5_shadow_report import board_tags
 from bots.hand_seniority_51 import hero_seniority, hero_seniority_52
+from bots.hand_seniority_53 import hero_seniority_53
 
 RANKS = "23456789TJQKA"
 WINDOWS = [set(range(i, i + 5)) for i in range(2, 11)] + [{14, 2, 3, 4, 5}]
@@ -38,7 +39,7 @@ OFFSETS = {
 }
 X_ANY_TWO = 5.88
 SHADOW_CHOICES = (0, 10, 25, 100)
-SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52")
+SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53")
 
 
 def round_probability_to_five(value):
@@ -172,7 +173,8 @@ def _hero_quantile_51(view, dist, seniority_version=51):
     masses = dist["probability_mass"]
     if not masses:
         return .50, category, {"method": "no mass", "win_fraction": .5}
-    seniority_fn = hero_seniority_52 if seniority_version == 52 else hero_seniority
+    seniority_fn = {51: hero_seniority, 52: hero_seniority_52,
+                    53: hero_seniority_53}[seniority_version]
     win_fraction, rule = seniority_fn(
         hole, board,
         category_mass=dist["unrounded_probability_mass"][category],
@@ -292,6 +294,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
     @property
     def actor_kind(self):
         if self.rank_aware:
+            if self.seniority_version == 53:
+                return "gto53"
             if self.seniority_version == 52:
                 return "gto52"
             return "gto515" if self.round_step == 5 else "gto51"
@@ -309,6 +313,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             return RoundedRankAwareGTO515Bot(window=5, shadow_percent=0)
         if self.shadow_reference_kind == "gto52":
             return RankAwareGTO52Bot(window=5, shadow_percent=0)
+        if self.shadow_reference_kind == "gto53":
+            return RankAwareGTO53Bot(window=5, shadow_percent=0)
         return HumanRangeGTO50Bot(window=5, shadow_percent=0)
 
     def reset_memory(self):
@@ -370,7 +376,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                     "gto505": "gto5.0.5-alpha",
                     "gto51": "gto5.1-alpha",
                     "gto515": "gto5.1.5-alpha",
-                    "gto52": "gto5.2-alpha"}
+                    "gto52": "gto5.2-alpha",
+                    "gto53": "gto5.3-alpha"}
         self.last_model = {
             "version": versions[self.actor_kind],
             "distribution": dist,
@@ -412,7 +419,9 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 } for pid in opponents],
                 "ev": self.last_model["ev"], "equity_model": inputs,
                 "distribution": dist,
-                "reason": ("GTO 5.2: corrected high-card and P0 pair seniority"
+                "reason": ("GTO 5.3: weighted rank-pair + suit seniority"
+                           if self.seniority_version == 53 and self.rank_aware else
+                           "GTO 5.2: corrected high-card and P0 pair seniority"
                            if self.seniority_version == 52 and self.rank_aware else
                            "GTO 5.1: rank seniority + category masses"
                            if self.rank_aware else
@@ -520,3 +529,13 @@ class RankAwareGTO52Bot(RankAwareGTO51Bot):
                          shadow_reference=shadow_reference)
         self.profile = "gto_postflop_52_5"
         self.seniority_version = 52
+
+
+class RankAwareGTO53Bot(RankAwareGTO51Bot):
+    """GTO 5.3: exact Any Two within-category ranking via 91 weighted rank pairs."""
+
+    def __init__(self, window=5, *, shadow_percent=None, shadow_reference=None):
+        super().__init__(window=window, shadow_percent=shadow_percent,
+                         shadow_reference=shadow_reference)
+        self.profile = "gto_postflop_53_5"
+        self.seniority_version = 53
