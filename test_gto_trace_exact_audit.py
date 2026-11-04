@@ -68,10 +68,9 @@ class ExactTraceAuditTests(unittest.TestCase):
         bot = RankAwareGTO51Bot(shadow_percent=0)
         self.assertEqual(bot._trace.maxlen, 100)
         for i in range(104):
-            bot.act(view("flop", cards("Qh 8s 3d"), opponents=("P2",)))
-            # Isolate hand IDs to exercise the 100-hand deque boundary.
-            # Change ID in the view at each next call.
-            bot._trace[-1]["hand_id"] = i
+            state = view("flop", cards("Qh 8s 3d"), opponents=("P2",))
+            state.hand_id = i
+            bot.act(state)
         self.assertEqual(len(bot.trace_snapshot()), 100)
         self.assertIsInstance(RoundedRankAwareGTO515Bot(shadow_percent=0)._trace, deque)
 
