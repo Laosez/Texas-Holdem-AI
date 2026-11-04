@@ -70,6 +70,86 @@ pre{background:#081726;border:1px solid #2a4762;border-radius:8px;min-height:160
 main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 .simulatorLayout .topColumn{height:auto;max-height:none;overflow:visible;overscroll-behavior:auto}
 .simulatorLayout .parametersColumn,.simulatorLayout .strategiesColumn{grid-column:1/-1}
+
+/* GTO 5.0 Shadow calibration: visually separated, information-dense analytics. */
+.shadow-workspace{grid-column:1/-1;min-width:0;scroll-margin-top:18px}
+.shadow-workspace .shadow-head{margin-bottom:14px;align-items:flex-start}
+.shadow-eyebrow{font-size:10px;font-weight:900;letter-spacing:1.6px;color:#8bbefb;margin-bottom:6px}
+.shadow-head h2{font-size:22px;letter-spacing:-.5px}
+.shadow-head-sub{font-size:13px;font-weight:500;color:#b3cadf;letter-spacing:0;margin-left:8px}
+.shadow-head .note{max-width:960px}
+.shadow-report-body{display:grid;gap:14px}
+.shadow-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}
+.shadow-kpi{background:#0b1c2d;border:1px solid #304b64;border-radius:11px;padding:14px 12px;min-width:0}
+.shadow-kpi .shadow-kpi-title{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.65px;color:#98b1c9}
+.shadow-kpi strong{display:block;font-size:23px;line-height:1.25;letter-spacing:-.55px;font-variant-numeric:tabular-nums;margin:9px 0 5px;white-space:nowrap}
+.shadow-kpi small{display:block;color:#a1b7cc;font-size:10px;line-height:1.38}
+.shadow-kpi.shadow-risk{border-color:#886052;background:#261e28}
+.shadow-kpi.shadow-risk strong{color:#ffd0ad}
+.shadow-kpi.shadow-focus{border-color:#406da2;background:#142a43}
+.shadow-kpi.shadow-focus strong{color:#a8ceff}
+.shadow-tabs{display:flex;gap:5px;overflow-x:auto;scrollbar-color:#355573 #0c1c2f;padding:7px 0 10px;border-bottom:1px solid #35506c}
+.shadow-tab{flex:0 0 auto;font:750 12px/1.3 inherit;background:transparent;color:#a6bbd2;border:1px solid transparent;cursor:pointer;padding:10px 13px;border-radius:8px}
+.shadow-tab:hover{background:#19334d;color:#fff}
+.shadow-tab[aria-selected="true"]{color:#e6f2ff;background:#23466d;border-color:#567faf}
+.shadow-view{display:grid;gap:13px;padding-top:2px;min-width:0}
+.shadow-view-heading{margin:4px 0 1px;font-size:15px;color:#e8f4ff}
+.shadow-help{font-size:11px;color:#adc1d6;line-height:1.5;margin:0}
+.shadow-overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.shadow-signal{min-width:0;border-radius:10px;border:1px solid #365470;background:#11263c;padding:13px;display:grid;gap:6px}
+.shadow-signal .shadow-signal-tag{font-size:10px;font-weight:800;color:#a9bfd8;letter-spacing:.35px}
+.shadow-signal strong{font-size:20px;color:#eaf5ff}
+.shadow-signal p{margin:0;color:#b2c7da;font-size:11px}
+.shadow-chart{display:grid;gap:8px;padding:12px 15px;background:#0d2033;border:1px solid #2f4a65;border-radius:10px}
+.shadow-chart-row{display:grid;grid-template-columns:130px minmax(80px,1fr) 100px 110px 105px;gap:12px;align-items:center;font-size:12px;min-height:32px}
+.shadow-chart-row .shadow-chart-name{font-weight:800;color:#dcecff}
+.shadow-chart-micro{font-size:10px;color:#9ab3cd;display:block}
+.shadow-bar{height:9px;min-width:0;border-radius:20px;background:#1b344d;overflow:hidden}
+.shadow-bar>span{display:block;height:100%;background:linear-gradient(90deg,#487bd0,#b18ce4);border-radius:20px}
+.shadow-chart-row .shadow-chart-value{text-align:right;font-variant-numeric:tabular-nums;color:#e9f3ff;font-weight:800}
+.shadow-chart-row .shadow-chart-stat{text-align:right;font-size:11px;color:#adc5da}
+.shadow-tools{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:11px 12px;background:#102337;border:1px solid #34506d;border-radius:10px}
+.shadow-tools label{font-size:10px;margin:0;flex:1 1 150px;max-width:360px}
+.shadow-tools select,.shadow-tools input[type="search"]{font-size:12px;margin-top:5px;padding:9px}
+.shadow-tools .shadow-only-reliable{flex:0 0 auto;font-size:11px;color:#bed3e6;display:flex;align-items:center;gap:7px;padding:5px 0;font-weight:600}
+.shadow-tools .shadow-only-reliable input{width:16px;height:16px;min-width:16px;accent-color:#76aafa}
+.shadow-tools .shadow-counter{color:#92aec8;font-size:11px;align-self:center}
+.shadow-table-wrap{width:100%;overflow:auto;border:1px solid #304c69;border-radius:10px}
+.shadow-report-table{border-collapse:separate;border-spacing:0;min-width:890px;width:100%;font-size:12px}
+.shadow-report-table th{background:#1c3753;color:#b7cfeb;padding:11px 12px;border-bottom:1px solid #405976;white-space:nowrap}
+.shadow-report-table td{padding:11px 12px;background:#102439;border-bottom:1px solid #2e465f;font-variant-numeric:tabular-nums}
+.shadow-report-table tbody tr:nth-child(even) td{background:#132b41}
+.shadow-report-table tbody tr:nth-child(odd) td:first-child{background:#102439}
+.shadow-report-table tbody tr:nth-child(even) td:first-child{background:#132b41}
+.shadow-report-table tr:last-child td{border-bottom:0}
+.shadow-report-table td:first-child,.shadow-report-table th:first-child{position:sticky;left:0;min-width:175px;max-width:360px;z-index:1;white-space:normal;text-align:left}
+.shadow-report-table td:first-child{font-weight:760;color:#d6eaff}
+.shadow-report-table th:first-child{background:#1c3753}
+.shadow-report-table .shadow-sort{background:none;border:0;padding:0;color:inherit;font:inherit;font-weight:800;cursor:pointer;white-space:nowrap}
+.shadow-report-table .shadow-sort:hover{color:white;text-decoration:underline;text-underline-offset:3px}
+.shadow-report-table .shadow-money{font-weight:850;color:#e4effb}
+.shadow-report-table .shadow-severity{font-weight:850;color:#ffd1b9}
+.shadow-report-table .shadow-tinybar{height:3px;background:#375065;border-radius:7px;margin-top:6px;min-width:40px}
+.shadow-report-table .shadow-tinybar span{display:block;height:100%;background:#e4a178;border-radius:7px}
+.shadow-report-table .shadow-small-n{color:#ffcaa1!important}
+.shadow-report-table .shadow-sample-note{font-size:10px;color:#ecbc8d;display:block;font-weight:600}
+.shadow-empty{padding:25px 14px;text-align:center;color:#b9cbdc;background:#102439;border-radius:9px;border:1px dashed #45617a;font-size:12px}
+.shadow-more{justify-self:start;cursor:pointer;border:1px solid #4f718e;background:#1a3957;color:#e1f0ff;border-radius:8px;padding:9px 13px;font-weight:800}
+.shadow-hand-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.shadow-hand{border:1px solid #35516e;background:#0c2135;border-radius:10px;padding:13px;display:grid;gap:9px}
+.shadow-hand-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.shadow-hand-top strong{font-size:12px}
+.shadow-hand-loss{font-size:17px;font-weight:850;color:#ffd2ad;white-space:nowrap}
+.shadow-hand-meta{font-size:11px;color:#9fb9d3}
+.shadow-cards{display:flex;flex-wrap:wrap;gap:4px}
+.shadow-card{display:inline-flex;justify-content:center;align-items:center;min-width:28px;padding:5px 4px;border:1px solid #6480a1;border-radius:5px;background:#eaf2fb;color:#182a3f;font-weight:850;font-size:13px}
+.shadow-card.red{color:#bc293a}
+.shadow-hand-actions{display:flex;flex-wrap:wrap;gap:9px;color:#d5e4f5;font-size:11px}
+.shadow-note-strip{padding:11px 13px;border:1px solid #355573;background:#0c2033;border-radius:9px;color:#9fb8d0;font-size:11px;line-height:1.55}
+.shadow-note-strip strong{color:#d6e8f9}
+@media(max-width:1120px){.shadow-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.shadow-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.shadow-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.shadow-kpi strong{font-size:21px}.shadow-overview-grid,.shadow-hand-list{grid-template-columns:1fr}.shadow-chart-row{grid-template-columns:90px minmax(60px,1fr) 84px}.shadow-chart-stat{display:none}.shadow-workspace .shadow-head{flex-direction:column}.shadow-head-sub{display:block;margin-left:0;margin-top:3px}.shadow-tab{padding:9px 11px}}
+
 </style></head><body>
 <header><div class="brand">SKACHKOV / POKER SYSTEM<strong>STRATEGY EXPERIMENTS</strong></div><span id="connection" class="badge">Нет соединения</span></header>
 <div class="nav"><div class="tab current"><b>01</b><span><strong>Реализация</strong><small>Настройки · сессии</small></span></div><a class="tab" href="/plan"><b>02</b><span><strong>План</strong><small>Редактор стратегий</small></span></a><a class="tab" href="/s100"><b>03</b><span><strong>Постфлоп · План</strong><small>Классификатор ситуаций</small></span></a></div>
@@ -261,15 +341,11 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </div>
 <div id="gto30TraceRows" style="display:grid;gap:9px;margin-top:11px"><p class="note">Выбери завершённую сессию с адаптивным ботом.</p></div>
 </details>
-<details class="coverageAudit" id="gto5ShadowPanel" style="margin-top:12px">
-<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 5.0 · Shadow Mode · ошибки EV по улицам / оппонентам / бордам</summary>
-<p class="note">GTO 5.0 играет, GTO 4.1 проверяет выбранные решения. EV расхождение — с приближённой 4.1, не с точным solver. Все суммы в актуальных BB; группы с n&lt;30 не ранжируются.</p>
-<div id="gto5ShadowRows" style="display:grid;gap:12px;margin-top:12px"><p class="note">Выбери завершённую сессию с GTO 5.0 и включённым Shadow Mode.</p></div>
-</details></section>
+</section>
 </div>
 <section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="#analysis">↓ Анализ сессии</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="compactCheckpoints" title="Удалить чекпойнты только завершённых сессий; отчёты и прерванные сессии не затрагиваются">Освободить место</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="#analysis">↓ Анализ сессии</a><a class="btn" href="#gto5ShadowPanel">ΔEV · Shadow</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="compactCheckpoints" title="Удалить чекпойнты только завершённых сессий; отчёты и прерванные сессии не затрагиваются">Освободить место</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="trashPanel" id="trashPanel" hidden>
 <div class="trashHeader"><strong>Корзина турниров</strong><span class="muted" id="trashCount">0 сессий</span><button class="btn sm" id="trashReload" type="button">↻ Обновить</button></div>
 <div id="trashItems" class="trashItems"><p class="note">Нажми «Корзина», чтобы загрузить список.</p></div>
@@ -281,6 +357,19 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table class="statsTable"><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="9">Нет результатов</td></tr></tbody></table></div>
 <p class="note">Итоговые показатели турнира. Подробные C-bet и Fold to C-bet на всех улицах, позиционная статистика и сравнение сессий теперь расположены ниже на этом же листе — в разделе «Анализ турниров». ДИ Уилсона рассчитывается по завершённым турнирам. BB/100 — итог всей раздачи в текущих BB.</p>
+</section>
+<section class="panel shadow-workspace" id="gto5ShadowPanel">
+  <div class="heading shadow-head">
+    <div>
+      <div class="shadow-eyebrow">КАЛИБРОВКА СТРАТЕГИИ · GTO 5.0 / 5</div>
+      <h2>Shadow Mode <span class="shadow-head-sub">Сравнение EV с GTO 4.1</span></h2>
+      <p class="note">5.0 играет, 4.1 проверяет те же решения · ошибки сгруппированы по улице, числу оппонентов и структуре P/S/F</p>
+    </div>
+    <span class="badge" id="gto5ShadowStatus">Нет данных</span>
+  </div>
+  <div id="gto5ShadowRows" class="shadow-report-body">
+    <p class="note">Выбери завершённую сессию с GTO 5.0 и включённым Shadow Mode.</p>
+  </div>
 </section>
 <section class="panel" id="analysis" style="grid-column:1/-1;min-width:0">
 <details id="analysisDetails"><summary style="cursor:pointer;font-weight:800;font-size:16px;color:#c9e2ff;padding:4px 0">▾ 04 / Анализ турниров · C-bet / Fold to C-bet · позиции · сравнение</summary>
@@ -430,72 +519,370 @@ function renderLeaderboard(s){
   td.colSpan=9;tr.append(td);root.append(tr);
  }
 }
+
+/* Shadow analytical workspace. Presentation only; never changes EV inputs. */
+const SHADOW_NAV=[
+ ['overview','Обзор'],['streets','Улицы'],['opponents','Оппоненты'],
+ ['boards','Борды P/S/F'],['cross','Пересечения'],
+ ['ranking','Рейтинг ошибок'],['hands','Раздачи']
+];
+const SHADOW_BOARD_GROUPS=[
+ ['P','Парность P'],['S','Связность S'],['F','Масти F'],
+ ['board_structure','Полная структура P · S · F']
+];
+const SHADOW_CROSSES=[
+ ['street_opponents','Улица × оппоненты'],
+ ['street_board','Улица × структура'],
+ ['opponents_board','Оппоненты × структура'],
+ ['street_opponents_board','Улица × оппоненты × структура']
+];
+const SHADOW_RANKS=[
+ ['expensive','Максимальный средний EV Regret'],
+ ['total_loss','Максимальные суммарные потери EV'],
+ ['frequent','Чаще отличается выбор действия'],
+ ['frequent_ev_discrepancy','Чаще большая ошибка оценки EV']
+];
+const SHADOW_SORTS=[
+ ['total_regret_bb','Потери всего, BB'],
+ ['mean_regret_bb','Средний EV Regret, BB'],
+ ['mismatch_pct','Выбор отличается, %'],
+ ['mae_ev_bb','MAE ΔEV, BB'],
+ ['regret_over_5bb_pct','EV Regret > 5 BB, %'],
+ ['n','Размер выборки']
+];
 let gto5ShadowSession='',gto5ShadowData=null;
+let shadowView='overview',shadowBoard='P',shadowCross='street_opponents';
+let shadowRank='expensive',shadowSort='total_regret_bb',shadowDescending=true;
+let shadowReliable=true,shadowQuery='',shadowLimit=35;
+
+function shadowFormat(value,digits=2){
+ if(value===null||value===undefined||value==='')return '—';
+ const n=Number(value);return Number.isFinite(n)?
+  n.toLocaleString('ru-RU',{maximumFractionDigits:digits}):'—';
+}
+function shadowReadable(value){
+ const names={
+  flop:'Флоп',turn:'Тёрн',river:'Ривер',
+  '1':'1 оппонент','2':'2 оппонента','3':'3 оппонента','4+':'4+ оппонента',
+  P0:'P0 · без пары',P1:'P1 · пара',P2:'P2 · две пары',P3:'P3 · тройка',
+  P4:'P4 · каре',PH:'PH · фулл-хаус',
+  S0:'S0 · разрыв',S2:'S2 · два подряд',S3:'S3 · три ранга',
+  S4:'S4 · четыре ранга',S5:'S5 · стрит',
+  F0:'F0 · радуга',F2:'F2 · две масти',F3:'F3 · три одной масти',
+  F4:'F4 · четыре одной масти',F5:'F5 · флеш'
+ };
+ return String(value??'—').split(' | ').map(x=>names[x]||x).join(' / ');
+}
+function shadowSortedRows(rows,sort=shadowSort,query=shadowQuery,reliable=shadowReliable,descending=shadowDescending){
+ const needle=String(query||'').trim().toLocaleLowerCase('ru-RU');
+ return (Array.isArray(rows)?rows:[]).filter(x=>
+  (!reliable||Number(x.n)>=30)&&
+  (!needle||shadowReadable(x.label||'').toLocaleLowerCase('ru-RU').includes(needle))
+ ).sort((a,b)=>{
+  const av=Number(a[sort]),bv=Number(b[sort]);
+  const delta=(Number.isFinite(bv)?bv:-Infinity)-(Number.isFinite(av)?av:-Infinity);
+  return (descending?delta:-delta)||String(a.label).localeCompare(String(b.label),'ru');
+ });
+}
+function shadowBox(className,children){
+ const box=el('div',className);(children||[]).forEach(x=>box.append(x));return box;
+}
+function shadowTitle(text){return el('h3','shadow-view-heading',text)}
+function shadowKpi(label,value,foot,kind){
+ const item=el('div','shadow-kpi'+(kind?' shadow-'+kind:''));
+ item.append(el('span','shadow-kpi-title',label),el('strong','',value),el('small','',foot));
+ return item;
+}
+function shadowSelector(label,choices,value,onChange){
+ const wrap=el('label','',label),select=el('select');
+ choices.forEach(([id,text])=>{const opt=el('option','',text);opt.value=id;select.append(opt)});
+ select.value=value;select.onchange=()=>onChange(select.value);
+ wrap.append(select);return wrap;
+}
+function shadowSetTab(value){
+ shadowView=value;shadowQuery='';shadowLimit=35;renderGTO5Shadow();
+}
+function shadowControls(items,withSearch=true,withReliability=true){
+ const bar=el('div','shadow-tools');
+ (items||[]).forEach(item=>bar.append(item));
+ if(withSearch){
+  const label=el('label','','Поиск по группе / борду'),
+        input=el('input');input.type='search';
+  input.id='shadowSearch';input.placeholder='P1, S3, F4, river, 2 ...';
+  input.value=shadowQuery;
+  input.oninput=()=>{
+   const pos=input.selectionStart;shadowQuery=input.value;shadowLimit=35;
+   renderGTO5Shadow();
+   const next=$('shadowSearch');
+   if(next){next.focus();try{next.setSelectionRange(pos,pos)}catch(e){}}
+  };
+  label.append(input);bar.append(label);
+ }
+ if(withReliability){
+  const label=el('label','shadow-only-reliable');
+  const checkbox=el('input');checkbox.type='checkbox';
+  checkbox.checked=shadowReliable;checkbox.onchange=()=>{
+   shadowReliable=checkbox.checked;shadowLimit=35;renderGTO5Shadow();
+  };
+  label.append(checkbox,el('span','','Только n ≥ 30'));bar.append(label);
+ }
+ return bar;
+}
+function shadowSetSort(key){
+ if(shadowSort===key)shadowDescending=!shadowDescending;
+ else{shadowSort=key;shadowDescending=true}
+ renderGTO5Shadow();
+}
+function shadowTable(rawRows,options={}){
+ const rows=options.preserveOrder
+  ?(rawRows||[]).filter(x=>(!shadowReliable||Number(x.n)>=30)&&
+     (!shadowQuery||shadowReadable(x.label||'').toLocaleLowerCase('ru-RU').includes(shadowQuery.toLocaleLowerCase('ru-RU'))))
+  :shadowSortedRows(rawRows);
+ const fragment=document.createDocumentFragment();
+ if(!rows.length){
+  fragment.append(el('div','shadow-empty',
+   'Нет подходящих групп. Убери фильтр или разреши малые выборки.'));
+  return fragment;
+ }
+ const wrap=el('div','shadow-table-wrap');
+ const table=el('table','shadow-report-table');
+ const head=el('thead'),header=el('tr');
+ const columns=[
+  ['label','Группа'],['n','Решений'],
+  ['mae_ev_bb','MAE ΔEV, BB'],['mismatch_pct','Разный выбор, %'],
+  ['mean_regret_bb','EV Regret / ход'],['total_regret_bb','Сумма Regret, BB'],
+  [options.evDiscrepancy?'delta_over_5bb_pct':'regret_over_5bb_pct',
+   options.evDiscrepancy?'|ΔEV| > 5 BB, %':'Regret > 5 BB, %']
+ ];
+ columns.forEach(([key,title])=>{
+  const th=el('th');
+  const button=el('button','shadow-sort',title);
+  button.type='button';
+  if(key!=='label')button.textContent=title+
+    (shadowSort===key?(shadowDescending?' ↓':' ↑'):' ↕');
+  button.title='Сортировка: '+title;
+  if(key==='label')button.title='Название группы';
+  else button.onclick=()=>shadowSetSort(key);
+  th.append(button);header.append(th);
+ });
+ head.append(header);table.append(head);
+ const body=el('tbody');
+ const maxRegret=Math.max(...rows.map(x=>Number(x.mean_regret_bb)||0),.001);
+ rows.slice(0,shadowLimit).forEach(item=>{
+  const tr=el('tr'),n=Number(item.n)||0;
+  const first=el('td','',shadowReadable(item.label));
+  if(n<30){
+   first.classList.add('shadow-small-n');
+   first.append(el('span','shadow-sample-note','мало наблюдений'));
+  }
+  tr.append(first);
+  const fields=[
+   shadowFormat(n,0),shadowFormat(item.mae_ev_bb),
+   shadowFormat(item.mismatch_pct,1)+'%',
+   shadowFormat(item.mean_regret_bb),
+   shadowFormat(item.total_regret_bb),
+   shadowFormat(options.evDiscrepancy?item.delta_over_5bb_pct:item.regret_over_5bb_pct,1)+'%'
+  ];
+  fields.forEach((val,index)=>{
+   const td=el('td',index===3?'shadow-severity':index===4?'shadow-money':'',val);
+   if(index===3){
+    const mini=el('div','shadow-tinybar'),fill=el('span');
+    fill.style.width=(100*(Number(item.mean_regret_bb)||0)/maxRegret).toFixed(1)+'%';
+    mini.append(fill);td.append(mini);
+   }
+   tr.append(td);
+  });
+  body.append(tr);
+ });
+ table.append(body);wrap.append(table);fragment.append(wrap);
+ if(rows.length>shadowLimit){
+  const more=el('button','shadow-more','Показать ещё · '+(rows.length-shadowLimit)+' групп');
+  more.type='button';more.onclick=()=>{shadowLimit+=50;renderGTO5Shadow()};
+  fragment.append(more);
+ }
+ fragment.append(el('p','shadow-help',
+  'n — только сопоставленные решения. Сумма EV Regret — оценка по всем решениям относительно GTO 4.1, не фактический выигрыш/проигрыш в турнире.'));
+ return fragment;
+}
+function shadowChart(rows,maxRows=8){
+ const chart=el('div','shadow-chart');
+ const source=(rows||[]).slice(0,maxRows);
+ const max=Math.max(...source.map(x=>Number(x.total_regret_bb)||0),1);
+ if(!source.length)return el('div','shadow-empty','Нет наблюдений');
+ source.forEach(x=>{
+  const row=el('div','shadow-chart-row'),label=el('div');
+  label.append(el('span','shadow-chart-name',shadowReadable(x.label)));
+  label.append(el('span','shadow-chart-micro',shadowFormat(x.n,0)+' решений'));
+  const bar=el('div','shadow-bar'),fill=el('span');
+  fill.style.width=(100*(Number(x.total_regret_bb)||0)/max).toFixed(1)+'%';
+  bar.append(fill);
+  row.append(label,bar,
+   el('div','shadow-chart-value',shadowFormat(x.total_regret_bb)+' BB'),
+   el('div','shadow-chart-stat',shadowFormat(x.mean_regret_bb)+' BB / ход'),
+   el('div','shadow-chart-stat',shadowFormat(x.mismatch_pct,1)+'% разный выбор'));
+  chart.append(row);
+ });
+ return chart;
+}
+function shadowSignal(label,main,detail){
+ const item=el('div','shadow-signal');
+ item.append(el('span','shadow-signal-tag',label),
+             el('strong','',main),
+             el('p','',detail));
+ return item;
+}
+function shadowOverview(data,root){
+ const groups=data.groups||{},streets=groups.street||[],opps=groups.opponents||[];
+ const valid=streets.filter(x=>Number(x.n)>=30);
+ const maxBy=key=>[...valid].sort((a,b)=>(Number(b[key])||0)-(Number(a[key])||0))[0];
+ const total=maxBy('total_regret_bb'),mean=maxBy('mean_regret_bb'),mismatch=maxBy('mismatch_pct');
+ root.append(shadowTitle('Что показала калибровка'));
+ const grid=el('div','shadow-overview-grid');
+ if(total)grid.append(shadowSignal('НАИБОЛЬШИЕ СУММАРНЫЕ ПОТЕРИ',
+  shadowReadable(total.label)+' · '+shadowFormat(total.total_regret_bb)+' BB',
+  shadowFormat(total.n,0)+' решений · '+shadowFormat(total.mean_regret_bb)+' BB / решение'));
+ if(mean)grid.append(shadowSignal('НАИБОЛЬШИЙ REGRET НА РЕШЕНИЕ',
+  shadowReadable(mean.label)+' · '+shadowFormat(mean.mean_regret_bb)+' BB',
+  'Расхождение выбора: '+shadowFormat(mean.mismatch_pct,1)+'%'));
+ if(mismatch)grid.append(shadowSignal('ЧАЩЕ НЕСОВПАДЕНИЕ ДЕЙСТВИЙ',
+  shadowReadable(mismatch.label)+' · '+shadowFormat(mismatch.mismatch_pct,1)+'%',
+  'MAE ΔEV: '+shadowFormat(mismatch.mae_ev_bb)+' BB'));
+ root.append(grid);
+ root.append(shadowTitle('Улицы · куда уходит EV'));
+ root.append(shadowChart(streets));
+ const jump=el('button','shadow-more','Открыть подробную статистику по улицам');
+ jump.onclick=()=>shadowSetTab('streets');root.append(jump);
+ root.append(shadowTitle('Число оппонентов'));
+ root.append(shadowChart(opps));
+ const detail=el('button','shadow-more','Открыть статистику по числу оппонентов');
+ detail.onclick=()=>shadowSetTab('opponents');root.append(detail);
+}
+function shadowHands(data,root){
+ const records=(data.rankings||{}).worst_decisions||[];
+ root.append(shadowTitle('20 самых дорогих отдельных решений'));
+ root.append(el('p','shadow-help',
+  'Показаны только решения, которые попали в Shadow-проверку. Карты оппонента после вскрытия не используются.'));
+ if(!records.length){root.append(el('div','shadow-empty','Нет сохранённых решений'));return}
+ const list=el('div','shadow-hand-list');
+ const iconMap={c:'♣',d:'♦',h:'♥',s:'♠'};
+ records.forEach((row,i)=>{
+  const card=el('div','shadow-hand');
+  const title=el('div','shadow-hand-top');
+  title.append(el('strong','',String(i+1).padStart(2,'0')+' · Турнир '+(row.tournament??'—')+
+   ' / раздача '+(row.hand_id??'—')));
+  title.append(el('span','shadow-hand-loss',shadowFormat(row.regret_bb)+' BB'));
+  card.append(title);
+  const cards=el('div','shadow-cards');
+  (row.board||[]).forEach(token=>{
+   const r=String(token),rank=r.slice(0,-1),suit=r.slice(-1);
+   cards.append(el('span','shadow-card'+((suit==='d'||suit==='h')?' red':''),rank+(iconMap[suit]||suit)));
+  });
+  card.append(cards);
+  card.append(el('div','shadow-hand-meta',
+   shadowReadable(row.street)+' · '+shadowReadable(row.opponents)+
+   ' · '+shadowReadable(row.structure)+' · MAE ΔEV '+shadowFormat(row.mean_ev_delta_bb)+' BB'));
+  const actions=el('div','shadow-hand-actions');
+  const readableAction=x=>String(x||'—').replace(':',' ');
+  actions.append(el('span','','5.0: '+readableAction(row.chosen5).toUpperCase()),
+   el('span','','4.1: '+readableAction(row.chosen41).toUpperCase()));
+  card.append(actions);list.append(card);
+ });
+ root.append(list);
+}
 async function loadGTO5Shadow(id){
  gto5ShadowSession=id;gto5ShadowData=null;
- const host=$('gto5ShadowRows');host.replaceChildren(el('p','note','Загрузка Shadow-отчёта...'));
+ const host=$('gto5ShadowRows');
+ if(host)host.replaceChildren(el('p','note','Загрузка Shadow-отчёта...'));
  try{
   const data=await get('/api/runs/'+id+'/gto5-shadow');
   if(gto5ShadowSession!==id)return;
   gto5ShadowData=data;renderGTO5Shadow();
  }catch(err){
-  if(gto5ShadowSession===id)host.replaceChildren(el('p','bad','Shadow-отчёт недоступен: '+err.message));
+  if(gto5ShadowSession===id&&host)host.replaceChildren(
+   el('p','bad','Shadow-отчёт недоступен: '+err.message));
  }
 }
 function renderGTO5Shadow(){
- const root=$('gto5ShadowRows'),data=gto5ShadowData||{};
+ const root=$('gto5ShadowRows'),status=$('gto5ShadowStatus'),data=gto5ShadowData||{};
+ if(!root)return;
  root.replaceChildren();
  if(!data.compared){
-  root.append(el('p','note',data.message||'Нет сопоставленных решений. Выбери GTO 5.0 и включи Shadow Mode при запуске.'));
+  if(status)status.textContent='Нет данных';
+  root.append(el('div','shadow-empty',data.message||
+   'Нет сопоставленных решений. Для новой серии выбери GTO 5.0 и включи Shadow Mode 10/25/100%.'));
   return;
  }
+ if(status)status.textContent=shadowFormat(data.compared,0)+' решений';
  const overall=data.overall||{};
- const txt=(n)=>n==null?'—':Number(n).toLocaleString('ru-RU',{maximumFractionDigits:2});
- root.append(el('div','','Проверено: '+data.compared+' · пропущено: '+(data.skipped||0)+
-  ' · MAE EV '+txt(overall.mae_ev_bb)+' BB · mismatch '+txt(overall.mismatch_pct)+
-  '% · средний EV Regret '+txt(overall.mean_regret_bb)+' BB · всего '+txt(overall.total_regret_bb)+' BB'));
- const makeTable=(heading,rows)=>{
-  const section=el('details','coverageAudit');section.open=false;
-  const summary=el('summary','',heading);section.append(summary);
-  if(!rows?.length){section.append(el('p','note','Нет наблюдений'));root.append(section);return}
-  const table=el('table','coverageTable');const thead=el('thead'),tr=el('tr');
-  ['Группа','n','MAE EV, BB','Неверный выбор %','EV regret, BB','Потери всего, BB','>5 BB, %'].forEach(t=>tr.append(el('th','',t)));
-  thead.append(tr);table.append(thead);
-  const body=el('tbody');
-  rows.forEach(x=>{
-   const tr=el('tr'),values=[x.label,x.n,txt(x.mae_ev_bb),txt(x.mismatch_pct),txt(x.mean_regret_bb),txt(x.total_regret_bb),txt(x.regret_over_5bb_pct)];
-   values.forEach(v=>tr.append(el('td','',String(v??'—'))));
-   if(!x.sufficient)tr.title='Недостаточно наблюдений для ранжирования';body.append(tr);
-  });
-  table.append(body);section.append(table);root.append(section);
- };
+ const kpis=el('div','shadow-kpis');
+ [
+  ['ПРОВЕРЕНО',shadowFormat(data.compared,0),'Сопоставленных решений',''],
+  ['MAE ΔEV',shadowFormat(overall.mae_ev_bb)+' BB','Средняя ошибка оценки EV','focus'],
+  ['РАЗНЫЙ ВЫБОР',shadowFormat(overall.mismatch_pct,1)+'%','GTO 5.0 vs GTO 4.1',''],
+  ['EV REGRET / ХОД',shadowFormat(overall.mean_regret_bb)+' BB','Потеря на решение по модели 4.1','risk'],
+  ['СУММА REGRET',shadowFormat(overall.total_regret_bb)+' BB','По всем сравниваемым решениям',''],
+  ['REGRET > 5 BB',shadowFormat(overall.regret_over_5bb_pct,2)+'%','Доля крупных расхождений решений','']
+ ].forEach(x=>kpis.append(shadowKpi(...x)));
+ root.append(kpis);
+ const nav=el('div','shadow-tabs');nav.setAttribute('role','tablist');
+ SHADOW_NAV.forEach(([value,title])=>{
+  const btn=el('button','shadow-tab',title);
+  btn.type='button';btn.setAttribute('role','tab');
+  btn.setAttribute('aria-selected',String(shadowView===value));
+  btn.onclick=()=>shadowSetTab(value);nav.append(btn);
+ });
+ root.append(nav);
+ const section=el('div','shadow-view');
  const groups=data.groups||{};
- for(const [dimension,label] of [
-  ['street','Улицы F/T/R'],['opponents','Число оппонентов 1/2/3/4+'],
-  ['P','Парность P'],['S','Связность S'],['F','Масти F'],
-  ['board_structure','Структуры бордов P · S · F'],
-  ['street_opponents','Улица × оппоненты'],
-  ['street_board','Улица × структура'],
-  ['opponents_board','Оппоненты × структура'],
-  ['street_opponents_board','Улица × оппоненты × структура']])
-  makeTable(label,groups[dimension]);
- const ranks=data.rankings||{};
- for(const [key,label] of [
-  ['frequent','Чаще неправильный выбор'],['frequent_ev_discrepancy','Чаще ошибка EV >5 BB'],
-  ['expensive','Дороже средняя ошибка'],['total_loss','Максимальная суммарная потеря']])
-  makeTable('ТОП: '+label,(ranks[key]||[]).map(v=>({...v,label:v.label||v.structure||'—'})));
- const worst=ranks.worst_decisions||[];
- if(worst.length){
-  const d=el('details','coverageAudit'),s=el('summary','','20 самых дорогих отдельных решений');d.append(s);
-  worst.forEach(row=>{
-   const item=el('p','small','Турнир '+row.tournament+' · рука '+row.hand_id+
-    ' · '+row.street+' '+(row.board||[]).join(' ')+
-    ' · '+row.opponents+' опп. · '+row.chosen5+' вместо '+row.chosen41+
-    ' · regret '+txt(row.regret_bb)+' BB');
-   d.append(item);
-  });root.append(d);
+ if(shadowView==='overview')shadowOverview(data,section);
+ else if(shadowView==='hands')shadowHands(data,section);
+ else if(shadowView==='ranking'){
+  section.append(shadowTitle('Где GTO 5.0 ошибается чаще и дороже'));
+  section.append(shadowControls([
+   shadowSelector('Критерий рейтинга',SHADOW_RANKS,shadowRank,value=>{
+    shadowRank=value;shadowLimit=35;renderGTO5Shadow();
+   })
+  ],true,false));
+  section.append(el('p','shadow-help',
+   'Рейтинги предварительно исключают структуры с n < 30; «часто» и «дорого» — разные критерии.'));
+  const ranks=(data.rankings||{})[shadowRank]||[];
+  section.append(shadowTable(ranks,{preserveOrder:true,evDiscrepancy:shadowRank==='frequent_ev_discrepancy'}));
+ }else{
+  let dimension=shadowView==='streets'?'street':
+     shadowView==='opponents'?'opponents':
+     shadowView==='boards'?shadowBoard:shadowCross;
+  const label=shadowView==='streets'?'Ошибки по улицам':
+   shadowView==='opponents'?'Ошибки по числу оппонентов':
+   shadowView==='boards'?'Ошибки по структурам P / S / F':'Пересечения характеристик борда';
+  section.append(shadowTitle(label));
+  const controls=[];
+  if(shadowView==='boards')controls.push(
+   shadowSelector('Структура',SHADOW_BOARD_GROUPS,shadowBoard,value=>{
+    shadowBoard=value;shadowLimit=35;renderGTO5Shadow();
+   }));
+  if(shadowView==='cross')controls.push(
+   shadowSelector('Комбинация',SHADOW_CROSSES,shadowCross,value=>{
+    shadowCross=value;shadowLimit=35;renderGTO5Shadow();
+   }));
+  controls.push(shadowSelector('Сортировать по',SHADOW_SORTS,shadowSort,value=>{
+   shadowSort=value;shadowDescending=true;shadowLimit=35;renderGTO5Shadow();
+  }));
+  section.append(shadowControls(controls,true,true));
+  section.append(shadowTable(groups[dimension]));
  }
+ root.append(section);
+ const note=el('div','shadow-note-strip');
+ note.append(el('strong','','Как читать показатели. '));
+ note.append(document.createTextNode(
+  'MAE ΔEV — среднее абсолютное расхождение оценки EV двух моделей. '+
+  'Разный выбор — доля решений, где действия не совпали. EV Regret — '+
+  'на сколько EV 4.1 оценил свой лучший ход выше выбранного 5.0. '+
+  'Это сравнение с приближённой GTO 4.1, а не абсолютная ошибка и не фактический Net BB. '+
+  'Малые выборки (n < 30) исключены из рейтингов. '+
+  (data.skipped?'Пропущено несопоставимых решений: '+shadowFormat(data.skipped,0)+'.':'')));
+ root.append(note);
 }
+
 let gto30TraceSession='',gto30TraceData=null;
 async function loadGTO30Trace(id){
  gto30TraceSession=id;
@@ -651,6 +1038,7 @@ function present(s){
  $('sessionSelect').value=s.id;
 }
 function empty(){
+ gto5ShadowSession='';gto5ShadowData=null;renderGTO5Shadow();
  selected=null;['completed','hands','hps','started'].forEach(id=>$(id).textContent='—');
  $('fill').style.width='0';$('progress').textContent='Нет данных';$('eta').textContent='';$('runStatus').textContent='—';$('sessionProtocol').textContent='Префлоп: —';
  $('leader').replaceChildren();$('openAnalysis').href='#analysis';if($('analysisDetails').open)loadAnalysisSession('');$('log').textContent='Нет сессий';$('download').disabled=true;$('remove').disabled=true;$('restore').disabled=true;$('stop').disabled=true;$('resume').disabled=true;working=false;valid();
