@@ -441,7 +441,9 @@ function renderGTO30Trace(){
    (step.opponents||[]).forEach(opp=>{
      if(!opp.metrics)return;
      const v=opp.metrics;
-     entry.append(el('div','small','Реакции на ставки всех игроков: Fold '+(100*v.fold_to_bet.p).toFixed(1)+'% ('+v.fold_to_bet.k+'/'+v.fold_to_bet.n+') · C-bet Fold '+(100*v.fold_to_cbet.p).toFixed(1)+'% ('+v.fold_to_cbet.k+'/'+v.fold_to_cbet.n+') · Raise '+(100*v.raise_to_bet.p).toFixed(1)+'% ('+v.raise_to_bet.k+'/'+v.raise_to_bet.n+') · Reraise '+(100*v.reraise_vs_raise.p).toFixed(1)+'% ('+v.reraise_vs_raise.k+'/'+v.reraise_vs_raise.n+')'));
+     const rr=v.reraise_vs_raise||v.reraise;
+     if(v.fold_to_bet&&v.fold_to_cbet&&v.raise_to_bet&&rr)
+      entry.append(el('div','small','Реакции на ставки всех игроков: Fold '+(100*v.fold_to_bet.p).toFixed(1)+'% ('+v.fold_to_bet.k+'/'+v.fold_to_bet.n+') · C-bet Fold '+(100*v.fold_to_cbet.p).toFixed(1)+'% ('+v.fold_to_cbet.k+'/'+v.fold_to_cbet.n+') · Raise '+(100*v.raise_to_bet.p).toFixed(1)+'% ('+v.raise_to_bet.k+'/'+v.raise_to_bet.n+') · Reraise '+(100*rr.p).toFixed(1)+'% ('+rr.k+'/'+rr.n+')'));
    });
    if(step.active_metric) entry.append(el('div','small','Основание решения: '+step.active_metric));
    if(bot.policy?.startsWith('gto_postflop_32_')){
