@@ -1027,6 +1027,29 @@ function renderGTO30Trace(){
          (m.seniority?.method?' · '+m.seniority.method:'')+
          ' · Equity proxy: '+(100*(m.proxy_equity??0)).toFixed(2)+'%'));
      }
+     if(step.opponent_models?.length){
+       const details=el('details','trace-opponents','');
+       details.append(el('summary','small','Оценка по каждому оппоненту ('+
+          step.opponent_models.length+'); предположение независимости, не точное multiway EV'));
+       step.opponent_models.forEach(opp=>{
+         const fmt=x=>x==null?'—':(100*Number(x)).toFixed(1)+'%';
+         const band=opp.band?.length===2?
+           fmt(opp.band[0])+'…'+fmt(opp.band[1]):'—';
+         const bets=opp.vs_bet||{};
+         const part=['fold','call','raise'].map(key=>{
+           const x=bets[key];
+           return key.toUpperCase()+' '+fmt(x?.p)+
+             (x?.n!=null?' ('+x.k+'/'+x.n+')':'');
+         }).join(' · ');
+         details.append(el('div','small',
+           'OPP '+opp.pid+' · диапазон силы '+band+
+           ' · Equity HU proxy '+fmt(opp.equity_proxy)+
+           (opp.bet_call_equity_proxy!=null?
+             ' · Equity vs Call '+fmt(opp.bet_call_equity_proxy):'')+
+           ' · '+part));
+       });
+       entry.append(details);
+     }
      if(d.enumeration==='exact_with_hero_blockers')
        entry.append(el('div','small','Any Two: '+d.evaluated_hands+'/'+d.possible_hands+' рук · полный перебор категорий · совместных прогонов: '+m.joint_trials+(m.side_pot_approximation?' · side pots приближённые':'')));
    }
