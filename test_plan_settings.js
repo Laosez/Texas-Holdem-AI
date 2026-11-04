@@ -36,7 +36,7 @@ const evalJs=x=>vm.runInContext(x,context);
 assert.equal(evalJs('defaultPlanSettings().seats.length'),9);
 assert.equal(evalJs('defaultPlanSettings().seats.find(x=>x.position==="BB").scenario'),'vs_open');
 assert.equal(evalJs('defaultPlanSettings().seats.every(x=>x.entry_mode==="range")'),true);
-assert.equal(evalJs('defaultPlanSettings().postflop'),'gto');
+assert.equal(evalJs('defaultPlanSettings().postflop'),'gto_postflop_v1');
 assert.equal(evalJs('defaultPlanSettings().profile'),'builtin:pc_gto_80bb');
 assert.equal(evalJs('defaultPlanSettings().simStack'),'20');
 assert.equal(evalJs('defaultPlanSettings().trials'),'1000');
