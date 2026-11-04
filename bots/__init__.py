@@ -142,6 +142,9 @@ def create_bot(btype: str) -> BotAdapter:
     if btype == "gto_postflop_50_5":
         from bots.gto_postflop_50 import HumanRangeGTO50Bot
         return HumanRangeGTO50Bot(window=5)
+    if btype == "gto_postflop_505_5":
+        from bots.gto_postflop_50 import RoundedHumanRangeGTO505Bot
+        return RoundedHumanRangeGTO505Bot(window=5)
 
     if btype in ("gto_postflop_41_5", "gto_postflop_41_10"):
         from bots.gto_postflop_41 import JointRangeGTO41Bot
