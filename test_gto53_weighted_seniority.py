@@ -69,6 +69,11 @@ class GTO53WeightedSeniorityTests(unittest.TestCase):
             ("3h Ah 8h 2h 6c", "5d 4d", 4, 50.0), # straight F4
             ("4h 3d As 5c 2d", "9h Qc", 990, 41.41), # shared straight
             ("7c Qd 8s Jd 7s", "9h Th", 9, 50.0), # straight P1
+            ("9s 9h 9d 9c 2s", "Ah Kd", 990, 93.48), # quads on board
+            ("2s 2d 2h 5s 5h", "2c Ah", 1, 0.0), # quads with blocker
+            ("5s 6s 7s 8s", "9s As", 45, 100.0), # own straight flush
+            ("2c 3c 4c 5c 6c", "Qh Ad", 990, 47.78), # SF on board
+            ("Ks Kd Kh 3s 4c", "Kc Qs", 0, 50.0), # no equal-category opponent
         )
         for board, hero, expected_n, expected_percent in cases:
             with self.subTest(board=board, hero=hero):
