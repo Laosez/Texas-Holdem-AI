@@ -89,8 +89,8 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <select id="button_policy"><option value="dead_button" selected>Dead button · TDA · корректные пустые SB/BTN</option><option value="moving">Moving button · старые эксперименты</option></select>
 <p class="note">Стандартный турнир — dead button: при выбываниях баттон и SB могут быть пустыми; BB переходит по физическим местам. Moving сохранён для воспроизведения прежних тестов. Результаты разных правил сравнивай отдельно.</p></div>
 <div class="field wide"><label for="preflop_protocol">Префлоп · правила эксперимента</label>
-<select id="preflop_protocol"><option value="standard_v1" selected>Единый протокол V1 · сравнение RFI</option><option value="legacy">Исходные стратегии · без стандартизации</option></select>
-<p class="note">В режиме V1 диапазоны открытия остаются индивидуальными. Для каждого игрока одинаковы все ответы после чужого входа в банк и размеры рейзов. Это экспериментальная модель, не GTO.</p></div>
+<select id="preflop_protocol"><option value="standard_v1" selected>Единый протокол V1 · сравнение RFI</option><option value="legacy">Исходные стратегии · без стандартизации</option><option value="any_two_limp">Any Two · все доставляют, постфлоп по стратегиям</option></select>
+<p class="note"><strong>Any Two:</strong> все 2–9 игроков обязательно входят в банк с любыми картами: на префлопе только Call/Check (без рейзов и фолдов); начиная с флопа каждый играет по выбранной Postflop-стратегии. Префлоп-чарты в этом режиме не используются. В режиме V1 сохраняются индивидуальные диапазоны открытия, но ответы и сайзинги стандартизированы. Это экспериментальные режимы, не GTO.</p></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
 <section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
@@ -388,7 +388,7 @@ function present(s){
  const active=['running','starting'].includes(s.status);
  $('runStatus').textContent=({running:'Выполняется',starting:'Запускается',completed:'Завершена',imported:'Загружена',failed:'Ошибка',cancelled:'Остановлена',interrupted:'Прервана'})[s.status]||s.status;
  $('runStatus').className='badge'+(['completed','imported'].includes(s.status)?' ok':['failed','interrupted'].includes(s.status)?' fail':'');
- $('sessionProtocol').textContent='Префлоп: '+(s.config?.preflop_protocol==='standard_v1'?'Единый V1':'Исходный');
+ $('sessionProtocol').textContent='Префлоп: '+(s.config?.preflop_protocol==='any_two_limp'?'Any Two · Call/Check':s.config?.preflop_protocol==='standard_v1'?'Единый V1':'Исходный');
  working=sessions.some(j=>['running','starting'].includes(j.status))||active;valid();
  $('stop').disabled=!active;$('resume').disabled=!['failed','cancelled','interrupted'].includes(s.status)||working;$('download').disabled=active;$('remove').disabled=active;$('restore').disabled=!(s.config?.bots?.length||s.config?.players?.length);
  const report=s.report||{},prog=s.progress||{},total=prog.total||report.tournaments_requested||s.config?.tournaments||0;

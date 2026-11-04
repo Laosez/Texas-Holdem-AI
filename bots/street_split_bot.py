@@ -52,6 +52,14 @@ class StreetSplitBot(BotAdapter):
     def act(self, view: PlayerView) -> Action:
         street = view.street
         if street == "preflop":
+            if self.preflop_protocol == "any_two_limp":
+                # Postflop-only evaluation: ALL dealt hands see the flop.
+                # No RFI chart, fold, bet or raise on preflop. The engine
+                # supplies the actual legal actions; preserve its rules.
+                chosen = "call" if view.to_call > 0 else "check"
+                if chosen not in {a["type"] for a in (view.legal_actions or ())}:
+                    raise RuntimeError("Any Two: legal preflop " + chosen + " unavailable")
+                return Action(chosen)
             # Random is the experimental negative control: under standard_v1
             # it must remain truly random rather than inherit shared
             # deterministic response ranges and standard raise sizes.

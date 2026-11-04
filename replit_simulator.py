@@ -283,7 +283,8 @@ def strategy_catalog():
             },
             "preflop_protocols": {
                 "legacy": "Исходные действия стратегии, старые эксперименты",
-                "standard_v1": "Единые диапазоны ответов и размеры повышений; собственный RFI у каждой стратегии"
+                "standard_v1": "Единые диапазоны ответов и размеры повышений; собственный RFI у каждой стратегии",
+                "any_two_limp": "Any Two: все игроки доставляют до BB / check на префлопе; постфлоп по выбранным стратегиям"
             },
             "preflop_coverage": {
                 "pc_gto_80bb": {
@@ -382,8 +383,8 @@ def validate_config(data: dict) -> dict:
     if seat_mode not in ("rotate", "fixed"):
         raise ValueError("seat_mode: rotate или fixed")
     preflop_protocol = data.get("preflop_protocol", "legacy")
-    if preflop_protocol not in ("legacy", "standard_v1"):
-        raise ValueError("preflop_protocol: legacy или standard_v1")
+    if preflop_protocol not in ("legacy", "standard_v1", "any_two_limp"):
+        raise ValueError("preflop_protocol: legacy, standard_v1 или any_two_limp")
     button_policy=data.get("button_policy","dead_button")
     if button_policy not in ("dead_button","moving"):
         raise ValueError("Режим баттона: dead_button или moving")

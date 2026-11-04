@@ -107,6 +107,61 @@ class ScreenOneTests(unittest.TestCase):
         self.assertEqual(preflop_stage(view("AA",(5,15))),"vs_threebet")
         self.assertEqual(preflop_stage(view("AA",(5,15,34))),"vs_fourbet")
 
+    def test_any_two_protocol_forces_call_check_preserves_postflop(self):
+        import os
+        import random
+        from types import SimpleNamespace
+        from core.bot_api import Action
+        from core.engine import Table, Seat
+        from bots import create_bot
+        from unittest.mock import patch as mock_patch
+
+        config = app.validate_config({"preflop_protocol": "any_two_limp"})
+        self.assertEqual(config["preflop_protocol"], "any_two_limp")
+        self.assertIn("any_two_limp", app.strategy_catalog()["preflop_protocols"])
+        page = app.UI.read_text(encoding="utf-8")
+        self.assertIn('value="any_two_limp"', page)
+        self.assertIn("Any Two", page)
+
+        with mock_patch.dict(os.environ, {"POKER_PREFLOP_PROTOCOL": "any_two_limp"}):
+            bot = create_bot("split:a17_preflop:gto_postflop_v1")
+        self.assertEqual(bot.preflop_protocol, "any_two_limp")
+        def never_use_chart(view):
+            raise AssertionError("Any Two must bypass preflop ranges")
+        bot.preflop_bot.act = never_use_chart
+        for hole in ([("A", "s"), ("A", "h")], [("7", "s"), ("2", "d")]):
+            for to_call, expected in ((1, "call"), (0, "check")):
+                view = SimpleNamespace(street="preflop", hole_cards=hole,
+                    to_call=to_call, legal_actions=[
+                        {"type": "fold"}, {"type": "call"}, {"type": "check"},
+                        {"type": "raise", "min": 4, "max": 160}],
+                    board=[], history=[], pot=3, stacks={"P1": 160, "P2": 160})
+                self.assertEqual(bot.act(view).type, expected)
+        bot.postflop_bot.act = lambda view: Action("check")
+        view.street = "flop"
+        self.assertEqual(bot.act(view).type, "check")
+
+        # Actual engine smoke: two and nine players cannot fold preflop.
+        # A no-bet postflop policy guarantees every live seat acts on flop.
+        with mock_patch.dict(os.environ, {"POKER_PREFLOP_PROTOCOL": "any_two_limp"}):
+            for n in (2, 9):
+                with self.subTest(seats=n):
+                    seen = []
+                    players = {}
+                    for i in range(1, n + 1):
+                        p = create_bot("split:a17_preflop:gto_postflop_v1")
+                        p.postflop_bot.act = lambda view: (seen.append(view.street), Action("check"))[1]
+                        players[f"P{i}"] = p
+                    seats = [Seat(f"P{i}", 160) for i in range(1, n + 1)]
+                    net = Table(rng=random.Random(300 + n)).play_hand(
+                        seats, small_blind=1, big_blind=2,
+                        dealer_index=0, bot_for=players)
+                    self.assertEqual(set(net), set(players))
+                    self.assertEqual(sum(net.values()), 0)
+                    self.assertEqual(seen.count("flop"), n)
+                    self.assertEqual(seen.count("turn"), n)
+                    self.assertEqual(seen.count("river"), n)
+
     def test_standardized_protocol_runs_real_9max_hand_and_conserves_chips(self):
         import os,random
         from core.engine import Table,Seat
