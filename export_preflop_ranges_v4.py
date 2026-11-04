@@ -808,9 +808,12 @@ def checkpoint_config_key(args, names, source_sha256=None):
         "seed": args.seed, "chips": args.chips, "sb": args.sb, "bb": args.bb,
         "blind_increase_every": args.blind_increase_every, "max_hands": args.max_hands,
         "seat_mode": args.seat_mode,
-        "shadow_percent": args.shadow_percent,
         "source_sha256": source_sha256 or hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
+    # Preserve the exact historic checkpoint digest with Shadow disabled.
+    # Only opt-in Shadow changes the experiment key.
+    if getattr(args, "shadow_percent", 0):
+        payload["shadow_percent"] = args.shadow_percent
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
