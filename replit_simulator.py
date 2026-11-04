@@ -437,6 +437,16 @@ def strategy_catalog():
                                  "До 5×13+13 ранговых маршрутов, не 990 рук",
                                  "Без округления; доступен в Shadow против 4.1/5.1"]
                 },
+                "gto_postflop_531_5": {
+                    "label": "GTO 5.3.1/5 · Ничьи в диапазоне ставки (A/B)",
+                    "model": "human_rank_weighted_tie_aware_531",
+                    "features": ["Только исправление ничьих при пересечении диапазона действия",
+                                 "Все правила старшинства GTO 5.3 сохранены",
+                                 "Точная доля делимого банка в интервале по рангу",
+                                 "O(1) на диапазон OPP, без MC или перебора рук",
+                                 "HU/multiway proxy, будущие карты и EV не изменены",
+                                 "GTO 5.3 сохранена для чистого A/B"]
+                },
                 "gto_postflop_53_5": {
                     "label": "GTO 5.3/5 alpha · Взвешенное старшинство · Any Two",
                     "model": "human_board_ev_rank_weighted_53_alpha",
@@ -604,7 +614,7 @@ def validate_config(data: dict) -> dict:
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     shadow_reference = data.get("shadow_reference", "gto41")
-    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53"):
+    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531"):
         raise ValueError("Shadow Mode: неверная эталонная стратегия")
     config = {
         "shadow_percent": shadow_percent,
