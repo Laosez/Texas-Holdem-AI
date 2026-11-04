@@ -934,6 +934,12 @@ class Table:
                 "amount": history_amount,
                 "to_call_before": to_call,
                 "pot_before": pot + sum(contrib.values()),
+                # Observable decision opportunity: legal actions at the moment
+                # of this decision. Needed to distinguish 0=declined raise
+                # from 0=raise was unavailable (short stack / unopened pot).
+                # Not private cards or hindsight; no change to bet semantics.
+                "legal_types": [a["type"] for a in legal],
+                "position": pos_by_pid[pid],
             })
 
             # APPLY ACTION

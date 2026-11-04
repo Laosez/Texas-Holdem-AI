@@ -29,6 +29,8 @@ POLICIES = {
     "gto_postflop_21f": "GTO 2.1f · cautious four-suit flush",
     "gto_postflop_31_5": "GTO 3.1/5 · all public action memory",
     "gto_postflop_31_10": "GTO 3.1/10 · all public action memory",
+    "gto_postflop_32_5": "GTO 3.2/5 · last 5 eligible opportunities per metric",
+    "gto_postflop_32_10": "GTO 3.2/10 · last 10 eligible opportunities per metric",
     "lag_postflop_v1": "LAG V1",
     "tag_postflop_v1": "TAG V1",
     "chaser_postflop_v1": "Chaser V1",

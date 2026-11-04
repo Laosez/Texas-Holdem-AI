@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_21a", "gto_postflop_21b", "gto_postflop_21c", "gto_postflop_21d", "gto_postflop_21e", "gto_postflop_21f", "gto_postflop_30_5", "gto_postflop_30_10", "gto_postflop_31_5", "gto_postflop_31_10", "gto_postflop_32_5", "gto_postflop_32_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -327,6 +327,28 @@ def strategy_catalog():
                                  "Fold to any bet, Fold to C-bet, Raise, Reraise",
                                  "aggression-based uncalibrated strength signal",
                                  "HU adaptation only; multiway observation allowed"]
+                },
+                "gto_postflop_32_5": {
+                    "label": "GTO 3.2/5 · отдельные окна 5 возможностей",
+                    "model": "opportunity_memory_heuristic",
+                    "features": ["GTO 2.1 baseline and half-pot bet/raise",
+                                 "last 5 eligible opportunities PER metric and opponent",
+                                 "RFI, 3-bet, Fold to Raise, C-bet, Fold to C-bet",
+                                 "Bet Flop, Raise Flop, Reraise, Fold to Bet",
+                                 "legal-action snapshots; no imaginary raise opportunities",
+                                 "Bayesian smoothing; min 3 matching opportunities",
+                                 "HU adaptation, multiway observation"]
+                },
+                "gto_postflop_32_10": {
+                    "label": "GTO 3.2/10 · отдельные окна 10 возможностей",
+                    "model": "opportunity_memory_heuristic",
+                    "features": ["GTO 2.1 baseline and half-pot bet/raise",
+                                 "last 10 eligible opportunities PER metric and opponent",
+                                 "RFI, 3-bet, Fold to Raise, C-bet, Fold to C-bet",
+                                 "Bet Flop, Raise Flop, Reraise, Fold to Bet",
+                                 "legal-action snapshots; no imaginary raise opportunities",
+                                 "Bayesian smoothing; min 3 matching opportunities",
+                                 "HU adaptation, multiway observation"]
                 },
                 "lag_postflop_v1": {
                     "label": "LAG Postflop V1 (агрессивный эксперимент)",

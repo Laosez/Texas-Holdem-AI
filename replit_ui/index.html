@@ -112,7 +112,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
 <div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
-<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO 1 / GTO 2.0 / GTO 2.1 / GTO 3.0 / GTO 3.1 / TAG / LAG</summary>
+<details class="coverageAudit" id="postflopModels"><summary>Postflop: GTO 1 / 2.0 / 2.1 / 3.0 / 3.1 / 3.2 / TAG / LAG</summary>
 <table class="coverageTable"><thead><tr><th>Механика</th><th>GTO Postflop V1</th><th>LAG Postflop V1</th></tr></thead><tbody>
 <tr><td>Готовые сильные руки</td><td>Вэлью-ставки / частичные ловушки</td><td>Чаще ставит и повышает</td></tr>
 <tr><td>Сильные дро</td><td>Сдержанный полублеф</td><td>Частые полублефы / чек-рейзы</td></tr>
@@ -164,6 +164,33 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </tbody></table>
 <p class="note">Точность прогноза силы руки пока <strong>не измерена</strong>. Без вскрытий нельзя калибровать P(сильная рука | ставка), поэтому в 3.1 используется лишь ограниченный сигнал агрессии. Память имеет строгий лимит 5 или 10 событий на соперника, не 5–10 раздач. Базовая GTO 2.1 и GTO 3.0 сохранены неизменными.</p>
 </details>
+
+<details class="coverageAudit" id="gto32Matrix">
+<summary>GTO 3.2 · отдельные окна 5/10 возможностей по каждой метрике</summary>
+<p class="note"><strong>Ключевое отличие:</strong> сохраняем для каждого соперника отдельные последние 5 или 10 <strong>подходящих ситуаций</strong> по каждому показателю, а не последние 5/10 действий вообще. Если было 4 открытия из 10 возможностей: RFI = 4/10 = 40%, даже если с тех пор прошло 100 раздач без ситуации RFI. Новая возможность добавляет 1 или 0 и вытесняет только старейший элемент своей метрики.</p>
+<table class="coverageTable"><thead><tr><th>Метрика</th><th>Что считается возможностью (знаменатель)</th><th>Успех (числитель)</th></tr></thead><tbody>
+<tr><td>RFI / First Raise</td><td>Первый вход на префлопе, когда рейз разрешён</td><td>Открыл рейзом, а не фолдом / лимпом</td></tr>
+<tr><td>Fold to Raise</td><td>Столкнулся с рейзом, Fold был легален</td><td>Сбросил</td></tr>
+<tr><td>3-bet / 4-bet</td><td>Мог повысить исходный рейз / 3-бет</td><td>Повысил</td></tr>
+<tr><td>Fold to 3-bet</td><td>Столкнулся с 3-бетом, Fold был легален</td><td>Сбросил</td></tr>
+<tr><td>C-bet</td><td>Префлоп-агрессор мог первым поставить на флопе</td><td>Поставил</td></tr>
+<tr><td>Fold to C-bet</td><td>Мог ответить Fold на первую ставку флопа префлоп-агрессора</td><td>Сбросил</td></tr>
+<tr><td>Bet Flop</td><td>На флопе доступен первый Bet (не требует префлоп-рейза)</td><td>Поставил</td></tr>
+<tr><td>Raise Flop</td><td>На флопе разрешено повысить чужую ставку</td><td>Сделал Raise</td></tr>
+<tr><td>Reraise</td><td>Столкнулся с Raise и мог повысить ещё раз</td><td>Повысил</td></tr>
+<tr><td>Fold / Call / Raise to Bet</td><td>Отдельные легальные возможности ответить на ставку</td><td>Выбрал соответствующее действие</td></tr>
+<tr><td>Bet when Checked</td><td>Мог поставить первым или сыграть Check</td><td>Выбрал Bet</td></tr>
+</tbody></table>
+<p class="note"><strong>Данные:</strong> движок сохраняет для каждого публичного действия юридически допустимые варианты в момент решения. Если Raise был недоступен (короткий стек / ограничения торговли), это <strong>не</strong> попытка Raise. Старые записи без этого признака не добавляются в знаменатель. В режиме Any Two принудительные решения префлопа исключены, а обычные постфлоп-ставки считаются даже без классического C-bet.</p>
+<table class="coverageTable"><thead><tr><th>Решение Hero</th><th>Используемая метрика</th><th>Ограничение</th></tr></thead><tbody>
+<tr><td>Блеф / полублеф</td><td>Fold to Bet или Fold to C-bet</td><td>Не менее 3 подходящих возможностей</td></tr>
+<tr><td>Вэлью-ставка</td><td>Call to Bet</td><td>Не менее 3 подходящих возможностей</td></tr>
+<tr><td>Call/Fold против Bet</td><td>Bet when Checked</td><td>Не менее 3 подходящих возможностей</td></tr>
+<tr><td>Call/Fold против Raise</td><td>Raise Flop / Raise to Bet / Reraise</td><td>Не менее 3 подходящих возможностей</td></tr>
+<tr><td>Мультипот</td><td>Собираем статистику каждого соперника</td><td>Пока решения по базовой GTO 2.1</td></tr>
+</tbody></table>
+<p class="note"><strong>Статистика:</strong> показываем отдельно эмпирические k/n и сглаженную частоту (k + 4×P₀)/(n + 4). Выборочные вероятности действий — не оценка P(сильная рука); для последнего потребуется калибровка по вскрытиям. RFI и 3-bet пока собираются для будущей префлоп-модели и не изменяют принудительный режим Any Two.</p>
+</details>
 <details class="coverageAudit" id="preflopAudit"><summary>Покрытие ИСХОДНЫХ алгоритмов · без общего протокола V1</summary>
 <table class="coverageTable"><thead><tr><th>Сценарий</th><th>GTO PC</th><th>A17 V5</th></tr></thead><tbody>
 <tr><td>RFI / Open Raise</td><td>PC 80 BB · позиционные чарты</td><td>Коробки по позиции</td></tr>
@@ -180,8 +207,8 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="column topColumn journalColumn">
 <section class="panel"><div class="heading"><h2><span class="index">04 / </span>Журнал выполнения</h2><button class="btn sm" id="copyLog">Копировать</button></div><div class="small" id="logLabel">Нет сессии</div><pre id="log">Для просмотра журнала подключись к Railway.</pre>
 <details class="coverageAudit" id="gto30TracePanel" style="margin-top:10px">
-<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0 · Лог решений (последняя раздача / 5)</summary>
-<p class="note">Для GTO 3.0/5 и GTO 3.0/10: последовательность оценки на флопе, тёрне и ривере. Источник — последние пять раздач с постфлоп-решениями в последнем завершённом турнире сессии.</p>
+<summary style="cursor:pointer;color:#c9e2ff;font-weight:750">▸ GTO 3.0–3.2 · Лог решений (последняя раздача / 5)</summary>
+<p class="note">Для адаптивных GTO 3.0–3.2: последовательность оценки на флопе, тёрне и ривере. Источник — последние пять раздач с постфлоп-решениями в последнем завершённом турнире сессии.</p>
 <div class="fields" style="margin-top:10px">
 <div class="field"><label for="gto30TraceBot">Игрок / профиль</label><select id="gto30TraceBot"><option value="">—</option></select></div>
 <div class="field"><label for="gto30TraceDepth">Число раздач</label><select id="gto30TraceDepth"><option value="1">Последняя</option><option value="5">Последние 5</option></select></div>
@@ -217,12 +244,12 @@ const $=id=>document.getElementById(id);
 // street-appropriate strategies in the new tournament editor.
 let values=['','a17_preflop','pc_gto_80bb'];
 let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
-const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_21a','gto_postflop_21b','gto_postflop_21c','gto_postflop_21d','gto_postflop_21e','gto_postflop_21f','gto_postflop_30_5','gto_postflop_30_10','gto_postflop_31_5','gto_postflop_31_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
+const POSTFLOP_FIVE=['gto_postflop_v1','gto_postflop_20','gto_postflop_21','gto_postflop_21a','gto_postflop_21b','gto_postflop_21c','gto_postflop_21d','gto_postflop_21e','gto_postflop_21f','gto_postflop_30_5','gto_postflop_30_10','gto_postflop_31_5','gto_postflop_31_10','gto_postflop_32_5','gto_postflop_32_10','s100_postflop_v1','tag_postflop_v1','lag_postflop_v1','chaser_postflop_v1','trapper_postflop_v1'];
 const POSTFLOP_WITH_RANDOM=[...POSTFLOP_FIVE,'random'];
 let postflopValues=['',...POSTFLOP_WITH_RANDOM];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
 
-const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
+const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
  ['a17_preflop','gto_postflop_v1'],
@@ -409,13 +436,25 @@ function renderGTO30Trace(){
    });
    entry.append(el('div','', 'Решение: '+step.decision.toUpperCase()+
       (step.amount_chips!=null?' '+step.amount_chips+' фишек':'')+
-      ' · '+(step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':'БАЗОВАЯ СТРАТЕГИЯ')));
+      ' · '+(step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?'АДАПТАЦИЯ GTO 3.2':'БАЗОВАЯ СТРАТЕГИЯ')));
    if(step.pressure) entry.append(el('div','small','Сигнал угрозы '+step.pressure.score.toFixed(2)+' · '+step.pressure.action+' (НЕ equity/вероятность руки)'));
    (step.opponents||[]).forEach(opp=>{
      if(!opp.metrics)return;
      const v=opp.metrics;
      entry.append(el('div','small','Реакции на ставки всех игроков: Fold '+(100*v.fold_to_bet.p).toFixed(1)+'% ('+v.fold_to_bet.k+'/'+v.fold_to_bet.n+') · C-bet Fold '+(100*v.fold_to_cbet.p).toFixed(1)+'% ('+v.fold_to_cbet.k+'/'+v.fold_to_cbet.n+') · Raise '+(100*v.raise_to_bet.p).toFixed(1)+'% ('+v.raise_to_bet.k+'/'+v.raise_to_bet.n+') · Reraise '+(100*v.reraise_vs_raise.p).toFixed(1)+'% ('+v.reraise_vs_raise.k+'/'+v.reraise_vs_raise.n+')'));
    });
+   if(step.active_metric) entry.append(el('div','small','Основание решения: '+step.active_metric));
+   if(bot.policy?.startsWith('gto_postflop_32_')){
+     (step.opponents||[]).forEach(opp=>{
+       if(!opp.metrics)return;
+       const tags={rfi:'RFI',fold_to_raise:'Fold→Raise',three_bet:'3-bet',fold_to_three_bet:'Fold→3-bet',cbet:'C-bet',fold_to_cbet:'Fold→C-bet',bet_flop:'Bet Flop',raise_flop:'Raise Flop',reraise:'Reraise',fold_to_bet:'Fold→Bet',call_to_bet:'Call→Bet',raise_to_bet:'Raise→Bet'};
+       Object.entries(tags).forEach(([key,label])=>{
+         const m=opp.metrics[key];
+         if(!m || !m.n)return;
+         entry.append(el('div','small',label+': '+m.k+'/'+m.n+' = '+(m.raw*100).toFixed(1)+'% · сглажено '+(m.p*100).toFixed(1)+'%'));
+       });
+     });
+   }
    entry.append(el('div','small',step.reason));
    card.append(entry);
   });
