@@ -24,6 +24,7 @@ from bots.postflop_profiles import _amount, _fallthrough, read_hand
 from core.engine import eval_hand
 from core.bot_api import Action
 from gto5_shadow_report import board_tags
+from bots.hand_seniority_51 import hero_seniority
 
 RANKS = "23456789TJQKA"
 WINDOWS = [set(range(i, i + 5)) for i in range(2, 11)] + [{14, 2, 3, 4, 5}]
@@ -37,7 +38,7 @@ OFFSETS = {
 }
 X_ANY_TWO = 5.88
 SHADOW_CHOICES = (0, 10, 25, 100)
-SHADOW_REFERENCES = ("gto41", "gto50", "gto505")
+SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515")
 
 
 def round_probability_to_five(value):
@@ -154,6 +155,28 @@ def _hero_quantile(view, dist):
     return max(.01, min(.99, q)), category
 
 
+def _hero_quantile_51(view, dist):
+    """Rank-aware Hero percentile, replacing category midpoint 0.5.
+
+    A rank-only danger/safe fraction is weighted by the opponent made-hand
+    category mass. The existing 5.0 F/T draw improvement is kept identical.
+    """
+    hole, board = list(view.hole_cards), list(view.board)
+    category = min(8, eval_hand(hole, board) >> 24)
+    masses = dist["probability_mass"]
+    if not masses:
+        return .50, category, {"method": "no mass", "win_fraction": .5}
+    win_fraction, rule = hero_seniority(
+        hole, board, category_mass=masses[category],
+        pocket_pair_pct=X_ANY_TWO)
+    q = sum(masses[:category]) + masses[category] * win_fraction
+    if len(board) < 5 and category < 4:
+        outs = max(0, min(15, read_hand(hole, board).draw_outs))
+        odds = min(.35, outs * (5-len(board)) / 47)
+        q += odds * (1-q) * .65
+    return max(.01, min(.99, q)), category, rule
+
+
 def _equity_in_band(hero_q, low, high):
     low, high = max(0., min(1., low)), max(0., min(1., high))
     if high <= low:
@@ -168,10 +191,16 @@ def _band(pid, street, history, groups):
     return _band_for(pid, street, history, groups[pid][street])
 
 
-def _estimate_actions(view, groups, distribution, bet_size):
+def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False):
     """Quick EV approximation using category quantiles and response frequencies."""
     opponents = [str(p) for p in (view.opponents or ())]
-    rank, category = _hero_quantile(view, distribution)
+    seniority_inputs = {}
+    if rank_aware:
+        rank, category, rule = _hero_quantile_51(view, distribution)
+        seniority_inputs["seniority"] = rule
+        seniority_inputs["hero_quantile"] = round(rank, 6)
+    else:
+        rank, category = _hero_quantile(view, distribution)
     history = getattr(view, "history", ()) or ()
     pot = max(1, int(view.pot))
     to_call = max(0, int(view.to_call))
@@ -187,11 +216,11 @@ def _estimate_actions(view, groups, distribution, bet_size):
     if to_call:
         return {"call": equity * (pot+to_call)-to_call, "fold": 0.0}, {
             "band": bands, "proxy_equity": equity,
-            "hero_category": CATEGORIES[category],
+            "hero_category": CATEGORIES[category], **seniority_inputs,
         }
     ev = {"check": equity * pot}
     if bet_size is None:
-        return ev, {"band": bands, "proxy_equity": equity}
+        return ev, {"band": bands, "proxy_equity": equity, **seniority_inputs}
     # P(0..n calls, no raises): dynamic program, O(n^2) not 3^n.
     dp = [1.0]
     call_equities = []
@@ -217,7 +246,7 @@ def _estimate_actions(view, groups, distribution, bet_size):
         "band": bands, "proxy_equity": equity,
         "mean_call_equity": mean_call_eq,
         "hero_category": CATEGORIES[category],
-        "bet_size": bet_size,
+        "bet_size": bet_size, **seniority_inputs,
     }
 
 
@@ -230,6 +259,7 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
         super().__init__(window=window)
         self.profile = "gto_postflop_50_5"
         self.round_step = 0
+        self.rank_aware = False
         rate = (int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0"))
                 if shadow_percent is None else int(shadow_percent))
         if rate not in SHADOW_CHOICES:
@@ -246,6 +276,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
 
     @property
     def actor_kind(self):
+        if self.rank_aware:
+            return "gto515" if self.round_step == 5 else "gto51"
         return "gto505" if self.round_step == 5 else "gto50"
 
     def _new_reference(self):
@@ -254,6 +286,10 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             return JointRangeGTO41Bot(window=5)
         if self.shadow_reference_kind == "gto505":
             return RoundedHumanRangeGTO505Bot(window=5, shadow_percent=0)
+        if self.shadow_reference_kind == "gto51":
+            return RankAwareGTO51Bot(window=5, shadow_percent=0)
+        if self.shadow_reference_kind == "gto515":
+            return RoundedRankAwareGTO515Bot(window=5, shadow_percent=0)
         return HumanRangeGTO50Bot(window=5, shadow_percent=0)
 
     def reset_memory(self):
@@ -300,7 +336,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             ev = {}
             inputs = {"special_board": True}
         else:
-            ev, inputs = _estimate_actions(view, groups, dist, size)
+            ev, inputs = _estimate_actions(view, groups, dist, size,
+                                           rank_aware=self.rank_aware)
             if call and {"fold", "call"} <= set(legal):
                 action = Action("call" if ev.get("call", -1) > 0 else "fold")
             elif not call and {"bet", "check"} <= set(legal) and size is not None:
@@ -309,8 +346,12 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 action = _fallthrough(view, fold=bool(call))
                 ev = {}
         quick_ns = time.perf_counter_ns()-started
+        versions = {"gto50": "gto5.0-alpha",
+                    "gto505": "gto5.0.5-alpha",
+                    "gto51": "gto5.1-alpha",
+                    "gto515": "gto5.1.5-alpha"}
         self.last_model = {
-            "version": ("gto5.0.5-alpha" if self.round_step else "gto5.0-alpha"),
+            "version": versions[self.actor_kind],
             "distribution": dist,
             "board_classifier": _board_class(view.board, view.street),
             "ev": {a: round(v, 4) for a, v in ev.items()},
@@ -324,17 +365,24 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 "board150": (self.last_model["board_classifier"] or {}).get("id"),
                 "board_anytwo_rank_pair_pct": AdaptiveGTO30Bot._anytwo_board_risk(view.board),
                 "hero_hole": ["".join(c) for c in view.hole_cards],
-                "hero_tier": "EV", "hero_made": "human P0-P3 formula",
+                "hero_tier": "EV",
+                "hero_made": ("human P0-P3 + rank seniority"
+                              if self.rank_aware else "human P0-P3 formula"),
                 "hero_draw_outs_estimate": read_hand(view.hole_cards, view.board).draw_outs,
                 "opponents_count": len(opponents),
                 "decision": action.type, "amount_chips": action.amount,
-                "decision_mode": "gto505_round5" if self.round_step else "gto50_alpha",
+                "decision_mode": (self.actor_kind + "_rank_seniority"
+                                   if self.rank_aware else
+                                   "gto505_round5" if self.round_step else "gto50_alpha"),
                 "street_matrix": groups[opponents[0]],
                 "opponents": [],
                 "ev": self.last_model["ev"], "equity_model": inputs,
                 "distribution": dist,
-                "reason": ("GTO 5.0.5: each category round to 5% + proxy EV"
-                           if self.round_step else "GTO 5.0 alpha: board formulas + proxy EV"),
+                "reason": ("GTO 5.1: rank seniority + category masses"
+                           if self.rank_aware else
+                           "GTO 5.0.5: each category round to 5% + proxy EV"
+                           if self.round_step else
+                           "GTO 5.0 alpha: board formulas + proxy EV"),
             }
             if not self._trace or self._trace[-1]["hand_id"] != view.hand_id:
                 self._trace.append({"hand_id": view.hand_id, "steps": []})
@@ -397,4 +445,24 @@ class RoundedHumanRangeGTO505Bot(HumanRangeGTO50Bot):
         super().__init__(window=window, shadow_percent=shadow_percent,
                          shadow_reference=shadow_reference)
         self.profile = "gto_postflop_505_5"
+        self.round_step = 5
+
+
+class RankAwareGTO51Bot(HumanRangeGTO50Bot):
+    """GTO 5.1: within-category seniority without probability rounding."""
+
+    def __init__(self, window=5, *, shadow_percent=None, shadow_reference=None):
+        super().__init__(window=window, shadow_percent=shadow_percent,
+                         shadow_reference=shadow_reference)
+        self.profile = "gto_postflop_51_5"
+        self.rank_aware = True
+
+
+class RoundedRankAwareGTO515Bot(RankAwareGTO51Bot):
+    """GTO 5.1.5: same seniority as 5.1; category percentages round to 5%."""
+
+    def __init__(self, window=5, *, shadow_percent=None, shadow_reference=None):
+        super().__init__(window=window, shadow_percent=shadow_percent,
+                         shadow_reference=shadow_reference)
+        self.profile = "gto_postflop_515_5"
         self.round_step = 5
