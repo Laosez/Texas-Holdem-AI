@@ -71,7 +71,7 @@ SPLIT_PARTS = frozenset(json.loads(
 # available for legacy CLI exports and reproducible historical sessions.
 PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = (
-    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_30_5", "gto_postflop_30_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
+    "gto_postflop_v1", "gto_postflop_20", "gto_postflop_21", "gto_postflop_30_5", "gto_postflop_30_10", "s100_postflop_v1", "tag_postflop_v1", "lag_postflop_v1",
     "chaser_postflop_v1", "trapper_postflop_v1", "random",
 )
 # The new Screen 1 editor exposes exactly these five strategies.
@@ -242,6 +242,13 @@ def strategy_catalog():
                     "features": ["R0–R4 board-relative hand strength", "shared board-pair discount",
                                  "genuine two-pair exception", "wet board caution",
                                  "same V1 betting engine for controlled EV comparisons"]
+                },
+                "gto_postflop_21": {
+                    "label": "GTO 2.1 · Board Relative · единый сайзинг 1/2 банка",
+                    "model": "heuristic",
+                    "features": ["same GTO 2.0 action selection and R0-R4",
+                                 "bet = 50% of pot", "raise = call plus 50% of pot after call",
+                                 "legal min/max clamp", "no opponent adaptation"]
                 },
                 "gto_postflop_30_5": {
                     "label": "GTO 3.0/5 · память пяти C-bet-ответов (эксперимент)",

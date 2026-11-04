@@ -20,6 +20,7 @@ POLICIES = {
     "gto_postflop_30_5": "GTO 3.0/5 · adaptive",
     "gto_postflop_30_10": "GTO 3.0/10 · adaptive",
     "gto_postflop_20": "GTO 2.0 · board relative",
+    "gto_postflop_21": "GTO 2.1 · board relative · half-pot sizing",
     "lag_postflop_v1": "LAG V1",
     "tag_postflop_v1": "TAG V1",
     "chaser_postflop_v1": "Chaser V1",

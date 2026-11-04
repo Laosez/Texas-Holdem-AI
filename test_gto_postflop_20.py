@@ -58,7 +58,7 @@ class GTO20Tests(unittest.TestCase):
 
     def test_gto_1_and_20_retained_alongside_adaptive_30(self):
         catalog=app.strategy_catalog()
-        expected={"gto_postflop_v1","gto_postflop_20",
+        expected={"gto_postflop_v1","gto_postflop_20","gto_postflop_21",
                   "gto_postflop_30_5","gto_postflop_30_10"}
         self.assertEqual({name for name in catalog["postflop_strategies"]
                           if name.startswith("gto_postflop_")},expected)
