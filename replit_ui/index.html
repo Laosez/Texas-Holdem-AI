@@ -203,10 +203,11 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <select id="shadowPercent"><option value="0" selected>Выкл. · максимальная скорость</option>
 <option value="10">10% решений · экономно</option><option value="25">25% решений · калибровка</option>
 <option value="100">100% решений · полный аудит, медленно</option></select>
-<p class="note">Играть продолжает выбранная стратегия. Shadow считает альтернативный EV в том же состоянии стола. 100% может замедлить запуск.</p></div>
+<p class="note">Independent Auditor записывает случайную выборку терминальных решений на ривере и анализирует её после турниров, без запуска эталонного бота. Покрытие — HU FOLD/CALL; другие ситуации пока не оцениваются. Legacy Shadow сравнивает EV моделей во время игры.</p></div>
 <div class="field wide"><label for="shadowReference">Shadow Mode · с какой моделью сравнить</label>
 <select id="shadowReference">
-<option value="gto41" selected>GTO 4.1 · эталон для 5.0 / 5.0.5</option>
+<option value="independent_river" selected>Independent River Auditor · реальные исходы HU FOLD/CALL</option>
+<option value="gto41">GTO 4.1 · эталон для 5.0 / 5.0.5</option>
 <option value="gto50">GTO 5.0 · сравнить игру GTO 5.0.5 с 5.0</option>
 <option value="gto505">GTO 5.0.5 · эталон для 5.0 / 5.1 / 5.1.5</option>
 <option value="gto51">GTO 5.1 · старшинство без округления</option>
@@ -219,7 +220,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <option value="gto541">GTO 5.4.1/15% · оптимизированная версия 5.4/15%</option>
 <option value="gto54_20">GTO 5.4/20% · накопительный рейз, 10–90%</option>
 </select>
-<p class="note">Для эффекта старшинства: GTO 5.1 играет, GTO 5.0 проверяет. Для эффекта округления: GTO 5.1.5 играет, GTO 5.1 проверяет. Одинаковые модели не сравниваются. Regret — относительно эталона, не фактический проигрыш.</p></div>
+<p class="note"><strong>Independent River Auditor:</strong> использует реальные скрытые карты только после выбора действия. В отчёте — исходы CALL/FOLD, среднее по выборке, 95% ДИ и контрольная политика на других турнирах. Одна раскрытая раздача не определяет оптимальное решение. Остальные пункты оставлены как Legacy Shadow; их EV Regret не является истиной солвера.</p></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
 <section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
@@ -527,7 +528,7 @@ function drawBots(){
 }
 function reset(){
  bots=preset.map(x=>({pre:x[0],post:x[1]}));
- Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);$('shadowPercent').value='0';$('shadowReference').value='gto41';drawBots();
+ Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);$('shadowPercent').value='0';$('shadowReference').value='independent_river';drawBots();
 }
 function config(){
  if(!valid())throw Error('Стратегия одного из игроков не заполнена');
@@ -1000,10 +1001,100 @@ async function loadGTO5Shadow(id){
    el('p','bad','Shadow-отчёт недоступен: '+err.message));
  }
 }
+function renderIndependentAuditor(root,status,data){
+ const fmt=n=>n==null?'—':shadowFormat(n);
+ const ci=range=>Array.isArray(range)&&range.length===2?
+     '['+fmt(range[0])+'; '+fmt(range[1])+']':'ДИ недоступен';
+ const overall=data.overall||{},collection=data.collection||{};
+ if(status)status.textContent='Независимый ривер · '+fmt(data.sample_count||0)+' наблюдений';
+ root.append(el('div','shadow-note-strip',
+  'Independent River Auditor · проверка фактических контрфактических исходов CALL/FOLD. '+
+  'Скрытые карты соперников применяются только после решения, не передаются игроку и не сохраняются в отчёте. '+
+  'Показатели — по выборке реальных раздач, не по диапазонам GTO 4.1. Никакого per-hand «regret oracle».'));
+ if(!data.sample_count){
+  root.append(el('div','shadow-empty',data.message||
+   'Нет подходящих наблюдений. Нужны риверные решения HU против ставки, где доступны FOLD и полный CALL.'));
+  return;
+ }
+ const kpis=el('div','shadow-kpis');
+ [
+  ['ПРИГОДНО',fmt(collection.eligible),'Ривер HU против ставки',''],
+  ['ВЫБОРКА',fmt(data.sample_count),'Равномерно отобранные решения',''],
+  ['CALL %',overall.call_pct==null?'—':fmt(overall.call_pct)+'%','Частота фактического CALL',''],
+  ['ПОЛИТИКА',fmt(overall.mean_policy_realized_bb)+' bb','Средний реализованный результат / решение','focus'],
+  ['ВСЕГДА CALL',fmt(overall.mean_always_call_realized_bb)+' bb','Те же раздачи; альтернативный CALL',''],
+  ['OOS Δ',fmt(overall.oos_delta_vs_policy_bb)+' bb','Контроль из других турниров − наша политика','risk']
+ ].forEach(x=>kpis.append(shadowKpi(...x)));
+ root.append(kpis);
+ root.append(el('div','shadow-note-strip',
+  '95% ДИ результата политики: '+ci(overall.policy_ci95_bb)+
+  ' bb; 95% ДИ OOS Δ: '+ci(overall.oos_delta_ci95_bb)+
+  ' bb. OOS контроль: '+fmt(overall.out_of_sample_n)+' решений · '+fmt(overall.oos_coverage_pct)+
+  '% выборки. Положительная Δ означает преимущество контрольной групповой политики, '+
+  'отрицательная — преимущество выбранной стратегии. Наличие нуля в ДИ не доказывает разницу.'));
+ root.append(shadowTitle('Качество действий по стратегиям'));
+ const bots=el('div','shadow-step-list');
+ (data.bots||[]).forEach(bot=>{
+  const item=el('div','shadow-step');
+  item.append(el('div','shadow-step-head',
+   bot.bot+' · '+fmt(bot.n)+' решений · CALL '+fmt(bot.call_pct)+'%'));
+  item.append(el('div','shadow-step-ev',
+   'Фактическая политика: '+fmt(bot.mean_policy_realized_bb)+' bb/решение · '+
+   'Всегда CALL: '+fmt(bot.mean_always_call_realized_bb)+' bb/решение'));
+  item.append(el('div','shadow-step-metrics',
+   'OOS контроль − политика: '+fmt(bot.oos_delta_vs_policy_bb)+' bb · 95% ДИ '+
+   ci(bot.oos_delta_ci95_bb)+' · проверено '+fmt(bot.out_of_sample_n)+' из '+fmt(bot.n)));
+  bots.append(item);
+ });
+ root.append(bots);
+ root.append(shadowTitle('Разбивка по силе готовой руки Hero'));
+ const classes=el('div','shadow-step-list');
+ (data.by_hero_class||[]).forEach(entry=>{
+  const item=el('div','shadow-opp',
+   entry.bot+' · '+entry.hero_class+' · n='+fmt(entry.n)+
+   ' · политика '+fmt(entry.mean_policy_realized_bb)+' bb · OOS Δ '+
+   fmt(entry.oos_delta_vs_policy_bb)+' bb');
+  classes.append(item);
+ });
+ root.append(classes);
+ root.append(shadowTitle('Крупные реализованные расхождения · НЕ ошибки отдельных решений'));
+ root.append(el('p','shadow-help',
+  'Это фактический исход альтернативного CALL в одной конкретной раздаче. '+
+  'Его нельзя считать ожидаемым EV, поскольку бот не знал карты соперника. '+
+  'Вывод о качестве — только по агрегатам и доверительным интервалам.'));
+ const samples=el('div','shadow-hand-list');
+ const signs={c:'♣',d:'♦',h:'♥',s:'♠'};
+ (data.examples||[]).slice(0,20).forEach((v,i)=>{
+  const card=el('article','shadow-hand');
+  card.append(el('div','shadow-hand-top',
+   '№'+(i+1)+' · турнир '+v.tournament+' · раздача '+v.hand_id));
+  const hands=el('div','shadow-hand-meta','HERO ');
+  hands.append(shadowCardTokens(v.hero_hole||[],signs));
+  card.append(hands,shadowCardTokens(v.board||[],signs));
+  card.append(el('div','shadow-hand-meta',
+    v.bot+' · '+v.hero_class+' · ставка '+fmt(v.call_bb)+' bb · пот '+fmt(v.pot_bb)+' bb'));
+  card.append(el('div','shadow-step-ev',
+    'Выбрано '+String(v.chosen).toUpperCase()+
+    ' · фактический результат политики '+fmt(v.policy_realized_bb)+' bb'+
+    ' · если бы CALL: '+fmt(v.call_realized_bb)+' bb'+
+    ' · OOS решение: '+(v.out_of_sample_action||'недостаточно данных')));
+  samples.append(card);
+ });
+ root.append(samples);
+ root.append(el('div','shadow-note-strip',
+  'Ограничения: ривер, ровно один активный OPP, нет all-in, доступен полный CALL. '+
+  'BET/CHECK, RAISE, мультипоты и флоп/тёрн пока не оценены. '+
+  'Различия стратегий по этим историческим состояниям не являются полностью парным экспериментом. '+
+  'Для CI нужны ≥8 турниров и ≥30 решений. Непроверенная ситуация не получает нулевой regret.'));
+}
 function renderGTO5Shadow(){
  const root=$('gto5ShadowRows'),status=$('gto5ShadowStatus'),data=gto5ShadowData||{};
  if(!root)return;
  root.replaceChildren();
+ if(data.format==='SKACHKOV_INDEPENDENT_RIVER_V1'){
+  renderIndependentAuditor(root,status,data);
+  return;
+ }
  if(!data.compared){
   if(status)status.textContent='Нет данных';
   root.append(el('div','shadow-empty',data.message||
