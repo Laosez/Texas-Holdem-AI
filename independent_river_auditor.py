@@ -122,6 +122,137 @@ class RiverDecisionCollector:
         }
 
 
+
+class RiverAggressionCollector:
+    """Sample realized BET/RAISE outcomes on river against one live opponent.
+
+    This is NOT a counterfactual evaluator: an unplayed BET/RAISE alternative
+    requires replay of villain's responses. In contrast to the CALL/FOLD
+    collector, do not label its realized action payout as regret or oracle EV.
+    No private villain cards are needed or saved.
+    """
+
+    def __init__(self, tournament, percent=25, max_samples=128):
+        if percent not in (0, 10, 25, 100) or max_samples < 1:
+            raise ValueError("Unexpected aggression sampling configuration")
+        self.tournament = int(tournament)
+        self.percent = percent
+        self.max_samples = max_samples
+        self.eligible = 0
+        self.sampled_before_cap = 0
+        self._pending = defaultdict(list)
+        self._heap = []
+
+    def observe(self, view, action, big_blind, bot_name, opponent_profile):
+        if (view.street != "river" or len(view.opponents or ()) != 1
+                or len(getattr(view, "all_in_opponents", ()) or ()) > 0
+                or len(view.board or ()) != 5 or len(view.hole_cards or ()) != 2
+                or action.type not in ("bet", "raise")
+                or big_blind <= 0 or
+                action.type not in {x.get("type") for x in view.legal_actions or ()}):
+            return
+        self.eligible += 1
+        token = (f"{self.tournament}:{view.hand_id}:{view.me}:river:"
+                 f"{len(view.history or ())}:{action.type}")
+        priority = int.from_bytes(blake2b(token.encode(), digest_size=8).digest(),
+                                  "big")
+        if priority % 10000 >= self.percent * 100:
+            return
+        self.sampled_before_cap += 1
+        hole = view.hole_cards
+        hero_class = _classify(eval_hand(list(hole), list(view.board)))
+        bb = int(big_blind)
+        public = {
+            "bot": str(bot_name), "opponent_profile": str(opponent_profile),
+            "tournament": self.tournament, "hand_id": int(view.hand_id),
+            "actor": str(view.me), "opponent": str(view.opponents[0]),
+            "board": ["".join(c) for c in view.board],
+            "hero_hole": ["".join(c) for c in hole],
+            "hero_class": hero_class,
+            "action": action.type,
+            "amount_target_bb": round(int(action.amount or 0) / bb, 6),
+            "pot_bb": round(int(view.pot) / bb, 6),
+            "to_call_bb": round(int(view.to_call) / bb, 6),
+        }
+        # The current player's remaining chips are known before this action;
+        # at hand completion, final chips - current chips gives realized
+        # payoff strictly from this decision, excluding prior sunk costs.
+        pending = {
+            "priority": priority, "token": token,
+            "start_stack": int((view.stacks or {})[view.me]),
+            "street_history_index": len(view.history or ()),
+            "bb": bb, "public": public,
+        }
+        self._pending[int(view.hand_id)].append(pending)
+
+    def settle(self, hand_id, final_stacks, history):
+        """Called exactly once after actual river fold/showdown settlement."""
+        pending = self._pending.pop(int(hand_id), ())
+        for event in pending:
+            record = dict(event["public"])
+            actor, opponent = record["actor"], record["opponent"]
+            if actor not in final_stacks:
+                continue
+            record["realized_bb"] = round(
+                (int(final_stacks[actor]) - event["start_stack"]) / event["bb"], 6)
+            later = tuple(history)[event["street_history_index"]:]
+            response = next((a.get("type") for a in later
+                             if str(a.get("pid")) == opponent
+                             and a.get("street") == "river"), None)
+            record["opponent_response"] = response or "no_further_action"
+            item = (event["priority"], event["token"], record)
+            if len(self._heap) < self.max_samples:
+                heapq.heappush(self._heap, item)
+            elif item[:2] > self._heap[0][:2]:
+                heapq.heapreplace(self._heap, item)
+
+    def records(self):
+        return [r for _, _, r in sorted(self._heap, reverse=True)]
+
+    def counts(self):
+        return {
+            "eligible": self.eligible,
+            "sampled_before_cap": self.sampled_before_cap,
+            "sampled": len(self._heap),
+            "max_samples_per_tournament": self.max_samples,
+        }
+
+
+def aggression_report(rows, collection_counts=None):
+    """Descriptive observed outcomes only; NO invented alternative EV/regret."""
+    samples = list(rows)
+    groups = defaultdict(list)
+    for sample in samples:
+        groups[(sample["bot"], sample["action"])].append(sample)
+    scored = []
+    for (bot, action), entries in sorted(groups.items()):
+        mean = _mean([x["realized_bb"] for x in entries])
+        reactions = Counter(x["opponent_response"] for x in entries)
+        scored.append({
+            "bot": bot, "action": action,
+            "n": len(entries),
+            "tournaments": len({x["tournament"] for x in entries}),
+            "mean_realized_bb": round(mean, 4),
+            "ci95_bb": _cluster_interval(entries, lambda r: r["realized_bb"]),
+            "opponent_responses": dict(reactions),
+        })
+    return {
+        "n": len(samples),
+        "collection": dict(collection_counts or {}),
+        "by_bot_action": scored,
+        "examples": sorted(samples, key=lambda r: abs(r["realized_bb"]),
+                           reverse=True)[:20],
+        "not_counterfactual": True,
+        "message": (
+            "Пока нет подходящих BET/RAISE на ривере HU"
+            if not samples else None),
+        "note": (
+            "BET/RAISE: фактический результат выбранного действия и ответ OPP "
+            "из реальной раздачи, относительно стека прямо перед решением. "
+            "EV несыгранных альтернатив и regret НЕ рассчитываются. "
+            "Для них нужен независимый розыгрыш реакций OPP."),
+    }
+
 def _mean(xs):
     return sum(xs) / len(xs) if xs else None
 
@@ -198,7 +329,8 @@ def _summary(rows, *, counts=None):
     return result
 
 
-def build_report(records, *, percent=25, collection_counts=None):
+def build_report(records, *, percent=25, collection_counts=None,
+                 aggression_records=(), aggression_counts=None):
     """Offline independent scoreboard; no same-hand action oracle allowed."""
     rows = [dict(r) for r in records]
     counts = dict(collection_counts or {})
@@ -231,6 +363,7 @@ def build_report(records, *, percent=25, collection_counts=None):
         "sample_count": len(rows),
         "tournament_count": len({r["tournament"] for r in rows}),
         "collection": counts,
+        "aggression": aggression_report(aggression_records, aggression_counts),
         "overall": _summary(rows, counts=counts),
         "bots": bots,
         "by_hero_class": classes,
