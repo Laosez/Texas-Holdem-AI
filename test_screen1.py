@@ -216,7 +216,7 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn("function bulkChangeBots(street,value){",page)
         self.assertIn("bots.forEach(b=>{b[key]=value})",page)
         self.assertIn("row.append(el('span','id','0 · всем'))",page)
-        self.assertIn("Покрытие ИСХОДНЫХ алгоритмов",page)
+        self.assertIn("Ограничения префлоп-эксперимента",page)
         runner=(app.ROOT/"replit_simulator.py").read_text(encoding="utf-8")
         self.assertIn('POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy")',runner)
 
@@ -446,13 +446,13 @@ class ScreenOneTests(unittest.TestCase):
                             for p in result["players"]))
         page = app.UI.read_text(encoding="utf-8")
         self.assertIn("let preflopValues=['','a17_preflop','pc_gto_80bb','random'];", page)
-        self.assertIn("BTN (позиция 3; ~53,9% Raise)", page)
+        self.assertIn("PC 80 BB использует исходные чарты для RFI", page)
         self.assertIn("row.append(botOptions(b.pre", page)
         self.assertIn("'pre'));", page)
         self.assertIn("'post'));", page)
         self.assertIn("preflop_strategies", page)
         self.assertNotIn("values=['','gto','gto_fixed'", page)
-        self.assertIn("['pc_gto_80bb','chaser_postflop_v1']",page)
+        self.assertIn("['a17_preflop','gto_postflop_541_step15']",page)
         self.assertNotIn("['gto','smart']",page)
 
     def test_random_pre_post_controls_and_seven_random_field(self):
@@ -507,8 +507,8 @@ class ScreenOneTests(unittest.TestCase):
         # Regression: an unclosed entry.append(el(...)) prevented the entire
         # Screen 1 script from parsing, including the Connect button handler.
         page=app.UI.read_text(encoding="utf-8")
-        self.assertIn("(100*m.action_frequency).toFixed(1)+'%'));",page)
-        self.assertIn("(100*m.equity_vs_call).toFixed(1)+'%'));",page)
+        self.assertNotIn('id="gto30TracePanel"',page)
+        self.assertIn("function renderIndependentAuditor(",page)
         self.assertIn("$('connect').onclick=connect;",page)
 
     def test_analysis_page_has_expandable_position_and_barrel_reporting(self):
@@ -557,14 +557,13 @@ class ScreenOneTests(unittest.TestCase):
         self.assertIn('.simulatorLayout .journalColumn pre{height:290px',page)
         self.assertIn('.simulatorLayout .resultsPanel{grid-column:1/-1',page)
         self.assertIn('.simulatorLayout .resultsPanel .statsTable{min-width:1030px}',page)
-        self.assertIn('id="preflopAudit"',page)
-        self.assertIn("RFI / Open Raise",page)
-        self.assertIn("Call / 3-bet vs Open",page)
-        self.assertIn("Call / 4-bet vs 3-bet",page)
-        self.assertIn("Защита vs 4-bet",page)
+        self.assertIn('id="technicalLogPanel"',page)
+        self.assertIn('id="modelArchiveInfo"',page)
+        self.assertNotIn('id="gto30TracePanel"',page)
+        self.assertNotIn('id="preflopAudit"',page)
         a=page.index('01 / </span>Параметры турнира')
         b=page.index('02 / </span>Стратегии игроков')
-        c=page.index('04 / </span>Журнал выполнения')
+        c=page.index('Технический лог · ошибки и диагностика')
         d=page.index('03 / </span>Сессии и результаты')
         self.assertTrue(a<b<c<d,(a,b,c,d))
         self.assertNotIn("Preflop: A17 / GTO (Old) / GTO (PC)",page)
