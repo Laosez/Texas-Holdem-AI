@@ -22,8 +22,8 @@ def cards(text):
 class GTO51SeniorityTests(unittest.TestCase):
     def test_catalog_and_old_versions_unchanged(self):
         catalog = replit_simulator.strategy_catalog()
-        self.assertIn("gto_postflop_51_5", catalog["postflop_strategies"])
-        self.assertIn("gto_postflop_515_5", catalog["postflop_strategies"])
+        self.assertIn("gto_postflop_51_5", catalog["postflop_archived"])
+        self.assertIn("gto_postflop_515_5", catalog["postflop_archived"])
         self.assertEqual(catalog["postflop_profiles"]["gto_postflop_51_5"]["model"],
                          "human_board_ev_rank_seniority_alpha")
         self.assertEqual(catalog["postflop_profiles"]["gto_postflop_515_5"]["model"],

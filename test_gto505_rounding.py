@@ -16,7 +16,7 @@ class GTO505Round5Tests(unittest.TestCase):
     def test_registration_and_unmodified_baseline(self):
         import replit_simulator
         catalog = replit_simulator.strategy_catalog()
-        self.assertIn("gto_postflop_505_5", catalog["postflop_strategies"])
+        self.assertIn("gto_postflop_505_5", catalog["postflop_archived"])
         self.assertEqual(catalog["postflop_profiles"]["gto_postflop_505_5"]["model"],
                          "human_board_ev_round5_alpha")
         baseline = create_bot("split:random:gto_postflop_50_5").postflop_bot

@@ -128,7 +128,11 @@ class GTO54StepWidthTests(unittest.TestCase):
         cat = app.strategy_catalog()
         for step in (10, 15, 20):
             code = "gto_postflop_54_step" + str(step)
-            self.assertIn(code, cat["postflop_strategies"])
+            if step == 15:
+                self.assertIn(code, cat["postflop_strategies"])
+            else:
+                self.assertIn(code, cat["postflop_archived"])
+                self.assertNotIn(code, cat["postflop_strategies"])
             self.assertIn(code, cat["postflop_profiles"])
             self.assertEqual(create_bot("split:random:" + code).postflop_bot.profile, code)
 

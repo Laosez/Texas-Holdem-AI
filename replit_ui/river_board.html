@@ -48,7 +48,7 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <main>
 <section class="panel" id="board150Catalog">
 <div class="heading"><h2>03 / Справочник 14 признаков</h2><span class="badge" id="catalogTotal">36 классов</span></div>
-<p class="note">14 выбранных признаков объединяются в 36 достижимых составных классов. S2/F2 исключены из кодов готовых рук, но остаются в справке по дро. P0 не выводится, S4 и SF4 объединяют двусторонние и гатшотные рисунки. Точные частоты — для случайного пятикарточного борда без карт HERO. Старые коды сохранены только для совместимости истории расчётов.</p>
+<p class="note">36 уникальных типов риверных бордов из 2 598 960 физических сочетаний. Фильтруй по признакам и проверяй вероятность — одинаковые типы не дублируются.</p>
 <div class="tools" style="margin:13px 0"><label style="min-width:260px;flex:1">Борд · 5 физических карт<input id="boardInput" value="5s-6s-7s-8s-8d" autocomplete="off" placeholder="As-Kh-9c-5d-2c"></label><button class="btn primary" type="button" id="boardClassify">Классифицировать</button><button class="btn" id="catalogExport" type="button">CSV · 36 кодов</button></div>
 <div id="classifyResult" class="match" role="status">Пример: S4 · F4 · SF4 · P1</div>
 <div class="filters">
@@ -61,8 +61,8 @@ input[type=checkbox]{width:17px;height:17px;accent-color:#5ab4a0;cursor:pointer}
 <label>Сортировать<select id="catalogSort"><option value="id">Код · S/F/SF/P</option><option value="deals_desc">Частота ↓</option><option value="deals_asc">Частота ↑</option><option value="code_desc">Код ↓</option></select></label>
 </div>
 <div class="statbar"><span id="catalogStatus">Загрузка каталога…</span><span id="checkedStatus"></span><span id="catalogShares"></span><button class="btn sm ghost" type="button" id="catalogReset">Сбросить отметки</button></div>
-<div class="tablewrap"><table><thead><tr><th>№</th><th>Идентификатор</th><th>Название борда</th><th>Физический пример</th><th>Парность</th><th>Стрит</th><th>Флеш</th><th>Стрит-флеш</th><th class="num">Число бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="11">Подключение к каталогу…</td></tr></tbody></table></div>
-<p class="caption">F1 — только когда отсутствуют все остальные признаки; S2 и F2 — только справка по дро, не коды: F2 ≈5% настоящего флеш-дро, S2 ≈4% настоящего стрит-дро; ≈30–34% для S2 относится лишь к широкому потенциалу на некоторых тёрнах, а не к универсальному дро. S3/S4 — три/четыре ранга в любом пятиранговом стритовом окне (включая дырки). SF4 объединяет один и два завершающих выхода. Туз учитывается как старший и младший (A-2-3-4-5). Классы не отражают диапазон OPP.</p>
+<div class="tablewrap"><table><thead><tr><th>№</th><th>Код</th><th>Тип борда</th><th>Пример</th><th class="num">Бордов</th><th class="num">Вероятность</th><th>Проверено</th></tr></thead><tbody id="catalogRows"><tr><td colspan="7">Подключение к каталогу…</td></tr></tbody></table></div>
+<details><summary class="caption">Как читать коды P/S/F/SF</summary><p class="caption">S3/S4: три/четыре ранга в стритовом окне с учётом дырок; SF4 — стрит-флеш-дро. Туз бывает старшим и младшим. Частоты отражают физические борды, не диапазоны оппонентов; S2/F2 в составной классификации не учитываются.</p></details>
 </section>
 </main><footer class="small" style="margin-bottom:28px">SKACHKOV / POKER SYSTEM · Каталог Board14 · River V2 · 2 598 960 физических бордов.</footer>
 <script>
@@ -117,11 +117,7 @@ function drawCatalog(){
  for(const row of found){
   const tr=el("tr");
   for(const value of [row.ordinal,compactBoardCode(row.id),boardTitle(row),row.example,
-    row.p?(row.p+" · "+shortNames.P[row.p]):"—",
-     row.s?(row.s+" · "+shortNames.S[row.s]):"—",
-     row.f?(row.f+" · "+shortNames.F[row.f]):"—",
-     row.sf?(row.sf+" · "+shortNames.SF[row.sf]):"—",
-     row.deals.toLocaleString("ru-RU"),
+    row.deals.toLocaleString("ru-RU"),
     row.probability_pct.toFixed(5)+"%"]){
     const td=el("td","",value);
     if(value===compactBoardCode(row.id)){td.classList.add("code");td.title="Полный код: "+row.id}
