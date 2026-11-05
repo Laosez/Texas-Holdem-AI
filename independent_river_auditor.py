@@ -71,7 +71,7 @@ class RiverDecisionCollector:
             return
 
         # Sampling excludes current action/hand strengths: no outcome bias.
-        token = f"{self.tournament}:{view.hand_id}:{view.me}:{view.street}"
+        token = f"{self.tournament}:{view.hand_id}:{view.me}:{view.street}:{len(view.history or ())}"
         priority = int.from_bytes(
             blake2b(token.encode(), digest_size=8).digest(), "big")
         if priority % 10000 >= self.percent * 100:
