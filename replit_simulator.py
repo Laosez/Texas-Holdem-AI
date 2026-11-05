@@ -75,10 +75,10 @@ PREFLOP_CHOICES = frozenset({"a17_preflop", "gto", "pc_gto_80bb", "random"})
 POSTFLOP_PRIMARY = tuple(STRATEGY_CATALOG["postflop_selectable"])
 POSTFLOP_CHOICES = frozenset(POSTFLOP_PRIMARY)
 # Old historical sessions still load their original strategy tokens.
-POSTFLOP_ARCHIVE = frozenset({
+POSTFLOP_ARCHIVE = frozenset(STRATEGY_CATALOG.get("postflop_archived", ())) | frozenset({
     "gto", "smart", "tag_punisher", "wide_defender",
     "baseline_sane", "nit", "loose_passive", "maniac",
-    "maniac_mixed", "pressure_filler", "random",
+    "maniac_mixed", "pressure_filler",
 } | {name for name in SPLIT_PARTS
      if name.startswith("gto_postflop_") and name.endswith("_10")})
 # Archived /10 profiles keep their original memory and remain replayable.
@@ -99,15 +99,15 @@ def available_postflop(name: str) -> bool:
 # Each of the nine player seats has a separately editable preflop/postflop policy.
 # Blank means INCOMPLETE, never automatic inheritance.
 DEFAULT_BOT_ROWS = [
-    {"pre": "a17_preflop", "post": "gto_postflop_v1"},
-    {"pre": "pc_gto_80bb", "post": "gto_postflop_20"},
-    {"pre": "pc_gto_80bb", "post": "tag_postflop_v1"},
-    {"pre": "pc_gto_80bb", "post": "lag_postflop_v1"},
-    {"pre": "pc_gto_80bb", "post": "chaser_postflop_v1"},
-    {"pre": "pc_gto_80bb", "post": "trapper_postflop_v1"},
+    {"pre": "a17_preflop", "post": "gto_postflop_541_step15"},
+    {"pre": "a17_preflop", "post": "gto_postflop_54_step15"},
+    {"pre": "a17_preflop", "post": "gto_postflop_531_5"},
+    {"pre": "a17_preflop", "post": "gto_postflop_41_5"},
+    {"pre": "a17_preflop", "post": "gto_postflop_33_5"},
+    {"pre": "a17_preflop", "post": "gto_postflop_21c"},
     {"pre": "a17_preflop", "post": "tag_postflop_v1"},
     {"pre": "a17_preflop", "post": "lag_postflop_v1"},
-    {"pre": "a17_preflop", "post": "trapper_postflop_v1"},
+    {"pre": "a17_preflop", "post": "random"},
 ]
 PROGRESS_RE = re.compile(
     r"(\d+)/(\d+) tournaments\s*·\s*([\d.]+) tournaments/min\s*·\s*([\d.]+) hands/s"
@@ -224,6 +224,7 @@ def strategy_catalog():
             "preflop_strategies": preflop,
             "saved_preflop": saved,
             "postflop_strategies": postflop,
+            "postflop_archived": sorted(POSTFLOP_ARCHIVE),
             "postflop_profiles": {
                 "gto": {
                     "label": "GTO Old · Monte Carlo · контроль",
