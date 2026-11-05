@@ -441,7 +441,8 @@ def run_one(task):
     observed_bb = {}
     instances=[]
     quality = None
-    if os.getenv("POKER_GTO5_SHADOW_REFERENCE") == "independent_river":
+    if (os.getenv("POKER_GTO5_SHADOW_REFERENCE") == "independent_river"
+            and int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0")) > 0):
         from independent_river_auditor import RiverDecisionCollector
         quality = RiverDecisionCollector(
             tournament_id,
