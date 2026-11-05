@@ -76,3 +76,14 @@ assert.ok(page.includes('id="gto30TracePanel" open'),
   'recent street logs should open by default');
 assert.ok(page.includes('id="storageBreakdownRows"'),
   'storage audit must show largest files in the UI');
+
+
+// All twenty costly-decision cards must occupy one full-width column.
+const singleColumnCss = page.match(/\.shadow-hand-list\{[^}]+\}/);
+assert.ok(singleColumnCss, 'Top-20 list must have a CSS grid rule');
+assert.match(singleColumnCss[0], /grid-template-columns:minmax\(0,1fr\)/,
+  'Top-20 must use exactly one column, including wide desktops');
+assert.doesNotMatch(singleColumnCss[0], /repeat\(2,/,
+  'Top-20 must not split hands across two columns');
+assert.ok(page.includes('grid-template-columns:minmax(0,1fr);gap:9px;min-width:0;max-width:100%'),
+  'Each expanded hand must constrain its internal grid to avoid horizontal overflow');
