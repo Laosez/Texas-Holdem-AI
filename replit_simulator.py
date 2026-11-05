@@ -649,9 +649,9 @@ def validate_config(data: dict) -> dict:
     shadow_percent = bounded_int(data.get("shadow_percent", 0), "Shadow Mode", 0, 100)
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
-    shadow_reference = data.get("shadow_reference", "gto41")
-    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20", "gto541", "independent_river"):
-        raise ValueError("Shadow Mode: неверная эталонная стратегия")
+    shadow_reference = data.get("shadow_reference", "independent_river")
+    if shadow_reference != "independent_river":
+        raise ValueError("Shadow Mode: поддерживается только Independent River Auditor")
     config = {
         "shadow_percent": shadow_percent,
         "shadow_reference": shadow_reference,
@@ -1202,7 +1202,7 @@ def worker(job: dict) -> None:
         "--seat-mode", config["seat_mode"],
         "--button-policy",config.get("button_policy","moving"),
         "--shadow-percent", str(config.get("shadow_percent", 0)),
-        "--shadow-reference", config.get("shadow_reference", "gto41"),
+        "--shadow-reference", "independent_river",
         "--out", str(output),
         "--checkpoint-dir", str(output / "_checkpoints"),
     ]
@@ -1212,7 +1212,7 @@ def worker(job: dict) -> None:
                    POKER_PLAN_SNAPSHOT_DIR=str(output / "plan_snapshots"),
                    POKER_PREFLOP_PROTOCOL=config.get("preflop_protocol","legacy"),
                    POKER_GTO5_SHADOW_PERCENT=str(config.get("shadow_percent", 0)),
-                   POKER_GTO5_SHADOW_REFERENCE=config.get("shadow_reference", "gto41"))
+                   POKER_GTO5_SHADOW_REFERENCE="independent_river")
         with log_path.open("a", encoding="utf-8") as log:
             log.write("\n[runner] Start or resume at " + now() +
                       " | preflop_protocol="+config.get("preflop_protocol","legacy")+"\n")
@@ -1884,7 +1884,7 @@ class Handler(BaseHTTPRequestHandler):
             target = OUT / run_id / "gto5_shadow_report.json"
             if not target.is_file() or target.is_symlink():
                 self.reply(200, {"compared": 0, "groups": {},
-                                 "message": "Shadow-отчёт появится после завершения серии с GTO 5.0, 5.0.5, 5.1 или 5.1.5."})
+                                 "message": "Отчёт Independent Auditor появится после завершения серии с включённым аудитом. Для исторических запусков старый Shadow доступен только для чтения."})
                 return
             try:
                 report = json.loads(target.read_text(encoding="utf-8"))
