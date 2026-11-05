@@ -203,7 +203,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <select id="shadowPercent"><option value="0" selected>Выкл. · максимальная скорость</option>
 <option value="10">10% решений · экономно</option><option value="25">25% решений · калибровка</option>
 <option value="100">100% подходящих решений · максимальная выборка</option></select>
-<p class="note"><strong>Independent River Auditor</strong> — единственный Shadow-режим. После турниров оценивает фактические альтернативы FOLD/CALL на ривере в HU, не вызывая GTO 4.1 или другую эталонную модель. Сравнивает результаты по выборке, без знания карт соперника при принятии решений. RAISE, мультипоты, флоп и тёрн пока не оцениваются. Для всех игровых стратегий.</p></div>
+<p class="note"><strong>Independent River Auditor</strong> работает с любыми ботами. FOLD/CALL на ривере HU: исход альтернативного вскрытия. BET/RAISE: фактический результат и ответ OPP (не regret). Всё считается после реального действия; мультипоты и ранние улицы пока не покрыты.</p></div>
 
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
@@ -259,7 +259,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
   <div class="heading shadow-head">
     <div>
       <div class="shadow-eyebrow">НЕЗАВИСИМЫЙ АУДИТ · HU · РИВЕР</div>
-      <h2>Independent River Auditor <span class="shadow-head-sub">Фактические альтернативные исходы · FOLD/CALL</span></h2>
+      <h2>Independent River Auditor <span class="shadow-head-sub">FOLD / CALL · BET / RAISE</span></h2>
       <p class="note">Независимая проверка по фактическим раздачам. Один исход не является EV. Архивные Shadow-отчёты доступны для чтения.</p>
     </div>
     <span class="badge" id="gto5ShadowStatus">Нет данных</span>
@@ -858,16 +858,17 @@ function renderIndependentAuditor(root,status,data){
  const ci=range=>Array.isArray(range)&&range.length===2?
      '['+fmt(range[0])+'; '+fmt(range[1])+']':'ДИ недоступен';
  const overall=data.overall||{},collection=data.collection||{};
- if(status)status.textContent='Независимый ривер · '+fmt(data.sample_count||0)+' наблюдений';
+ const aggression=data.aggression||{};
+ if(status)status.textContent='Независимый ривер · '+fmt(data.sample_count||0)+
+  ' CALL/FOLD · '+fmt(aggression.n||0)+' BET/RAISE';
  root.append(el('div','shadow-note-strip',
   'Independent River Auditor · проверка фактических контрфактических исходов CALL/FOLD. '+
   'Скрытые карты соперников применяются только после решения, не передаются игроку и не сохраняются в отчёте. '+
   'Показатели — по выборке реальных раздач, не по диапазонам GTO 4.1. Никакого per-hand «regret oracle».'));
  if(!data.sample_count){
   root.append(el('div','shadow-empty',data.message||
-   'Нет подходящих наблюдений. Нужны риверные решения HU против ставки, где доступны FOLD и полный CALL.'));
-  return;
- }
+   'Нет подходящих FOLD/CALL на ривере HU.'));
+ }else{
  const kpis=el('div','shadow-kpis');
  [
   ['ПРИГОДНО',fmt(collection.eligible),'Ривер HU против ставки',''],
@@ -934,10 +935,51 @@ function renderIndependentAuditor(root,status,data){
  });
  root.append(samples);
  root.append(el('div','shadow-note-strip',
-  'Ограничения: ривер, ровно один активный OPP, нет all-in, доступен полный CALL. '+
-  'BET/CHECK, RAISE, мультипоты и флоп/тёрн пока не оценены. '+
-  'Различия стратегий по этим историческим состояниям не являются полностью парным экспериментом. '+
-  'Для CI нужны ≥8 турниров и ≥30 решений. Непроверенная ситуация не получает нулевой regret.'));
+  'FOLD/CALL: независимое контрфактическое вскрытие. '+
+  'Для доверительных интервалов нужны ≥8 турниров и ≥30 наблюдений. '+
+  'Одиночная раскрытая рука не является доказательством ошибки.'));
+ }
+ root.append(shadowTitle('BET / RAISE · фактические результаты'));
+ root.append(el('p','shadow-help',
+  'Расчёт от стека непосредственно перед действием до конца раздачи. '+
+  'Включает реальные ответы оппонентов и последующие решения Hero. '+
+  'Это наблюдаемая доходность BET/RAISE, а НЕ контрфактический EV; '+
+  'альтернативные ставки ещё не разыграны.'));
+ if(!aggression.n){
+  root.append(el('div','shadow-empty',aggression.message||
+   'В этой сессии нет подходящих BET/RAISE на ривере HU.'));
+ }else{
+  const list=el('div','shadow-step-list');
+  (aggression.by_bot_action||[]).forEach(v=>{
+   const item=el('div','shadow-step');
+   item.append(el('div','shadow-step-head',
+    v.bot+' · '+String(v.action).toUpperCase()+' · '+fmt(v.n)+' решений'));
+   item.append(el('div','shadow-step-ev',
+    'Реализовано '+fmt(v.mean_realized_bb)+' bb/действие · 95% ДИ '+
+    ci(v.ci95_bb)));
+   const reactions=Object.entries(v.opponent_responses||{})
+      .map(([action,n])=>action.toUpperCase()+' '+n).join(' · ')||'Нет ответа';
+   item.append(el('div','shadow-step-metrics','Ответы OPP: '+reactions));
+   list.append(item);
+  });
+  root.append(list);
+  const details=el('details','coverageAudit');
+  details.append(el('summary','','Крупные фактические раздачи · BET/RAISE'));
+  const examples=el('div','shadow-step-list');
+  (aggression.examples||[]).slice(0,12).forEach(v=>{
+   examples.append(el('div','shadow-opp',
+    'Турнир '+v.tournament+' · '+v.bot+' · '+v.action.toUpperCase()+
+    ' '+fmt(v.amount_target_bb)+' bb (целевая сумма) · ответ OPP: '+
+    v.opponent_response+' · результат '+fmt(v.realized_bb)+' bb'));
+  });
+  details.append(examples);
+  root.append(details);
+ }
+ root.append(el('div','shadow-note-strip',
+  'Аудит охватывает только ривер HU без all-in. FOLD/CALL имеет проверяемый '+
+  'результат альтернативного CALL; BET/RAISE пока измеряется как фактическая доходность. '+
+  'Настоящий regret для BET/RAISE потребует независимой симуляции реакции OPP. '+
+  'Мультипоты, флоп и тёрн остаются вне этой версии.'));
 }
 function renderGTO5Shadow(){
  const root=$('gto5ShadowRows'),status=$('gto5ShadowStatus'),data=gto5ShadowData||{};
