@@ -58,21 +58,16 @@ class GTO20Tests(unittest.TestCase):
 
     def test_gto_1_and_20_retained_alongside_adaptive_30(self):
         catalog=app.strategy_catalog()
-        expected={"gto_postflop_v1","gto_postflop_20","gto_postflop_21",
-                  "gto_postflop_21a","gto_postflop_21b","gto_postflop_21c",
-                  "gto_postflop_21d","gto_postflop_21e","gto_postflop_21f",
-                  "gto_postflop_30_5",
-                  "gto_postflop_31_5",
-                  "gto_postflop_32_5",
-                  "gto_postflop_33_5",
-                  "gto_postflop_40_5",
-                  "gto_postflop_41_5",
-                  "gto_postflop_50_5",
-                  "gto_postflop_505_5",
-                  "gto_postflop_51_5",
-                  "gto_postflop_515_5", "gto_postflop_52_5", "gto_postflop_53_5", "gto_postflop_531_5",
-                  "gto_postflop_54_step10", "gto_postflop_54_step15", "gto_postflop_54_step20",
+        expected={"gto_postflop_v1", "gto_postflop_20", "gto_postflop_21",
+                  "gto_postflop_21c", "gto_postflop_33_5", "gto_postflop_41_5",
+                  "gto_postflop_531_5", "gto_postflop_54_step15",
                   "gto_postflop_541_step15"}
+        archived=set(catalog["postflop_archived"])
+        self.assertIn("gto_postflop_30_5", archived)
+        self.assertIn("gto_postflop_40_5", archived)
+        self.assertIn("gto_postflop_54_step10", archived)
+        self.assertIn("gto_postflop_54_step20", archived)
+        self.assertTrue(all(app.available_postflop(name) for name in archived))
         self.assertEqual({name for name in catalog["postflop_strategies"]
                           if name.startswith("gto_postflop_")},expected)
         self.assertEqual(ev.PROFILE_NAMES["gto"],"gto_postflop_v1")
