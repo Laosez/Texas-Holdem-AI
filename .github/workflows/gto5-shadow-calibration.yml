@@ -103,74 +103,28 @@ jobs:
           PY
       - name: Verify Shadow dashboard interaction and sorting
         run: node test_gto5_shadow_ui.js
-      - name: Tournament Shadow 100% integration smoke
+      - name: Verify GTO 4.1 plays normally under independent-only Shadow
         env:
           THAI_ENGINE_IMPL: legacy
           POKER_PREFLOP_PROTOCOL: any_two_limp
         run: |
           python export_preflop_ranges_v4.py \
-            --players "P1=split:random:gto_postflop_50_5,P2=split:random:random_2" \
-            --tournaments 1 --parallel 1 --seed 487 --chips 200 \
-            --sb 1 --bb 2 --blind-increase-every 20 --max-hands 100 \
-            --shadow-percent 100 --out /tmp/gto5_e2e
+            --players "P1=split:random:gto_postflop_41_5,P2=split:random:random_2" \
+            --tournaments 2 --parallel 1 --seed 987 --chips 200 \
+            --sb 1 --bb 2 --blind-increase-every 20 --max-hands 150 \
+            --shadow-percent 100 --out /tmp/independent_gto41_player
           python - <<'PY'
-          import json
+          import json, subprocess, sys
           from pathlib import Path
-          root=Path('/tmp/gto5_e2e')
-          report=json.loads((root/'gto5_shadow_report.json').read_text())
-          assert report['compared']>0, report
-          assert report['groups']['street'], report
-          assert report['groups']['opponents'], report
-          assert report['groups']['board_structure'], report
+          root=Path('/tmp/independent_gto41_player')
+          report=json.loads((root/'independent_river_report.json').read_text())
+          assert report['format']=='SKACHKOV_INDEPENDENT_RIVER_V1', report
+          assert report['sample_count'] > 0, report
+          legacy=json.loads((root/'gto5_shadow_report.json').read_text())
+          assert legacy['compared']==0, legacy
+          assert legacy['requested_reference']=='independent_river'
+          rejected=subprocess.run([sys.executable,'export_preflop_ranges_v4.py',
+              '--shadow-reference','gto41'],capture_output=True,text=True)
+          assert rejected.returncode != 0 and 'invalid choice' in rejected.stderr, rejected.stderr
           assert (root/'tournament_report.json').is_file()
-          print('Shadow paired decision audit:',report['compared'])
-          PY
-
-      - name: GTO 5.0.5 round5 Shadow 100% integration smoke
-        env:
-          THAI_ENGINE_IMPL: legacy
-          POKER_PREFLOP_PROTOCOL: any_two_limp
-        run: |
-          python export_preflop_ranges_v4.py \
-            --players "P1=split:random:gto_postflop_505_5,P2=split:random:random_2" \
-            --tournaments 1 --parallel 1 --seed 488 --chips 200 \
-            --sb 1 --bb 2 --blind-increase-every 20 --max-hands 100 \
-            --shadow-percent 100 --shadow-reference gto50 --out /tmp/gto505_e2e
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root=Path('/tmp/gto505_e2e')
-          report=json.loads((root/'gto5_shadow_report.json').read_text())
-          assert report['compared'] > 0, report
-          assert report['requested_reference']=='gto50', report
-          assert report['comparisons'][0]['label']=='GTO 5.0.5 → GTO 5.0', report
-          assert report['groups']['street'], report
-          events=[json.loads(line) for line in (root/'gto5_shadow_decisions.jsonl').read_text().splitlines() if line.strip()]
-          assert events and all(row['actor']=='gto505' and row['reference_model']=='gto50' for row in events)
-          assert (root/'tournament_report.json').is_file()
-          print('Rounded v baseline Shadow paired decisions:',report['compared'])
-          PY
-
-      - name: GTO 5.1 and 5.1.5 Shadow rank-and-rounding A/B integration
-        env:
-          THAI_ENGINE_IMPL: legacy
-          POKER_PREFLOP_PROTOCOL: any_two_limp
-        run: |
-          python export_preflop_ranges_v4.py \
-            --players "P1=split:random:gto_postflop_515_5,P2=split:random:gto_postflop_51_5,P3=split:random:random_2" \
-            --tournaments 1 --parallel 1 --seed 491 --chips 200 \
-            --sb 1 --bb 2 --blind-increase-every 20 --max-hands 100 \
-            --shadow-percent 100 --shadow-reference gto51 --out /tmp/gto51_e2e
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root=Path('/tmp/gto51_e2e')
-          report=json.loads((root/'gto5_shadow_report.json').read_text())
-          assert report['compared']>0, report
-          assert report['requested_reference']=='gto51', report
-          assert all(r['reference_model']=='gto51' for r in
-                 (json.loads(x) for x in (root/'gto5_shadow_decisions.jsonl').read_text().splitlines() if x.strip()))
-          assert any(x['actor']=='gto515' for x in report['comparisons']), report
-          assert (root/'tournament_report.json').is_file()
-          print('GTO 5.1.5 → GTO 5.1 shadow comparisons:',report['compared'])
           PY

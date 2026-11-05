@@ -7,11 +7,11 @@ const assert = require('node:assert/strict');
 const page = fs.readFileSync('replit_ui/index.html','utf8');
 for(const marker of [
  'id="gto5ShadowPanel"', 'id="gto5ShadowRows"', 'id="gto5ShadowStatus"',
- 'id="shadowPercent"', 'id="shadowReference"',
+ 'id="shadowPercent"', 'Independent River Auditor',
  'id="gto30TraceDepth"', 'Последние 100', 'gto30-trace-exact',
  'GTO 5.1 · СТАРШИНСТВО', 'Показать точный расчёт Any Two', 'href="#gto5ShadowPanel"', 'shadow-kpis',
  'shadow-tabs', 'shadow-overview-grid', 'shadow-hand-list',
- 'GTO 5.0.5', 'GTO 5.1.5', 'value="gto50"', 'value="gto505"', 'value="gto51"', 'value="gto515"', 'value="gto52"', 'value="gto531"', 'value="gto54_10"', 'value="gto54_15"', 'value="gto54_20"', 'value="gto541"', 'value="independent_river"', 'function renderIndependentAuditor(', 'data.comparisons',
+ 'GTO 5.0.5', 'GTO 5.1.5', 'function renderIndependentAuditor(', 'data.comparisons',
  'gto5-shadow-decision?decision=', 'gto5-shadow-decisions?',
  'shadowCardTokens(row.hole', 'Точный аудит Any Two',
  'function shadowSortedRows(', 'function shadowTable(',
@@ -42,7 +42,9 @@ vm.runInContext(script.slice(begin,end)+
   '\nthis.shadowTest={sort:shadowSortedRows,readable:shadowReadable,format:shadowFormat,nav:SHADOW_NAV};',ctx);
 const m=ctx.shadowTest;
 assert.equal(m.nav.length,7);
-assert.ok(page.includes('shadow_reference:$(\'shadowReference\').value'),'benchmark config missing');
+assert.ok(page.includes("shadow_reference:'independent_river'"),'fixed independent audit config missing');
+assert.ok(!page.includes('id="shadowReference"'),'legacy reference selector must be absent');
+assert.ok(!page.includes('<option value="gto41">'),'legacy 4.1 cannot be selectable as Shadow reference');
 assert.ok(page.includes("pairs.find(x=>x.key===shadowComparison)"),'report pair selector missing');
 assert.match(m.readable('flop | 2'),/Флоп.*2 оппонента/);
 assert.match(m.readable('P0'),/без пары/);

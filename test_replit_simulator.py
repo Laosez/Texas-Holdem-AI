@@ -17,6 +17,24 @@ class InputTests(unittest.TestCase):
         self.assertEqual((c["chips"], c["sb"], c["bb"]), (500, 1, 2))
         self.assertEqual((c["blind_increase_every"], c["seat_mode"], c["parallel"]), (50, "rotate", 1))
 
+    def test_only_independent_shadow_is_selectable_for_new_runs(self):
+        config = app.validate_config({"shadow_percent": 25})
+        self.assertEqual(config["shadow_reference"], "independent_river")
+        self.assertEqual(config["shadow_percent"], 25)
+        explicit = app.validate_config({
+            "shadow_percent": 100, "shadow_reference": "independent_river",
+        })
+        self.assertEqual(explicit["shadow_reference"], "independent_river")
+        for legacy in ("gto41", "gto50", "gto531", "gto54_15", "gto541"):
+            with self.subTest(reference=legacy):
+                with self.assertRaisesRegex(ValueError, "только Independent"):
+                    app.validate_config({
+                        "shadow_percent": 25, "shadow_reference": legacy,
+                    })
+        # GTO 4.1 is still an available playing strategy, not an
+        # eligible Shadow reference for new tournament experiments.
+        self.assertTrue(app.available_postflop("gto_postflop_41_5"))
+
     def test_railway_process_count_respects_memory_budget(self):
         with patch.dict(app.os.environ, {"RAILWAY_PROJECT_ID":"test"},clear=False), \
              patch.object(app,"_container_cpu_limit",return_value=8):

@@ -1,8 +1,14 @@
 # Shadow 2.0 · Independent River Auditor (MVP)
 
+## Shadow policy after 2026-11-05
+
+Independent River Auditor is the **only Shadow mode selectable for new sessions** (0/10/25/100% sampling). The model-reference dropdown has been removed. New API configurations with `shadow_reference=gto41` or any other GTO reference are rejected, and the CLI accepts only `independent_river`. The 4.1 bot itself is still available as a playing strategy.
+
+Archived reports from historical paired-model Shadow sessions remain readable; this does not re-enable legacy comparisons for new sessions. The independent audit still supports terminal HU FOLD/CALL only and is *not* a Nash solver or per-hand regret oracle.
+
 ## Independent from GTO 4.1 — but not an independent GTO solver
 
-Select **Independent River Auditor** in Shadow Mode and choose sampling (10%, 25%, 100%). The playing bot is unchanged. The legacy GTO-vs-GTO Shadow remains selectable. When Shadow=0%, the auditor is not attached to the tournament engine.
+Select **Independent River Auditor** in Shadow Mode and choose sampling (10%, 25%, 100%). The playing bot is unchanged. Historical GTO-vs-GTO reports remain readable but cannot be selected for new sessions. When Shadow=0%, the auditor is not attached to the tournament engine.
 
 ### Supported decision state (v1)
 

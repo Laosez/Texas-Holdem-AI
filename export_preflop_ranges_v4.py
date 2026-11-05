@@ -843,8 +843,10 @@ def checkpoint_config_key(args, names, source_sha256=None):
     # Only opt-in Shadow changes the experiment key.
     if getattr(args, "shadow_percent", 0):
         payload["shadow_percent"] = args.shadow_percent
-        # Previous 4.1 benchmark key remains compatible when unspecified.
-        if getattr(args, "shadow_reference", "gto41") != "gto41":
+        # Keep the selected audit mode in session/checkpoint identity.
+        # This prevents independent runs from adopting historical paired
+        # model checkpoints with the same seats, seed and sampling rate.
+        if getattr(args, "shadow_reference", "independent_river") != "gto41":
             payload["shadow_reference"] = args.shadow_reference
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -895,8 +897,11 @@ def main():
     p.add_argument('--tournaments',type=int,default=200)
     p.add_argument('--parallel',type=int,default=2)
     p.add_argument('--shadow-percent',type=int,choices=(0,10,25,100),default=0)
-    p.add_argument('--shadow-reference', choices=('gto41','gto50','gto505','gto51','gto515','gto52','gto53','gto531','gto54_10','gto54_15','gto54_20','gto541','independent_river'),
-                   default='gto41', help='4.1 benchmark or opposite GTO 5 version')
+    # New sessions support only Independent River Auditor. Historical
+    # paired-model Shadow JSON may still be read by the web interface.
+    p.add_argument('--shadow-reference', choices=('independent_river',),
+                   default='independent_river',
+                   help='Only Independent River Auditor is supported for new runs')
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--chips',type=int,default=500)
     p.add_argument('--sb',type=int,default=1)
