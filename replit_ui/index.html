@@ -220,12 +220,11 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </tbody></table>
 <p class="note">Sizing: Open 2,5 BB / SB 3 BB; 3-bet ×3 от предыдущего рейза; 4-bet ×2,3; 5-bet all-in. Если стек или легальные ставки не позволяют задать точный размер, движок ограничивает его разрешёнными пределами. Это контрольный экспериментальный протокол, а не решение GTO.</p></details>
 <section class="panel"><div class="heading"><h2><span class="index">02 / </span>Стратегии игроков</h2><span class="badge">2–9</span></div>
-<p class="note">Строка <strong>0 · всем</strong> задаёт диапазон Preflop или стратегию Postflop сразу для всех текущих игроков (2–9). Каждый список работает независимо; индивидуальные настройки можно менять ниже. Preflop-стратегия содержит собственные позиционные диапазоны.</p>
-<p class="note">Пустое поле означает незавершённую конфигурацию — запуск блокируется. Совпадающие стратегии у разных игроков допускаются.</p><p class="note">Random доступен для Preflop и Postflop. Random/Random выбирает допустимые действия и размеры рейзов случайно, без оценки карт. Единый протокол V1 нормализует A17/PC, но не ограничивает Random на префлопе.</p>
+<p class="note">Выбери Preflop и Postflop для 2–9 игроков. Строка «Всем» изменяет одно поле сразу у всех. Архивные версии скрыты для новых экспериментов и не удалены из старых сессий.</p>
 <div class="botHead"><span>№</span><span>Preflop</span><span>Postflop</span><span></span></div><div id="bots"></div>
 <div class="buttons"><button class="btn sm" id="addBot">+ Игрок</button><button class="btn sm outline" id="resetBots">Вернуть 9</button><button class="btn sm outline" id="syncStrategies" type="button">↻ Синхронизировать стратегии</button></div>
 <p class="note" id="savedStrategiesInfo">Сохранённые версии из <a href="/plan" target="_blank" rel="noopener noreferrer">редактора стратегий</a> появятся в Preflop после подключения. Выбор версии фиксируется для турнира; неотредактированные позиции используют исходный алгоритм стратегии.</p>
-<div class="warning"><strong>Исходные стратегии (без стандартизации):</strong> GTO (PC) 80 BB — исходные чарты доступны только для RFI (открытие первым), включая BTN (позиция 3; ~53,9% Raise). Частоты округлены до 25%. Защиты BB / 3-bet / 4-bet пока выполняются эвристикой GTO Fixed, а НЕ исходными PC-чартами. Старый GTO скрыт для новых турниров, но прежние отчёты и их воспроизведение сохранены.</div>
+<details class="coverageAudit"><summary>Ограничения префлоп-эксперимента</summary><p class="note">PC 80 BB использует исходные чарты для RFI; BB defense, 3-bet и 4-bet частично эвристические. При сравнении постфлопа используй одинаковый префлоп или Any Two.</p></details>
 <details class="coverageAudit" id="modelArchiveInfo">
 <summary>Архив моделей · 20 исторических экспериментов</summary>
 <p class="note">Для новых турниров показаны 12 актуальных Postflop-стратегий. Промежуточные версии 2.1a–f, 3.0–3.2, 4.0, 5.0–5.3, шаги 5.4/10% и 5.4/20% и старые стили перенесены в архив. Их код, результаты прежних турниров и сохранённые планы остаются доступны. 4.1 и 5.3.1 оставлены как контрольные точки.</p>
@@ -254,14 +253,14 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="stats"><div class="stat"><small>Турниры</small><strong id="completed">—</strong></div><div class="stat"><small>Рук</small><strong id="hands">—</strong></div><div class="stat"><small>Средняя скорость</small><strong id="hps">—</strong></div><div class="stat"><small>Дата</small><strong style="font-size:13px" id="started">—</strong></div></div>
 <div class="progress"><div id="fill"></div></div><div class="progressLine"><span id="progress">Нет данных</span><span id="eta"></span></div>
 <div class="tableWrap"><table class="statsTable"><thead><tr><th>Игрок / стратегии</th><th>Победы</th><th>Win %</th><th title="95%-й интервал Уилсона">Win 95% ДИ</th><th>Ср. место</th><th>Топ-3 %</th><th>Медиана</th><th>Net bb/100</th><th>Рук</th></tr></thead><tbody id="leader"><tr><td colspan="9">Нет результатов</td></tr></tbody></table></div>
-<p class="note">Итоговые показатели турнира. Подробные C-bet и Fold to C-bet на всех улицах, позиционная статистика и сравнение сессий теперь расположены ниже на этом же листе — в разделе «Анализ турниров». ДИ Уилсона рассчитывается по завершённым турнирам. BB/100 — итог всей раздачи в текущих BB.</p>
+<p class="note">Win % — доля побед в завершённых турнирах; BB/100 — фактический результат. Подробная статистика доступна в «Анализе турниров» ниже.</p>
 </section>
 <section class="panel shadow-workspace" id="gto5ShadowPanel">
   <div class="heading shadow-head">
     <div>
       <div class="shadow-eyebrow">НЕЗАВИСИМЫЙ АУДИТ · HU · РИВЕР</div>
       <h2>Independent River Auditor <span class="shadow-head-sub">Фактические альтернативные исходы · FOLD/CALL</span></h2>
-      <p class="note">Не использует GTO 4.1 как эталон. Скрытые карты анализируются только после реального действия; решение оценивается статистически по независимым турнирам, а не по единственной раскрытой руке. Старые Shadow-отчёты доступны только для чтения.</p>
+      <p class="note">Независимая проверка по фактическим раздачам. Один исход не является EV. Архивные Shadow-отчёты доступны для чтения.</p>
     </div>
     <span class="badge" id="gto5ShadowStatus">Нет данных</span>
   </div>
@@ -271,7 +270,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </section>
 <section class="panel" id="analysis" style="grid-column:1/-1;min-width:0">
 <details id="analysisDetails"><summary style="cursor:pointer;font-weight:800;font-size:16px;color:#c9e2ff;padding:4px 0">▾ 04 / Анализ турниров · C-bet / Fold to C-bet · позиции · сравнение</summary>
-<p class="note">Статистика берётся из фактических действий в выбранной сессии, включая числители и знаменатели возможностей. Для старых сессий неизвестные показатели не подменяются нулём.</p>
+<p class="note">Показатели по улицам, оппонентам и позициям.</p>
 <iframe id="analysisFrame" title="Анализ турниров" loading="lazy" style="display:block;width:100%;height:1500px;min-height:700px;border:0;background:transparent" referrerpolicy="same-origin"></iframe>
 </details></section>
 </main><footer>SKACHKOV Poker System · 01 Реализация (включая анализ) → 02 План → 03 Постфлоп</footer>
@@ -285,19 +284,20 @@ let preflopValues=['','a17_preflop','pc_gto_80bb','random'];
 // Both pages use /api/catalog as the sole source of selectable strategies.
 let postflopValues=[''];
 const legacyPostflopValues=['gto','smart','tag_punisher','wide_defender','baseline_sane','nit','loose_passive','maniac','maniac_mixed','pressure_filler','random'];
+let archivedPostflopValues=[];
 
 const names={'':'— Выбрать —',a17_preflop_legacy:'A17 Legacy',a17_preflop:'A17',gto:'GTO (Old)',gto_fixed:'GTO Fixed',pc_gto_80bb:'GTO (PC)',gto_postflop_v1:'GTO 1 · контроль',gto_postflop_20:'GTO 2.0 · Board Relative',gto_postflop_21:'GTO 2.1 · Board Relative · 1/2 Pot',gto_postflop_21a:'GTO 2.1a · Loose Calls',gto_postflop_21b:'GTO 2.1b · Tight Calls',gto_postflop_21c:'GTO 2.1c · More Bluffs',gto_postflop_21d:'GTO 2.1d · More Value',gto_postflop_21e:'GTO 2.1e · HU IP Fix',gto_postflop_21f:'GTO 2.1f · Weak Flush Guard',gto_postflop_30_5:'GTO 3.0/5 · Adaptive',gto_postflop_30_10:'GTO 3.0/10 · Adaptive',gto_postflop_31_5:'GTO 3.1/5 · All Actions',gto_postflop_31_10:'GTO 3.1/10 · All Actions',gto_postflop_32_5:'GTO 3.2/5 · 5 Opportunities',gto_postflop_32_10:'GTO 3.2/10 · 10 Opportunities',gto_postflop_33_5:'GTO 3.3/5 · Street Matrix',gto_postflop_33_10:'GTO 3.3/10 · Street Matrix',gto_postflop_40_5:'GTO 4.0/5 · Board Range EV',gto_postflop_40_10:'GTO 4.0/10 · Board Range EV',gto_postflop_41_5:'GTO 4.1/5 · Joint Range EV · HU / Multiway',gto_postflop_41_10:'GTO 4.1/10 · Joint Range EV · HU / Multiway',gto_postflop_50_5:'GTO 5.0/5 alpha · Human Formula EV · HU/Multiway',gto_postflop_505_5:'GTO 5.0.5/5 alpha · вероятности ×5% · HU/Multiway',gto_postflop_51_5:'GTO 5.1/5 alpha · ранговое старшинство · без округления',gto_postflop_515_5:'GTO 5.1.5/5 alpha · старшинство + округление ×5%',s100_postflop_v1:'S100 (human / bot scenarios)',lag_postflop_v1:'LAG V1',tag_postflop_v1:'TAG V1',chaser_postflop_v1:'Chaser V1',trapper_postflop_v1:'Trapper V1',smart:'Smart',tag_punisher:'TAG Punisher',wide_defender:'Wide Defender',baseline_sane:'Baseline Sane',nit:'Nit',loose_passive:'Loose Passive',maniac:'Maniac',maniac_mixed:'Maniac Mixed',pressure_filler:'Pressure Filler',random:'Random'};
 for(let i=2;i<=10;i++)names['random_'+i]='Random '+i;
 const preset=[
- ['a17_preflop','gto_postflop_v1'],
- ['pc_gto_80bb','gto_postflop_20'],
- ['pc_gto_80bb','tag_postflop_v1'],
- ['pc_gto_80bb','lag_postflop_v1'],
- ['pc_gto_80bb','chaser_postflop_v1'],
- ['pc_gto_80bb','trapper_postflop_v1'],
+ ['a17_preflop','gto_postflop_541_step15'],
+ ['a17_preflop','gto_postflop_54_step15'],
+ ['a17_preflop','gto_postflop_531_5'],
+ ['a17_preflop','gto_postflop_41_5'],
+ ['a17_preflop','gto_postflop_33_5'],
+ ['a17_preflop','gto_postflop_21c'],
  ['a17_preflop','tag_postflop_v1'],
  ['a17_preflop','lag_postflop_v1'],
- ['a17_preflop','trapper_postflop_v1']
+ ['a17_preflop','random']
 ];
 let bots=[],sessions=[],selected=null,working=false,savedForComparison=[];
 const numeric=['tournaments','parallel','seed','chips','sb','bb','blind_increase_every','max_hands'];
@@ -316,7 +316,7 @@ const token=()=>($('key').value||'').trim();
 function feedback(message,bad){$('feedback').textContent=message;$('feedback').style.color=bad?'#ffabb7':'#a7d4f0'}
 function el(t,cls,txt){const x=document.createElement(t);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x}
 const isRandom=value=>value==='random'||/^random_(?:[2-9]|10)$/.test(value);
-const isArchivedPostflop=value=>/^gto_postflop_.*_10$/.test(value);
+const isArchivedPostflop=value=>archivedPostflopValues.includes(value)||/^gto_postflop_.*_10$/.test(value);
 function botOptions(value,fn,street){
  const s=el('select'),options=street==='pre'?preflopValues:postflopValues;
  for(const v of options){
@@ -1104,6 +1104,7 @@ async function loadCatalog(){
     if(profile?.label)names[token]=profile.label;
    }
    postflopValues=['',...catalog.postflop_strategies];
+   archivedPostflopValues=catalog.postflop_archived||[];
    drawBots();
   }
   const parallel=$('parallel');
