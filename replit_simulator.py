@@ -437,6 +437,15 @@ def strategy_catalog():
                                  "До 5×13+13 ранговых маршрутов, не 990 рук",
                                  "Без округления; доступен в Shadow против 4.1/5.1"]
                 },
+                "gto_postflop_541_step15": {
+                    "label": "GTO 5.4.1/15% · Оптимизация вычислений · 5–95%",
+                    "model": "human_tie_aware_541_step15_memoized",
+                    "features": ["Точная логика GTO 5.4/15%; старт 50%, шаг 15 п.п., лимит 5–95%",
+                                 "Ограниченный кеш распределения борда (2048)",
+                                 "Ограниченный кеш старшинства Hero (4096)",
+                                 "Кеш статистики на OPP с инвалидизацией при новом действии",
+                                 "Никаких изменений equity, EV, ставок и памяти"]
+                },
                 "gto_postflop_54_step10": {
                     "label": "GTO 5.4/10% · RAISE старт 50%, +/−10 п.п., границы 10–90%",
                     "model": "human_tie_aware_54_step10",
@@ -641,7 +650,7 @@ def validate_config(data: dict) -> dict:
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     shadow_reference = data.get("shadow_reference", "gto41")
-    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20"):
+    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20", "gto541"):
         raise ValueError("Shadow Mode: неверная эталонная стратегия")
     config = {
         "shadow_percent": shadow_percent,
