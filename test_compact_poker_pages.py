@@ -47,7 +47,7 @@ class CompactPokerPagesTests(unittest.TestCase):
         self.assertNotIn('id="gto40Matrix"',ui)
         self.assertIn('function renderIndependentAuditor(',ui)
         self.assertIn("aggression.by_bot_action",ui)
-        self.assertIn('postflopArchivedValues',ui.replace('archivedPostflopValues','postflopArchivedValues'))
+        self.assertIn('archivedPostflopValues=catalog.postflop_archived||[]',ui)
         self.assertIn('id="analysisFrame"',ui)
 
     def test_page_three_keeps_all_classes_but_removes_repeated_columns(self):
