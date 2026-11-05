@@ -33,7 +33,8 @@ class GTO541OptimizationTests(unittest.TestCase):
             self.assertEqual(baseline.actor_kind, "gto54_" + str(step))
             self.assertFalse(hasattr(baseline, "_distribution_541"))
             self.assertFalse(hasattr(baseline, "_context_cache_541"))
-        self.assertEqual(cached._new_reference().actor_kind, "gto41")
+        from bots.gto_postflop_41 import JointRangeGTO41Bot
+        self.assertIsInstance(cached._new_reference(), JointRangeGTO41Bot)
         cached.shadow_reference_kind = "gto54_15"
         self.assertEqual(cached._new_reference().actor_kind, "gto54_15")
         reference = create_bot("gto_postflop_54_step15")
