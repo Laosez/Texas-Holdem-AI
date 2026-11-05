@@ -161,6 +161,9 @@ def create_bot(btype: str) -> BotAdapter:
     if btype == "gto_postflop_531_5":
         from bots.gto_postflop_50 import RankAwareGTO531Bot
         return RankAwareGTO531Bot(window=5)
+    if btype in ("gto_postflop_54_10", "gto_postflop_54_15", "gto_postflop_54_20"):
+        from bots.gto_postflop_50 import RankAwareGTO54Bot
+        return RankAwareGTO54Bot(window=5, step_pct=int(btype.rsplit("_", 1)[1]))
 
     if btype in ("gto_postflop_41_5", "gto_postflop_41_10"):
         from bots.gto_postflop_41 import JointRangeGTO41Bot
