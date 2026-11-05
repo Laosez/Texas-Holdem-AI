@@ -39,7 +39,7 @@ OFFSETS = {
 }
 X_ANY_TWO = 5.88
 SHADOW_CHOICES = (0, 10, 25, 100)
-SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20", "gto541")
+SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20", "gto541", "independent_river")
 
 
 def round_probability_to_five(value):
@@ -500,7 +500,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
         # changes actual gameplay, and comparable actions use the same wager.
         # A bot may be its own selected reference when both versions sit at
         # one table: do not record tautological self-comparisons.
-        if self.shadow_percent and self.shadow_reference_kind != self.actor_kind:
+        if (self.shadow_percent and self.shadow_reference_kind != self.actor_kind
+                and self.shadow_reference_kind != "independent_river"):
             if self.shadow_reference is None:
                 self.shadow_reference = self._new_reference()
             self.shadow_reference.observe_hand(

@@ -440,6 +440,15 @@ def run_one(task):
     os.environ['POKER_SHADOW_TOURNAMENT'] = str(seed) + ':' + str(tournament_id)
     observed_bb = {}
     instances=[]
+    quality = None
+    if (os.getenv("POKER_GTO5_SHADOW_REFERENCE") == "independent_river"
+            and int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0")) > 0):
+        from independent_river_auditor import RiverDecisionCollector
+        quality = RiverDecisionCollector(
+            tournament_id,
+            percent=int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0")),
+            max_samples=int(os.getenv("POKER_INDEPENDENT_RIVER_MAX_PER_TOURNAMENT", "128")),
+        )
     old=runner.create_bot
     old_table=runner.make_table
     specs=[(f'P{i+1}',bot,None) for i,bot in enumerate(names)]
@@ -468,6 +477,18 @@ def run_one(task):
             for observer in instances:
                 observer.observe_hand_end(hid, net, current_bb, showdown, winners)
         table.on_hand_end=on_hand_end
+        if quality is not None:
+            def river_hook(view, action, villain_cards, current_bb):
+                actor = tracked_by_pid.get(str(view.me))
+                opponent = tracked_by_pid.get(str(view.opponents[0]))
+                if actor is None or opponent is None:
+                    return
+                opponent_policy = getattr(opponent.inner, "postflop_name", None)
+                if opponent_policy is None:
+                    opponent_policy = getattr(opponent.inner, "profile", opponent.name)
+                quality.observe(view, action, villain_cards, current_bb,
+                                actor.name, opponent_policy)
+            table.on_independent_river_decision = river_hook
         return table
     runner.create_bot=factory
     runner.make_table=table_factory
@@ -498,6 +519,9 @@ def run_one(task):
                 shadow_events.append({**event, 'bb': observed_bb.get(event.get('hand_id'), bb),
                                       'bot': bot.name, 'tournament': tournament_id})
         result['gto5_shadow'] = shadow_events
+        if quality is not None:
+            result['independent_river'] = quality.records()
+            result['independent_river_counts'] = quality.counts()
         timings = [
             {'bot': bot.name, 'street': street, **dict(stats)}
             for bot in instances
@@ -871,7 +895,7 @@ def main():
     p.add_argument('--tournaments',type=int,default=200)
     p.add_argument('--parallel',type=int,default=2)
     p.add_argument('--shadow-percent',type=int,choices=(0,10,25,100),default=0)
-    p.add_argument('--shadow-reference', choices=('gto41','gto50','gto505','gto51','gto515','gto52','gto53','gto531','gto54_10','gto54_15','gto54_20','gto541'),
+    p.add_argument('--shadow-reference', choices=('gto41','gto50','gto505','gto51','gto515','gto52','gto53','gto531','gto54_10','gto54_15','gto54_20','gto541','independent_river'),
                    default='gto41', help='4.1 benchmark or opposite GTO 5 version')
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--chips',type=int,default=500)
@@ -888,6 +912,10 @@ def main():
     a=p.parse_args()
     os.environ['POKER_GTO5_SHADOW_PERCENT'] = str(a.shadow_percent)
     os.environ['POKER_GTO5_SHADOW_REFERENCE'] = a.shadow_reference
+    # RAM/disk cap: at most ~20k compact river samples per session,
+    # irrespective of whether it has 90 or 3000 tournaments.
+    os.environ['POKER_INDEPENDENT_RIVER_MAX_PER_TOURNAMENT'] = str(
+        min(128, max(1, 20000 // max(1, a.tournaments))))
     os.environ['POKER_TRACE_LAST_TOURNAMENT'] = str(a.tournaments)
     os.environ["POKER_BUTTON_POLICY"]=a.button_policy
     if os.environ.get('THAI_ENGINE_IMPL', '').lower() != 'legacy':
@@ -934,6 +962,11 @@ def main():
     shadow_path = Path(a.out) / 'gto5_shadow_decisions.jsonl'
     shadow_path.parent.mkdir(parents=True, exist_ok=True)
     shadow_stream = shadow_path.open('w', encoding='utf-8')
+    independent_mode = a.shadow_reference == 'independent_river' and a.shadow_percent > 0
+    independent_path = Path(a.out) / 'independent_river_samples.jsonl'
+    independent_stream = (independent_path.open('w', encoding='utf-8')
+                          if independent_mode else None)
+    independent_counts = defaultdict(int)
     postflop_aggregate=defaultdict(lambda:defaultdict(float))
     def ingest(result):
         nonlocal total_hands, last_adaptive_traces, last_adaptive_tournament
@@ -948,6 +981,13 @@ def main():
         # Rebuilds on resumed runs from per-tournament checkpoints.
         for record in outcome.pop('gto5_shadow', ()):
             shadow_stream.write(json.dumps(record, ensure_ascii=False, separators=(',', ':'))+'\n')
+        for key, value in outcome.pop('independent_river_counts', {}).items():
+            if key != 'max_samples_per_tournament':
+                independent_counts[key] += value
+        for item in outcome.pop('independent_river', ()):
+            if independent_stream is not None:
+                independent_stream.write(json.dumps(
+                    item, ensure_ascii=False, separators=(',', ':'))+'\n')
         for item in postflop:
             if item.get('street') is not None:
                 key=(item['bot'],'opp_actions',item['street'],item['opponents'])
@@ -983,6 +1023,15 @@ def main():
                     print(f'{i}/{a.tournaments} tournaments · {60*i/elapsed:.1f} tournaments/min · {total_hands/elapsed:.1f} hands/s',flush=True)
 
     shadow_stream.close()
+    if independent_stream is not None:
+        independent_stream.close()
+        from independent_river_auditor import build_report
+        with independent_path.open('r', encoding='utf-8') as audit_stream:
+            independent_report = build_report(
+                (json.loads(line) for line in audit_stream if line.strip()),
+                percent=a.shadow_percent, collection_counts=independent_counts)
+        write_json(Path(a.out) / 'independent_river_report.json',
+                   independent_report)
     from gto5_shadow_report import aggregate_shadow
     with shadow_path.open('r', encoding='utf-8') as shadow_input:
         shadow_report = aggregate_shadow((json.loads(line) for line in shadow_input if line.strip()))
