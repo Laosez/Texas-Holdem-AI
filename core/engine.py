@@ -895,6 +895,13 @@ class Table:
                 action_amt = None
 
             action = Action(action_type, action_amt)
+            # Optional offline auditor observes the terminal river snapshot only
+            # AFTER the strategy has committed its action. Private cards are
+            # used for scoring by the audit hook and never enter PlayerView.
+            river_auditor = getattr(self, "on_independent_river_decision", None)
+            if (callable(river_auditor) and street == "river"
+                    and len(opponents) == 1):
+                river_auditor(view, action, tuple(hole[opponents[0]]), bb)
             # print(f"    Chosen action: {action.type} {action.amount}")
 
             # ---- ML LOGGING (only here, once per actual executed action) ----
