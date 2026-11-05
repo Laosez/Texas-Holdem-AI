@@ -16,8 +16,11 @@ class CompactPokerPagesTests(unittest.TestCase):
         archived=catalog["postflop_archived"]
         self.assertEqual(len(active),12)
         self.assertEqual(len(set(active)),12)
-        self.assertEqual(len([x for x in archived if x.startswith("gto_postflop_") or x in
-                              ("s100_postflop_v1","chaser_postflop_v1","trapper_postflop_v1")]),20)
+        # Twenty variants moved from the formerly active list; the archive
+        # also includes pre-existing /10 legacy variants.
+        moved=app.STRATEGY_CATALOG["postflop_archived"]
+        self.assertEqual(len(moved),20)
+        self.assertTrue(set(moved).issubset(archived))
         self.assertTrue(set(active).isdisjoint(archived))
         for needed in ("gto_postflop_41_5","gto_postflop_531_5",
                        "gto_postflop_54_step15","gto_postflop_541_step15",
