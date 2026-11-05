@@ -214,6 +214,9 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <option value="gto52">GTO 5.2 · исправленное старшинство (эксперимент)</option>
 <option value="gto53">GTO 5.3 · взвешенное старшинство (Any Two)</option>
 <option value="gto531">GTO 5.3.1 · учёт ничьих в диапазоне ставки</option>
+<option value="gto54_10">GTO 5.4/10% · накопительный рейз, 10–90%</option>
+<option value="gto54_15">GTO 5.4/15% · накопительный рейз, 5–95%</option>
+<option value="gto54_20">GTO 5.4/20% · накопительный рейз, 10–90%</option>
 </select>
 <p class="note">Для эффекта старшинства: GTO 5.1 играет, GTO 5.0 проверяет. Для эффекта округления: GTO 5.1.5 играет, GTO 5.1 проверяет. Одинаковые модели не сравниваются. Regret — относительно эталона, не фактический проигрыш.</p></div>
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
@@ -800,7 +803,7 @@ function shadowOverview(data,root){
  detail.onclick=()=>shadowSetTab('opponents');root.append(detail);
 }
 function shadowModelName(kind){
- return ({gto50:'GTO 5.0',gto505:'GTO 5.0.5',gto51:'GTO 5.1',gto515:'GTO 5.1.5',gto52:'GTO 5.2',gto53:'GTO 5.3',gto531:'GTO 5.3.1',gto41:'GTO 4.1'})[kind]||kind||'GTO 4.1';
+ return ({gto50:'GTO 5.0',gto505:'GTO 5.0.5',gto51:'GTO 5.1',gto515:'GTO 5.1.5',gto52:'GTO 5.2',gto53:'GTO 5.3',gto531:'GTO 5.3.1',gto54_10:'GTO 5.4/10%',gto54_15:'GTO 5.4/15%',gto54_20:'GTO 5.4/20%',gto41:'GTO 4.1'})[kind]||kind||'GTO 4.1';
 }
 function shadowCardTokens(tokens,iconMap){
  const box=el('span','shadow-cards','');
@@ -1152,7 +1155,7 @@ function renderGTO30Trace(){
    });
    entry.append(el('div','', 'Решение: '+step.decision.toUpperCase()+
       (step.amount_chips!=null?' '+step.amount_chips+' фишек':'')+
-      ' · '+(step.decision_mode?.startsWith('gto41_')?'GTO 4.1 · JOINT EV':step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode?.startsWith('gto531')?'GTO 5.3.1 · УЧЁТ НИЧЬИХ':step.decision_mode?.startsWith('gto53')?'GTO 5.3 · ВЗВЕШЕННОЕ СТАРШИНСТВО':step.decision_mode?.startsWith('gto52')?'GTO 5.2 · ИСПРАВЛЕННОЕ СТАРШИНСТВО':step.decision_mode?.startsWith('gto515')?'GTO 5.1.5 · СТАРШИНСТВО + ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto51')?'GTO 5.1 · СТАРШИНСТВО':step.decision_mode?.startsWith('gto505')?'GTO 5.0.5 · ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto50')?'GTO 5.0 · EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
+      ' · '+(step.decision_mode?.startsWith('gto41_')?'GTO 4.1 · JOINT EV':step.decision_mode?.startsWith('gto40_')?'GTO 4.0 · RANGE EV':step.decision_mode?.startsWith('gto54_')?'GTO 5.4 · ШАГОВЫЙ РЕЙЗ':step.decision_mode?.startsWith('gto531')?'GTO 5.3.1 · УЧЁТ НИЧЬИХ':step.decision_mode?.startsWith('gto53')?'GTO 5.3 · ВЗВЕШЕННОЕ СТАРШИНСТВО':step.decision_mode?.startsWith('gto52')?'GTO 5.2 · ИСПРАВЛЕННОЕ СТАРШИНСТВО':step.decision_mode?.startsWith('gto515')?'GTO 5.1.5 · СТАРШИНСТВО + ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto51')?'GTO 5.1 · СТАРШИНСТВО':step.decision_mode?.startsWith('gto505')?'GTO 5.0.5 · ОКРУГЛЕНИЕ':step.decision_mode?.startsWith('gto50')?'GTO 5.0 · EV':step.decision_mode==='gto30_adapted'?'АДАПТАЦИЯ GTO 3.0':step.decision_mode?.startsWith('gto31_')?'АДАПТАЦИЯ GTO 3.1':step.decision_mode?.startsWith('gto32_')?(bot.policy?.startsWith('gto_postflop_33_')?'АДАПТАЦИЯ GTO 3.3':'АДАПТАЦИЯ GTO 3.2'):'БАЗОВАЯ СТРАТЕГИЯ')));
    if(step.pressure) entry.append(el('div','small','Сигнал угрозы '+step.pressure.score.toFixed(2)+' · '+step.pressure.action+' (НЕ equity/вероятность руки)'));
    (step.opponents||[]).forEach(opp=>{
      if(!opp.metrics)return;
@@ -1190,7 +1193,7 @@ function renderGTO30Trace(){
          ' · источник '+(first?.source||'—')));
      });
    }
-   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_')||bot.policy?.startsWith('gto_postflop_52_')||bot.policy?.startsWith('gto_postflop_53_')||bot.policy?.startsWith('gto_postflop_531_'))&&step.ev){
+   if((bot.policy?.startsWith('gto_postflop_40_')||bot.policy?.startsWith('gto_postflop_41_')||bot.policy?.startsWith('gto_postflop_50_')||bot.policy?.startsWith('gto_postflop_505_')||bot.policy?.startsWith('gto_postflop_51_')||bot.policy?.startsWith('gto_postflop_515_')||bot.policy?.startsWith('gto_postflop_52_')||bot.policy?.startsWith('gto_postflop_53_')||bot.policy?.startsWith('gto_postflop_531_')||bot.policy?.startsWith('gto_postflop_54_'))&&step.ev){
      const ev=Object.entries(step.ev).map(([name,value])=>name.toUpperCase()+' '+Number(value).toFixed(2)+' фишек').join(' | ');
      entry.append(el('div','small','EV действий: '+ev));
      const m=step.equity_model||{};
@@ -1235,7 +1238,7 @@ function renderGTO30Trace(){
        entry.append(el('div','small','Any Two: '+d.evaluated_hands+'/'+d.possible_hands+' рук · полный перебор категорий · совместных прогонов: '+m.joint_trials+(m.side_pot_approximation?' · side pots приближённые':'')));
    }
    entry.append(el('div','small',step.reason));
-   if(/^gto_postflop_(?:50|505|51|515|52|53|531)_/.test(bot.policy||'')){
+   if(/^gto_postflop_(?:50|505|51|515|52|53|531|54)_/.test(bot.policy||'')){
      const audit=el('button','btn sm outline','Показать точный расчёт Any Two (текущая улица)');
      audit.type='button';
      const host=el('div','small','');

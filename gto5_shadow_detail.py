@@ -141,9 +141,11 @@ def get_shadow_hand(path, index, *, exact=False, complete_trace=None):
         category = eval_hand(hole, board) >> 24
         model = selected.get("model") or {}
         mass = model.get("unrounded_probability_mass") or ()
-        is_rank = selected.get("actor") in ("gto51", "gto515", "gto52", "gto53", "gto531")
+        is_rank = selected.get("actor") in ("gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20")
         fn = {"gto52": hero_seniority_52,
-              "gto53": hero_seniority_53, "gto531": hero_seniority_53}.get(selected.get("actor"), hero_seniority)
+              "gto53": hero_seniority_53, "gto531": hero_seniority_53,
+              "gto54_10": hero_seniority_53, "gto54_15": hero_seniority_53,
+              "gto54_20": hero_seniority_53}.get(selected.get("actor"), hero_seniority)
         fraction, seniority_info = (
             fn(hole, board, category_mass=mass[category] if len(mass)>category else None)
             if is_rank else (.5, {"win_fraction": .5, "method": "category centre 5.0"})

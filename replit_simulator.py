@@ -437,6 +437,33 @@ def strategy_catalog():
                                  "До 5×13+13 ранговых маршрутов, не 990 рук",
                                  "Без округления; доступен в Shadow против 4.1/5.1"]
                 },
+                "gto_postflop_54_step10": {
+                    "label": "GTO 5.4/10% · RAISE старт 50%, +/−10 п.п., границы 10–90%",
+                    "model": "human_tie_aware_54_step10",
+                    "features": ["RAISE и RERAISE: отдельное накопительное значение на OPP/улицу",
+                                 "При рейзе шире, без рейза уже; старт 50%, лимит 10–90%",
+                                 "Один накопительный скаляр; число наблюдений не ограничено пятью",
+                                 "Fold/Call занимают оставшуюся вероятность",
+                                 "Ничьи, старшинство, EV 5.3.1 сохранены"]
+                },
+                "gto_postflop_54_step15": {
+                    "label": "GTO 5.4/15% · RAISE старт 50%, +/−15 п.п., границы 5–95%",
+                    "model": "human_tie_aware_54_step15",
+                    "features": ["Отдельная накопительная вероятность рейза/ререйза на OPP/улицу",
+                                 "Старт 50%, шаг 15 п.п., границы 5–95%",
+                                 "Нет сглаживания частоты рейза для action-band",
+                                 "Fold/Call пропорционально разделяют остаток",
+                                 "Все прочие правила 5.3.1 сохранены"]
+                },
+                "gto_postflop_54_step20": {
+                    "label": "GTO 5.4/20% · RAISE старт 50%, +/−20 п.п., границы 10–90%",
+                    "model": "human_tie_aware_54_step20",
+                    "features": ["Отдельная накопительная вероятность рейза/ререйза на OPP/улицу",
+                                 "Старт 50%, шаг 20 п.п., границы 10–90%",
+                                 "Нет сглаживания частоты рейза для action-band",
+                                 "Fold/Call пропорционально разделяют остаток",
+                                 "Все прочие правила 5.3.1 сохранены"]
+                },
                 "gto_postflop_531_5": {
                     "label": "GTO 5.3.1/5 · Ничьи в диапазоне ставки (A/B)",
                     "model": "human_rank_weighted_tie_aware_531",
@@ -614,7 +641,7 @@ def validate_config(data: dict) -> dict:
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     shadow_reference = data.get("shadow_reference", "gto41")
-    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531"):
+    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20"):
         raise ValueError("Shadow Mode: неверная эталонная стратегия")
     config = {
         "shadow_percent": shadow_percent,

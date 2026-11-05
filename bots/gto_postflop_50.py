@@ -39,7 +39,7 @@ OFFSETS = {
 }
 X_ANY_TWO = 5.88
 SHADOW_CHOICES = (0, 10, 25, 100)
-SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531")
+SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20")
 
 
 def round_probability_to_five(value):
@@ -226,7 +226,7 @@ def _band(pid, street, history, groups):
     return _band_for(pid, street, history, groups[pid][street])
 
 
-def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False, seniority_version=51, tie_aware=False):
+def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False, seniority_version=51, tie_aware=False, band_resolver=None):
     """Quick EV approximation using category quantiles and response frequencies."""
     opponents = [str(p) for p in (view.opponents or ())]
     seniority_inputs = {}
@@ -244,7 +244,8 @@ def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False,
     eq_all = []
     bands = {}
     for pid in opponents:
-        lo, hi = _band(pid, view.street, history, groups)
+        lo, hi = (band_resolver(pid, view.street, history, groups)
+                  if band_resolver is not None else _band(pid, view.street, history, groups))
         bands[pid] = (lo, hi)
         eq_all.append(_equity_in_band(rank, lo, hi, tie_band))
     # Multiplication assumes opponent conditional equities are independent.
@@ -320,6 +321,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
 
     @property
     def actor_kind(self):
+        if getattr(self, "range_step_pct", None) in (10, 15, 20):
+            return "gto54_" + str(self.range_step_pct)
         if self.rank_aware:
             if getattr(self, "tie_aware", False) and self.seniority_version == 53:
                 return "gto531"
@@ -346,6 +349,9 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             return RankAwareGTO53Bot(window=5, shadow_percent=0)
         if self.shadow_reference_kind == "gto531":
             return RankAwareGTO531Bot(window=5, shadow_percent=0)
+        for step in (10, 15, 20):
+            if self.shadow_reference_kind == "gto54_" + str(step):
+                return RankAwareGTO54Bot(step_pct=step, window=5, shadow_percent=0)
         return HumanRangeGTO50Bot(window=5, shadow_percent=0)
 
     def reset_memory(self):
@@ -381,7 +387,9 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             return _fallthrough(view, fold=bool(call))
 
         started = time.perf_counter_ns()
-        groups = {pid: self.street_matrix(pid) for pid in opponents}
+        groups = {pid: (self._street_matrix_54(pid)
+                        if getattr(self, "range_step_pct", None) else self.street_matrix(pid))
+                  for pid in opponents}
         dist = board_distribution(view.board, round_to_five=self.round_step == 5)
         bet = _amount(view, .50) if not call and "bet" in legal else None
         size = int(bet.amount) if bet and bet.type == "bet" else None
@@ -395,7 +403,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             ev, inputs = _estimate_actions(view, groups, dist, size,
                                            rank_aware=self.rank_aware,
                                             seniority_version=self.seniority_version,
-                                           tie_aware=getattr(self, "tie_aware", False))
+                                           tie_aware=getattr(self, "tie_aware", False),
+                                           band_resolver=getattr(self, "_band_54", None))
             if call and {"fold", "call"} <= set(legal):
                 action = Action("call" if ev.get("call", -1) > 0 else "fold")
             elif not call and {"bet", "check"} <= set(legal) and size is not None:
@@ -410,7 +419,10 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                     "gto515": "gto5.1.5-alpha",
                     "gto52": "gto5.2-alpha",
                     "gto53": "gto5.3-alpha",
-                    "gto531": "gto5.3.1-tie-alpha"}
+                    "gto531": "gto5.3.1-tie-alpha",
+                    "gto54_10": "gto5.4-step10-alpha",
+                    "gto54_15": "gto5.4-step15-alpha",
+                    "gto54_20": "gto5.4-step20-alpha"}
         self.last_model = {
             "version": versions[self.actor_kind],
             "distribution": dist,
@@ -452,7 +464,10 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 } for pid in opponents],
                 "ev": self.last_model["ev"], "equity_model": inputs,
                 "distribution": dist,
-                "reason": ("GTO 5.3.1: tie-aware opponent action-band equity"
+                "reason": ("GTO 5.4: accumulated RAISE/RERAISE width (50%, step "
+                           + str(self.range_step_pct) + " pp)"
+                           if getattr(self, "range_step_pct", None) else
+                           "GTO 5.3.1: tie-aware opponent action-band equity"
                            if getattr(self, "tie_aware", False) else
                            "GTO 5.3: weighted rank-pair + suit seniority"
                            if self.seniority_version == 53 and self.rank_aware else
@@ -589,3 +604,112 @@ class RankAwareGTO531Bot(RankAwareGTO53Bot):
                          shadow_reference=shadow_reference)
         self.profile = "gto_postflop_531_5"
         self.tie_aware = True
+
+
+
+class RankAwareGTO54Bot(RankAwareGTO531Bot):
+    """GTO 5.4 A/B: accumulate RAISE widths, starting at 50%.
+
+    Three independent arms: step 10/20 pp bounded to 10..90%, or
+    step 15 pp bounded to 5..95%. For each eligible facing-BET
+    opportunity, RAISE expands the top action band; Fold/Call contracts
+    it. Facing-RAISE (RERAISE) is tracked separately. State is one
+    floating-point number per player/street/context and survives beyond
+    the parent's five-event probability-smoothing window.
+
+    The old smoothed Fold/Call proportions are retained and rescaled to
+    the mass left by the accumulated RAISE/RERAISE probability. Seniority,
+    draws, ties, EV payoff and multiway independence are unchanged.
+    """
+
+    STEP_LIMITS = {10: (.10, .90), 15: (.05, .95), 20: (.10, .90)}
+
+    def __init__(self, step_pct=10, window=5, *,
+                 shadow_percent=None, shadow_reference=None):
+        if step_pct not in self.STEP_LIMITS:
+            raise ValueError("GTO 5.4 step must be 10, 15 or 20 pp")
+        super().__init__(window=window, shadow_percent=shadow_percent,
+                         shadow_reference=shadow_reference)
+        self.range_step_pct = step_pct
+        self.profile = "gto_postflop_54_step" + str(step_pct)
+
+    def reset_memory(self):
+        super().reset_memory()
+        self._range_widths = {}
+
+    def _append(self, pid, street, group, outcome):
+        # Parent only calls this for genuine three-way legal opportunities,
+        # once per event (observe_hand deduplicates history replay).
+        super()._append(pid, street, group, outcome)
+        if group not in ("vs_bet", "vs_raise"):
+            return
+        target = "raise" if group == "vs_bet" else "reraise"
+        key = (str(pid), street, group)
+        current = self._range_widths.get(key, .50)
+        direction = 1 if outcome == target else -1
+        lower, upper = self.STEP_LIMITS[self.range_step_pct]
+        self._range_widths[key] = round(max(lower, min(
+            upper, current + direction * self.range_step_pct / 100)), 8)
+
+    def _street_matrix_54(self, pid):
+        """Keep fold/call ratios, replace RAISE width using the scalar."""
+        matrix = self.street_matrix(pid)
+        for street in ("flop", "turn", "river"):
+            for group, target in (("vs_bet", "raise"),
+                                  ("vs_raise", "reraise")):
+                block = matrix[street][group]
+                width = self._range_widths.get(
+                    (str(pid), street, group), .50)
+                # A three-way response must sum to 1, including in EV BET.
+                original_other = (block["fold"]["p"] + block["call"]["p"])
+                fold_share = (block["fold"]["p"] / original_other
+                              if original_other else .5)
+                fold = (1. - width) * fold_share
+                call = (1. - width) - fold
+                block["fold"] = {**block["fold"],
+                                 "prior_smoothed_p": block["fold"]["p"],
+                                 "p": round(fold, 6),
+                                 "source": "step_54_rescaled"}
+                block["call"] = {**block["call"],
+                                 "prior_smoothed_p": block["call"]["p"],
+                                 "p": round(call, 6),
+                                 "source": "step_54_rescaled"}
+                block[target] = {
+                    **block[target],
+                    "prior_smoothed_p": block[target]["p"],
+                    "p": width,
+                    "source": "step_54_accumulated",
+                    "initial_p": .50,
+                    "step_pct": self.range_step_pct,
+                    "bounds": self.STEP_LIMITS[self.range_step_pct],
+                }
+        return matrix
+
+    @staticmethod
+    def _last_raise_context(pid, street, history):
+        """Classify the opponent's last raise by the preceding aggression."""
+        last_action, last_context = None, None
+        previous_aggression = None
+        previous_aggressor = None
+        for event in history or ():
+            if not isinstance(event, dict) or event.get("street") != street:
+                continue
+            action = event.get("type")
+            actor = str(event.get("pid"))
+            if actor == str(pid):
+                last_action = action
+                last_context = (
+                    previous_aggression if previous_aggressor != actor
+                    else None)
+            if action in ("bet", "raise"):
+                previous_aggression = action
+                previous_aggressor = actor
+        return last_action, last_context
+
+    def _band_54(self, pid, street, history, groups):
+        # Unlike legacy 4.1/5.3, an actual RERAISE uses its own accumulator.
+        action, faced = self._last_raise_context(pid, street, history)
+        if action == "raise" and faced == "raise":
+            width = groups[pid][street]["vs_raise"]["reraise"]["p"]
+            return 1. - width, 1.
+        return _band(pid, street, history, groups)
