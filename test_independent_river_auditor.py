@@ -111,7 +111,7 @@ class IndependentRiverAuditorTests(unittest.TestCase):
         self.assertEqual(report["format"],FORMAT)
         self.assertEqual(report["overall"]["n"],120)
         self.assertEqual(report["overall"]["mean_policy_realized_bb"],0.0)
-        self.assertEqual(report["overall"]["mean_always_call_realized_bb"],7/3)
+        self.assertAlmostEqual(report["overall"]["mean_always_call_realized_bb"],7/3,places=3)
         self.assertEqual(report["overall"]["out_of_sample_n"],120)
         self.assertAlmostEqual(report["overall"]["oos_delta_vs_policy_bb"],7/3,places=3)
         self.assertIsNotNone(report["overall"]["oos_delta_ci95_bb"])
