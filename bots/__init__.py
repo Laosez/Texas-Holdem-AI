@@ -161,6 +161,9 @@ def create_bot(btype: str) -> BotAdapter:
     if btype == "gto_postflop_531_5":
         from bots.gto_postflop_50 import RankAwareGTO531Bot
         return RankAwareGTO531Bot(window=5)
+    if btype == "gto_postflop_541_step15":
+        from bots.gto_postflop_541 import RankAwareGTO541Bot
+        return RankAwareGTO541Bot(window=5)
     if btype in ("gto_postflop_54_step10", "gto_postflop_54_step15", "gto_postflop_54_step20"):
         from bots.gto_postflop_50 import RankAwareGTO54Bot
         return RankAwareGTO54Bot(window=5, step_pct=int(btype.rsplit("_", 1)[1].removeprefix("step")))
