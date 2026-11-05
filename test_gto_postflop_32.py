@@ -28,11 +28,9 @@ class GTO32Tests(unittest.TestCase):
         catalog = app.strategy_catalog()
         for size in (5, 10):
             name = f"gto_postflop_32_{size}"
-            if size == 5:
-                self.assertIn(name, catalog["postflop_strategies"])
-            else:
-                self.assertNotIn(name, catalog["postflop_strategies"])
-                self.assertTrue(app.available_postflop(name))
+            self.assertNotIn(name, catalog["postflop_strategies"])
+            self.assertIn(name, app.POSTFLOP_ARCHIVE)
+            self.assertTrue(app.available_postflop(name))
             self.assertIn(name, catalog["postflop_profiles"])
             self.assertNotIn(name, catalog["preflop_strategies"])
             bot = create_bot(name)
@@ -41,7 +39,7 @@ class GTO32Tests(unittest.TestCase):
             self.assertEqual(create_bot("split:pc_gto_80bb:"+name)
                              .postflop_bot.window,size)
             self.assertIn(name,app.UI.read_text(encoding="utf-8"))
-        self.assertIn("gto32Matrix",app.UI.read_text(encoding="utf-8"))
+        self.assertIn('id="modelArchiveInfo"',app.UI.read_text(encoding="utf-8"))
         with self.assertRaises(ValueError):
             OpportunityGTO32Bot(7)
 
