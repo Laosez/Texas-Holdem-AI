@@ -650,7 +650,7 @@ def validate_config(data: dict) -> dict:
     if shadow_percent not in (0, 10, 25, 100):
         raise ValueError("Shadow Mode: 0, 10, 25 или 100%")
     shadow_reference = data.get("shadow_reference", "gto41")
-    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20", "gto541"):
+    if shadow_reference not in ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20", "gto541", "independent_river"):
         raise ValueError("Shadow Mode: неверная эталонная стратегия")
     config = {
         "shadow_percent": shadow_percent,
@@ -1862,6 +1862,24 @@ class Handler(BaseHTTPRequestHandler):
                 job = RUNS.get(run_id)
             if job is None:
                 self.reply(404, {"error": "Серия не найдена"})
+                return
+            # Independent audit has its own post-tournament report. Legacy
+            # paired-model Shadow remains available for older sessions.
+            independent = OUT / run_id / "independent_river_report.json"
+            if independent.is_file() and not independent.is_symlink():
+                try:
+                    report = json.loads(independent.read_text(encoding="utf-8"))
+                    if report.get("format") != "SKACHKOV_INDEPENDENT_RIVER_V1":
+                        raise ValueError("Unexpected independent audit format")
+                    self.reply(200, report)
+                except (OSError, ValueError):
+                    self.reply(503, {"error": "Не удалось прочитать независимый аудит"})
+                return
+            if (job.get("config") or {}).get("shadow_reference") == "independent_river":
+                self.reply(200, {
+                    "format": "SKACHKOV_INDEPENDENT_RIVER_V1",
+                    "mode": "independent_river", "sample_count": 0,
+                    "message": "Независимый аудит появится после завершения турнирной серии."})
                 return
             target = OUT / run_id / "gto5_shadow_report.json"
             if not target.is_file() or target.is_symlink():
