@@ -53,7 +53,8 @@ class GTO33Tests(unittest.TestCase):
                 for group, actions in GROUPS.items():
                     self.assertEqual(tuple(matrix[street][group]), actions)
         page = app.UI.read_text(encoding="utf-8")
-        self.assertIn('id="gto33Matrix"', page)
+        self.assertIn('id="modelArchiveInfo"', page)
+        self.assertNotIn('id="gto33Matrix"', page)
 
     def test_exact_three_contexts_and_action_translation(self):
         bot = StreetMatrixGTO33Bot(10)
