@@ -12,6 +12,7 @@ on:
       - test_gto531_tie_band.py
       - test_gto54_step_range.py
       - test_gto541_optimization.py
+      - benchmark_gto541.py
       - bots/gto_postflop_541.py
       - gto5_shadow_detail.py
       - test_gto_trace_exact_audit.py
@@ -41,6 +42,7 @@ on:
       - test_gto531_tie_band.py
       - test_gto54_step_range.py
       - test_gto541_optimization.py
+      - benchmark_gto541.py
       - bots/gto_postflop_541.py
       - gto5_shadow_detail.py
       - test_gto_trace_exact_audit.py
@@ -68,6 +70,8 @@ jobs:
           python-version: '3.11'
       - name: Run shadow report regression tests
         run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50 test_gto_postflop_30 test_gto505_rounding test_gto51_seniority test_gto52_seniority_shadow test_gto53_weighted_seniority test_gto531_tie_band test_gto54_step_range test_gto541_optimization test_gto_trace_exact_audit
+      - name: Benchmark GTO 5.4.1 speed without performance gate
+        run: python -u benchmark_gto541.py
       - name: Verify Shadow dashboard interaction and sorting
         run: node test_gto5_shadow_ui.js
       - name: Tournament Shadow 100% integration smoke
