@@ -80,8 +80,7 @@ POSTFLOP_ARCHIVE = frozenset({
     "baseline_sane", "nit", "loose_passive", "maniac",
     "maniac_mixed", "pressure_filler", "random",
 } | {name for name in SPLIT_PARTS
-     if name.startswith("gto_postflop_") and name.endswith("_10")
-     and name != "gto_postflop_54_10"})
+     if name.startswith("gto_postflop_") and name.endswith("_10")})
 # Archived /10 profiles keep their original memory and remain replayable.
 # Only the catalog's /5 profiles may be chosen in new sessions.
 RANDOM_ALIAS_RE = re.compile(r"random_(?:[2-9]|10)\Z")
@@ -89,7 +88,6 @@ if not PREFLOP_CHOICES | POSTFLOP_CHOICES <= SPLIT_PARTS:
     raise RuntimeError("The UI contains an unregistered bot strategy")
 if len(POSTFLOP_PRIMARY) != len(POSTFLOP_CHOICES) or any(
         name.startswith("gto_postflop_") and name.endswith("_10")
-        and name != "gto_postflop_54_10"
         for name in POSTFLOP_PRIMARY):
     raise RuntimeError("The postflop selection catalog is duplicate or includes /10")
 
@@ -439,7 +437,7 @@ def strategy_catalog():
                                  "До 5×13+13 ранговых маршрутов, не 990 рук",
                                  "Без округления; доступен в Shadow против 4.1/5.1"]
                 },
-                "gto_postflop_54_10": {
+                "gto_postflop_54_step10": {
                     "label": "GTO 5.4/10% · RAISE старт 50%, +/−10 п.п., границы 10–90%",
                     "model": "human_tie_aware_54_step10",
                     "features": ["RAISE и RERAISE: отдельное накопительное значение на OPP/улицу",
@@ -448,7 +446,7 @@ def strategy_catalog():
                                  "Fold/Call занимают оставшуюся вероятность",
                                  "Ничьи, старшинство, EV 5.3.1 сохранены"]
                 },
-                "gto_postflop_54_15": {
+                "gto_postflop_54_step15": {
                     "label": "GTO 5.4/15% · RAISE старт 50%, +/−15 п.п., границы 5–95%",
                     "model": "human_tie_aware_54_step15",
                     "features": ["Отдельная накопительная вероятность рейза/ререйза на OPP/улицу",
@@ -457,7 +455,7 @@ def strategy_catalog():
                                  "Fold/Call пропорционально разделяют остаток",
                                  "Все прочие правила 5.3.1 сохранены"]
                 },
-                "gto_postflop_54_20": {
+                "gto_postflop_54_step20": {
                     "label": "GTO 5.4/20% · RAISE старт 50%, +/−20 п.п., границы 10–90%",
                     "model": "human_tie_aware_54_step20",
                     "features": ["Отдельная накопительная вероятность рейза/ререйза на OPP/улицу",
