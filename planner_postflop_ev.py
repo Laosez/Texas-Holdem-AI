@@ -54,6 +54,9 @@ _STRATEGY_CATALOG = json.loads((Path(__file__).resolve().parent /
     "strategy_catalog" / "available_bases.json").read_text(encoding="utf-8"))
 SELECTABLE_POSTFLOP = tuple(_STRATEGY_CATALOG["postflop_selectable"])
 PROFILE_NAMES = {name: name for name in SELECTABLE_POSTFLOP}
+# Archived bots remain executable for saved plans, historic A/B experiments
+# and previously exported comparison configurations.
+PROFILE_NAMES.update({name: name for name in _STRATEGY_CATALOG.get("postflop_archived", ())})
 PROFILE_NAMES.update(_LEGACY_PROFILE_NAMES)
 PROFILE_NAMES.update({name: name for name in _STRATEGY_CATALOG["bases"]
                       if name.startswith("gto_postflop_") and name.endswith("_10")})
