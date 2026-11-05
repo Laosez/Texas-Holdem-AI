@@ -12,6 +12,8 @@ on:
       - test_gto531_tie_band.py
       - test_gto54_step_range.py
       - test_gto541_optimization.py
+      - test_independent_river_auditor.py
+      - independent_river_auditor.py
       - benchmark_gto541.py
       - bots/gto_postflop_541.py
       - gto5_shadow_detail.py
@@ -42,6 +44,8 @@ on:
       - test_gto531_tie_band.py
       - test_gto54_step_range.py
       - test_gto541_optimization.py
+      - test_independent_river_auditor.py
+      - independent_river_auditor.py
       - benchmark_gto541.py
       - bots/gto_postflop_541.py
       - gto5_shadow_detail.py
@@ -69,9 +73,33 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run shadow report regression tests
-        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50 test_gto_postflop_30 test_gto505_rounding test_gto51_seniority test_gto52_seniority_shadow test_gto53_weighted_seniority test_gto531_tie_band test_gto54_step_range test_gto541_optimization test_gto_trace_exact_audit
+        run: python -m unittest -v test_gto5_shadow_report test_gto_postflop_50 test_gto_postflop_30 test_gto505_rounding test_gto51_seniority test_gto52_seniority_shadow test_gto53_weighted_seniority test_gto531_tie_band test_gto54_step_range test_gto541_optimization test_independent_river_auditor test_gto_trace_exact_audit
       - name: Benchmark GTO 5.4.1 speed without performance gate
         run: python -u benchmark_gto541.py
+      - name: Verify independent river exporter and post-tournament report
+        env:
+          THAI_ENGINE_IMPL: legacy
+          POKER_PREFLOP_PROTOCOL: any_two_limp
+        run: |
+          python export_preflop_ranges_v4.py \
+            --players "P1=split:random:gto_postflop_541_step15,P2=split:random:random_2" \
+            --tournaments 2 --parallel 1 --seed 981 --chips 200 \
+            --sb 1 --bb 2 --blind-increase-every 20 --max-hands 150 \
+            --shadow-percent 100 --shadow-reference independent_river \
+            --out /tmp/independent_river_ci
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/independent_river_ci')
+          report=json.loads((root/'independent_river_report.json').read_text())
+          assert report['format']=='SKACHKOV_INDEPENDENT_RIVER_V1'
+          assert report['mode']=='independent_river'
+          assert 'regret_bb' not in report['overall']
+          raw=(root/'independent_river_samples.jsonl').read_text()
+          assert 'villain_hole' not in raw and 'opponent_hole' not in raw
+          legacy=json.loads((root/'gto5_shadow_report.json').read_text())
+          assert legacy['requested_reference']=='independent_river'
+          PY
       - name: Verify Shadow dashboard interaction and sorting
         run: node test_gto5_shadow_ui.js
       - name: Tournament Shadow 100% integration smoke
