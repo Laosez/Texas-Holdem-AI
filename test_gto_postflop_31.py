@@ -24,17 +24,15 @@ class GTO31Tests(unittest.TestCase):
         catalog=app.strategy_catalog()
         for n in (5,10):
             name=f"gto_postflop_31_{n}"
-            if n == 5:
-                self.assertIn(name, catalog["postflop_strategies"])
-            else:
-                self.assertNotIn(name, catalog["postflop_strategies"])
-                self.assertTrue(app.available_postflop(name))
+            self.assertNotIn(name, catalog["postflop_strategies"])
+            self.assertIn(name, app.POSTFLOP_ARCHIVE)
+            self.assertTrue(app.available_postflop(name))
             self.assertIn(name,catalog["postflop_profiles"])
             self.assertNotIn(name,catalog["preflop_strategies"])
             self.assertEqual(create_bot(name).window,n)
             self.assertEqual(create_bot("split:pc_gto_80bb:"+name).postflop_bot.window,n)
             self.assertIn(name,app.UI.read_text(encoding="utf-8"))
-        self.assertIn("gto31Matrix",app.UI.read_text(encoding="utf-8"))
+        self.assertIn('id="modelArchiveInfo"',app.UI.read_text(encoding="utf-8"))
 
     def test_last_five_vs_ten_all_actions_and_reset(self):
         a,b=AdaptiveGTO31Bot(5),AdaptiveGTO31Bot(10)
