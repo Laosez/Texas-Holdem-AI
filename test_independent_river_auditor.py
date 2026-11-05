@@ -6,7 +6,8 @@ from types import SimpleNamespace
 
 from core.engine import Action, Seat, Table
 from independent_river_auditor import (
-    FORMAT, RiverDecisionCollector, build_report)
+    FORMAT, RiverDecisionCollector, RiverAggressionCollector,
+    aggression_report, build_report)
 
 
 BOARD = [("K","s"),("9","h"),("7","d"),("5","c"),("2","h")]
@@ -130,6 +131,64 @@ class IndependentRiverAuditorTests(unittest.TestCase):
         self.assertIsNone(report["overall"]["oos_delta_ci95_bb"])
         self.assertIsNone(report["overall"]["policy_ci95_bb"])
         self.assertEqual(build_report([])["sample_count"],0)
+
+    def test_bet_raise_realized_only_from_current_stack(self):
+        auditor=RiverAggressionCollector(17, percent=100)
+        bet=scenario()
+        bet.to_call=0
+        bet.legal_actions=[{"type":"check"},{"type":"bet","min":2,"max":90}]
+        bet.hand_id=201
+        auditor.observe(bet,Action("bet",30),2,"GTO 5.4.1","Random")
+        # Opponent folds to the actual bet; Hero wins current bank.
+        auditor.settle(201, {"P1":190, "P2":0}, [
+            {"street":"river","pid":"P1","type":"bet","amount":30},
+            {"street":"river","pid":"P2","type":"fold"}])
+        [first]=auditor.records()
+        self.assertEqual(first["action"],"bet")
+        self.assertEqual(first["opponent_response"],"fold")
+        self.assertEqual(first["realized_bb"],50.0)  # (190 - 90) / 2
+        self.assertEqual(first["amount_target_bb"],15.0)
+        self.assertNotIn("regret_bb",first)
+        self.assertNotIn("ev",first)
+        self.assertNotIn("villain_hole",first)
+        summary=aggression_report(auditor.records(),auditor.counts())
+        self.assertEqual(summary["n"],1)
+        self.assertTrue(summary["not_counterfactual"])
+        self.assertIsNone(summary["by_bot_action"][0]["ci95_bb"])
+        self.assertEqual(summary["by_bot_action"][0]["opponent_responses"]["fold"],1)
+
+        raise_view=scenario()
+        raise_view.hand_id=202
+        raise_view.history=[{"street":"river","pid":"P2","type":"bet"}]
+        raise_view.stacks["P1"]=80
+        auditor.observe(raise_view,Action("raise",45),2,"GTO 5.4.1","Random")
+        auditor.settle(202, {"P1":30, "P2":150}, [
+            *raise_view.history,
+            {"street":"river","pid":"P1","type":"raise","amount":45},
+            {"street":"river","pid":"P2","type":"call"}])
+        records=auditor.records()
+        raised=next(x for x in records if x["action"]=="raise")
+        self.assertEqual(raised["opponent_response"],"call")
+        self.assertEqual(raised["realized_bb"],-25.0)
+        self.assertEqual(raised["to_call_bb"],10.0)
+
+    def test_aggression_coverage_not_mixed_with_call_fold(self):
+        collector=RiverAggressionCollector(3,percent=100)
+        view=scenario()
+        collector.observe(view,Action("call"),2,"P1","P2")
+        self.assertEqual(collector.counts()["eligible"],0)
+        view.legal_actions=[{"type":"check"},{"type":"bet","min":2,"max":90}]
+        view.to_call=0
+        view.all_in_opponents=["P2"]
+        collector.observe(view,Action("bet",10),2,"P1","P2")
+        self.assertEqual(collector.counts()["eligible"],0)
+        report=build_report([],percent=25,aggression_records=[{
+            "bot":"P1","action":"bet","tournament":3,"hand_id":1,
+            "realized_bb":2.0,"opponent_response":"fold",
+        }])
+        self.assertEqual(report["sample_count"],0)
+        self.assertEqual(report["aggression"]["n"],1)
+        self.assertNotIn("regret_bb",report["aggression"]["by_bot_action"][0])
 
     def test_engine_hook_fires_after_bot_decision_and_not_on_other_streets(self):
         class Toy:
