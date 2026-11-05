@@ -8,8 +8,7 @@ const page = fs.readFileSync('replit_ui/index.html','utf8');
 for(const marker of [
  'id="gto5ShadowPanel"', 'id="gto5ShadowRows"', 'id="gto5ShadowStatus"',
  'id="shadowPercent"', 'Independent River Auditor',
- 'id="gto30TraceDepth"', 'Последние 100', 'gto30-trace-exact',
- 'GTO 5.1 · СТАРШИНСТВО', 'Показать точный расчёт Any Two', 'href="#gto5ShadowPanel"', 'shadow-kpis',
+ 'href="#gto5ShadowPanel"', 'shadow-kpis',
  'shadow-tabs', 'shadow-overview-grid', 'shadow-hand-list',
  'GTO 5.0.5', 'GTO 5.1.5', 'function renderIndependentAuditor(', 'data.comparisons',
  'gto5-shadow-decision?decision=', 'gto5-shadow-decisions?',
@@ -35,7 +34,7 @@ const script=page.slice(scriptStart+8,scriptEnd);
 new vm.Script(script,{filename:'shadow-ui-inline.js'});
 
 const begin=script.indexOf('const SHADOW_NAV=');
-const end=script.indexOf("let gto30TraceSession=",begin);
+const end=script.indexOf('function present(s){',begin);
 assert.ok(begin>=0&&end>begin);
 const ctx={};vm.createContext(ctx);
 vm.runInContext(script.slice(begin,end)+
@@ -63,7 +62,7 @@ assert.equal(byMean[0].label,'river','mean regret must order river first');
 assert.equal(m.sort(sample,'total_regret_bb','river',true,true)[0].label,'river');
 assert.equal(m.sort(sample,'total_regret_bb','',false,true).length,4);
 assert.equal(m.format(.35),'0,35');
-console.log('Shadow dashboard: real inline JS parses, 7 tabs, responsive sections, sample filters and sorting verified');
+console.log('Independent river dashboard and archived Shadow read-only fallback: JS parses and legacy filters verified');
 
 // The expensive-decisions view is fully visible, without per-card spoilers.
 const inline=page.slice(page.indexOf('function shadowPaintDecision('),
@@ -74,8 +73,10 @@ assert.ok(inline.includes('SHADOW-СОПОСТАВЛЕНИЯ'),
   'paired EV must be visible inline');
 assert.ok(!inline.includes("el('details'"),
   'no nested expanders allowed in inline costly errors');
-assert.ok(page.includes('id="gto30TracePanel" open'),
-  'recent street logs should open by default');
+assert.ok(!page.includes('gto30TracePanel') && !page.includes('id="gto30TraceDepth"'),
+  'obsolete 100-hand decision trace should be removed from page 1');
+assert.ok(page.includes('id="technicalLogPanel"'),
+  'technical execution log must remain available in collapsed form');
 assert.ok(page.includes('id="storageBreakdownRows"'),
   'storage audit must show largest files in the UI');
 
