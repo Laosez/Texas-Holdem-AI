@@ -110,7 +110,9 @@ class GTO54StepWidthTests(unittest.TestCase):
         self.assertEqual(b._range_widths[("P2", "river", "vs_raise")], .7)
         self.assertNotIn(("P2", "river", "vs_bet"), b._range_widths)
         groups = {"P2": b._street_matrix_54("P2")}
-        self.assertEqual(b._band_54("P2", "river", hist, groups), (.30, 1.))
+        low, high = b._band_54("P2", "river", hist, groups)
+        self.assertAlmostEqual(low, .30)
+        self.assertAlmostEqual(high, 1.)
         self.assertAlmostEqual(groups["P2"]["river"]["vs_bet"]["raise"]["p"], .5)
 
     def test_only_fully_legal_opp_choices_update_state(self):
