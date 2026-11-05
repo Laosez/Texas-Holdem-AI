@@ -25,12 +25,18 @@ class GTO21VariantTests(unittest.TestCase):
         for letter in "abcdef":
             name = "gto_postflop_21" + letter
             with self.subTest(variant=letter):
-                self.assertIn(name, available)
+                if letter == "c":
+                    self.assertIn(name, available)
+                else:
+                    self.assertIn(name, app.strategy_catalog()["postflop_archived"])
+                    self.assertNotIn(name, available)
+                self.assertTrue(app.available_postflop(name))
                 self.assertIn(name, app.strategy_catalog()["postflop_profiles"])
                 self.assertIsInstance(create_bot(name), GTOPostflop21VariantBot)
                 split = create_bot("split:a17_preflop:" + name)
                 self.assertEqual(split.postflop_name, name)
-        self.assertIn("gto21Variants", app.UI.read_text(encoding="utf-8"))
+        self.assertIn('id="modelArchiveInfo"', app.UI.read_text(encoding="utf-8"))
+        self.assertNotIn("gto21Variants", app.UI.read_text(encoding="utf-8"))
         self.assertEqual(app.validate_config({"preflop_protocol": "any_two_limp"})["preflop_protocol"],
                          "any_two_limp")
 

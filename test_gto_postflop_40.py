@@ -30,13 +30,11 @@ class GTO40Tests(unittest.TestCase):
             name="gto_postflop_40_"+str(window)
             b=create_bot(name)
             self.assertIsInstance(b,StreetEVGTO40Bot)
-            if window == 5:
-                self.assertIn(name, app.strategy_catalog()["postflop_strategies"])
-            else:
-                self.assertNotIn(name, app.strategy_catalog()["postflop_strategies"])
-                self.assertTrue(app.available_postflop(name))
+            self.assertNotIn(name, app.strategy_catalog()["postflop_strategies"])
+            self.assertIn(name, app.POSTFLOP_ARCHIVE)
+            self.assertTrue(app.available_postflop(name))
             self.assertEqual(create_bot("split:a17_preflop:"+name).postflop_name,name)
-        self.assertIn('id="gto40Matrix"',app.UI.read_text(encoding="utf-8"))
+        self.assertIn('id="modelArchiveInfo"',app.UI.read_text(encoding="utf-8"))
 
     def test_quantile_band(self):
         a=[(1,.9),(2,.7),(3,.3),(4,.1)]
