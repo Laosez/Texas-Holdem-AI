@@ -87,7 +87,7 @@ class S100Tests(unittest.TestCase):
         self.assertEqual(bot.postflop_bot.profile, "s100_postflop_v1")
         self.assertEqual(ev.PROFILE_NAMES["s100"], "s100_postflop_v1")
         catalog = app.strategy_catalog()
-        self.assertIn("s100_postflop_v1", catalog["postflop_strategies"])
+        self.assertIn("s100_postflop_v1", catalog["postflop_archived"])
         self.assertNotIn("s100_postflop_v1", catalog["preflop_strategies"])
         self.assertGreaterEqual(len(catalog["postflop_strategies"]), 10)
         self.assertIn("gto_postflop_41_5", catalog["postflop_strategies"])
