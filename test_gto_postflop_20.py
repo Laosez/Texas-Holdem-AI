@@ -71,7 +71,8 @@ class GTO20Tests(unittest.TestCase):
                   "gto_postflop_505_5",
                   "gto_postflop_51_5",
                   "gto_postflop_515_5", "gto_postflop_52_5", "gto_postflop_53_5", "gto_postflop_531_5",
-                  "gto_postflop_54_step10", "gto_postflop_54_step15", "gto_postflop_54_step20"}
+                  "gto_postflop_54_step10", "gto_postflop_54_step15", "gto_postflop_54_step20",
+                  "gto_postflop_541_step15"}
         self.assertEqual({name for name in catalog["postflop_strategies"]
                           if name.startswith("gto_postflop_")},expected)
         self.assertEqual(ev.PROFILE_NAMES["gto"],"gto_postflop_v1")
