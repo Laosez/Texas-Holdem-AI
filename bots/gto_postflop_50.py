@@ -39,7 +39,7 @@ OFFSETS = {
 }
 X_ANY_TWO = 5.88
 SHADOW_CHOICES = (0, 10, 25, 100)
-SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20")
+SHADOW_REFERENCES = ("gto41", "gto50", "gto505", "gto51", "gto515", "gto52", "gto53", "gto531", "gto54_10", "gto54_15", "gto54_20", "gto541")
 
 
 def round_probability_to_five(value):
@@ -162,7 +162,7 @@ def _hero_quantile(view, dist):
     return max(.01, min(.99, q)), category
 
 
-def _hero_quantile_51(view, dist, seniority_version=51, *, tie_aware=False):
+def _hero_quantile_51(view, dist, seniority_version=51, *, tie_aware=False, seniority_resolver=None):
     """Rank-aware Hero percentile, replacing category midpoint 0.5.
 
     A rank-only danger/safe fraction is weighted by the opponent made-hand
@@ -175,10 +175,13 @@ def _hero_quantile_51(view, dist, seniority_version=51, *, tie_aware=False):
         return .50, category, {"method": "no mass", "win_fraction": .5}
     seniority_fn = {51: hero_seniority, 52: hero_seniority_52,
                     53: hero_seniority_53}[seniority_version]
-    win_fraction, rule = seniority_fn(
-        hole, board,
-        category_mass=dist["unrounded_probability_mass"][category],
-        pocket_pair_pct=X_ANY_TWO)
+    if seniority_resolver is not None and seniority_version == 53:
+        win_fraction, rule = seniority_resolver(hole, board)
+    else:
+        win_fraction, rule = seniority_fn(
+            hole, board,
+            category_mass=dist["unrounded_probability_mass"][category],
+            pocket_pair_pct=X_ANY_TWO)
     q = sum(masses[:category]) + masses[category] * win_fraction
     # GTO 5.3.1 ONLY: retain the exact tie interval instead of collapsing
     # ties to the single midpoint percentile. Other versions stay unchanged.
@@ -226,13 +229,14 @@ def _band(pid, street, history, groups):
     return _band_for(pid, street, history, groups[pid][street])
 
 
-def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False, seniority_version=51, tie_aware=False, band_resolver=None):
+def _estimate_actions(view, groups, distribution, bet_size, *, rank_aware=False, seniority_version=51, tie_aware=False, band_resolver=None, seniority_resolver=None):
     """Quick EV approximation using category quantiles and response frequencies."""
     opponents = [str(p) for p in (view.opponents or ())]
     seniority_inputs = {}
     if rank_aware:
         rank, category, rule = _hero_quantile_51(
-            view, distribution, seniority_version, tie_aware=tie_aware)
+            view, distribution, seniority_version, tie_aware=tie_aware,
+            seniority_resolver=seniority_resolver)
         seniority_inputs["seniority"] = rule
         seniority_inputs["hero_quantile"] = round(rank, 6)
     else:
@@ -349,6 +353,9 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
             return RankAwareGTO53Bot(window=5, shadow_percent=0)
         if self.shadow_reference_kind == "gto531":
             return RankAwareGTO531Bot(window=5, shadow_percent=0)
+        if self.shadow_reference_kind == "gto541":
+            from bots.gto_postflop_541 import RankAwareGTO541Bot
+            return RankAwareGTO541Bot(window=5, shadow_percent=0)
         for step in (10, 15, 20):
             if self.shadow_reference_kind == "gto54_" + str(step):
                 return RankAwareGTO54Bot(step_pct=step, window=5, shadow_percent=0)
@@ -390,7 +397,10 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
         groups = {pid: (self._street_matrix_54(pid)
                         if getattr(self, "range_step_pct", None) else self.street_matrix(pid))
                   for pid in opponents}
-        dist = board_distribution(view.board, round_to_five=self.round_step == 5)
+        distribution_resolver = getattr(self, "_distribution_541", None)
+        dist = (distribution_resolver(view.board)
+                if distribution_resolver is not None
+                else board_distribution(view.board, round_to_five=self.round_step == 5))
         bet = _amount(view, .50) if not call and "bet" in legal else None
         size = int(bet.amount) if bet and bet.type == "bet" else None
         if dist["formula_status"] == "special_board":
@@ -404,7 +414,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                                            rank_aware=self.rank_aware,
                                             seniority_version=self.seniority_version,
                                            tie_aware=getattr(self, "tie_aware", False),
-                                           band_resolver=getattr(self, "_band_54", None))
+                                           band_resolver=getattr(self, "_band_54", None),
+                                           seniority_resolver=getattr(self, "_seniority_541", None))
             if call and {"fold", "call"} <= set(legal):
                 action = Action("call" if ev.get("call", -1) > 0 else "fold")
             elif not call and {"bet", "check"} <= set(legal) and size is not None:
@@ -422,7 +433,8 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                     "gto531": "gto5.3.1-tie-alpha",
                     "gto54_10": "gto5.4-step10-alpha",
                     "gto54_15": "gto5.4-step15-alpha",
-                    "gto54_20": "gto5.4-step20-alpha"}
+                    "gto54_20": "gto5.4-step20-alpha",
+                    "gto541": "gto5.4.1-step15-cached-alpha"}
         self.last_model = {
             "version": versions[self.actor_kind],
             "distribution": dist,
@@ -464,7 +476,9 @@ class HumanRangeGTO50Bot(StreetMatrixGTO33Bot):
                 } for pid in opponents],
                 "ev": self.last_model["ev"], "equity_model": inputs,
                 "distribution": dist,
-                "reason": ("GTO 5.4: accumulated RAISE/RERAISE width (50%, step "
+                "reason": ("GTO 5.4.1: GTO 5.4/15% with memoized board/rank/opponent contexts"
+                           if self.actor_kind == "gto541" else
+                           "GTO 5.4: accumulated RAISE/RERAISE width (50%, step "
                            + str(self.range_step_pct) + " pp)"
                            if getattr(self, "range_step_pct", None) else
                            "GTO 5.3.1: tie-aware opponent action-band equity"
