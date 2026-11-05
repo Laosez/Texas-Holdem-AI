@@ -34,7 +34,7 @@ def view(street="flop", board=None, to_call=0, opponents=None):
 class GTO50Tests(unittest.TestCase):
     def test_registration_and_shared_catalog(self):
         import replit_simulator as app
-        self.assertIn("gto_postflop_50_5", app.strategy_catalog()["postflop_strategies"])
+        self.assertIn("gto_postflop_50_5", app.strategy_catalog()["postflop_archived"])
         self.assertEqual(app.strategy_catalog()["postflop_profiles"]["gto_postflop_50_5"]["model"],
                          "human_board_ev_alpha")
         bot = create_bot("split:random:gto_postflop_50_5")
