@@ -199,28 +199,12 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <div class="field wide"><label for="preflop_protocol">Префлоп · правила эксперимента</label>
 <select id="preflop_protocol"><option value="standard_v1" selected>Единый протокол V1 · сравнение RFI</option><option value="legacy">Исходные стратегии · без стандартизации</option><option value="any_two_limp">Any Two · все доставляют, постфлоп по стратегиям</option></select>
 <p class="note"><strong>Any Two:</strong> все 2–9 игроков обязательно входят в банк с любыми картами: на префлопе только Call/Check (без рейзов и фолдов); начиная с флопа каждый играет по выбранной Postflop-стратегии. Префлоп-чарты в этом режиме не используются. В режиме V1 сохраняются индивидуальные диапазоны открытия, но ответы и сайзинги стандартизированы. Это экспериментальные режимы, не GTO.</p></div>
-<div class="field wide"><label for="shadowPercent">Shadow Mode · доля проверяемых решений</label>
+<div class="field wide"><label for="shadowPercent">Independent Auditor · доля проверяемых решений</label>
 <select id="shadowPercent"><option value="0" selected>Выкл. · максимальная скорость</option>
 <option value="10">10% решений · экономно</option><option value="25">25% решений · калибровка</option>
-<option value="100">100% решений · полный аудит, медленно</option></select>
-<p class="note">Independent Auditor записывает случайную выборку терминальных решений на ривере и анализирует её после турниров, без запуска эталонного бота. Покрытие — HU FOLD/CALL; другие ситуации пока не оцениваются. Legacy Shadow сравнивает EV моделей во время игры.</p></div>
-<div class="field wide"><label for="shadowReference">Shadow Mode · с какой моделью сравнить</label>
-<select id="shadowReference">
-<option value="independent_river" selected>Independent River Auditor · реальные исходы HU FOLD/CALL</option>
-<option value="gto41">GTO 4.1 · эталон для 5.0 / 5.0.5</option>
-<option value="gto50">GTO 5.0 · сравнить игру GTO 5.0.5 с 5.0</option>
-<option value="gto505">GTO 5.0.5 · эталон для 5.0 / 5.1 / 5.1.5</option>
-<option value="gto51">GTO 5.1 · старшинство без округления</option>
-<option value="gto515">GTO 5.1.5 · старшинство + округление до 5%</option>
-<option value="gto52">GTO 5.2 · исправленное старшинство (эксперимент)</option>
-<option value="gto53">GTO 5.3 · взвешенное старшинство (Any Two)</option>
-<option value="gto531">GTO 5.3.1 · учёт ничьих в диапазоне ставки</option>
-<option value="gto54_10">GTO 5.4/10% · накопительный рейз, 10–90%</option>
-<option value="gto54_15">GTO 5.4/15% · накопительный рейз, 5–95%</option>
-<option value="gto541">GTO 5.4.1/15% · оптимизированная версия 5.4/15%</option>
-<option value="gto54_20">GTO 5.4/20% · накопительный рейз, 10–90%</option>
-</select>
-<p class="note"><strong>Independent River Auditor:</strong> использует реальные скрытые карты только после выбора действия. В отчёте — исходы CALL/FOLD, среднее по выборке, 95% ДИ и контрольная политика на других турнирах. Одна раскрытая раздача не определяет оптимальное решение. Остальные пункты оставлены как Legacy Shadow; их EV Regret не является истиной солвера.</p></div>
+<option value="100">100% подходящих решений · максимальная выборка</option></select>
+<p class="note"><strong>Independent River Auditor</strong> — единственный Shadow-режим. После турниров оценивает фактические альтернативы FOLD/CALL на ривере в HU, не вызывая GTO 4.1 или другую эталонную модель. Сравнивает результаты по выборке, без знания карт соперника при принятии решений. RAISE, мультипоты, флоп и тёрн пока не оцениваются. Для всех игровых стратегий.</p></div>
+
 </div><p class="note" id="parallelNote">Турниры уже рассчитываются в 1–4 отдельных процессах. Railway автоматически ограничивает их число доступной RAM, чтобы избежать OOM. При увеличении памяти лимит повышается автоматически.</p>
 </section>
 <section class="panel"><div class="heading"><h2>Подключение к Railway</h2><span class="badge">Защищённый API</span></div><div class="field"><label for="key">POKER_RUNNER_KEY</label><input type="password" id="key" autocomplete="off" placeholder="Ключ доступа к симулятору"></div><div class="buttons"><button class="btn" id="connect">Подключиться</button><button class="btn outline" id="forget">Очистить ключ</button></div><p class="note">Полный резервный ZIP позволяет перенести и восстановить все сессии через кнопки выше без перезаписи старых ID. Для защиты от потери Railway Volume сохраняй копию на отдельном устройстве. Автоматический внешний S3-бэкап требует отдельного хранилища.</p></section>
@@ -390,7 +374,7 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 </div>
 <section class="panel resultsPanel"><div class="heading"><h2><span class="index">03 / </span>Сессии и результаты</h2><div class="buttons" style="margin:0;align-items:center"><span id="sessionProtocol" class="badge">Префлоп: —</span><span id="runStatus" class="badge">—</span></div></div>
 <div class="toolbar"><div class="field"><label for="sessionSelect">Выбор сессии</label><select id="sessionSelect"><option value="">— Нет сессий —</option></select></div><button class="btn" id="refresh">↻ Обновить</button></div>
-<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="#analysis">↓ Анализ сессии</a><a class="btn" href="#gto5ShadowPanel">ΔEV · Shadow</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="compactCheckpoints" title="Удалить чекпойнты только завершённых сессий; отчёты и прерванные сессии не затрагиваются">Освободить место</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
+<div class="sessionActions"><a class="btn primary" id="openAnalysis" href="#analysis">↓ Анализ сессии</a><a class="btn" href="#gto5ShadowPanel">Independent Auditor</a><button class="btn" id="download" disabled>↓ Скачать ZIP</button><button class="btn" id="upload">↑ Загрузить ZIP</button><button class="btn" id="restore" disabled>↺ Настройки</button><button class="btn danger" id="remove" disabled>В корзину</button><button class="btn" id="trash">↶ Корзина</button><button class="btn" id="checkData">✓ Аудит файлов</button><button class="btn" id="compactCheckpoints" title="Удалить чекпойнты только завершённых сессий; отчёты и прерванные сессии не затрагиваются">Освободить место</button><button class="btn" id="backupAll">↓ Архив всех сессий</button><button class="btn" id="restoreAll">↑ Восстановить архив</button><input class="hide" type="file" id="fullBackupFile" accept=".zip,application/zip"><input class="hide" type="file" id="file" accept=".zip,application/zip"></div>
 <div class="trashPanel" id="trashPanel" hidden>
 <div class="trashHeader"><strong>Корзина турниров</strong><span class="muted" id="trashCount">0 сессий</span><button class="btn sm" id="trashReload" type="button">↻ Обновить</button></div>
 <div id="trashItems" class="trashItems"><p class="note">Нажми «Корзина», чтобы загрузить список.</p></div>
@@ -407,14 +391,14 @@ main.simulatorLayout{grid-template-columns:minmax(0,1fr)}
 <section class="panel shadow-workspace" id="gto5ShadowPanel">
   <div class="heading shadow-head">
     <div>
-      <div class="shadow-eyebrow">КАЛИБРОВКА · GTO 5.0–5.3.1 · ВСЕ УЛИЦЫ</div>
-      <h2>Shadow Mode <span class="shadow-head-sub">Сравнение решений и EV двух стратегий</span></h2>
-      <p class="note">Игрок действует самостоятельно, эталон рассчитывает альтернативный EV. Разрезы: улицы, оппоненты и структура P/S/F</p>
+      <div class="shadow-eyebrow">НЕЗАВИСИМЫЙ АУДИТ · HU · РИВЕР</div>
+      <h2>Independent River Auditor <span class="shadow-head-sub">Фактические альтернативные исходы · FOLD/CALL</span></h2>
+      <p class="note">Не использует GTO 4.1 как эталон. Скрытые карты анализируются только после реального действия; решение оценивается статистически по независимым турнирам, а не по единственной раскрытой руке. Старые Shadow-отчёты доступны только для чтения.</p>
     </div>
     <span class="badge" id="gto5ShadowStatus">Нет данных</span>
   </div>
   <div id="gto5ShadowRows" class="shadow-report-body">
-    <p class="note">Выбери завершённую сессию с GTO 5.x и включённым Shadow Mode.</p>
+    <p class="note">Выбери завершённую сессию с включённым Independent Auditor (10/25/100%).</p>
   </div>
 </section>
 <section class="panel" id="analysis" style="grid-column:1/-1;min-width:0">
@@ -528,14 +512,14 @@ function drawBots(){
 }
 function reset(){
  bots=preset.map(x=>({pre:x[0],post:x[1]}));
- Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);$('shadowPercent').value='0';$('shadowReference').value='independent_river';drawBots();
+ Object.entries({tournaments:90,parallel:1,seed:2042,chips:500,sb:1,bb:2,blind_increase_every:50,max_hands:10000,seat_mode:'rotate',button_policy:'dead_button',preflop_protocol:'standard_v1'}).forEach(([k,v])=>$(k).value=v);$('shadowPercent').value='0';drawBots();
 }
 function config(){
  if(!valid())throw Error('Стратегия одного из игроков не заполнена');
  const c={bots:bots.map(x=>({...x})),seat_mode:$('seat_mode').value,
   button_policy:$('button_policy').value,preflop_protocol:$('preflop_protocol').value,
   shadow_percent:Number($('shadowPercent').value),
-  shadow_reference:$('shadowReference').value};
+  shadow_reference:'independent_river'};
  for(const id of numeric){const inp=$(id),v=Number(inp.value);if(!inp.value.trim()||!Number.isSafeInteger(v)||v<Number(inp.min||0)||(inp.max&&v>Number(inp.max)))throw Error('Некорректное поле: '+id);c[id]=v}
  if(c.bb<c.sb)throw Error('Big Blind должен быть не меньше Small Blind');return c;
 }
@@ -1098,7 +1082,7 @@ function renderGTO5Shadow(){
  if(!data.compared){
   if(status)status.textContent='Нет данных';
   root.append(el('div','shadow-empty',data.message||
-   'Нет сопоставленных решений. Выбери GTO 5.x и включи Shadow Mode 10/25/100% с другой эталонной моделью.'));
+   'Нет записанных решений Independent Auditor. Выбери подходящую завершённую сессию с выборкой 10/25/100%.'));
   return;
  }
  const pairs=data.comparisons||[];
@@ -1505,7 +1489,7 @@ $('restore').onclick=()=>{
  // Old archived sessions were played with a moving button.
  $('button_policy').value=c.button_policy||'moving';
  $('shadowPercent').value=String(c.shadow_percent||0);
- $('shadowReference').value=c.shadow_reference||'gto41';
+ // Archived comparative Shadow cannot be selected for a new session; only independent_river is supported.
  drawBots();scrollTo({top:0,behavior:'smooth'});
  feedback(valid()?'Параметры скопированы. Новая серия ещё не запущена.':'Настройки восстановлены, но часть исторических стратегий скрыта новым каталогом — замени пустые поля перед запуском.',!valid());
 };
