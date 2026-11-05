@@ -441,14 +441,16 @@ def run_one(task):
     observed_bb = {}
     instances=[]
     quality = None
+    aggression = None
     if (os.getenv("POKER_GTO5_SHADOW_REFERENCE") == "independent_river"
             and int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0")) > 0):
-        from independent_river_auditor import RiverDecisionCollector
+        from independent_river_auditor import RiverDecisionCollector, RiverAggressionCollector
+        quota = int(os.getenv("POKER_INDEPENDENT_RIVER_MAX_PER_TOURNAMENT", "128"))
+        percent = int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0"))
         quality = RiverDecisionCollector(
-            tournament_id,
-            percent=int(os.getenv("POKER_GTO5_SHADOW_PERCENT", "0")),
-            max_samples=int(os.getenv("POKER_INDEPENDENT_RIVER_MAX_PER_TOURNAMENT", "128")),
-        )
+            tournament_id, percent=percent, max_samples=quota)
+        aggression = RiverAggressionCollector(
+            tournament_id, percent=percent, max_samples=quota)
     old=runner.create_bot
     old_table=runner.make_table
     specs=[(f'P{i+1}',bot,None) for i,bot in enumerate(names)]
@@ -488,7 +490,10 @@ def run_one(task):
                     opponent_policy = getattr(opponent.inner, "profile", opponent.name)
                 quality.observe(view, action, villain_cards, current_bb,
                                 actor.name, opponent_policy)
+                aggression.observe(view, action, current_bb,
+                                   actor.name, opponent_policy)
             table.on_independent_river_decision = river_hook
+            table.on_independent_river_hand_complete = aggression.settle
         return table
     runner.create_bot=factory
     runner.make_table=table_factory
@@ -522,6 +527,8 @@ def run_one(task):
         if quality is not None:
             result['independent_river'] = quality.records()
             result['independent_river_counts'] = quality.counts()
+            result['independent_aggression'] = aggression.records()
+            result['independent_aggression_counts'] = aggression.counts()
         timings = [
             {'bot': bot.name, 'street': street, **dict(stats)}
             for bot in instances
@@ -971,7 +978,11 @@ def main():
     independent_path = Path(a.out) / 'independent_river_samples.jsonl'
     independent_stream = (independent_path.open('w', encoding='utf-8')
                           if independent_mode else None)
+    aggression_path = Path(a.out) / 'independent_river_aggression.jsonl'
+    aggression_stream = (aggression_path.open('w', encoding='utf-8')
+                         if independent_mode else None)
     independent_counts = defaultdict(int)
+    aggression_counts = defaultdict(int)
     postflop_aggregate=defaultdict(lambda:defaultdict(float))
     def ingest(result):
         nonlocal total_hands, last_adaptive_traces, last_adaptive_tournament
@@ -992,6 +1003,13 @@ def main():
         for item in outcome.pop('independent_river', ()):
             if independent_stream is not None:
                 independent_stream.write(json.dumps(
+                    item, ensure_ascii=False, separators=(',', ':'))+'\n')
+        for key, value in outcome.pop('independent_aggression_counts', {}).items():
+            if key != 'max_samples_per_tournament':
+                aggression_counts[key] += value
+        for item in outcome.pop('independent_aggression', ()):
+            if aggression_stream is not None:
+                aggression_stream.write(json.dumps(
                     item, ensure_ascii=False, separators=(',', ':'))+'\n')
         for item in postflop:
             if item.get('street') is not None:
@@ -1030,11 +1048,16 @@ def main():
     shadow_stream.close()
     if independent_stream is not None:
         independent_stream.close()
+        aggression_stream.close()
         from independent_river_auditor import build_report
-        with independent_path.open('r', encoding='utf-8') as audit_stream:
+        with independent_path.open('r', encoding='utf-8') as audit_stream, (
+                aggression_path.open('r', encoding='utf-8')) as aggression_input:
             independent_report = build_report(
                 (json.loads(line) for line in audit_stream if line.strip()),
-                percent=a.shadow_percent, collection_counts=independent_counts)
+                percent=a.shadow_percent, collection_counts=independent_counts,
+                aggression_records=(json.loads(line) for line in aggression_input
+                                    if line.strip()),
+                aggression_counts=aggression_counts)
         write_json(Path(a.out) / 'independent_river_report.json',
                    independent_report)
     from gto5_shadow_report import aggregate_shadow
