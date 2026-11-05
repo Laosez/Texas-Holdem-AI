@@ -11,9 +11,9 @@ class GTO54StepWidthTests(unittest.TestCase):
         for step, bounds in ((10, (.10, .90)), (15, (.05, .95)),
                              (20, (.10, .90))):
             with self.subTest(step=step):
-                b = create_bot("gto_postflop_54_" + str(step))
+                b = create_bot("gto_postflop_54_step" + str(step))
                 self.assertEqual(b.actor_kind, "gto54_" + str(step))
-                self.assertEqual(b.profile, "gto_postflop_54_" + str(step))
+                self.assertEqual(b.profile, "gto_postflop_54_step" + str(step))
                 self.assertEqual(b.range_step_pct, step)
                 self.assertTrue(b.tie_aware)
                 self.assertEqual(b.seniority_version, 53)
@@ -127,7 +127,7 @@ class GTO54StepWidthTests(unittest.TestCase):
         import replit_simulator as app
         cat = app.strategy_catalog()
         for step in (10, 15, 20):
-            code = "gto_postflop_54_" + str(step)
+            code = "gto_postflop_54_step" + str(step)
             self.assertIn(code, cat["postflop_strategies"])
             self.assertIn(code, cat["postflop_profiles"])
             self.assertEqual(create_bot("split:random:" + code).postflop_bot.profile, code)
