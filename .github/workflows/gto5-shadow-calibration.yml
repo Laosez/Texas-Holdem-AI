@@ -94,6 +94,7 @@ jobs:
           report=json.loads((root/'independent_river_report.json').read_text())
           assert report['format']=='SKACHKOV_INDEPENDENT_RIVER_V1'
           assert report['mode']=='independent_river'
+          assert report['sample_count'] > 0, 'Expected real HU river decisions in integration smoke'
           assert 'regret_bb' not in report['overall']
           raw=(root/'independent_river_samples.jsonl').read_text()
           assert 'villain_hole' not in raw and 'opponent_hole' not in raw
