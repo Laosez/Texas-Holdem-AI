@@ -80,7 +80,8 @@ POSTFLOP_ARCHIVE = frozenset({
     "baseline_sane", "nit", "loose_passive", "maniac",
     "maniac_mixed", "pressure_filler", "random",
 } | {name for name in SPLIT_PARTS
-     if name.startswith("gto_postflop_") and name.endswith("_10")})
+     if name.startswith("gto_postflop_") and name.endswith("_10")
+     and name != "gto_postflop_54_10"})
 # Archived /10 profiles keep their original memory and remain replayable.
 # Only the catalog's /5 profiles may be chosen in new sessions.
 RANDOM_ALIAS_RE = re.compile(r"random_(?:[2-9]|10)\Z")
@@ -88,6 +89,7 @@ if not PREFLOP_CHOICES | POSTFLOP_CHOICES <= SPLIT_PARTS:
     raise RuntimeError("The UI contains an unregistered bot strategy")
 if len(POSTFLOP_PRIMARY) != len(POSTFLOP_CHOICES) or any(
         name.startswith("gto_postflop_") and name.endswith("_10")
+        and name != "gto_postflop_54_10"
         for name in POSTFLOP_PRIMARY):
     raise RuntimeError("The postflop selection catalog is duplicate or includes /10")
 
