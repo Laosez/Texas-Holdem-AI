@@ -552,6 +552,13 @@ class Table:
                 on_hand_pot = getattr(self, "on_hand_pot", None)
                 if callable(on_hand_pot):
                     on_hand_pot(hand_id, total_pot, big_blind)
+                on_river_audit_finish = getattr(
+                    self, "on_independent_river_hand_complete", None)
+                if callable(on_river_audit_finish):
+                    on_river_audit_finish(
+                        hand_id,
+                        {player: seat.chips for player, seat in by_pid.items()},
+                        tuple(history))
                 notify_postflop_observers()
                 on_hand_end = getattr(self, "on_hand_end", None)
                 if callable(on_hand_end):
@@ -600,6 +607,13 @@ class Table:
             for pid in start_chips
         }
 
+        on_river_audit_finish = getattr(
+            self, "on_independent_river_hand_complete", None)
+        if callable(on_river_audit_finish):
+            on_river_audit_finish(
+                hand_id,
+                {player: seat.chips for player, seat in by_pid.items()},
+                tuple(history))
         notify_postflop_observers()
         on_hand_end = getattr(self, "on_hand_end", None)
         if callable(on_hand_end):
