@@ -631,7 +631,7 @@ class RankAwareGTO54Bot(RankAwareGTO531Bot):
         super().__init__(window=window, shadow_percent=shadow_percent,
                          shadow_reference=shadow_reference)
         self.range_step_pct = step_pct
-        self.profile = "gto_postflop_54_" + str(step_pct)
+        self.profile = "gto_postflop_54_step" + str(step_pct)
 
     def reset_memory(self):
         super().reset_memory()
